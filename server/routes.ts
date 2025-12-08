@@ -1508,6 +1508,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Send contract via email
+  app.post("/api/contracts/:id/send-email", isAuthenticated, async (req: any, res) => {
+    try {
+      const contract = await storage.getContract(req.params.id);
+      if (!contract) {
+        return res.status(404).json({ error: "Contract not found" });
+      }
+
+      const userId = req.user.claims.sub;
+      if (contract.artistId !== userId) {
+        return res.status(403).json({ error: "You can only send your own contracts" });
+      }
+
+      const { recipientEmail } = req.body;
+      if (!recipientEmail || !recipientEmail.includes('@')) {
+        return res.status(400).json({ error: "Valid email address required" });
+      }
+
+      const { sendContractEmail } = await import('../server/emailService');
+      const result = await sendContractEmail({
+        toEmail: recipientEmail,
+        clientName: contract.clientName || "Client",
+        packageDetails: contract.packageDetails || "Beauty Services",
+        totalAmount: contract.totalAmount ? contract.totalAmount / 100 : 0,
+        depositAmount: contract.depositAmount ? contract.depositAmount / 100 : 0,
+        senderName: `${req.user.claims.email}`
+      });
+
+      res.json({ success: true, message: "Contract email sent successfully" });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   app.get("/api/contracts/booking/:bookingId", isAuthenticated, async (req, res) => {
     try {
       const contracts = await storage.getContractsByBooking(req.params.bookingId);
