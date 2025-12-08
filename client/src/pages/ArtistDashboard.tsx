@@ -163,6 +163,7 @@ export default function ArtistDashboard() {
               clientEmail: b.clientInfo?.email || b.clientEmail,
               clientPhone: b.clientInfo?.phone,
               isContact: b.clientInfo?.isContact || false,
+              dayOfReminders: b.dayOfReminders || "",
             };
           }));
           
