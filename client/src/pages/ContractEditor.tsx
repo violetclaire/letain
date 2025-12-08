@@ -1,0 +1,734 @@
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "wouter";
+import { ArrowLeft, Save, FileText, Upload, Download, DollarSign, Calendar, MapPin, Users, Percent, Building, User, X, Plus, Check } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+interface ContractFormData {
+  clientName: string;
+  contractDate: string;
+  eventDate: string;
+  eventLocation: string;
+  serviceLocation: string;
+  numberOfServices: number;
+  serviceDetails: string;
+  totalAmount: number;
+  depositPercent: number;
+  depositAmount: number;
+  remainingBalance: number;
+  businessName: string;
+  artistName: string;
+}
+
+export default function ContractEditor() {
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
+
+  const [formData, setFormData] = useState<ContractFormData>({
+    clientName: "",
+    contractDate: new Date().toISOString().split('T')[0],
+    eventDate: "",
+    eventLocation: "",
+    serviceLocation: "",
+    numberOfServices: 1,
+    serviceDetails: "Bridal Beauty Services",
+    totalAmount: 0,
+    depositPercent: 30,
+    depositAmount: 0,
+    remainingBalance: 0,
+    businessName: "",
+    artistName: "",
+  });
+
+  const [uploadedPdf, setUploadedPdf] = useState<File | null>(null);
+  const [useCustomTemplate, setUseCustomTemplate] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+
+  const { data: artistProfile } = useQuery({
+    queryKey: ["artistProfile", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const res = await fetch(`/api/artist-profiles/${user.id}`, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!user,
+  });
+
+  const { data: clients = [] } = useQuery({
+    queryKey: ["artistBookings", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const res = await fetch(`/api/bookings/artist/${user.id}`, { credentials: "include" });
+      if (!res.ok) return [];
+      const bookings = await res.json();
+      return bookings.map((b: any) => ({
+        id: b.clientId,
+        name: b.clientName,
+        eventDate: b.eventDate,
+        location: b.location,
+        bookingId: b.id,
+      }));
+    },
+    enabled: !!user,
+  });
+
+  const { data: existingContracts = [] } = useQuery({
+    queryKey: ["artistContracts", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const res = await fetch(`/api/contracts/artist/${user.id}`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!user,
+  });
+
+  const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
+  const [isLoadingContract, setIsLoadingContract] = useState(false);
+
+  const { data: selectedContract } = useQuery({
+    queryKey: ["contract", selectedContractId],
+    queryFn: async () => {
+      if (!selectedContractId) return null;
+      const res = await fetch(`/api/contracts/${selectedContractId}`, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!selectedContractId,
+  });
+
+  useEffect(() => {
+    if (selectedContract) {
+      setIsLoadingContract(true);
+      const totalInDollars = selectedContract.totalAmount ? selectedContract.totalAmount / 100 : 0;
+      const depositInDollars = selectedContract.depositAmount ? selectedContract.depositAmount / 100 : 0;
+      const remainingInDollars = selectedContract.remainingAmount ? selectedContract.remainingAmount / 100 : (totalInDollars - depositInDollars);
+      const depositPct = totalInDollars > 0 ? Math.round((depositInDollars / totalInDollars) * 100) : 30;
+      
+      setFormData(prev => ({
+        ...prev,
+        clientName: selectedContract.clientName || "",
+        contractDate: selectedContract.createdAt ? new Date(selectedContract.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        eventDate: selectedContract.eventDate ? new Date(selectedContract.eventDate).toISOString().split('T')[0] : "",
+        eventLocation: selectedContract.eventLocation || "",
+        serviceLocation: selectedContract.eventLocation || "",
+        numberOfServices: 1,
+        serviceDetails: selectedContract.packageDetails || "Bridal Beauty Services",
+        totalAmount: totalInDollars,
+        depositPercent: depositPct,
+        depositAmount: depositInDollars,
+        remainingBalance: remainingInDollars,
+      }));
+      
+      toast({ 
+        title: "Contract Loaded", 
+        description: `Viewing contract for ${selectedContract.clientName || 'client'}` 
+      });
+      
+      setTimeout(() => setIsLoadingContract(false), 100);
+    }
+  }, [selectedContract]);
+
+  useEffect(() => {
+    if (artistProfile) {
+      setFormData(prev => ({
+        ...prev,
+        businessName: artistProfile.businessName || "",
+      }));
+    }
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        artistName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+      }));
+    }
+  }, [artistProfile, user]);
+
+  useEffect(() => {
+    if (isLoadingContract) return;
+    const deposit = Math.round((formData.totalAmount * formData.depositPercent) / 100);
+    const remaining = formData.totalAmount - deposit;
+    setFormData(prev => ({
+      ...prev,
+      depositAmount: deposit,
+      remainingBalance: remaining,
+    }));
+  }, [formData.totalAmount, formData.depositPercent, isLoadingContract]);
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      toast({
+        title: "Access Required",
+        description: "Please log in to create contracts.",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/api/login";
+      }, 1000);
+      return;
+    }
+    
+    if (!authLoading && user && user.role !== 'artist') {
+      toast({
+        title: "Access Denied",
+        description: "Contract editor is for vendors only.",
+        variant: "destructive",
+      });
+      setLocation("/");
+    }
+  }, [authLoading, isAuthenticated, user]);
+
+  const isFormValid = () => {
+    return (
+      formData.clientName.trim().length > 0 &&
+      formData.eventDate &&
+      formData.totalAmount > 0
+    );
+  };
+
+  const selectClient = (client: any) => {
+    setFormData(prev => ({
+      ...prev,
+      clientName: client.name,
+      eventDate: client.eventDate ? new Date(client.eventDate).toISOString().split('T')[0] : "",
+      eventLocation: client.location || "",
+      serviceLocation: client.location || "",
+    }));
+  };
+
+  const handlePdfUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type === 'application/pdf') {
+      setUploadedPdf(file);
+      setUseCustomTemplate(true);
+      toast({ title: "PDF Uploaded", description: "Your contract template has been uploaded." });
+    } else {
+      toast({ title: "Invalid File", description: "Please upload a PDF file.", variant: "destructive" });
+    }
+  };
+
+  const generateContract = () => {
+    const contractHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Beauty Services Contract - ${formData.clientName}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Inter:wght@400;500&display=swap');
+    body { 
+      font-family: 'Inter', sans-serif; 
+      max-width: 800px; 
+      margin: 0 auto; 
+      padding: 40px; 
+      color: #262329; 
+      background: #fff;
+      line-height: 1.6;
+    }
+    .header { 
+      text-align: center; 
+      border-bottom: 2px solid #C9A961; 
+      padding-bottom: 20px; 
+      margin-bottom: 30px;
+    }
+    .header h1 { 
+      font-family: 'Playfair Display', serif;
+      font-size: 28px; 
+      margin: 0 0 5px 0;
+      color: #262329;
+    }
+    .header p { 
+      color: #666; 
+      font-size: 14px;
+      margin: 5px 0;
+    }
+    .section { 
+      margin: 25px 0; 
+      padding: 20px; 
+      background: #f9f9f9; 
+      border-radius: 8px;
+    }
+    .section h2 { 
+      font-family: 'Playfair Display', serif;
+      font-size: 18px; 
+      margin: 0 0 15px 0;
+      color: #262329;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 8px;
+    }
+    .row { 
+      display: flex; 
+      justify-content: space-between; 
+      margin: 10px 0;
+      padding: 8px 0;
+      border-bottom: 1px dotted #ddd;
+    }
+    .row:last-child { border-bottom: none; }
+    .label { color: #666; font-size: 14px; }
+    .value { font-weight: 500; font-size: 14px; }
+    .amount { 
+      font-size: 18px; 
+      color: #C9A961; 
+      font-weight: 600;
+    }
+    .terms { 
+      font-size: 12px; 
+      color: #666; 
+      margin-top: 30px;
+      padding: 20px;
+      background: #f5f5f5;
+      border-radius: 8px;
+    }
+    .terms h3 { 
+      font-size: 14px; 
+      margin: 15px 0 8px 0;
+      color: #262329;
+    }
+    .terms p { margin: 5px 0; }
+    .signature-section {
+      margin-top: 40px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+    }
+    .signature-box {
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    .signature-line {
+      border-bottom: 1px solid #262329;
+      height: 40px;
+      margin: 20px 0 10px 0;
+    }
+    .signature-label {
+      font-size: 12px;
+      color: #666;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #ddd;
+      font-size: 12px;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>${formData.businessName || "Beauty Services"}</h1>
+    <p>Professional Beauty Services Contract</p>
+    <p>Contract Date: ${new Date(formData.contractDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+  </div>
+
+  <div class="section">
+    <h2>Client Information</h2>
+    <div class="row">
+      <span class="label">Client Name</span>
+      <span class="value">${formData.clientName}</span>
+    </div>
+    <div class="row">
+      <span class="label">Event Date</span>
+      <span class="value">${formData.eventDate ? new Date(formData.eventDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : 'TBD'}</span>
+    </div>
+    <div class="row">
+      <span class="label">Event Location</span>
+      <span class="value">${formData.eventLocation || 'TBD'}</span>
+    </div>
+    <div class="row">
+      <span class="label">Services Location</span>
+      <span class="value">${formData.serviceLocation || 'TBD'}</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Services</h2>
+    <div class="row">
+      <span class="label">Service Type</span>
+      <span class="value">${formData.serviceDetails}</span>
+    </div>
+    <div class="row">
+      <span class="label">Number of Services</span>
+      <span class="value">${formData.numberOfServices}</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Payment Details</h2>
+    <div class="row">
+      <span class="label">Total Amount</span>
+      <span class="amount">$${formData.totalAmount.toLocaleString()}</span>
+    </div>
+    <div class="row">
+      <span class="label">Deposit (${formData.depositPercent}%)</span>
+      <span class="value">$${formData.depositAmount.toLocaleString()}</span>
+    </div>
+    <div class="row">
+      <span class="label">Remaining Balance (Due day of event)</span>
+      <span class="value">$${formData.remainingBalance.toLocaleString()}</span>
+    </div>
+  </div>
+
+  <div class="terms">
+    <h3>Terms & Conditions</h3>
+    <p>1. The deposit is non-refundable and due upon signing to secure the date.</p>
+    <p>2. Remaining balance is due on or before the day of the event.</p>
+    <p>3. Cancellations made less than 30 days before the event will forfeit the full deposit.</p>
+    <p>4. Travel fees may apply for locations beyond 30 miles.</p>
+    <p>5. A trial session is recommended and available at an additional cost.</p>
+    <p>6. The artist reserves the right to use photos from the event for portfolio purposes unless otherwise agreed in writing.</p>
+  </div>
+
+  <div class="signature-section">
+    <div class="signature-box">
+      <strong>Service Provider</strong>
+      <div class="signature-line"></div>
+      <p class="signature-label">${formData.artistName || formData.businessName}</p>
+      <p class="signature-label">Date: _________________</p>
+    </div>
+    <div class="signature-box">
+      <strong>Client</strong>
+      <div class="signature-line"></div>
+      <p class="signature-label">${formData.clientName}</p>
+      <p class="signature-label">Date: _________________</p>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>${formData.businessName} | Beauvette | For Life's Most Important Days</p>
+  </div>
+</body>
+</html>`;
+
+    const blob = new Blob([contractHtml], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `contract-${formData.clientName.replace(/\s+/g, '-').toLowerCase()}-${formData.contractDate}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Contract Downloaded", description: "Your contract has been generated and downloaded." });
+  };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-powder-blue flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto mb-4"></div>
+          <p className="text-sm text-black/60">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="font-sans min-h-screen overflow-y-auto p-4 bg-powder-blue">
+      <div className="max-w-4xl mx-auto frame-outer shadow-sm">
+        <div className="frame-inner">
+          <header className="flex items-center justify-between mb-6">
+            <div>
+              <Link href="/artist" className="text-xs flex items-center gap-1 hover:underline ink-soft mb-2">
+                <ArrowLeft size={12} /> Back to Dashboard
+              </Link>
+              <h1 className="font-script text-2xl ink-main">Contract Editor</h1>
+              <p className="text-xs ink-soft">Create and customize contracts for your clients</p>
+            </div>
+          </header>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="md:col-span-2 space-y-6">
+              <div className="card-frame rounded-lg p-5">
+                <h2 className="font-header text-lg ink-main mb-4 flex items-center gap-2">
+                  <FileText size={18} /> Contract Details
+                </h2>
+
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">
+                        <User size={12} className="inline mr-1" /> Client Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.clientName}
+                        onChange={(e) => setFormData(prev => ({ ...prev, clientName: e.target.value }))}
+                        className="w-full border border-black/20 bg-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
+                        placeholder="Enter client name"
+                        data-testid="input-client-name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">
+                        <Calendar size={12} className="inline mr-1" /> Contract Date
+                      </label>
+                      <input
+                        type="date"
+                        value={formData.contractDate}
+                        onChange={(e) => setFormData(prev => ({ ...prev, contractDate: e.target.value }))}
+                        className="w-full border border-black/20 bg-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
+                        data-testid="input-contract-date"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">
+                        <Calendar size={12} className="inline mr-1" /> Event Date
+                      </label>
+                      <input
+                        type="date"
+                        value={formData.eventDate}
+                        onChange={(e) => setFormData(prev => ({ ...prev, eventDate: e.target.value }))}
+                        className="w-full border border-black/20 bg-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
+                        data-testid="input-event-date"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">
+                        <MapPin size={12} className="inline mr-1" /> Event Location
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.eventLocation}
+                        onChange={(e) => setFormData(prev => ({ ...prev, eventLocation: e.target.value }))}
+                        className="w-full border border-black/20 bg-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
+                        placeholder="Venue name or address"
+                        data-testid="input-event-location"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">
+                        <MapPin size={12} className="inline mr-1" /> Services Location
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.serviceLocation}
+                        onChange={(e) => setFormData(prev => ({ ...prev, serviceLocation: e.target.value }))}
+                        className="w-full border border-black/20 bg-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
+                        placeholder="Where services will be provided"
+                        data-testid="input-service-location"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">
+                        <Users size={12} className="inline mr-1" /> Number of Services
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={formData.numberOfServices}
+                        onChange={(e) => setFormData(prev => ({ ...prev, numberOfServices: parseInt(e.target.value) || 1 }))}
+                        className="w-full border border-black/20 bg-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
+                        data-testid="input-num-services"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">Service Details</label>
+                    <textarea
+                      value={formData.serviceDetails}
+                      onChange={(e) => setFormData(prev => ({ ...prev, serviceDetails: e.target.value }))}
+                      rows={2}
+                      className="w-full border border-black/20 bg-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black resize-none"
+                      placeholder="Describe the services included..."
+                      data-testid="input-service-details"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="card-frame rounded-lg p-5">
+                <h2 className="font-header text-lg ink-main mb-4 flex items-center gap-2">
+                  <DollarSign size={18} /> Payment Information
+                </h2>
+
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">
+                        <DollarSign size={12} className="inline mr-1" /> Total Amount ($)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formData.totalAmount}
+                        onChange={(e) => setFormData(prev => ({ ...prev, totalAmount: parseInt(e.target.value) || 0 }))}
+                        className="w-full border border-black/20 bg-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
+                        placeholder="0"
+                        data-testid="input-total-amount"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">
+                        <Percent size={12} className="inline mr-1" /> Deposit Percentage
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={formData.depositPercent}
+                        onChange={(e) => setFormData(prev => ({ ...prev, depositPercent: parseInt(e.target.value) || 0 }))}
+                        className="w-full border border-black/20 bg-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
+                        data-testid="input-deposit-percent"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded-lg">
+                    <div>
+                      <p className="text-xs text-black/60 uppercase tracking-wide">Deposit Due</p>
+                      <p className="text-lg font-semibold text-gold">${formData.depositAmount.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-black/60 uppercase tracking-wide">Remaining Balance</p>
+                      <p className="text-lg font-semibold">${formData.remainingBalance.toLocaleString()}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card-frame rounded-lg p-5">
+                <h2 className="font-header text-lg ink-main mb-4 flex items-center gap-2">
+                  <Building size={18} /> Business Information
+                </h2>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">Business Name</label>
+                    <input
+                      type="text"
+                      value={formData.businessName}
+                      onChange={(e) => setFormData(prev => ({ ...prev, businessName: e.target.value }))}
+                      className="w-full border border-black/20 bg-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
+                      placeholder="Your business name"
+                      data-testid="input-business-name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">Artist/Provider Name</label>
+                    <input
+                      type="text"
+                      value={formData.artistName}
+                      onChange={(e) => setFormData(prev => ({ ...prev, artistName: e.target.value }))}
+                      className="w-full border border-black/20 bg-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
+                      placeholder="Your name"
+                      data-testid="input-artist-name"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="card-frame rounded-lg p-5">
+                <h3 className="font-header text-md ink-main mb-3">Your Contracts</h3>
+                <div className="space-y-2 max-h-[250px] overflow-y-auto">
+                  {existingContracts.length === 0 ? (
+                    <p className="text-xs text-black/50 text-center py-4">No contracts yet</p>
+                  ) : (
+                    existingContracts.map((contract: any, index: number) => (
+                      <button
+                        key={contract.id || index}
+                        onClick={() => setSelectedContractId(contract.id)}
+                        className={`w-full text-left p-2 text-xs border rounded transition-colors ${
+                          selectedContractId === contract.id 
+                            ? 'border-black bg-white' 
+                            : 'border-black/10 hover:border-black hover:bg-white'
+                        }`}
+                        data-testid={`button-select-contract-${index}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium">{contract.clientName || 'Unnamed'}</p>
+                          <span className={`text-[0.6rem] px-1.5 py-0.5 rounded ${
+                            contract.status === 'signed' ? 'bg-green-100 text-green-700' : 
+                            contract.status === 'sent' ? 'bg-blue-100 text-blue-700' :
+                            'bg-gray-100 text-gray-600'
+                          }`}>
+                            {contract.status || 'draft'}
+                          </span>
+                        </div>
+                        <p className="text-black/50">{contract.eventDate ? new Date(contract.eventDate).toLocaleDateString() : 'No date'}</p>
+                        <p className="text-black/40 text-[0.65rem]">${contract.totalAmount ? (contract.totalAmount / 100).toLocaleString() : 0}</p>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+              
+              <div className="card-frame rounded-lg p-5">
+                <h3 className="font-header text-md ink-main mb-3">Quick Select Client</h3>
+                <div className="space-y-2 max-h-[150px] overflow-y-auto">
+                  {clients.length === 0 ? (
+                    <p className="text-xs text-black/50 text-center py-4">No clients with bookings</p>
+                  ) : (
+                    clients.map((client: any, index: number) => (
+                      <button
+                        key={client.id || index}
+                        onClick={() => selectClient(client)}
+                        className="w-full text-left p-2 text-xs border border-black/10 rounded hover:border-black hover:bg-white transition-colors"
+                        data-testid={`button-select-client-${index}`}
+                      >
+                        <p className="font-medium">{client.name}</p>
+                        <p className="text-black/50">{client.eventDate ? new Date(client.eventDate).toLocaleDateString() : ''}</p>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="card-frame rounded-lg p-5">
+                <h3 className="font-header text-md ink-main mb-3">Your Contract</h3>
+                <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed border-black/20 rounded-lg cursor-pointer hover:border-black transition-colors bg-white">
+                  <Upload size={16} />
+                  <span className="text-sm">Upload Your PDF Contract</span>
+                  <input 
+                    type="file" 
+                    accept=".pdf" 
+                    className="hidden" 
+                    onChange={handlePdfUpload}
+                    data-testid="input-upload-pdf"
+                  />
+                </label>
+                {uploadedPdf && (
+                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-xs flex items-center gap-2">
+                    <Check size={14} className="text-green-600" />
+                    <span>{uploadedPdf.name}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <button
+                  onClick={generateContract}
+                  disabled={!isFormValid()}
+                  className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  data-testid="button-generate-contract"
+                >
+                  <Download size={16} />
+                  Generate Contract
+                </button>
+                {!isFormValid() && (
+                  <p className="text-[0.65rem] text-center text-red-500">
+                    Please fill in client name, event date, and total amount
+                  </p>
+                )}
+                <p className="text-[0.65rem] text-center text-black/50">
+                  Downloads as an HTML file you can print or save as PDF
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,1319 @@
+import { sql } from "drizzle-orm";
+import { pgTable, text, varchar, integer, timestamp, boolean, jsonb, index } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+
+// Session storage table (for Replit Auth)
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// Notification preferences type
+export type NotificationPreferences = {
+  channels: {
+    email: boolean;
+    sms: boolean;
+  };
+  types: {
+    newBookings: boolean;
+    newMessages: boolean;
+    paymentReminders: boolean;
+    scheduleUpdates: boolean;
+    marketingUpdates: boolean;
+  };
+};
+
+// Users - represents all personas (clients, artists, planners, admins)
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").unique(),
+  password: text("password"), // hashed password for email/password login
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  role: text("role"), // 'client', 'artist', 'planner', 'admin'
+  phone: text("phone"),
+  intakeCompleted: boolean("intake_completed").default(false),
+  // Stripe Connect (for planners - artists use artistProfiles)
+  stripeAccountId: varchar("stripe_account_id"),
+  // CDI Privacy & Consent
+  cdiConsentGiven: boolean("cdi_consent_given").default(false),
+  cdiConsentDate: timestamp("cdi_consent_date"),
+  cdiOptOut: boolean("cdi_opt_out").default(false),
+  // Notification preferences
+  notificationPreferences: jsonb("notification_preferences").$type<NotificationPreferences>(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Client intake form data
+export const clientIntakes = pgTable("client_intakes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  serviceType: text("service_type"), // 'beauty', 'photography', 'video', 'florals', 'planner', 'dj', 'catering', 'venue'
+  eventType: text("event_type"), // 'wedding', 'engagement', 'corporate', etc.
+  eventDate: timestamp("event_date"),
+  eventLocation: text("event_location"),
+  partySize: integer("party_size"),
+  budget: text("budget"),
+  preferredStyles: jsonb("preferred_styles").$type<string[]>(),
+  specialRequirements: text("special_requirements"),
+  howHeard: text("how_heard"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Artist/Vendor intake form data
+export const artistIntakes = pgTable("artist_intakes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  businessName: text("business_name"),
+  yearsExperience: integer("years_experience"),
+  serviceTypes: jsonb("service_types").$type<string[]>(),
+  serviceAreas: jsonb("service_areas").$type<string[]>(),
+  priceRange: text("price_range"),
+  portfolioUrl: text("portfolio_url"),
+  instagramHandle: text("instagram_handle"),
+  websiteUrl: text("website_url"),
+  insuranceInfo: text("insurance_info"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Planner intake form data
+export const plannerIntakes = pgTable("planner_intakes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  companyName: text("company_name"),
+  yearsExperience: integer("years_experience"),
+  specializationType: text("specialization_type"), // 'full-service', 'day-of', 'month-of'
+  serviceAreas: jsonb("service_areas").$type<string[]>(),
+  typicalBudgetRange: text("typical_budget_range"),
+  vendorNetworkSize: integer("vendor_network_size"),
+  instagramHandle: text("instagram_handle"),
+  websiteUrl: text("website_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Artist profiles - extended info for artists
+export const artistProfiles = pgTable("artist_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  businessName: text("business_name"),
+  bio: text("bio"),
+  location: text("location"),
+  priceRange: text("price_range"),
+  specialties: jsonb("specialties").$type<string[]>(),
+  portfolioUrls: jsonb("portfolio_urls").$type<string[]>(),
+  portfolioUrl: text("portfolio_url"),
+  instagramHandle: text("instagram_handle"),
+  tiktokHandle: text("tiktok_handle"),
+  pinterestHandle: text("pinterest_handle"),
+  websiteUrl: text("website_url"),
+  stripeAccountId: text("stripe_account_id"),
+  servicesMenuUrl: text("services_menu_url"),
+  // Info sheet content - auto-sent to clients on inquiry
+  infoSheetType: text("info_sheet_type").default("template"), // 'template', 'custom', or 'pdf'
+  infoSheetContent: text("info_sheet_content"), // Rich text content of vendor's info sheet
+  infoSheetPdfUrl: text("info_sheet_pdf_url"), // URL to uploaded PDF/image
+  infoSheetEnabled: boolean("info_sheet_enabled").default(true), // Toggle to enable/disable auto-sending
+  // Verification status - vendors must be approved before appearing in search
+  verificationStatus: text("verification_status").default("pending"), // 'pending', 'approved', 'rejected', 'suspended'
+  verifiedAt: timestamp("verified_at"),
+  verifiedBy: varchar("verified_by").references(() => users.id),
+  rejectionReason: text("rejection_reason"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Profile reports - for flagging suspicious/inappropriate profiles
+export const profileReports = pgTable("profile_reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  reportedUserId: varchar("reported_user_id").notNull().references(() => users.id),
+  reporterId: varchar("reporter_id").notNull().references(() => users.id),
+  reason: text("reason").notNull(), // 'spam', 'fake', 'inappropriate', 'scam', 'other'
+  description: text("description"),
+  status: text("status").default("pending"), // 'pending', 'reviewed', 'action_taken', 'dismissed'
+  reviewedBy: varchar("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  actionTaken: text("action_taken"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Artist services - individual service offerings
+export const artistServices = pgTable("artist_services", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  artistId: varchar("artist_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  price: integer("price"), // in cents
+  duration: integer("duration"), // in minutes
+  category: text("category"), // e.g., 'bridal', 'bridesmaid', 'trial', 'engagement'
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Client contacts - for vendors to add existing clients who aren't on the platform yet
+export const clientContacts = pgTable("client_contacts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  artistId: varchar("artist_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  linkedUserId: varchar("linked_user_id").references(() => users.id),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Bookings - service requests and confirmed bookings
+export const bookings = pgTable("bookings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  clientId: varchar("client_id").references(() => users.id),
+  clientContactId: varchar("client_contact_id").references(() => clientContacts.id),
+  artistId: varchar("artist_id").references(() => users.id),
+  plannerId: varchar("planner_id").references(() => users.id),
+  status: text("status").notNull(), // 'pending', 'accepted', 'declined', 'completed', 'confirmed'
+  eventDate: timestamp("event_date").notNull(),
+  location: text("location").notNull(),
+  serviceType: text("service_type").notNull(),
+  amount: integer("amount"),
+  notes: text("notes"),
+  inspirationPhotos: jsonb("inspiration_photos").$type<string[]>(),
+  stripePaymentLinkId: text("stripe_payment_link_id"),
+  stripePaymentLinkUrl: text("stripe_payment_link_url"),
+  paymentStatus: text("payment_status").default("pending"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Messages - communication between parties
+export const messages = pgTable("messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  senderId: varchar("sender_id").notNull().references(() => users.id),
+  recipientId: varchar("recipient_id").notNull().references(() => users.id),
+  bookingId: varchar("booking_id").references(() => bookings.id),
+  content: text("content").notNull(),
+  sentimentScore: integer("sentiment_score"), // For CDI calculation
+  isEscalated: boolean("is_escalated").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Contracts
+export const contracts = pgTable("contracts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  bookingId: varchar("booking_id").notNull().references(() => bookings.id),
+  artistId: varchar("artist_id").notNull().references(() => users.id),
+  clientId: varchar("client_id").notNull().references(() => users.id),
+  packageDetails: text("package_details").notNull(),
+  totalAmount: integer("total_amount").notNull(), // in cents
+  depositAmount: integer("deposit_amount"), // in cents
+  depositPaidAt: timestamp("deposit_paid_at"),
+  remainingAmount: integer("remaining_amount"), // in cents
+  status: text("status").default("draft"), // 'draft', 'sent', 'signed', 'cancelled'
+  signedAt: timestamp("signed_at"),
+  fileUrl: text("file_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Contract Templates - reusable contract templates for vendors
+export const contractTemplates = pgTable("contract_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  artistId: varchar("artist_id").notNull().references(() => users.id),
+  name: text("name").notNull(), // e.g., "Standard Wedding Package", "Engagement Session"
+  content: text("content").notNull(), // The template content (HTML/Markdown)
+  defaultPackageDetails: text("default_package_details"),
+  defaultTotalAmount: integer("default_total_amount"), // in cents
+  defaultDepositAmount: integer("default_deposit_amount"), // in cents
+  defaultDepositPercent: integer("default_deposit_percent"), // percentage (e.g., 50 for 50%)
+  paymentSchedule: text("payment_schedule"), // e.g., "50% deposit, 50% day-of"
+  cancellationPolicy: text("cancellation_policy"),
+  lateFees: text("late_fees"),
+  travelPolicy: text("travel_policy"),
+  isDefault: boolean("is_default").default(false), // Default template for new contracts
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Platform Invitations - for inviting clients/planners to create profiles
+export const invitations = pgTable("invitations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  token: varchar("token").notNull().unique(), // unique invitation token
+  email: text("email").notNull(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  role: text("role").notNull(), // 'client' or 'planner'
+  bookingId: varchar("booking_id").references(() => bookings.id),
+  invitedBy: varchar("invited_by").notNull().references(() => users.id),
+  status: text("status").notNull().default("pending"), // 'pending', 'accepted', 'expired'
+  acceptedAt: timestamp("accepted_at"),
+  acceptedUserId: varchar("accepted_user_id").references(() => users.id),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Payments/Invoices
+export const payments = pgTable("payments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  contractId: varchar("contract_id").notNull().references(() => contracts.id),
+  amount: integer("amount").notNull(), // in cents
+  status: text("status").notNull(), // 'pending', 'paid', 'failed', 'refunded'
+  stripeInvoiceId: text("stripe_invoice_id"),
+  stripePaymentIntentId: text("stripe_payment_intent_id"),
+  dueDate: timestamp("due_date").notNull(),
+  paidAt: timestamp("paid_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Vendor/Planner availability calendar
+export const availability = pgTable("availability", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  date: timestamp("date").notNull(),
+  isAvailable: boolean("is_available").notNull().default(true),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Day-of schedules (legacy - simple timeline)
+export const schedules = pgTable("schedules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  bookingId: varchar("booking_id").notNull().references(() => bookings.id),
+  artistName: text("artist_name").notNull(),
+  numArtists: integer("num_artists").notNull(),
+  numServices: integer("num_services").notNull(),
+  startTime: text("start_time").notNull(),
+  timeline: jsonb("timeline").$type<Array<{time: string, description: string}>>(),
+  dayOfReminders: text("day_of_reminders"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Event Day Schedules - Smart scheduling grid for wedding day timelines
+export const eventDaySchedules = pgTable("event_day_schedules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  artistId: varchar("artist_id").notNull().references(() => users.id), // The vendor who created this
+  bookingId: varchar("booking_id").references(() => bookings.id), // Optional link to booking
+  eventName: text("event_name").notNull(), // e.g., "Smith Wedding" or client name
+  eventDate: timestamp("event_date").notNull(),
+  sessionDetails: text("session_details"), // For multiple events same day: "Morning Session", "Afternoon - Bride Only"
+  eventLocation: text("event_location"),
+  readyByTime: text("ready_by_time"), // When bride/VIP needs to be ready (e.g., "2:00 PM")
+  notes: text("notes"),
+  recipientEmails: text("recipient_emails"), // Comma-separated emails for sharing
+  guestNotes: text("guest_notes"), // Notes from guests (room numbers, questions)
+  shareToken: varchar("share_token"), // For public shareable link
+  status: text("status").default("draft"), // 'draft', 'finalized', 'sent'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Schedule Team Members - Each column in the grid (represents a stylist working that day)
+export const scheduleTeamMembers = pgTable("schedule_team_members", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  scheduleId: varchar("schedule_id").notNull().references(() => eventDaySchedules.id, { onDelete: 'cascade' }),
+  name: text("name").notNull(), // e.g., "Violet", "Lisa"
+  role: text("role").notNull().default("stylist"), // 'lead', 'stylist', 'assistant'
+  serviceType: text("service_type"), // 'hair', 'makeup', 'both' - what this person does
+  color: text("color"), // Optional color for UI display
+  displayOrder: integer("display_order").default(0), // Order in the grid
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Schedule Appointments - Individual time slots for each client
+export const scheduleAppointments = pgTable("schedule_appointments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  scheduleId: varchar("schedule_id").notNull().references(() => eventDaySchedules.id, { onDelete: 'cascade' }),
+  teamMemberId: varchar("team_member_id").references(() => scheduleTeamMembers.id, { onDelete: 'set null' }), // Which stylist
+  clientName: text("client_name").notNull(), // e.g., "Nicole", "Holly"
+  serviceType: text("service_type").notNull(), // 'H' (hair), 'M' (makeup), 'HM' (both)
+  startTime: text("start_time").notNull(), // e.g., "8:30"
+  endTime: text("end_time").notNull(), // e.g., "9:30"
+  isVip: boolean("is_vip").default(false), // Bride, MOH, etc.
+  isBuffer: boolean("is_buffer").default(false), // Buffer time slot
+  blockType: text("block_type").default("service"), // 'service', 'touchup', 'buffer', 'travel', 'setup'
+  locationName: text("location_name"), // e.g., "Villa 21", "Pool Cabana"
+  locationAddress: text("location_address"), // Full address if different from main venue
+  notes: text("notes"),
+  displayOrder: integer("display_order").default(0), // Order within the column
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Chat invites - for inviting people to chat
+export const chatInvites = pgTable("chat_invites", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  senderId: varchar("sender_id").notNull().references(() => users.id),
+  inviteeEmail: text("invitee_email").notNull(),
+  inviteeUserId: varchar("invitee_user_id").references(() => users.id),
+  status: text("status").notNull(), // 'pending', 'accepted', 'declined'
+  bookingId: varchar("booking_id").references(() => bookings.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Conversations - for managing chat threads
+export const conversations = pgTable("conversations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  bookingId: varchar("booking_id").references(() => bookings.id),
+  title: varchar("title"), // Conversation title (e.g., "Client Name - Date")
+  channelType: text("channel_type").notNull().default("client"), // 'client' = client-facing, 'business' = internal team
+  ownerId: varchar("owner_id").references(() => users.id), // For business chats, the vendor/planner who owns it
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Conversation participants
+export const conversationParticipants = pgTable("conversation_participants", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id").notNull().references(() => conversations.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  joinedAt: timestamp("joined_at").defaultNow().notNull(),
+});
+
+// Team members - for business/vendor team collaboration
+export const teamMembers = pgTable("team_members", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ownerId: varchar("owner_id").notNull().references(() => users.id), // The vendor/planner who owns the team
+  memberId: varchar("member_id").references(() => users.id), // Registered user if they have an account
+  memberEmail: text("member_email").notNull(), // Email for invites (can be non-registered)
+  memberName: text("member_name").notNull(), // Display name
+  role: text("role").notNull().default("team_member"), // 'team_member', 'assistant', 'coordinator'
+  status: text("status").notNull().default("invited"), // 'invited', 'active', 'removed'
+  invitedAt: timestamp("invited_at").defaultNow().notNull(),
+  acceptedAt: timestamp("accepted_at"),
+});
+
+// Business chat messages - separate encrypted-ready storage for sensitive team communication
+export const businessChatMessages = pgTable("business_chat_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id").notNull().references(() => conversations.id),
+  senderId: varchar("sender_id").notNull().references(() => users.id),
+  content: text("content").notNull(), // Message content (encrypted at rest in production)
+  messageType: text("message_type").notNull().default("text"), // 'text', 'voice_transcript', 'file', 'system'
+  metadata: jsonb("metadata").$type<{
+    voiceUrl?: string;
+    fileName?: string;
+    fileUrl?: string;
+    mentions?: string[];
+    bookingRef?: string;
+  }>(),
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Business chat AI insights - captures "invisible labor" analysis for each message
+export const businessChatInsights = pgTable("business_chat_insights", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  messageId: varchar("message_id").notNull().references(() => businessChatMessages.id),
+  conversationId: varchar("conversation_id").notNull().references(() => conversations.id),
+  senderId: varchar("sender_id").notNull().references(() => users.id),
+  // Pivot detection - captures the "invisible labor" moments
+  pivotType: text("pivot_type"), // 'schedule_change', 'last_minute_save', 'crisis_averted', 'client_accommodation', 'vendor_coordination', 'problem_resolution', null if no pivot
+  pivotSeverity: integer("pivot_severity"), // 1-10, how significant was this pivot
+  // Urgency and impact
+  urgencyLevel: integer("urgency_level").notNull().default(1), // 1-10
+  clientImpact: text("client_impact"), // 'positive', 'neutral', 'negative', 'saved_disaster', 'prevented_issue'
+  clientImpactScore: integer("client_impact_score").notNull().default(0), // -100 to +100
+  // Task and labor tracking
+  taskType: text("task_type"), // 'coordination', 'communication', 'problem_solving', 'scheduling', 'payment', 'logistics'
+  estimatedLaborMinutes: integer("estimated_labor_minutes"), // AI estimate of invisible labor time
+  // Sentiment and emotional context
+  sentiment: text("sentiment").notNull().default("neutral"), // 'positive', 'neutral', 'stressed', 'frustrated', 'relieved'
+  confidenceScore: integer("confidence_score").notNull().default(0), // 0-100
+  // AI rationale
+  aiSummary: text("ai_summary"), // Brief AI explanation of what was detected
+  // Link to CDI if client-related
+  relatedClientId: varchar("related_client_id").references(() => users.id),
+  relatedBookingId: varchar("related_booking_id").references(() => bookings.id),
+  // CDI event created from this insight
+  cdiEventId: varchar("cdi_event_id").references(() => cdiEvents.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Support cases for emergency escalation
+export const supportCases = pgTable("support_cases", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  bookingId: varchar("booking_id").references(() => bookings.id),
+  priority: text("priority").notNull(), // 'low', 'medium', 'high', 'emergency'
+  status: text("status").notNull().default("open"), // 'open', 'in_progress', 'resolved', 'closed'
+  subject: text("subject").notNull(),
+  description: text("description"),
+  assignedTo: varchar("assigned_to").references(() => users.id),
+  resolvedAt: timestamp("resolved_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// CDI Events - for tracking client distress signals
+export const cdiEvents = pgTable("cdi_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  bookingId: varchar("booking_id").references(() => bookings.id),
+  eventType: text("event_type").notNull(), // 'message_negative', 'payment_late', 'cancellation_request', 'escalation', 'support_case', etc.
+  severity: integer("severity").notNull(), // 1-10 scale
+  metadata: jsonb("metadata").$type<Record<string, any>>(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// CDI Scores - aggregated client distress index
+export const cdiScores = pgTable("cdi_scores", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  score: integer("score").notNull(), // 0-100, higher = more distress
+  riskLevel: text("risk_level").notNull(), // 'low', 'medium', 'high', 'critical'
+  factors: jsonb("factors").$type<{
+    messageSentiment: number;
+    paymentIssues: number;
+    supportCases: number;
+    cancellations: number;
+    responseDelays: number;
+  }>(),
+  calculatedAt: timestamp("calculated_at").defaultNow().notNull(),
+});
+
+// CDI AI Insights - Gemini-powered analysis results (HACO framework)
+export const cdiAiInsights = pgTable("cdi_ai_insights", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  messageId: varchar("message_id").references(() => messages.id),
+  sentiment: text("sentiment").notNull(), // 'positive', 'neutral', 'negative', 'distressed'
+  confidenceScore: integer("confidence_score").notNull(), // 0-100
+  hacoDecision: text("haco_decision").notNull(), // 'intuition_aligned', 'complementarity_activated', 'observation_only'
+  distressSignals: jsonb("distress_signals").$type<Array<{
+    type: string;
+    severity: number;
+    evidence: string;
+  }>>(),
+  rawMetrics: jsonb("raw_metrics").$type<{
+    anxietyLevel: number;
+    frustrationLevel: number;
+    confusionLevel: number;
+    satisfactionLevel: number;
+    urgencyLevel: number;
+  }>(),
+  suggestedAction: text("suggested_action"),
+  aiRationale: text("ai_rationale"),
+  quantumState: text("quantum_state"), // 'superposition', 'collapsed_human', 'collapsed_ai', 'entangled'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// CDI HACO Thresholds - admin-configurable policy settings
+export const cdiThresholds = pgTable("cdi_thresholds", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(), // 'default', 'high_touch', 'low_touch', etc.
+  epsilon: integer("epsilon").notNull().default(10), // Error tolerance (0-100, represents 0-1)
+  delta: integer("delta").notNull().default(80), // Confidence threshold (0-100, represents 0-1)
+  emotionalFidelityWeight: integer("emotional_fidelity_weight").notNull().default(40), // Dynamic weight for EF dimension (0-100)
+  choreographyAwarenessWeight: integer("choreography_awareness_weight").notNull().default(30), // Dynamic weight for CA dimension (0-100)
+  roleSpecificRecallWeight: integer("role_specific_recall_weight").notNull().default(30), // Dynamic weight for RSR dimension (0-100)
+  isActive: boolean("is_active").notNull().default(true),
+  description: text("description"),
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// CDI Admin Overrides - track when admin overrides AI decisions (for learning)
+export const cdiAdminOverrides = pgTable("cdi_admin_overrides", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  insightId: varchar("insight_id").notNull().references(() => cdiAiInsights.id),
+  adminId: varchar("admin_id").notNull().references(() => users.id),
+  originalDecision: text("original_decision").notNull(),
+  overrideDecision: text("override_decision").notNull(),
+  reason: text("reason"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// CDI Behavioral Events - captures all signals for the three dimensions
+// (response times, role transitions, payment behavior, commitment signals, etc.)
+export const cdiBehavioralEvents = pgTable("cdi_behavioral_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  actorRole: text("actor_role").notNull(), // 'client', 'artist', 'planner'
+  targetUserId: varchar("target_user_id").references(() => users.id),
+  targetRole: text("target_role"), // 'client', 'artist', 'planner'
+  bookingId: varchar("booking_id").references(() => bookings.id),
+  eventCategory: text("event_category").notNull(), // 'communication', 'payment', 'booking', 'coordination', 'delivery'
+  eventType: text("event_type").notNull(), // specific event within category
+  dimension: text("dimension").notNull(), // 'emotional_fidelity', 'choreography_awareness', 'role_specific_recall'
+  signalStrength: integer("signal_strength").notNull(), // -100 to +100 (negative = trust erosion, positive = trust building)
+  responseLatencyMs: integer("response_latency_ms"), // for timing-sensitive events
+  toneVector: jsonb("tone_vector").$type<number[]>(), // embedding vector for emotional tone
+  metadata: jsonb("metadata").$type<{
+    evidenceText?: string;
+    contextualFactors?: string[];
+    roleTransition?: { from: string; to: string };
+    sequencePosition?: number;
+    expectedPattern?: string;
+    actualPattern?: string;
+  }>(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// CDI Dimension Scores - individual scores for each of the three dimensions
+export const cdiDimensionScores = pgTable("cdi_dimension_scores", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  dimension: text("dimension").notNull(), // 'emotional_fidelity', 'choreography_awareness', 'role_specific_recall'
+  score: integer("score").notNull(), // 0-100
+  confidence: integer("confidence").notNull(), // 0-100
+  hacoDecision: text("haco_decision").notNull(), // per-dimension HACO decision
+  components: jsonb("components").$type<{
+    // Emotional Fidelity components
+    responseTimeConsistency?: number;
+    toneAlignment?: number;
+    emotionalPreservation?: number;
+    timingSensitivity?: number;
+    // Choreography Awareness components
+    roleTransitionQuality?: number;
+    sequenceIntegrity?: number;
+    multiPartySynchronization?: number;
+    escalationRecognition?: number;
+    // Role-Specific Recall components
+    historicalReliability?: number;
+    commitmentStrength?: number;
+    communicationConsistency?: number;
+    deliveryTrackRecord?: number;
+  }>(),
+  evidencePayload: jsonb("evidence_payload").$type<Array<{
+    eventId: string;
+    contribution: number;
+    evidence: string;
+  }>>(),
+  calculatedAt: timestamp("calculated_at").defaultNow().notNull(),
+});
+
+// CDI Composite Scores - the final CDI score combining all three dimensions
+export const cdiCompositeScores = pgTable("cdi_composite_scores", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  compositeScore: integer("composite_score").notNull(), // 0-100 (weighted average)
+  trustLevel: text("trust_level").notNull(), // 'exceptional', 'high', 'moderate', 'low', 'at_risk'
+  emotionalFidelityScore: integer("emotional_fidelity_score").notNull(),
+  choreographyAwarenessScore: integer("choreography_awareness_score").notNull(),
+  roleSpecificRecallScore: integer("role_specific_recall_score").notNull(),
+  emotionalFidelityWeight: integer("emotional_fidelity_weight").notNull().default(40),
+  choreographyAwarenessWeight: integer("choreography_awareness_weight").notNull().default(30),
+  roleSpecificRecallWeight: integer("role_specific_recall_weight").notNull().default(30),
+  hacoOverallDecision: text("haco_overall_decision").notNull(),
+  predictedSuccess: integer("predicted_success"), // 0-100 probability of coordination success
+  interventionRecommended: boolean("intervention_recommended").notNull().default(false),
+  interventionReason: text("intervention_reason"),
+  calculatedAt: timestamp("calculated_at").defaultNow().notNull(),
+});
+
+// CDI Feedback Events - captures feedback for the evolutionary loop
+export const cdiFeedbackEvents = pgTable("cdi_feedback_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  compositeScoreId: varchar("composite_score_id").references(() => cdiCompositeScores.id),
+  bookingId: varchar("booking_id").references(() => bookings.id),
+  feedbackType: text("feedback_type").notNull(), // 'outcome', 'admin_override', 'planner_note', 'client_satisfaction'
+  feedbackSource: text("feedback_source").notNull(), // 'system', 'admin', 'planner', 'client', 'artist'
+  sourceUserId: varchar("source_user_id").references(() => users.id),
+  outcomeSuccess: boolean("outcome_success"), // did the coordination succeed?
+  satisfactionScore: integer("satisfaction_score"), // 1-10
+  dimension: text("dimension"), // which dimension this feedback applies to
+  originalPrediction: jsonb("original_prediction").$type<{
+    score: number;
+    decision: string;
+  }>(),
+  actualOutcome: jsonb("actual_outcome").$type<{
+    success: boolean;
+    notes: string;
+    failureReasons?: string[];
+  }>(),
+  learningSignal: integer("learning_signal"), // -100 to +100, how much to adjust
+  processed: boolean("processed").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// CDI Learning Runs - tracks iterations of the evolutionary loop
+export const cdiLearningRuns = pgTable("cdi_learning_runs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  runType: text("run_type").notNull(), // 'scheduled', 'triggered', 'manual'
+  dimension: text("dimension"), // null for overall, or specific dimension
+  feedbackEventsProcessed: integer("feedback_events_processed").notNull(),
+  thresholdAdjustments: jsonb("threshold_adjustments").$type<{
+    epsilonBefore: number;
+    epsilonAfter: number;
+    deltaBefore: number;
+    deltaAfter: number;
+  }>(),
+  patternLibraryUpdates: jsonb("pattern_library_updates").$type<Array<{
+    patternId: string;
+    strengthChange: number;
+  }>>(),
+  accuracy: jsonb("accuracy").$type<{
+    before: number;
+    after: number;
+    improvement: number;
+  }>(),
+  auditTrail: jsonb("audit_trail").$type<{
+    triggeredBy: string;
+    reason: string;
+    approvedBy?: string;
+  }>(),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+});
+
+// CDI Pattern Library - stores validated coordination patterns for matching
+export const cdiPatternLibrary = pgTable("cdi_pattern_library", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  patternName: text("pattern_name").notNull(),
+  patternCategory: text("pattern_category").notNull(), // 'role_transition', 'escalation', 'coordination_sequence'
+  dimension: text("dimension").notNull(),
+  patternSequence: jsonb("pattern_sequence").$type<Array<{
+    step: number;
+    actor: string;
+    action: string;
+    expectedTiming?: string;
+  }>>(),
+  successWeight: integer("success_weight").notNull().default(100), // how strongly this pattern predicts success
+  validatedBy: text("validated_by").notNull(), // 'operational_data', 'admin_verified', 'ml_discovered'
+  sampleSize: integer("sample_size").notNull().default(0), // how many transactions validated this
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Audit logs for compliance
+export const auditLogs = pgTable("audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  action: text("action").notNull(),
+  resourceType: text("resource_type").notNull(),
+  resourceId: varchar("resource_id"),
+  metadata: jsonb("metadata").$type<Record<string, any>>(),
+  ipAddress: text("ip_address"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Relations
+export const usersRelations = relations(users, ({ many, one }) => ({
+  artistProfile: many(artistProfiles),
+  sentMessages: many(messages),
+  receivedMessages: many(messages),
+  bookingsAsClient: many(bookings),
+  bookingsAsArtist: many(bookings),
+  clientIntake: one(clientIntakes, {
+    fields: [users.id],
+    references: [clientIntakes.userId],
+  }),
+  artistIntake: one(artistIntakes, {
+    fields: [users.id],
+    references: [artistIntakes.userId],
+  }),
+  plannerIntake: one(plannerIntakes, {
+    fields: [users.id],
+    references: [plannerIntakes.userId],
+  }),
+}));
+
+export const artistProfilesRelations = relations(artistProfiles, ({ one }) => ({
+  user: one(users, {
+    fields: [artistProfiles.userId],
+    references: [users.id],
+  }),
+}));
+
+export const bookingsRelations = relations(bookings, ({ one, many }) => ({
+  client: one(users, {
+    fields: [bookings.clientId],
+    references: [users.id],
+  }),
+  artist: one(users, {
+    fields: [bookings.artistId],
+    references: [users.id],
+  }),
+  messages: many(messages),
+  contracts: many(contracts),
+  schedules: many(schedules),
+}));
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  sender: one(users, {
+    fields: [messages.senderId],
+    references: [users.id],
+  }),
+  recipient: one(users, {
+    fields: [messages.recipientId],
+    references: [users.id],
+  }),
+  booking: one(bookings, {
+    fields: [messages.bookingId],
+    references: [bookings.id],
+  }),
+}));
+
+export const contractsRelations = relations(contracts, ({ one, many }) => ({
+  booking: one(bookings, {
+    fields: [contracts.bookingId],
+    references: [bookings.id],
+  }),
+  payments: many(payments),
+}));
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  contract: one(contracts, {
+    fields: [payments.contractId],
+    references: [contracts.id],
+  }),
+}));
+
+// Insert schemas
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertClientIntakeSchema = createInsertSchema(clientIntakes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertArtistIntakeSchema = createInsertSchema(artistIntakes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertPlannerIntakeSchema = createInsertSchema(plannerIntakes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertArtistProfileSchema = createInsertSchema(artistProfiles).omit({
+  id: true,
+  createdAt: true,
+  verifiedAt: true,
+  verifiedBy: true,
+});
+
+export const insertProfileReportSchema = createInsertSchema(profileReports).omit({
+  id: true,
+  createdAt: true,
+  reviewedBy: true,
+  reviewedAt: true,
+});
+
+export const insertArtistServiceSchema = createInsertSchema(artistServices).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertClientContactSchema = createInsertSchema(clientContacts).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertBookingSchema = createInsertSchema(bookings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMessageSchema = createInsertSchema(messages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertContractSchema = createInsertSchema(contracts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertContractTemplateSchema = createInsertSchema(contractTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertInvitationSchema = createInsertSchema(invitations).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertPaymentSchema = createInsertSchema(payments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertAvailabilitySchema = createInsertSchema(availability).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertScheduleSchema = createInsertSchema(schedules).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertEventDayScheduleSchema = createInsertSchema(eventDaySchedules).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertScheduleTeamMemberSchema = createInsertSchema(scheduleTeamMembers).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertScheduleAppointmentSchema = createInsertSchema(scheduleAppointments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertChatInviteSchema = createInsertSchema(chatInvites).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertConversationSchema = createInsertSchema(conversations).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertConversationParticipantSchema = createInsertSchema(conversationParticipants).omit({
+  id: true,
+  joinedAt: true,
+});
+
+export const insertTeamMemberSchema = createInsertSchema(teamMembers).omit({
+  id: true,
+  invitedAt: true,
+  acceptedAt: true,
+});
+
+export const insertBusinessChatMessageSchema = createInsertSchema(businessChatMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertBusinessChatInsightSchema = createInsertSchema(businessChatInsights).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSupportCaseSchema = createInsertSchema(supportCases).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCdiEventSchema = createInsertSchema(cdiEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCdiScoreSchema = createInsertSchema(cdiScores).omit({
+  id: true,
+  calculatedAt: true,
+});
+
+export const insertCdiAiInsightSchema = createInsertSchema(cdiAiInsights).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCdiThresholdSchema = createInsertSchema(cdiThresholds).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCdiAdminOverrideSchema = createInsertSchema(cdiAdminOverrides).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCdiBehavioralEventSchema = createInsertSchema(cdiBehavioralEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCdiDimensionScoreSchema = createInsertSchema(cdiDimensionScores).omit({
+  id: true,
+  calculatedAt: true,
+});
+
+export const insertCdiCompositeScoreSchema = createInsertSchema(cdiCompositeScores).omit({
+  id: true,
+  calculatedAt: true,
+});
+
+export const insertCdiFeedbackEventSchema = createInsertSchema(cdiFeedbackEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCdiLearningRunSchema = createInsertSchema(cdiLearningRuns).omit({
+  id: true,
+  startedAt: true,
+});
+
+export const insertCdiPatternLibrarySchema = createInsertSchema(cdiPatternLibrary).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+// ============================================
+// IQS (Interaction Quality Scoring) System
+// Tracks lead quality, red flags, and learns from vendor intuition
+// ============================================
+
+// Red flag pattern types for reference
+export type IqsRedFlagType = 
+  | 'large_scope_short_notice'    // Many services requested with short timeline
+  | 'vague_details'               // Missing key information (budget, specifics)
+  | 'delayed_response'            // Long gaps between messages when urgency claimed
+  | 'broken_promise'              // Said they'd call/respond but didn't
+  | 'ghosting'                    // Complete silence after engagement
+  | 'foreign_location_complexity' // Foreign country with complex logistics
+  | 'payment_hesitation'          // Avoids payment discussions
+  | 'contact_mismatch'            // Third party reaching out (planner vs bride confusion)
+  | 'already_married'             // Evidence they already had their event
+  | 'too_good_to_be_true'         // Unrealistic budget or scope
+  | 'poor_communication_pattern'  // Inconsistent, confusing messages
+  | 'custom';                     // Vendor-defined pattern
+
+// Lead quality scores - overall score for each client/lead interaction
+export const iqsLeadScores = pgTable("iqs_lead_scores", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  vendorId: varchar("vendor_id").notNull().references(() => users.id),
+  // Can reference a user (registered) or a client contact (not yet registered)
+  clientUserId: varchar("client_user_id").references(() => users.id),
+  clientContactId: varchar("client_contact_id").references(() => clientContacts.id),
+  bookingId: varchar("booking_id").references(() => bookings.id),
+  // The score (0-100, lower = more trustworthy, higher = more red flags)
+  score: integer("score").notNull().default(50),
+  riskLevel: text("risk_level").notNull().default("unknown"), // 'trustworthy', 'low_risk', 'medium_risk', 'high_risk', 'critical', 'unknown'
+  // Breakdown of score factors
+  factors: jsonb("factors").$type<{
+    responseTimeScore: number;      // 0-100 based on response delays
+    promiseFulfillmentScore: number; // 0-100 based on broken promises
+    scopeUrgencyScore: number;       // 0-100 based on request size vs timeline
+    communicationScore: number;      // 0-100 based on clarity and consistency
+    verificationScore: number;       // 0-100 based on verified identity/legitimacy
+  }>(),
+  // Detected red flags
+  activeRedFlags: jsonb("active_red_flags").$type<Array<{
+    type: string;
+    severity: number;      // 1-10
+    detectedAt: string;    // ISO date
+    description: string;
+    aiConfidence: number;  // 0-100
+  }>>(),
+  // Vendor feedback on this lead
+  vendorRating: text("vendor_rating"), // 'trustworthy', 'weird', 'scam', 'normal', null if not rated
+  vendorNotes: text("vendor_notes"),
+  // Outcome tracking (for learning)
+  outcome: text("outcome"), // 'booked', 'ghosted', 'declined', 'scam_confirmed', 'legitimate', null
+  outcomeNotes: text("outcome_notes"),
+  // AI analysis
+  aiSummary: text("ai_summary"), // AI explanation of the score
+  lastAnalyzedAt: timestamp("last_analyzed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Interaction events - individual events that contribute to the score
+export const iqsInteractionEvents = pgTable("iqs_interaction_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leadScoreId: varchar("lead_score_id").notNull().references(() => iqsLeadScores.id),
+  vendorId: varchar("vendor_id").notNull().references(() => users.id),
+  // Event type
+  eventType: text("event_type").notNull(), // 'message_sent', 'message_received', 'promise_made', 'promise_broken', 'call_scheduled', 'call_missed', 'response_delay', 'ghosting_detected', 'red_flag_triggered', 'booking_request', 'booking_confirmed', 'booking_cancelled'
+  // Event details
+  details: jsonb("details").$type<{
+    messageContent?: string;
+    promisedAction?: string;
+    promisedDate?: string;
+    actualDate?: string;
+    delayHours?: number;
+    redFlagType?: string;
+    severity?: number;
+    sourceChannel?: string; // 'email', 'platform', 'phone', 'whatsapp', 'text'
+  }>(),
+  // Timing
+  expectedAt: timestamp("expected_at"), // When they said they'd respond
+  occurredAt: timestamp("occurred_at").notNull(),
+  // Impact on score
+  scoreImpact: integer("score_impact").default(0), // positive = worse, negative = better
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Red flag patterns - the learned patterns from vendor feedback
+export const iqsPatterns = pgTable("iqs_patterns", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  patternType: text("pattern_type").notNull(), // matches IqsRedFlagType
+  name: text("name").notNull(),
+  description: text("description"),
+  // Detection criteria (AI uses this to identify the pattern)
+  detectionCriteria: jsonb("detection_criteria").$type<{
+    conditions: Array<{
+      field: string;         // e.g., 'services_count', 'days_until_event', 'response_delay_hours'
+      operator: string;      // 'gt', 'lt', 'gte', 'lte', 'eq', 'contains', 'missing'
+      value: number | string | boolean;
+    }>;
+    minimumConditionsToMatch: number;
+  }>(),
+  // Severity and weights
+  baseSeverity: integer("base_severity").notNull().default(5), // 1-10
+  baseWeight: integer("base_weight").notNull().default(10), // How much it contributes to score
+  // Learning from feedback
+  timesTriggered: integer("times_triggered").default(0),
+  timesConfirmedByVendor: integer("times_confirmed_by_vendor").default(0),
+  timesRejectedByVendor: integer("times_rejected_by_vendor").default(0),
+  adjustedWeight: integer("adjusted_weight"), // Learned weight from feedback
+  // Status
+  isActive: boolean("is_active").default(true),
+  isSystemPattern: boolean("is_system_pattern").default(true), // vs custom vendor pattern
+  createdBy: varchar("created_by").references(() => users.id), // For custom patterns
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Vendor feedback - used to train the system
+export const iqsVendorFeedback = pgTable("iqs_vendor_feedback", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  vendorId: varchar("vendor_id").notNull().references(() => users.id),
+  leadScoreId: varchar("lead_score_id").references(() => iqsLeadScores.id),
+  // What the vendor is giving feedback on
+  feedbackType: text("feedback_type").notNull(), // 'lead_rating', 'red_flag_confirm', 'red_flag_reject', 'outcome_report', 'custom_pattern'
+  // The feedback
+  rating: text("rating"), // 'accurate', 'inaccurate', 'trustworthy', 'weird', 'scam', 'normal'
+  notes: text("notes"),
+  // For red flag feedback
+  patternId: varchar("pattern_id").references(() => iqsPatterns.id),
+  eventId: varchar("event_id").references(() => iqsInteractionEvents.id),
+  wasAccurate: boolean("was_accurate"),
+  // For outcome reporting
+  actualOutcome: text("actual_outcome"), // 'booked', 'ghosted', 'declined', 'scam_confirmed', 'legitimate'
+  // Learning metadata
+  processedForLearning: boolean("processed_for_learning").default(false),
+  processedAt: timestamp("processed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// IQS learning runs - tracks when the system retrains patterns
+export const iqsLearningRuns = pgTable("iqs_learning_runs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+  status: text("status").notNull().default("running"), // 'running', 'completed', 'failed'
+  // Stats
+  feedbackProcessed: integer("feedback_processed").default(0),
+  patternsUpdated: integer("patterns_updated").default(0),
+  newPatternsDiscovered: integer("new_patterns_discovered").default(0),
+  // Results
+  results: jsonb("results").$type<{
+    patternAdjustments: Array<{
+      patternId: string;
+      oldWeight: number;
+      newWeight: number;
+      reason: string;
+    }>;
+    insights: string[];
+  }>(),
+});
+
+// Insert schemas for IQS
+export const insertIqsLeadScoreSchema = createInsertSchema(iqsLeadScores).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertIqsInteractionEventSchema = createInsertSchema(iqsInteractionEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertIqsPatternSchema = createInsertSchema(iqsPatterns).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertIqsVendorFeedbackSchema = createInsertSchema(iqsVendorFeedback).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertIqsLearningRunSchema = createInsertSchema(iqsLearningRuns).omit({
+  id: true,
+  startedAt: true,
+});
+
+// AI Chat Messages - stores chat history for the AI assistant
+export const aiChatMessages = pgTable("ai_chat_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  role: text("role").notNull(), // 'user' or 'assistant'
+  content: text("content").notNull(),
+  attachments: jsonb("attachments").$type<{ type: string; url: string; name: string }[]>(),
+  // Extracted entities from conversation for working memory
+  extractedEntities: jsonb("extracted_entities").$type<{
+    names?: string[];
+    emails?: string[];
+    phones?: string[];
+    dates?: string[];
+    locations?: string[];
+    amounts?: number[];
+  }>(),
+  // Action taken by AI (for consistency tracking)
+  actionTaken: text("action_taken"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertAiChatMessageSchema = createInsertSchema(aiChatMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Types for Replit Auth
+export type UpsertUser = typeof users.$inferInsert;
+export type User = typeof users.$inferSelect;
+
+export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export type InsertClientIntake = z.infer<typeof insertClientIntakeSchema>;
+export type ClientIntake = typeof clientIntakes.$inferSelect;
+
+export type InsertArtistIntake = z.infer<typeof insertArtistIntakeSchema>;
+export type ArtistIntake = typeof artistIntakes.$inferSelect;
+
+export type InsertPlannerIntake = z.infer<typeof insertPlannerIntakeSchema>;
+export type PlannerIntake = typeof plannerIntakes.$inferSelect;
+
+export type InsertArtistProfile = z.infer<typeof insertArtistProfileSchema>;
+export type ArtistProfile = typeof artistProfiles.$inferSelect;
+
+export type InsertProfileReport = z.infer<typeof insertProfileReportSchema>;
+export type ProfileReport = typeof profileReports.$inferSelect;
+
+export type InsertArtistService = z.infer<typeof insertArtistServiceSchema>;
+export type ArtistService = typeof artistServices.$inferSelect;
+
+export type InsertClientContact = z.infer<typeof insertClientContactSchema>;
+export type ClientContact = typeof clientContacts.$inferSelect;
+
+export type InsertBooking = z.infer<typeof insertBookingSchema>;
+export type Booking = typeof bookings.$inferSelect;
+
+export type InsertMessage = z.infer<typeof insertMessageSchema>;
+export type Message = typeof messages.$inferSelect;
+
+export type InsertContract = z.infer<typeof insertContractSchema>;
+export type Contract = typeof contracts.$inferSelect;
+
+export type InsertContractTemplate = z.infer<typeof insertContractTemplateSchema>;
+export type ContractTemplate = typeof contractTemplates.$inferSelect;
+
+export type InsertInvitation = z.infer<typeof insertInvitationSchema>;
+export type Invitation = typeof invitations.$inferSelect;
+
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type Payment = typeof payments.$inferSelect;
+
+export type InsertAvailability = z.infer<typeof insertAvailabilitySchema>;
+export type Availability = typeof availability.$inferSelect;
+
+export type InsertSchedule = z.infer<typeof insertScheduleSchema>;
+export type Schedule = typeof schedules.$inferSelect;
+
+export type InsertEventDaySchedule = z.infer<typeof insertEventDayScheduleSchema>;
+export type EventDaySchedule = typeof eventDaySchedules.$inferSelect;
+
+export type InsertScheduleTeamMember = z.infer<typeof insertScheduleTeamMemberSchema>;
+export type ScheduleTeamMember = typeof scheduleTeamMembers.$inferSelect;
+
+export type InsertScheduleAppointment = z.infer<typeof insertScheduleAppointmentSchema>;
+export type ScheduleAppointment = typeof scheduleAppointments.$inferSelect;
+
+export type InsertChatInvite = z.infer<typeof insertChatInviteSchema>;
+export type ChatInvite = typeof chatInvites.$inferSelect;
+
+export type InsertConversation = z.infer<typeof insertConversationSchema>;
+export type Conversation = typeof conversations.$inferSelect;
+
+export type InsertConversationParticipant = z.infer<typeof insertConversationParticipantSchema>;
+export type ConversationParticipant = typeof conversationParticipants.$inferSelect;
+
+export type InsertTeamMember = z.infer<typeof insertTeamMemberSchema>;
+export type TeamMember = typeof teamMembers.$inferSelect;
+
+export type InsertBusinessChatMessage = z.infer<typeof insertBusinessChatMessageSchema>;
+export type BusinessChatMessage = typeof businessChatMessages.$inferSelect;
+export type InsertBusinessChatInsight = z.infer<typeof insertBusinessChatInsightSchema>;
+export type BusinessChatInsight = typeof businessChatInsights.$inferSelect;
+
+export type InsertSupportCase = z.infer<typeof insertSupportCaseSchema>;
+export type SupportCase = typeof supportCases.$inferSelect;
+
+export type InsertCdiEvent = z.infer<typeof insertCdiEventSchema>;
+export type CdiEvent = typeof cdiEvents.$inferSelect;
+
+export type InsertCdiScore = z.infer<typeof insertCdiScoreSchema>;
+export type CdiScore = typeof cdiScores.$inferSelect;
+
+export type InsertCdiAiInsight = z.infer<typeof insertCdiAiInsightSchema>;
+export type CdiAiInsight = typeof cdiAiInsights.$inferSelect;
+
+export type InsertCdiThreshold = z.infer<typeof insertCdiThresholdSchema>;
+export type CdiThreshold = typeof cdiThresholds.$inferSelect;
+
+export type InsertCdiAdminOverride = z.infer<typeof insertCdiAdminOverrideSchema>;
+export type CdiAdminOverride = typeof cdiAdminOverrides.$inferSelect;
+
+export type InsertCdiBehavioralEvent = z.infer<typeof insertCdiBehavioralEventSchema>;
+export type CdiBehavioralEvent = typeof cdiBehavioralEvents.$inferSelect;
+
+export type InsertCdiDimensionScore = z.infer<typeof insertCdiDimensionScoreSchema>;
+export type CdiDimensionScore = typeof cdiDimensionScores.$inferSelect;
+
+export type InsertCdiCompositeScore = z.infer<typeof insertCdiCompositeScoreSchema>;
+export type CdiCompositeScore = typeof cdiCompositeScores.$inferSelect;
+
+export type InsertCdiFeedbackEvent = z.infer<typeof insertCdiFeedbackEventSchema>;
+export type CdiFeedbackEvent = typeof cdiFeedbackEvents.$inferSelect;
+
+export type InsertCdiLearningRun = z.infer<typeof insertCdiLearningRunSchema>;
+export type CdiLearningRun = typeof cdiLearningRuns.$inferSelect;
+
+export type InsertCdiPatternLibrary = z.infer<typeof insertCdiPatternLibrarySchema>;
+export type CdiPatternLibrary = typeof cdiPatternLibrary.$inferSelect;
+
+export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+export type AuditLog = typeof auditLogs.$inferSelect;
+
+export type InsertAiChatMessage = z.infer<typeof insertAiChatMessageSchema>;
+export type AiChatMessage = typeof aiChatMessages.$inferSelect;
+
+// IQS Types
+export type InsertIqsLeadScore = z.infer<typeof insertIqsLeadScoreSchema>;
+export type IqsLeadScore = typeof iqsLeadScores.$inferSelect;
+
+export type InsertIqsInteractionEvent = z.infer<typeof insertIqsInteractionEventSchema>;
+export type IqsInteractionEvent = typeof iqsInteractionEvents.$inferSelect;
+
+export type InsertIqsPattern = z.infer<typeof insertIqsPatternSchema>;
+export type IqsPattern = typeof iqsPatterns.$inferSelect;
+
+export type InsertIqsVendorFeedback = z.infer<typeof insertIqsVendorFeedbackSchema>;
+export type IqsVendorFeedback = typeof iqsVendorFeedback.$inferSelect;
+
+export type InsertIqsLearningRun = z.infer<typeof insertIqsLearningRunSchema>;
+export type IqsLearningRun = typeof iqsLearningRuns.$inferSelect;
