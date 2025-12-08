@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useState, useEffect, useRef } from "react";
-import { Folder, ArrowLeft, Calendar, Clock, FileText, DollarSign, Image as ImageIcon, Check, X, AlertCircle, Plus, Search, CreditCard, Send, Instagram, Globe, MessageCircle, UserPlus, LogOut, Upload, Settings, User, Wallet, BookUser, Info, ChevronDown, ChevronUp, Camera, Paperclip, Mic, Loader2, Eye, ShieldAlert, ThumbsUp, ThumbsDown, Flag } from "lucide-react";
+import { Folder, ArrowLeft, Calendar, Clock, FileText, DollarSign, Image as ImageIcon, Check, X, AlertCircle, Plus, Search, CreditCard, Send, Instagram, Globe, MessageCircle, UserPlus, LogOut, Upload, Settings, User, Wallet, BookUser, Info, ChevronDown, ChevronUp, Camera, Paperclip, Mic, Loader2, Eye, ShieldAlert, ThumbsUp, ThumbsDown, Flag, Mail, XCircle } from "lucide-react";
 import VoiceDictation from "../components/VoiceDictation";
 import AvailabilityCalendar from "../components/AvailabilityCalendar";
 import AIChatPanel from "../components/AIChatPanel";
@@ -91,6 +91,26 @@ export default function ArtistDashboard() {
   const [iqsLoading, setIqsLoading] = useState(false);
   const [showIqsPanel, setShowIqsPanel] = useState(true);
   const [submittingFeedback, setSubmittingFeedback] = useState<string | null>(null);
+  
+  // Inquiry inbox state
+  const [inquiries, setInquiries] = useState<Array<{
+    id: string;
+    clientName: string;
+    clientEmail: string;
+    clientPhone?: string;
+    eventDate: string;
+    eventType?: string;
+    serviceType: string;
+    partySize?: number;
+    message?: string;
+    budget?: number;
+    status: string;
+    createdAt: string;
+  }>>([]);
+  const [inquiriesLoading, setInquiriesLoading] = useState(false);
+  const [respondingInquiry, setRespondingInquiry] = useState<string | null>(null);
+  const [sendingChatInvite, setSendingChatInvite] = useState<string | null>(null);
+  const [decliningInquiry, setDecliningInquiry] = useState<string | null>(null);
   
   const [messages, setMessages] = useState([
     { from: "other", text: "Select a client to start chatting." }
@@ -213,6 +233,15 @@ export default function ArtistDashboard() {
         setIqsWarnings(iqsData || []);
       }
       setIqsLoading(false);
+      
+      // Fetch vendor inquiries
+      setInquiriesLoading(true);
+      const inquiriesRes = await fetch('/api/vendor/inquiries', { credentials: 'include' });
+      if (inquiriesRes.ok) {
+        const inquiriesData = await inquiriesRes.json();
+        setInquiries(inquiriesData || []);
+      }
+      setInquiriesLoading(false);
     } catch (err) {
       console.error("Error fetching bookings:", err);
     }
@@ -260,6 +289,129 @@ export default function ArtistDashboard() {
       });
     }
     setSubmittingFeedback(null);
+  };
+  
+  // Inquiry action handlers
+  const handleRespondToInquiry = async (inquiryId: string) => {
+    setRespondingInquiry(inquiryId);
+    try {
+      const res = await fetch(`/api/inquiries/${inquiryId}/respond`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      
+      if (res.ok) {
+        toast({
+          title: "Response Sent",
+          description: "Your info sheet has been sent to the client.",
+        });
+        // Refresh inquiries
+        const inquiriesRes = await fetch('/api/vendor/inquiries', { credentials: 'include' });
+        if (inquiriesRes.ok) {
+          setInquiries(await inquiriesRes.json());
+        }
+      } else {
+        const error = await res.json();
+        toast({
+          title: "Error",
+          description: error.error || "Failed to respond to inquiry",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to respond to inquiry",
+        variant: "destructive",
+      });
+    }
+    setRespondingInquiry(null);
+  };
+  
+  const handleSendChatInvite = async (inquiryId: string) => {
+    setSendingChatInvite(inquiryId);
+    try {
+      const res = await fetch(`/api/inquiries/${inquiryId}/chat-invite`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      
+      if (res.ok) {
+        toast({
+          title: "Chat Invite Sent",
+          description: "A chat invitation email has been sent to the client.",
+        });
+        // Refresh inquiries
+        const inquiriesRes = await fetch('/api/vendor/inquiries', { credentials: 'include' });
+        if (inquiriesRes.ok) {
+          setInquiries(await inquiriesRes.json());
+        }
+      } else {
+        const error = await res.json();
+        toast({
+          title: "Error",
+          description: error.error || "Failed to send chat invite",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to send chat invite",
+        variant: "destructive",
+      });
+    }
+    setSendingChatInvite(null);
+  };
+  
+  const handleDeclineInquiry = async (inquiryId: string) => {
+    setDecliningInquiry(inquiryId);
+    try {
+      const res = await fetch(`/api/inquiries/${inquiryId}/decline`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ reason: 'Not available for this date' }),
+      });
+      
+      if (res.ok) {
+        toast({
+          title: "Inquiry Declined",
+          description: "The inquiry has been marked as declined.",
+        });
+        // Refresh inquiries
+        const inquiriesRes = await fetch('/api/vendor/inquiries', { credentials: 'include' });
+        if (inquiriesRes.ok) {
+          setInquiries(await inquiriesRes.json());
+        }
+      } else {
+        const error = await res.json();
+        toast({
+          title: "Error",
+          description: error.error || "Failed to decline inquiry",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to decline inquiry",
+        variant: "destructive",
+      });
+    }
+    setDecliningInquiry(null);
+  };
+  
+  const getInquiryStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'responded': return 'bg-blue-100 text-blue-800';
+      case 'chatting': return 'bg-purple-100 text-purple-800';
+      case 'converted': return 'bg-green-100 text-green-800';
+      case 'declined': return 'bg-gray-100 text-gray-600';
+      case 'expired': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   };
   
   const getRiskLevelColor = (riskLevel: string) => {
@@ -1180,6 +1332,123 @@ export default function ArtistDashboard() {
                             <span>Import</span>
                           </Link>
                         </div>
+                      </div>
+
+                      {/* Inquiry Inbox */}
+                      <div className="card-frame rounded-md px-5 py-4" data-testid="section-inquiry-inbox">
+                        <h2 className="font-header text-md ink-main mb-3 flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <Mail size={14} /> Inquiry Inbox
+                          </span>
+                          {inquiries.filter(i => i.status === 'pending').length > 0 && (
+                            <span className="bg-pink/20 text-pink text-[0.6rem] px-2 py-1 rounded-full font-sans uppercase tracking-wide font-semibold">
+                              {inquiries.filter(i => i.status === 'pending').length} New
+                            </span>
+                          )}
+                        </h2>
+                        
+                        {inquiriesLoading ? (
+                          <div className="flex items-center justify-center py-4">
+                            <Loader2 size={16} className="animate-spin text-gray-400" />
+                          </div>
+                        ) : inquiries.length === 0 ? (
+                          <p className="text-xs ink-soft italic">No inquiries yet. Prospective clients will appear here.</p>
+                        ) : (
+                          <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
+                            {inquiries.map(inquiry => (
+                              <div 
+                                key={inquiry.id} 
+                                className="border border-[#e5e8f2] bg-[#fbfcff] p-3 rounded-md text-xs"
+                                data-testid={`inquiry-card-${inquiry.id}`}
+                              >
+                                <div className="flex justify-between items-start mb-1">
+                                  <div>
+                                    <h3 className="font-header text-xs ink-main">{inquiry.clientName}</h3>
+                                    <p className="text-[0.6rem] ink-soft">{inquiry.clientEmail}</p>
+                                  </div>
+                                  <span className={`text-[0.55rem] px-1.5 py-0.5 rounded-full ${getInquiryStatusColor(inquiry.status)}`}>
+                                    {inquiry.status}
+                                  </span>
+                                </div>
+                                <div className="flex flex-wrap gap-2 mb-2 text-[0.65rem] ink-soft">
+                                  <span className="flex items-center gap-1">
+                                    <Calendar size={10} />
+                                    {new Date(inquiry.eventDate).toLocaleDateString()}
+                                  </span>
+                                  <span>• {inquiry.serviceType}</span>
+                                  {inquiry.partySize && <span>• Party of {inquiry.partySize}</span>}
+                                </div>
+                                {inquiry.message && (
+                                  <p className="text-[0.65rem] ink-soft mb-2 line-clamp-2 italic">"{inquiry.message}"</p>
+                                )}
+                                {inquiry.status === 'pending' && (
+                                  <div className="flex gap-1 mt-2">
+                                    <button 
+                                      onClick={() => handleDeclineInquiry(inquiry.id)}
+                                      disabled={decliningInquiry === inquiry.id}
+                                      className="flex-1 py-1.5 rounded-md border border-gray-200 text-gray-500 hover:border-red-200 hover:text-red-600 transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+                                      title="Decline"
+                                      data-testid={`button-decline-inquiry-${inquiry.id}`}
+                                    >
+                                      {decliningInquiry === inquiry.id ? (
+                                        <Loader2 size={10} className="animate-spin" />
+                                      ) : (
+                                        <XCircle size={10} />
+                                      )}
+                                      <span className="hidden sm:inline">Decline</span>
+                                    </button>
+                                    <button 
+                                      onClick={() => handleRespondToInquiry(inquiry.id)}
+                                      disabled={respondingInquiry === inquiry.id}
+                                      className="flex-1 py-1.5 rounded-md bg-powder-blue text-black border border-powder-blue hover:bg-[#8fb5d9] transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+                                      title="Respond"
+                                      data-testid={`button-respond-inquiry-${inquiry.id}`}
+                                    >
+                                      {respondingInquiry === inquiry.id ? (
+                                        <Loader2 size={10} className="animate-spin" />
+                                      ) : (
+                                        <Send size={10} />
+                                      )}
+                                      <span className="hidden sm:inline">Respond</span>
+                                    </button>
+                                    <button 
+                                      onClick={() => handleSendChatInvite(inquiry.id)}
+                                      disabled={sendingChatInvite === inquiry.id}
+                                      className="flex-1 py-1.5 rounded-md bg-black text-white border border-black hover:bg-gray-800 transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+                                      title="Invite to Chat"
+                                      data-testid={`button-chat-invite-${inquiry.id}`}
+                                    >
+                                      {sendingChatInvite === inquiry.id ? (
+                                        <Loader2 size={10} className="animate-spin" />
+                                      ) : (
+                                        <MessageCircle size={10} />
+                                      )}
+                                      <span className="hidden sm:inline">Chat</span>
+                                    </button>
+                                  </div>
+                                )}
+                                {inquiry.status === 'responded' && (
+                                  <div className="flex gap-1 mt-2">
+                                    <button 
+                                      onClick={() => handleSendChatInvite(inquiry.id)}
+                                      disabled={sendingChatInvite === inquiry.id}
+                                      className="flex-1 py-1.5 rounded-md bg-black text-white border border-black hover:bg-gray-800 transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+                                      title="Invite to Chat"
+                                      data-testid={`button-chat-invite-responded-${inquiry.id}`}
+                                    >
+                                      {sendingChatInvite === inquiry.id ? (
+                                        <Loader2 size={10} className="animate-spin" />
+                                      ) : (
+                                        <MessageCircle size={10} />
+                                      )}
+                                      <span>Invite to Chat</span>
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       {/* Day-of Schedules - Under Service Requests */}

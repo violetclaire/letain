@@ -517,3 +517,107 @@ export async function sendContractEmail({
     return { success: false, error: err.message };
   }
 }
+
+export async function sendChatInviteEmail({
+  toEmail,
+  vendorName,
+  clientName,
+  chatLink,
+  eventDate,
+  serviceType,
+  expiresAt
+}: {
+  toEmail: string;
+  vendorName: string;
+  clientName: string;
+  chatLink: string;
+  eventDate?: string;
+  serviceType?: string;
+  expiresAt?: Date;
+}) {
+  console.log("Getting Resend client for chat invite email...");
+  const { client, fromEmail } = await getResendClient();
+  
+  const expiryText = expiresAt 
+    ? `This invitation expires on ${expiresAt.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.`
+    : 'This invitation will expire in 7 days.';
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Georgia', serif; background-color: #f5f1e8; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { 
+          background-color: #FAF7F2;
+          background-image:
+            repeating-linear-gradient(0deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px),
+            repeating-linear-gradient(90deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px);
+          padding: 28px; 
+          text-align: center;
+          border-bottom: 1px solid rgba(107, 74, 85, 0.2);
+        }
+        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55; }
+        .header p { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin: 8px 0 0 0; color: #6B4A55; opacity: 0.8; }
+        .content { padding: 32px; color: #262329; line-height: 1.6; }
+        .highlight-box { background: linear-gradient(135deg, #FAF7F2 0%, #f9f4ed 100%); border-radius: 8px; padding: 24px; margin: 24px 0; border-left: 3px solid #C9A961; }
+        .button { display: inline-block; background: #6B4A55; color: white !important; padding: 16px 32px; text-decoration: none; border-radius: 6px; font-size: 15px; letter-spacing: 1px; font-weight: bold; }
+        .button:hover { background: #8a6270; }
+        .footer { background: #262329; color: white; padding: 20px; text-align: center; font-size: 12px; }
+        .footer a { color: #C9A961; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Beauvette</h1>
+          <p>For Life's Most Important Days</p>
+        </div>
+        <div class="content">
+          <p style="margin-bottom: 24px;">Hi ${clientName},</p>
+          <p style="margin-bottom: 20px;"><strong>${vendorName}</strong> would like to connect with you to discuss your upcoming event!</p>
+          
+          ${eventDate || serviceType ? `
+          <div class="highlight-box">
+            <strong>Your Inquiry Details:</strong><br>
+            ${serviceType ? `Service: ${serviceType}<br>` : ''}
+            ${eventDate ? `Event Date: ${eventDate}` : ''}
+          </div>
+          ` : ''}
+          
+          <p style="margin-bottom: 16px;">Click below to create your Beauvette account and start chatting with ${vendorName} about your event:</p>
+          
+          <p style="text-align: center; margin: 32px 0;">
+            <a href="${chatLink}" class="button">Start Chat</a>
+          </p>
+          
+          <p style="color: #888; font-size: 13px; margin-top: 24px;">${expiryText}</p>
+          
+          <p style="color: #888; font-size: 13px;">Or copy this link: <a href="${chatLink}" style="color: #C9A961;">${chatLink}</a></p>
+        </div>
+        <div class="footer">
+          Sent via <a href="https://beauvette.com">Beauvette</a> - Beauty services for life's most important days
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const senderEmail = 'Beauvette <noreply@beauvette.com>';
+  
+  try {
+    console.log("Sending chat invite email to:", toEmail);
+    const result = await client.emails.send({
+      from: senderEmail,
+      to: toEmail.trim(),
+      subject: `${vendorName} wants to connect with you on Beauvette`,
+      html: htmlContent
+    });
+    console.log("Chat invite email sent:", JSON.stringify(result));
+    return { success: true, result };
+  } catch (err: any) {
+    console.error("Failed to send chat invite email:", err.message);
+    return { success: false, error: err.message };
+  }
+}

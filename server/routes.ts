@@ -63,6 +63,7 @@ import {
   insertCdiEventSchema,
   insertCdiThresholdSchema,
   insertCdiAdminOverrideSchema,
+  insertInquirySchema,
 } from "@shared/schema";
 
 // Dynamic CDI imports to avoid bundling issues
@@ -5281,6 +5282,314 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       res.json(updated);
     } catch (error: any) {
       console.error("[IQS] Error updating pattern:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ========== INQUIRIES ==========
+  
+  // Submit a new inquiry (public - no auth required for prospective clients)
+  app.post("/api/inquiries", async (req: any, res) => {
+    try {
+      // Convert eventDate string to Date object before validation
+      const body = {
+        ...req.body,
+        eventDate: req.body.eventDate ? new Date(req.body.eventDate) : undefined,
+      };
+      const data = insertInquirySchema.parse(body);
+      
+      // Verify vendor exists
+      const vendor = await storage.getUser(data.vendorId);
+      if (!vendor || vendor.role !== 'artist') {
+        return res.status(404).json({ error: "Vendor not found" });
+      }
+      
+      const inquiry = await storage.createInquiry(data);
+      
+      // Auto-send info sheet if vendor has one enabled and mode is auto
+      const artistProfile = await storage.getArtistProfile(data.vendorId);
+      const hasInfoSheet = artistProfile?.infoSheetEnabled && (
+        artistProfile?.infoSheetContent || 
+        (artistProfile?.infoSheetType === 'pdf' && artistProfile?.infoSheetPdfUrl)
+      );
+      
+      if (hasInfoSheet && (artistProfile?.infoSheetType !== 'manual' || data.responseMode === 'auto')) {
+        const vendorName = artistProfile.businessName || vendor.firstName || 'The Vendor';
+        const eventDate = data.eventDate 
+          ? new Date(data.eventDate).toLocaleDateString('en-US', { 
+              weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+            })
+          : 'Date TBD';
+        
+        // Send info sheet email asynchronously
+        import('./emailService').then(({ sendInfoSheetEmail }) => {
+          sendInfoSheetEmail({
+            toEmail: data.clientEmail,
+            vendorName,
+            vendorEmail: vendor.email || undefined,
+            infoSheetContent: artistProfile.infoSheetContent || undefined,
+            infoSheetPdfUrl: artistProfile.infoSheetPdfUrl || undefined,
+            infoSheetType: (artistProfile.infoSheetType as 'template' | 'custom' | 'pdf') || 'template',
+            eventDate,
+            serviceType: data.serviceType || 'Beauty Services'
+          }).then(async () => {
+            // Update inquiry with info sheet sent timestamp
+            await storage.updateInquiry(inquiry.id, { infoSheetSentAt: new Date() } as any);
+            // Log notification
+            await storage.createInquiryNotification({
+              inquiryId: inquiry.id,
+              type: 'info_sheet',
+              channel: 'email',
+              recipientEmail: data.clientEmail,
+              subject: `Information from ${vendorName}`,
+              content: 'Auto-sent info sheet based on vendor settings',
+              status: 'sent',
+              sentAt: new Date(),
+            });
+          }).catch((err: any) => console.error('[Inquiry Info Sheet] Error:', err));
+        });
+        
+        console.log('[Inquiry] Auto-sent info sheet to', data.clientEmail);
+      }
+      
+      // Notify vendor of new inquiry
+      if (vendor.email) {
+        import('./emailService').then(async (emailService) => {
+          // Log vendor notification
+          await storage.createInquiryNotification({
+            inquiryId: inquiry.id,
+            type: 'vendor_alert',
+            channel: 'email',
+            recipientEmail: vendor.email!,
+            subject: `New inquiry from ${data.clientName}`,
+            content: `Inquiry for ${data.serviceType} on ${data.eventDate}`,
+            status: 'pending',
+          });
+        });
+      }
+      
+      res.json(inquiry);
+    } catch (error: any) {
+      console.error("[Inquiry] Error creating inquiry:", error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+  // Get inquiries for a vendor
+  app.get("/api/vendor/inquiries", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'artist') {
+        return res.status(403).json({ error: "Vendor access required" });
+      }
+      
+      const inquiries = await storage.getInquiriesByVendor(userId);
+      res.json(inquiries);
+    } catch (error: any) {
+      console.error("[Inquiry] Error fetching vendor inquiries:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Get single inquiry
+  app.get("/api/inquiries/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const inquiry = await storage.getInquiry(req.params.id);
+      if (!inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+      
+      // Check access - vendor or admin only
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      if (inquiry.vendorId !== userId && user?.role !== 'admin') {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      // Get associated notifications
+      const notifications = await storage.getInquiryNotifications(inquiry.id);
+      
+      res.json({ ...inquiry, notifications });
+    } catch (error: any) {
+      console.error("[Inquiry] Error fetching inquiry:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Vendor responds to inquiry (send info sheet manually if not auto-sent)
+  app.post("/api/inquiries/:id/respond", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const inquiry = await storage.getInquiry(req.params.id);
+      
+      if (!inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+      
+      if (inquiry.vendorId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      // Mark as responded
+      await storage.updateInquiry(inquiry.id, { status: 'responded' });
+      
+      // Send info sheet if not already sent
+      if (!inquiry.infoSheetSentAt) {
+        const vendor = await storage.getUser(userId);
+        const artistProfile = await storage.getArtistProfile(userId);
+        
+        if (artistProfile?.infoSheetContent || artistProfile?.infoSheetPdfUrl) {
+          const vendorName = artistProfile.businessName || vendor?.firstName || 'The Vendor';
+          const eventDate = inquiry.eventDate 
+            ? new Date(inquiry.eventDate).toLocaleDateString('en-US', { 
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+              })
+            : 'Date TBD';
+          
+          import('./emailService').then(({ sendInfoSheetEmail }) => {
+            sendInfoSheetEmail({
+              toEmail: inquiry.clientEmail,
+              vendorName,
+              vendorEmail: vendor?.email || undefined,
+              infoSheetContent: artistProfile.infoSheetContent || undefined,
+              infoSheetPdfUrl: artistProfile.infoSheetPdfUrl || undefined,
+              infoSheetType: (artistProfile.infoSheetType as 'template' | 'custom' | 'pdf') || 'template',
+              eventDate,
+              serviceType: inquiry.serviceType || 'Beauty Services'
+            }).then(async () => {
+              await storage.updateInquiry(inquiry.id, { infoSheetSentAt: new Date() } as any);
+              await storage.createInquiryNotification({
+                inquiryId: inquiry.id,
+                type: 'info_sheet',
+                channel: 'email',
+                recipientEmail: inquiry.clientEmail,
+                subject: `Information from ${vendorName}`,
+                content: 'Info sheet sent by vendor',
+                status: 'sent',
+                sentAt: new Date(),
+              });
+            }).catch((err: any) => console.error('[Inquiry Respond] Error:', err));
+          });
+        }
+      }
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("[Inquiry] Error responding to inquiry:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Send chat invite to client
+  app.post("/api/inquiries/:id/chat-invite", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const inquiry = await storage.getInquiry(req.params.id);
+      
+      if (!inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+      
+      if (inquiry.vendorId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      // Create a chat invite with a signed token
+      const token = randomUUID();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7); // 7 day expiry
+      
+      const chatInvite = await storage.createChatInvite({
+        senderId: userId,
+        inviteeEmail: inquiry.clientEmail,
+        status: 'pending',
+        inquiryId: inquiry.id,
+        token,
+        expiresAt,
+      });
+      
+      // Update inquiry status
+      await storage.updateInquiry(inquiry.id, { 
+        status: 'chatting',
+        chatInviteSentAt: new Date()
+      } as any);
+      
+      // Build chat link
+      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+        : process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.com';
+      const chatLink = `${baseUrl}/chat-invite/${token}`;
+      
+      // Get vendor info
+      const vendor = await storage.getUser(userId);
+      const artistProfile = await storage.getArtistProfile(userId);
+      const vendorName = artistProfile?.businessName || vendor?.firstName || 'The Vendor';
+      
+      const eventDate = inquiry.eventDate 
+        ? new Date(inquiry.eventDate).toLocaleDateString('en-US', { 
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+          })
+        : undefined;
+      
+      // Send chat invite email
+      import('./emailService').then(({ sendChatInviteEmail }) => {
+        sendChatInviteEmail({
+          toEmail: inquiry.clientEmail,
+          vendorName,
+          clientName: inquiry.clientName,
+          chatLink,
+          eventDate,
+          serviceType: inquiry.serviceType || undefined,
+          expiresAt,
+        }).catch((err: any) => console.error('[Chat Invite Email] Error:', err));
+      });
+      
+      // Log notification
+      await storage.createInquiryNotification({
+        inquiryId: inquiry.id,
+        type: 'chat_invite',
+        channel: 'email',
+        recipientEmail: inquiry.clientEmail,
+        subject: `${vendorName} wants to connect with you`,
+        content: `Chat invite link: ${chatLink}`,
+        status: 'sent',
+        sentAt: new Date(),
+        metadata: { chatInviteToken: token },
+      });
+      
+      res.json({ success: true, chatInviteId: chatInvite.id });
+    } catch (error: any) {
+      console.error("[Inquiry] Error sending chat invite:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Decline inquiry
+  app.post("/api/inquiries/:id/decline", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const inquiry = await storage.getInquiry(req.params.id);
+      
+      if (!inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+      
+      if (inquiry.vendorId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const { reason } = req.body;
+      
+      await storage.updateInquiry(inquiry.id, { 
+        status: 'declined',
+        declinedReason: reason 
+      });
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("[Inquiry] Error declining inquiry:", error);
       res.status(500).json({ error: error.message });
     }
   });
