@@ -1199,6 +1199,18 @@ export const communicationLogs = pgTable("communication_logs", {
     amount?: number;
     bookingId?: string;
     templateUsed?: string;
+    // Contract-specific fields
+    totalAmountCents?: number;
+    depositAmountCents?: number;
+    // Email-specific fields
+    occasion?: string;
+    senderName?: string;
+    // Forward-specific fields
+    originalLogId?: string;
+    originalRecipient?: string;
+    originalType?: string;
+    // Allow additional fields
+    [key: string]: string | number | boolean | undefined;
   }>(),
   status: text("status").default("sent"), // 'sent', 'delivered', 'failed', 'bounced'
   sentVia: text("sent_via").default("ai_chat"), // 'ai_chat', 'manual', 'automated'
