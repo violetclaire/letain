@@ -1507,8 +1507,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log the communication
       await storage.createCommunicationLog({
         artistId: userId,
+        recipientName: clientName,
         recipientEmail: toEmail,
-        type: 'email',
+        communicationType: 'appointment_email',
         subject: subject,
         content: body,
         metadata: {
