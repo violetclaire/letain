@@ -352,6 +352,63 @@ export const chatInvites = pgTable("chat_invites", {
   inviteeUserId: varchar("invitee_user_id").references(() => users.id),
   status: text("status").notNull(), // 'pending', 'accepted', 'declined'
   bookingId: varchar("booking_id").references(() => bookings.id),
+  inquiryId: varchar("inquiry_id"), // Link to inquiry that triggered this chat invite (FK added after inquiries table)
+  token: varchar("token"), // Single-use signed token for email links
+  expiresAt: timestamp("expires_at"), // Token expiry (7 days by default)
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Inquiries - client inquiries to vendors before booking
+export const inquiries = pgTable("inquiries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  vendorId: varchar("vendor_id").notNull().references(() => users.id),
+  clientId: varchar("client_id").references(() => users.id), // Nullable until client creates account
+  clientEmail: text("client_email").notNull(), // Always captured for email follow-up
+  clientName: text("client_name").notNull(),
+  clientPhone: text("client_phone"),
+  eventDate: timestamp("event_date").notNull(),
+  eventType: text("event_type"), // 'wedding', 'engagement', 'bridal_shower', etc.
+  eventLocation: text("event_location"),
+  serviceType: text("service_type").notNull(), // 'beauty', 'photography', etc.
+  partySize: integer("party_size"), // Number of people needing services
+  message: text("message"), // Client's initial message/notes
+  budget: text("budget"), // Budget range if provided
+  status: text("status").notNull().default("pending"), // 'pending', 'responded', 'chatting', 'converted', 'declined', 'expired'
+  responseMode: text("response_mode").default("auto"), // 'auto' or 'manual' - how vendor responds
+  infoSheetSentAt: timestamp("info_sheet_sent_at"), // When info sheet was sent
+  chatInviteSentAt: timestamp("chat_invite_sent_at"), // When chat invite was sent
+  convertedToBookingId: varchar("converted_to_booking_id").references(() => bookings.id), // If converted
+  convertedToContractId: varchar("converted_to_contract_id").references(() => contracts.id), // If converted to contract
+  declinedReason: text("declined_reason"), // Why vendor declined
+  metadata: jsonb("metadata").$type<{
+    source?: string; // 'browse_page', 'direct_link', 'referral'
+    referredBy?: string;
+    preferredStyles?: string[];
+    inspirationUrls?: string[];
+  }>(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Inquiry Notifications - audit trail for all inquiry-related communications
+export const inquiryNotifications = pgTable("inquiry_notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  inquiryId: varchar("inquiry_id").notNull().references(() => inquiries.id),
+  type: text("type").notNull(), // 'inquiry_receipt', 'info_sheet', 'chat_invite', 'vendor_alert', 'reminder', 'follow_up'
+  channel: text("channel").notNull(), // 'email', 'sms'
+  recipientEmail: text("recipient_email"),
+  recipientPhone: text("recipient_phone"),
+  subject: text("subject"),
+  content: text("content"), // Summary of what was sent
+  status: text("status").notNull().default("pending"), // 'pending', 'sent', 'delivered', 'failed', 'bounced'
+  sentAt: timestamp("sent_at"),
+  deliveredAt: timestamp("delivered_at"),
+  errorMessage: text("error_message"), // If failed
+  metadata: jsonb("metadata").$type<{
+    emailId?: string; // Resend email ID for tracking
+    templateUsed?: string;
+    chatInviteToken?: string;
+  }>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -875,6 +932,17 @@ export const insertChatInviteSchema = createInsertSchema(chatInvites).omit({
   createdAt: true,
 });
 
+export const insertInquirySchema = createInsertSchema(inquiries).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertInquiryNotificationSchema = createInsertSchema(inquiryNotifications).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertConversationSchema = createInsertSchema(conversations).omit({
   id: true,
   createdAt: true,
@@ -1285,6 +1353,12 @@ export type ScheduleAppointment = typeof scheduleAppointments.$inferSelect;
 
 export type InsertChatInvite = z.infer<typeof insertChatInviteSchema>;
 export type ChatInvite = typeof chatInvites.$inferSelect;
+
+export type InsertInquiry = z.infer<typeof insertInquirySchema>;
+export type Inquiry = typeof inquiries.$inferSelect;
+
+export type InsertInquiryNotification = z.infer<typeof insertInquiryNotificationSchema>;
+export type InquiryNotification = typeof inquiryNotifications.$inferSelect;
 
 export type InsertConversation = z.infer<typeof insertConversationSchema>;
 export type Conversation = typeof conversations.$inferSelect;
