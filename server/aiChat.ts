@@ -664,6 +664,19 @@ export async function createContractFromAI(
 
     console.log(`[AI] Created contract for ${contract.clientName}`, newContract.id);
 
+    // Log the communication (amounts stored as cents in DB)
+    const depositAmountCents = contract.depositAmount || Math.round(contract.totalAmount * 0.5);
+    await storage.createCommunicationLog({
+      artistId,
+      recipientName: contract.clientName,
+      communicationType: "contract",
+      subject: `Contract - ${contract.packageDetails.substring(0, 50)}`,
+      content: `Package: ${contract.packageDetails}\nTotal: $${(contract.totalAmount / 100).toFixed(2)}\nDeposit: $${(depositAmountCents / 100).toFixed(2)}`,
+      metadata: { contractId: newContract.id, bookingId, totalAmountCents: contract.totalAmount, depositAmountCents },
+      status: "sent",
+      sentVia: "ai_chat",
+    });
+
     return { success: true, contractId: newContract.id };
   } catch (err: any) {
     console.error("[AI] Failed to create contract:", err);
@@ -711,14 +724,29 @@ export async function sendThankYouEmailFromAI(
       </div>
     `;
 
+    const emailSubject = `Thank You${email.occasion ? ` - ${email.occasion}` : ""} from ${senderName}`;
+    
     await resend.emails.send({
       from: fromEmail || "Beauvette <no-reply@beauvette.com>",
       to: email.recipientEmail,
-      subject: `Thank You${email.occasion ? ` - ${email.occasion}` : ""} from ${senderName}`,
+      subject: emailSubject,
       html: htmlContent,
     });
 
     console.log(`[AI] Sent thank you email to ${email.recipientEmail}`);
+
+    // Log the communication
+    await storage.createCommunicationLog({
+      artistId,
+      recipientName: email.recipientName,
+      recipientEmail: email.recipientEmail,
+      communicationType: "thank_you_email",
+      subject: emailSubject,
+      content: email.message,
+      metadata: { occasion: email.occasion, senderName },
+      status: "sent",
+      sentVia: "ai_chat",
+    });
 
     return { success: true };
   } catch (err: any) {
@@ -802,6 +830,104 @@ export async function searchFromAI(
     return { success: true, results };
   } catch (err: any) {
     console.error("[AI] Search failed:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function forwardCommunicationToArtist(
+  artistId: string,
+  logId: string,
+  artistEmail: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const log = await storage.getCommunicationLog(logId);
+    if (!log) {
+      return { success: false, error: "Communication log not found" };
+    }
+
+    if (log.artistId !== artistId) {
+      return { success: false, error: "Not authorized" };
+    }
+
+    const { client: resend, fromEmail } = await getResendClient();
+    const artistProfile = await storage.getArtistProfile(artistId);
+    const artist = await storage.getUser(artistId);
+    const senderName = artistProfile?.businessName || artist?.firstName || "Beauvette";
+
+    const formattedDate = log.createdAt ? new Date(log.createdAt).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    }) : 'Unknown date';
+
+    const htmlContent = `
+      <div style="font-family: 'Georgia', serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background: linear-gradient(135deg, #FAF7F2 0%, #F5F1E8 100%);">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #6B4A55; font-size: 28px; margin: 0; font-weight: normal;">Beauvette</h1>
+          <p style="color: #8B7355; font-size: 12px; letter-spacing: 2px; margin-top: 5px;">COMMUNICATION RECORD</p>
+        </div>
+        
+        <div style="background: white; border-radius: 8px; padding: 40px; box-shadow: 0 2px 10px rgba(107, 74, 85, 0.1);">
+          <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #E8E4DE;">
+            <p style="color: #8B7355; margin: 0; font-size: 12px; text-transform: uppercase;">Type</p>
+            <p style="color: #333; margin: 5px 0 0; font-size: 16px;">${log.communicationType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+          </div>
+          
+          <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #E8E4DE;">
+            <p style="color: #8B7355; margin: 0; font-size: 12px; text-transform: uppercase;">Sent To</p>
+            <p style="color: #333; margin: 5px 0 0; font-size: 16px;">${log.recipientName}${log.recipientEmail ? ` (${log.recipientEmail})` : ''}</p>
+          </div>
+          
+          <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #E8E4DE;">
+            <p style="color: #8B7355; margin: 0; font-size: 12px; text-transform: uppercase;">Date Sent</p>
+            <p style="color: #333; margin: 5px 0 0; font-size: 16px;">${formattedDate}</p>
+          </div>
+          
+          <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #E8E4DE;">
+            <p style="color: #8B7355; margin: 0; font-size: 12px; text-transform: uppercase;">Subject</p>
+            <p style="color: #333; margin: 5px 0 0; font-size: 16px;">${log.subject || 'N/A'}</p>
+          </div>
+          
+          <div>
+            <p style="color: #8B7355; margin: 0; font-size: 12px; text-transform: uppercase;">Content</p>
+            <div style="color: #333; margin-top: 10px; padding: 15px; background: #F8F6F3; border-radius: 4px; white-space: pre-wrap; font-size: 14px; line-height: 1.6;">${log.content}</div>
+          </div>
+        </div>
+        
+        <p style="text-align: center; color: #8B7355; font-size: 12px; margin-top: 30px;">
+          This is your copy of a communication sent via Beauvette
+        </p>
+      </div>
+    `;
+
+    await resend.emails.send({
+      from: fromEmail || "Beauvette <no-reply@beauvette.com>",
+      to: artistEmail,
+      subject: `[Copy] ${log.subject || log.communicationType} - Sent to ${log.recipientName}`,
+      html: htmlContent,
+    });
+
+    console.log(`[AI] Forwarded communication log ${logId} to ${artistEmail}`);
+
+    // Log the forward action as a new communication record
+    await storage.createCommunicationLog({
+      artistId,
+      recipientName: "Self",
+      recipientEmail: artistEmail,
+      communicationType: "forward_copy",
+      subject: `[Forwarded Copy] ${log.subject || log.communicationType}`,
+      content: `Forwarded copy of communication originally sent to ${log.recipientName}`,
+      metadata: { originalLogId: logId, originalRecipient: log.recipientName, originalType: log.communicationType },
+      status: "sent",
+      sentVia: "forward_request",
+    });
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("[AI] Failed to forward communication:", err);
     return { success: false, error: err.message };
   }
 }

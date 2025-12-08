@@ -109,7 +109,8 @@ async function loadCDI() {
         createContractFromAI: async () => ({ success: false, error: "AI unavailable" }),
         sendThankYouEmailFromAI: async () => ({ success: false, error: "AI unavailable" }),
         generateImageFromAI: async () => ({ success: false, error: "AI unavailable" }),
-        searchFromAI: async () => ({ success: false, error: "AI unavailable" })
+        searchFromAI: async () => ({ success: false, error: "AI unavailable" }),
+        forwardCommunicationToArtist: async () => ({ success: false, error: "AI unavailable" })
       };
     }
   }
@@ -1904,6 +1905,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         response: "I'm having trouble right now. Please try again in a moment."
       });
+    }
+  });
+
+  // Get communication logs for artist (only accessible by artists)
+  app.get("/api/communication-logs", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Verify user is an artist
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'artist') {
+        return res.status(403).json({ error: "Only artists can access communication logs" });
+      }
+
+      const limit = parseInt(req.query.limit as string) || 50;
+      const logs = await storage.getCommunicationLogsByArtist(userId, limit);
+      res.json(logs);
+    } catch (error: any) {
+      console.error("Error fetching communication logs:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Forward communication to artist email
+  app.post("/api/communication-logs/:id/forward", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const logId = req.params.id;
+      const log = await storage.getCommunicationLog(logId);
+      
+      if (!log) {
+        return res.status(404).json({ error: "Communication log not found" });
+      }
+      
+      if (log.artistId !== userId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      // Get artist email
+      const artist = await storage.getUser(userId);
+      if (!artist?.email) {
+        return res.status(400).json({ error: "No email on file" });
+      }
+
+      // Forward via AI chat module
+      const result = await aiChat.forwardCommunicationToArtist(userId, logId, artist.email);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error forwarding communication:", error);
+      res.status(500).json({ error: error.message });
     }
   });
 
