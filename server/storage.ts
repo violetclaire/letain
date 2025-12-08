@@ -128,6 +128,9 @@ import {
   type InsertIqsVendorFeedback,
   type IqsLearningRun,
   type InsertIqsLearningRun,
+  communicationLogs,
+  type CommunicationLog,
+  type InsertCommunicationLog,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc, or, sql } from "drizzle-orm";
@@ -378,6 +381,12 @@ export interface IStorage {
   createIqsLearningRun(run: InsertIqsLearningRun): Promise<IqsLearningRun>;
   completeIqsLearningRun(id: string, results: Partial<InsertIqsLearningRun>): Promise<IqsLearningRun | undefined>;
   getIqsLearningRuns(limit?: number): Promise<IqsLearningRun[]>;
+  
+  // Communication Logs
+  createCommunicationLog(log: InsertCommunicationLog): Promise<CommunicationLog>;
+  getCommunicationLogsByArtist(artistId: string, limit?: number): Promise<CommunicationLog[]>;
+  getCommunicationLogsByRecipient(artistId: string, recipientEmail: string): Promise<CommunicationLog[]>;
+  getCommunicationLog(id: string): Promise<CommunicationLog | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1776,6 +1785,37 @@ export class DatabaseStorage implements IStorage {
       .from(iqsLearningRuns)
       .orderBy(desc(iqsLearningRuns.startedAt))
       .limit(limit);
+  }
+  
+  // Communication Logs
+  async createCommunicationLog(log: InsertCommunicationLog): Promise<CommunicationLog> {
+    const [newLog] = await db.insert(communicationLogs).values(log as any).returning();
+    return newLog;
+  }
+  
+  async getCommunicationLogsByArtist(artistId: string, limit: number = 50): Promise<CommunicationLog[]> {
+    return await db
+      .select()
+      .from(communicationLogs)
+      .where(eq(communicationLogs.artistId, artistId))
+      .orderBy(desc(communicationLogs.createdAt))
+      .limit(limit);
+  }
+  
+  async getCommunicationLogsByRecipient(artistId: string, recipientEmail: string): Promise<CommunicationLog[]> {
+    return await db
+      .select()
+      .from(communicationLogs)
+      .where(and(
+        eq(communicationLogs.artistId, artistId),
+        eq(communicationLogs.recipientEmail, recipientEmail)
+      ))
+      .orderBy(desc(communicationLogs.createdAt));
+  }
+  
+  async getCommunicationLog(id: string): Promise<CommunicationLog | undefined> {
+    const [log] = await db.select().from(communicationLogs).where(eq(communicationLogs.id, id));
+    return log || undefined;
   }
 }
 

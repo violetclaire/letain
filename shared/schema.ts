@@ -1183,6 +1183,33 @@ export const insertAiChatMessageSchema = createInsertSchema(aiChatMessages).omit
   createdAt: true,
 });
 
+// Communication Logs - tracks all outbound communications (emails, contracts, payment links)
+export const communicationLogs = pgTable("communication_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  artistId: varchar("artist_id").notNull().references(() => users.id),
+  recipientName: text("recipient_name").notNull(),
+  recipientEmail: text("recipient_email"),
+  recipientPhone: text("recipient_phone"),
+  communicationType: text("communication_type").notNull(), // 'contract', 'payment_link', 'thank_you_email', 'invoice', 'info_sheet', 'inquiry_response'
+  subject: text("subject"),
+  content: text("content"), // Summary or full content of what was sent
+  metadata: jsonb("metadata").$type<{
+    contractId?: string;
+    paymentLinkUrl?: string;
+    amount?: number;
+    bookingId?: string;
+    templateUsed?: string;
+  }>(),
+  status: text("status").default("sent"), // 'sent', 'delivered', 'failed', 'bounced'
+  sentVia: text("sent_via").default("ai_chat"), // 'ai_chat', 'manual', 'automated'
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertCommunicationLogSchema = createInsertSchema(communicationLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types for Replit Auth
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -1317,3 +1344,7 @@ export type IqsVendorFeedback = typeof iqsVendorFeedback.$inferSelect;
 
 export type InsertIqsLearningRun = z.infer<typeof insertIqsLearningRunSchema>;
 export type IqsLearningRun = typeof iqsLearningRuns.$inferSelect;
+
+// Communication Log Types
+export type InsertCommunicationLog = z.infer<typeof insertCommunicationLogSchema>;
+export type CommunicationLog = typeof communicationLogs.$inferSelect;
