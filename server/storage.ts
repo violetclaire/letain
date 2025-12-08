@@ -648,6 +648,46 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteBooking(id: string): Promise<void> {
+    // Delete related records first to avoid foreign key constraint violations
+    // Order matters due to dependencies between tables
+    
+    // Delete schedule-related records
+    const relatedSchedules = await db.select().from(eventDaySchedules).where(eq(eventDaySchedules.bookingId, id));
+    for (const schedule of relatedSchedules) {
+      await db.delete(scheduleAppointments).where(eq(scheduleAppointments.scheduleId, schedule.id));
+      await db.delete(scheduleTeamMembers).where(eq(scheduleTeamMembers.scheduleId, schedule.id));
+    }
+    await db.delete(eventDaySchedules).where(eq(eventDaySchedules.bookingId, id));
+    await db.delete(schedules).where(eq(schedules.bookingId, id));
+    
+    // Delete conversation-related records
+    const relatedConversations = await db.select().from(conversations).where(eq(conversations.bookingId, id));
+    for (const conv of relatedConversations) {
+      // Delete business chat insights first (references messages)
+      await db.delete(businessChatInsights).where(eq(businessChatInsights.conversationId, conv.id));
+      await db.delete(businessChatMessages).where(eq(businessChatMessages.conversationId, conv.id));
+      await db.delete(conversationParticipants).where(eq(conversationParticipants.conversationId, conv.id));
+    }
+    await db.delete(conversations).where(eq(conversations.bookingId, id));
+    
+    // Delete messages
+    await db.delete(messages).where(eq(messages.bookingId, id));
+    
+    // Delete contract-related records
+    const relatedContracts = await db.select().from(contracts).where(eq(contracts.bookingId, id));
+    for (const contract of relatedContracts) {
+      await db.delete(payments).where(eq(payments.contractId, contract.id));
+    }
+    await db.delete(contracts).where(eq(contracts.bookingId, id));
+    
+    // Delete other related records
+    await db.delete(invitations).where(eq(invitations.bookingId, id));
+    await db.delete(chatInvites).where(eq(chatInvites.bookingId, id));
+    await db.delete(supportCases).where(eq(supportCases.bookingId, id));
+    await db.delete(cdiEvents).where(eq(cdiEvents.bookingId, id));
+    await db.delete(communicationLogs).where(eq(communicationLogs.bookingId, id));
+    
+    // Finally delete the booking itself
     await db.delete(bookings).where(eq(bookings.id, id));
   }
 
