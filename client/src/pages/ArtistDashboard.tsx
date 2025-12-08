@@ -478,6 +478,11 @@ export default function ArtistDashboard() {
   });
   const [savingBooking, setSavingBooking] = useState(false);
   
+  // Day of Reminders state
+  const [dayOfReminders, setDayOfReminders] = useState("");
+  const [savingReminders, setSavingReminders] = useState(false);
+  const [remindersSaved, setRemindersSaved] = useState(false);
+  
   const filteredClients = clients.filter(c => 
     c.name?.toLowerCase().includes(clientSearch.toLowerCase()) ||
     c.date?.toLowerCase().includes(clientSearch.toLowerCase()) ||
@@ -497,6 +502,8 @@ export default function ArtistDashboard() {
         eventTime: booking.eventTime || "",
         location: booking.location || "",
       });
+      setDayOfReminders(booking.dayOfReminders || "");
+      setRemindersSaved(false);
       setView("folder");
     }
   };
@@ -542,6 +549,50 @@ export default function ArtistDashboard() {
       });
     }
     setSavingBooking(false);
+  };
+  
+  const handleSaveDayOfReminders = async () => {
+    if (!selectedBooking?.id) return;
+    
+    setSavingReminders(true);
+    try {
+      const res = await fetch(`/api/bookings/${selectedBooking.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          dayOfReminders: dayOfReminders,
+        }),
+      });
+      
+      if (res.ok) {
+        setRemindersSaved(true);
+        toast({
+          title: "Saved",
+          description: "Day of reminders saved successfully.",
+        });
+        // Update selectedBooking with the new value
+        setSelectedBooking((prev: any) => ({ ...prev, dayOfReminders }));
+        // Also update in clients list
+        setClients(prev => prev.map(c => 
+          c.id === selectedBooking.id ? { ...c, dayOfReminders } : c
+        ));
+        setTimeout(() => setRemindersSaved(false), 3000);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to save reminders.",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to save reminders.",
+        variant: "destructive",
+      });
+    }
+    setSavingReminders(false);
   };
 
   const acceptRequest = (req: any) => {
@@ -1698,10 +1749,39 @@ export default function ArtistDashboard() {
                     <h3 className="font-header text-md ink-main mb-2">Day of Reminders Memo</h3>
                     <div className="flex gap-2">
                       <textarea 
+                        value={dayOfReminders}
+                        onChange={(e) => setDayOfReminders(e.target.value)}
                         className="flex-1 border border-[#c5ccd8] bg-[#f5f7fc] rounded p-2 text-xs h-20 focus:outline-none focus:border-black"
                         placeholder="Add notes for the team (e.g., Gate code is 1234, Parking in rear...)"
+                        data-testid="input-day-of-reminders"
                       ></textarea>
-                      <VoiceDictation onTranscript={() => {}} size="md" />
+                      <VoiceDictation onTranscript={(text) => setDayOfReminders(prev => prev + " " + text)} size="md" />
+                    </div>
+                    <div className="flex items-center justify-between mt-2">
+                      {remindersSaved && (
+                        <span className="text-xs text-green-600 flex items-center gap-1">
+                          <Check size={12} /> Saved
+                        </span>
+                      )}
+                      {!remindersSaved && <span />}
+                      <button
+                        onClick={handleSaveDayOfReminders}
+                        disabled={savingReminders}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-black text-white text-xs rounded hover:bg-gray-800 disabled:opacity-50"
+                        data-testid="button-save-reminders"
+                      >
+                        {savingReminders ? (
+                          <>
+                            <Loader2 size={12} className="animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Check size={12} />
+                            Save
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
                 </div>

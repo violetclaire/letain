@@ -187,6 +187,7 @@ export const bookings = pgTable("bookings", {
   stripePaymentLinkId: text("stripe_payment_link_id"),
   stripePaymentLinkUrl: text("stripe_payment_link_url"),
   paymentStatus: text("payment_status").default("pending"),
+  dayOfReminders: text("day_of_reminders"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
