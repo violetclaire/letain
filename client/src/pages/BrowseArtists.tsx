@@ -221,8 +221,8 @@ export default function BrowseArtists() {
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
             {vendors.map((vendor, i) => (
                 <div key={i} className="group overflow-hidden rounded-xl border-2 border-powder-blue bg-white shadow-sm transition-all hover:-translate-y-1 hover:border-pink hover:shadow-md" data-testid={`card-vendor-${i}`}>
-                    <div className="relative bg-gradient-to-br from-powder-blue to-[#8fb5d9] p-6 text-center">
-                        <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full border-4 border-white bg-gradient-to-br from-gold to-[#E8D5C4] text-3xl">
+                    <div className="relative gingham-check p-6 text-center">
+                        <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full border-4 border-white bg-white/90 text-3xl text-black/70">
                             {vendor.name.charAt(0)}
                         </div>
                         <h3 className="font-header text-2xl text-black">{vendor.name}</h3>
