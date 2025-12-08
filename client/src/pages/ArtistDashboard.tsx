@@ -112,6 +112,12 @@ export default function ArtistDashboard() {
   const [sendingChatInvite, setSendingChatInvite] = useState<string | null>(null);
   const [decliningInquiry, setDecliningInquiry] = useState<string | null>(null);
   
+  // Appointment email state
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
+  
   const [messages, setMessages] = useState([
     { from: "other", text: "Select a client to start chatting." }
   ]);
@@ -1024,6 +1030,68 @@ export default function ArtistDashboard() {
       });
     }
     setSendingInvoiceSms(false);
+  };
+
+  const handleSendAppointmentEmail = async () => {
+    if (!selectedBooking?.clientEmail) {
+      toast({
+        title: "Missing Email",
+        description: "No email address found for this client.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!emailSubject.trim() || !emailBody.trim()) {
+      toast({
+        title: "Missing Content",
+        description: "Please enter both subject and message.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSendingEmail(true);
+    try {
+      const res = await fetch('/api/booking/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          bookingId: selectedBooking.id,
+          toEmail: selectedBooking.clientEmail,
+          clientName: selectedBooking.name || 'Client',
+          subject: emailSubject,
+          body: emailBody,
+          eventDate: selectedBooking.date,
+          eventLocation: selectedBooking.location,
+        }),
+      });
+
+      if (res.ok) {
+        toast({
+          title: "Email Sent!",
+          description: `Appointment email sent to ${selectedBooking.clientEmail}`,
+        });
+        setShowEmailModal(false);
+        setEmailSubject("");
+        setEmailBody("");
+      } else {
+        const err = await res.json();
+        toast({
+          title: "Error",
+          description: err.error || "Failed to send email",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to send appointment email",
+        variant: "destructive",
+      });
+    }
+    setSendingEmail(false);
   };
 
   if (authLoading || loading) {
@@ -1996,22 +2064,28 @@ export default function ArtistDashboard() {
                     </div>
                     <div className="card-frame rounded-md px-4 py-3">
                       <h3 className="font-header text-sm ink-main mb-2 flex items-center gap-2">
-                        <DollarSign size={12} /> Payment
+                        <Mail size={12} /> Communication
                       </h3>
-                      <div className="text-xs bg-[#fbfcff] border border-[#e5e8f2] p-2 rounded mb-2">
-                        <p><strong>Status:</strong> Pending</p>
+                      <div className="flex flex-col gap-2">
+                        <button 
+                          onClick={() => {
+                            if (selectedBooking?.id) {
+                              setInvoiceBookingId(selectedBooking.id);
+                              setShowInvoiceModal(true);
+                            }
+                          }}
+                          className="text-[0.65rem] uppercase tracking-wide underline text-blue-600"
+                        >
+                          Send Invoice
+                        </button>
+                        <button 
+                          onClick={() => setShowEmailModal(true)}
+                          className="text-[0.65rem] uppercase tracking-wide underline text-blue-600"
+                          data-testid="button-send-appointment-email"
+                        >
+                          Send Email
+                        </button>
                       </div>
-                      <button 
-                        onClick={() => {
-                          if (selectedBooking?.id) {
-                            setInvoiceBookingId(selectedBooking.id);
-                            setShowInvoiceModal(true);
-                          }
-                        }}
-                        className="text-[0.65rem] uppercase tracking-wide underline text-blue-600"
-                      >
-                        Create Invoice
-                      </button>
                     </div>
                   </div>
 
@@ -2142,6 +2216,79 @@ export default function ArtistDashboard() {
           </footer>
         </div>
       </div>
+
+      {/* Email Modal */}
+      {showEmailModal && selectedBooking && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-powder-blue rounded-full">
+                <Mail size={24} className="text-black" />
+              </div>
+              <h3 className="font-header text-lg ink-main">Send Appointment Email</h3>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[0.7rem] uppercase tracking-wide ink-soft mb-1">To:</label>
+                <p className="text-sm font-medium">{selectedBooking.clientEmail}</p>
+              </div>
+
+              <div>
+                <label className="block text-[0.7rem] uppercase tracking-wide ink-soft mb-1">Subject *</label>
+                <input
+                  type="text"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  placeholder="E.g., Your appointment details"
+                  className="w-full border border-[#c5ccd8] bg-[#fbfcff] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
+                  data-testid="input-email-subject"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[0.7rem] uppercase tracking-wide ink-soft mb-1">Message *</label>
+                <textarea
+                  value={emailBody}
+                  onChange={(e) => setEmailBody(e.target.value)}
+                  placeholder="Write your message here..."
+                  className="w-full border border-[#c5ccd8] bg-[#fbfcff] rounded px-3 py-2 text-sm h-32 focus:outline-none focus:ring-1 focus:ring-black"
+                  data-testid="textarea-email-body"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end mt-6">
+              <button 
+                onClick={() => {
+                  setShowEmailModal(false);
+                  setEmailSubject("");
+                  setEmailBody("");
+                }}
+                className="px-4 py-2 text-xs rounded border border-gray-300 hover:bg-gray-50"
+                data-testid="button-cancel-email"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSendAppointmentEmail}
+                disabled={sendingEmail}
+                className="px-4 py-2 text-xs rounded bg-black text-white hover:bg-gray-800 disabled:opacity-50 flex items-center gap-2"
+                data-testid="button-send-email"
+              >
+                {sendingEmail ? (
+                  <>
+                    <Loader2 size={12} className="animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  "Send Email"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Invite Modal */}
       {showInviteModal && (

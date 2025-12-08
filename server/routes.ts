@@ -1426,6 +1426,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========== BOOKING EMAIL ==========
+  app.post("/api/booking/send-email", isAuthenticated, async (req: any, res) => {
+    try {
+      const { bookingId, toEmail, clientName, subject, body, eventDate, eventLocation } = req.body;
+      const userId = getAuthUserId(req);
+
+      if (!bookingId || !toEmail || !clientName || !subject || !body) {
+        return res.status(400).json({ error: 'Booking ID, email, client name, subject, and message are required' });
+      }
+
+      // Get booking to verify artist ownership
+      const booking = await storage.getBooking(bookingId);
+      if (!booking) {
+        return res.status(404).json({ error: 'Booking not found' });
+      }
+
+      // Verify the user is the artist on this booking
+      if (booking.artistId !== userId) {
+        return res.status(403).json({ error: 'Not authorized to send email for this booking' });
+      }
+
+      // Send email via Resend
+      const emailService = await import("./emailService");
+      const { client: resendClient } = await emailService.getResendClient();
+
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: 'Georgia', serif; background-color: #f5f1e8; margin: 0; padding: 20px; }
+            .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+            .header { 
+              background-color: #FAF7F2;
+              background-image:
+                repeating-linear-gradient(0deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px),
+                repeating-linear-gradient(90deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px);
+              padding: 28px; 
+              text-align: center;
+              border-bottom: 1px solid rgba(107, 74, 85, 0.2);
+            }
+            .header h1 { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55; }
+            .header p { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin: 8px 0 0 0; color: #6B4A55; opacity: 0.8; }
+            .content { padding: 32px; }
+            .message { line-height: 1.6; color: #333; white-space: pre-wrap; }
+            .details { margin-top: 24px; padding-top: 24px; border-top: 1px solid #eee; font-size: 13px; color: #666; }
+            .footer { text-align: center; padding: 20px; color: #888; font-size: 12px; border-top: 1px solid #eee; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Beauvette</h1>
+              <p>For Life's Most Important Days</p>
+            </div>
+            <div class="content">
+              <p>Hi ${clientName},</p>
+              <div class="message">${body}</div>
+              ${eventDate || eventLocation ? `<div class="details">
+                ${eventDate ? `<p><strong>Event Date:</strong> ${eventDate}</p>` : ''}
+                ${eventLocation ? `<p><strong>Location:</strong> ${eventLocation}</p>` : ''}
+              </div>` : ''}
+            </div>
+            <div class="footer">
+              Sent via Beauvette - Beauty services for life's most important days
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      const result = await resendClient.emails.send({
+        from: 'Beauvette <noreply@beauvette.com>',
+        to: toEmail.trim(),
+        subject: subject,
+        html: htmlContent
+      });
+
+      // Log the communication
+      await storage.createCommunicationLog({
+        artistId: userId,
+        recipientEmail: toEmail,
+        type: 'email',
+        subject: subject,
+        content: body,
+        metadata: {
+          bookingId,
+          eventDate,
+          eventLocation
+        }
+      });
+
+      res.json({ success: true, message: 'Email sent successfully' });
+    } catch (error: any) {
+      console.error("Booking email error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/invoice/send-sms", isAuthenticated, async (req: any, res) => {
     try {
       const { toPhone, clientName, vendorName, amount, paymentLink } = req.body;
