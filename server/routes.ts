@@ -343,6 +343,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete user account
+  app.delete("/api/users/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const requesterId = req.user?.claims?.sub;
+      const targetId = req.params.id;
+      
+      if (!requesterId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // Users can only delete their own account unless they're admin
+      const requester = await storage.getUser(requesterId);
+      if (requesterId !== targetId && requester?.role !== 'admin') {
+        return res.status(403).json({ error: "You can only delete your own account" });
+      }
+      
+      // Check if user exists
+      const userToDelete = await storage.getUser(targetId);
+      if (!userToDelete) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Create audit log before deletion
+      await storage.createAuditLog({
+        action: 'account_deleted',
+        entityType: 'user',
+        entityId: targetId,
+        performedBy: requesterId,
+        changes: {
+          deletedEmail: userToDelete.email,
+          deletedRole: userToDelete.role,
+          deletedBy: requesterId === targetId ? 'self' : 'admin',
+        },
+      });
+      
+      // Delete the user and all related data
+      await storage.deleteUser(targetId);
+      
+      // Destroy session if user deleted their own account
+      if (requesterId === targetId && req.session) {
+        req.session.destroy(() => {});
+      }
+      
+      res.json({ success: true, message: "Account deleted successfully" });
+    } catch (error: any) {
+      console.error("Delete user error:", error);
+      res.status(500).json({ error: error.message || "Failed to delete account" });
+    }
+  });
+
   // CDI Consent Management
   app.post("/api/users/:id/cdi-consent", isAuthenticated, async (req: any, res) => {
     try {

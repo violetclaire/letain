@@ -152,6 +152,7 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   updateUserRole(id: string, role: string): Promise<User | undefined>;
   updateUser(id: string, data: Partial<{ email: string; firstName: string; lastName: string; phone: string; profileImageUrl: string; stripeAccountId: string; cdiConsentGiven: boolean; cdiConsentDate: Date; cdiOptOut: boolean }>): Promise<User | undefined>;
+  deleteUser(id: string): Promise<void>;
   
   // Intakes
   createClientIntake(intake: InsertClientIntake): Promise<ClientIntake>;
@@ -475,6 +476,20 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return updated || undefined;
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    // Delete related data first (in order of dependencies)
+    await db.delete(aiChatMessages).where(eq(aiChatMessages.userId, id));
+    await db.delete(clientIntakes).where(eq(clientIntakes.userId, id));
+    await db.delete(artistIntakes).where(eq(artistIntakes.userId, id));
+    await db.delete(plannerIntakes).where(eq(plannerIntakes.userId, id));
+    await db.delete(artistServices).where(eq(artistServices.artistId, id));
+    await db.delete(artistProfiles).where(eq(artistProfiles.userId, id));
+    await db.delete(availability).where(eq(availability.userId, id));
+    await db.delete(clientContacts).where(eq(clientContacts.artistId, id));
+    // Delete the user
+    await db.delete(users).where(eq(users.id, id));
   }
 
   async getAllUsers(): Promise<User[]> {

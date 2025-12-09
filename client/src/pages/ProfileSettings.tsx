@@ -1835,6 +1835,60 @@ Thank you for considering us for your special day!`}
           </div>
         </div>
 
+        {/* Danger Zone - Delete Account */}
+        <div className="bg-red-50 p-5 rounded-sm shadow-sm border border-red-200">
+          <h2 className="font-header text-lg text-red-700 mb-4 flex items-center gap-2">
+            <Trash2 className="h-5 w-5" />
+            Danger Zone
+          </h2>
+          
+          <div className="space-y-4">
+            <div className="p-3 border border-red-200 rounded bg-white">
+              <h3 className="font-medium text-sm text-red-700">Delete Account</h3>
+              <p className="text-xs text-black/60 mt-1">
+                Permanently delete your account and all associated data. This action cannot be undone.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm("Are you sure you want to delete your account? This action CANNOT be undone. All your data, bookings, messages, and profile information will be permanently deleted.")) {
+                    if (window.confirm("This is your final warning. Press OK to permanently delete your account.")) {
+                      fetch(`/api/users/${user?.id}`, {
+                        method: "DELETE",
+                        credentials: "include",
+                      })
+                        .then((res) => {
+                          if (res.ok) {
+                            toast({
+                              title: "Account Deleted",
+                              description: "Your account has been permanently deleted.",
+                            });
+                            window.location.href = "/";
+                          } else {
+                            return res.json().then((err) => {
+                              throw new Error(err.error || "Failed to delete account");
+                            });
+                          }
+                        })
+                        .catch((err) => {
+                          toast({
+                            title: "Error",
+                            description: err.message,
+                            variant: "destructive",
+                          });
+                        });
+                    }
+                  }
+                }}
+                className="mt-3 px-4 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
+                data-testid="button-delete-account"
+              >
+                Delete My Account
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div className="text-center text-xs text-black/50">
           <p>Logged in as {user?.email}</p>
           <p className="mt-1">Role: {user?.role || "Not set"}</p>
