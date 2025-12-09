@@ -39,42 +39,42 @@
 }
 
 :root {
-  /* Brand Colors - Plum Check by Claremont palette (matched to fabric) */
-  --powder-blue: #F5F2EA;  /* Warm ivory/cream background */
-  --cream: #FAF7F2;        /* Pure cream */
+  /* Brand Colors - Plum Check by Claremont palette */
+  --powder-blue: #E0DCC8;  /* Oatmeal / Ecru background */
+  --cream: #EBE8DA;        /* Lighter ecru */
   --black: #4A3F42;        /* Warm dark text */
-  --pink: #C4B5BC;         /* Dusty lavender/plum */
-  --gold: #B5B08A;         /* Olive/sage green */
-  --forest: #7A6B5E;       /* Brown/taupe */
+  --pink: #967D89;         /* Dusty Mauve */
+  --gold: #C19A6B;         /* Classic Camel */
+  --forest: #6E5A54;       /* Deep Fig / Cocoa */
 
   /* Mapped to shadcn/ui variables where appropriate */
-  --background: #F5F2EA;   /* Warm ivory/cream background */
+  --background: #E0DCC8;   /* Oatmeal / Ecru background */
   --foreground: #4A3F42;   /* Warm dark text */
 
-  --card: #FDFCFA;
+  --card: #F5F3E8;
   --card-foreground: #4A3F42;
 
-  --popover: #FDFCFA;
+  --popover: #F5F3E8;
   --popover-foreground: #4A3F42;
 
-  --primary: #7A6B5E;
-  --primary-foreground: #FAF7F2;
+  --primary: #6E5A54;
+  --primary-foreground: #EBE8DA;
 
-  --secondary: #F5F2EA;
+  --secondary: #E0DCC8;
   --secondary-foreground: #4A3F42;
 
-  --muted: #FAF7F2;
-  --muted-foreground: #8A7D80;
+  --muted: #EBE8DA;
+  --muted-foreground: #7A6E70;
 
-  --accent: #C4B5BC;
-  --accent-foreground: #4A3F42;
+  --accent: #967D89;
+  --accent-foreground: #EBE8DA;
 
   --destructive: #C45B5B;
   --destructive-foreground: #ffffff;
 
-  --border: #DDD6CC;
-  --input: #F0EBE3;
-  --ring: #C4B5BC;
+  --border: #CFC9B8;
+  --input: #EBE8DA;
+  --ring: #967D89;
 
   --radius: 0.5rem;
 }
@@ -117,79 +117,79 @@
     opacity: 0.4;
   }
 
-  /* Plum Check pattern for elevator doors - matched to Claremont fabric */
+  /* Plum Check pattern for elevator doors */
   .gingham-pattern {
-    background-color: #FAF7F2;
+    background-color: #E0DCC8;
     background-image:
-      linear-gradient(45deg, #C4B5BC 25%, transparent 25%),
-      linear-gradient(-45deg, #C4B5BC 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, #C4B5BC 75%),
-      linear-gradient(-45deg, transparent 75%, #C4B5BC 75%),
-      linear-gradient(45deg, #B5B08A 25%, transparent 25%),
-      linear-gradient(-45deg, #B5B08A 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, #B5B08A 75%),
-      linear-gradient(-45deg, transparent 75%, #B5B08A 75%);
-    background-size: 20px 20px;
-    background-position: 0 0, 10px 0, 10px -10px, 0px 10px, 0 0, 10px 0, 10px -10px, 0px 10px;
+      linear-gradient(45deg, #967D89 25%, transparent 25%),
+      linear-gradient(-45deg, #967D89 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #967D89 75%),
+      linear-gradient(-45deg, transparent 75%, #967D89 75%),
+      linear-gradient(45deg, #C19A6B 25%, transparent 25%),
+      linear-gradient(-45deg, #C19A6B 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #C19A6B 75%),
+      linear-gradient(-45deg, transparent 75%, #C19A6B 75%);
+    background-size: 12px 12px;
+    background-position: 0 0, 6px 0, 6px -6px, 0px 6px, 0 0, 6px 0, 6px -6px, 0px 6px;
   }
   
-  /* Plum Check pattern - matched to Claremont fabric */
+  /* Plum Check pattern - smaller stripes */
   .gingham-check {
-    background-color: #FAF7F2;
+    background-color: #E0DCC8;
     background-image:
       repeating-linear-gradient(
         0deg,
         transparent,
-        transparent 24px,
-        rgba(196, 181, 188, 0.5) 24px,
-        rgba(196, 181, 188, 0.5) 48px
+        transparent 10px,
+        rgba(150, 125, 137, 0.45) 10px,
+        rgba(150, 125, 137, 0.45) 20px
       ),
       repeating-linear-gradient(
         90deg,
         transparent,
-        transparent 24px,
-        rgba(181, 176, 138, 0.45) 24px,
-        rgba(181, 176, 138, 0.45) 48px
+        transparent 10px,
+        rgba(193, 154, 107, 0.4) 10px,
+        rgba(193, 154, 107, 0.4) 20px
       );
   }
 
   /* Layout Classes from design */
   .frame-outer {
-    border: 2px solid #4A3F42;
+    border: 2px solid #6E5A54;
     padding: 0.75rem;
-    background-color: #F5F2EA;  /* Ivory/cream */
+    background-color: #E0DCC8;  /* Oatmeal / Ecru */
   }
 
   .frame-inner {
-    border: 1px solid #DDD6CC;
+    border: 1px solid #CFC9B8;
     padding: 2rem;
-    background-color: #FAF7F2;
+    background-color: #EBE8DA;
   }
 
   .card-frame {
-    border: 1px solid #DDD6CC;
-    box-shadow: inset 0 0 0 1px #FAF7F2;
-    background-color: #FDFCFA;
+    border: 1px solid #CFC9B8;
+    box-shadow: inset 0 0 0 1px #EBE8DA;
+    background-color: #F5F3E8;
   }
 
   .ink-main { color: #4A3F42; }
-  .ink-soft { color: #8A7D80; }
+  .ink-soft { color: #7A6E70; }
 
   .btn-soft {
-    background-color: #F0EBE3;
+    background-color: #EBE8DA;
     color: #4A3F42;
     transition: background-color 0.2s;
   }
   .btn-soft:hover {
-    background-color: #E8E1D8;
+    background-color: #DDD9C8;
   }
 
   .bubble-mine {
-    background-color: #F0EBE3;
+    background-color: #EBE8DA;
     color: #4A3F42;
   }
   .bubble-other {
-    background-color: #FAF7F2;
+    background-color: #F5F3E8;
     color: #4A3F42;
   }
 }
