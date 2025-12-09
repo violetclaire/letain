@@ -46,6 +46,8 @@ export default function ContractEditor() {
   const [uploadedPdf, setUploadedPdf] = useState<File | null>(null);
   const [useCustomTemplate, setUseCustomTemplate] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
 
   const { data: artistProfile } = useQuery({
     queryKey: ["artistProfile", user?.id],
@@ -198,6 +200,7 @@ export default function ContractEditor() {
       eventLocation: client.location || "",
       serviceLocation: client.location || "",
     }));
+    setSelectedBookingId(client.bookingId || null);
   };
 
   const handlePdfUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -211,7 +214,7 @@ export default function ContractEditor() {
     }
   };
 
-  const generateContract = () => {
+  const generateContract = async () => {
     const contractHtml = `
 <!DOCTYPE html>
 <html>
@@ -404,6 +407,7 @@ export default function ContractEditor() {
 </body>
 </html>`;
 
+    // Download locally
     const blob = new Blob([contractHtml], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -411,7 +415,83 @@ export default function ContractEditor() {
     a.download = `contract-${formData.clientName.replace(/\s+/g, '-').toLowerCase()}-${formData.contractDate}.html`;
     a.click();
     URL.revokeObjectURL(url);
-    toast({ title: "Contract Downloaded", description: "Your contract has been generated and downloaded." });
+    
+    // Also save to the platform if a booking is selected
+    if (selectedBookingId) {
+      setIsSaving(true);
+      try {
+        const fileContent = btoa(unescape(encodeURIComponent(contractHtml)));
+        const res = await fetch(`/api/bookings/${selectedBookingId}/upload-contract`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            fileContent,
+            fileName: `contract-${formData.clientName.replace(/\s+/g, '-').toLowerCase()}.html`,
+            mimeType: 'text/html',
+            packageDetails: formData.serviceDetails,
+            totalAmount: formData.totalAmount * 100,
+            depositAmount: formData.depositAmount * 100,
+          }),
+        });
+        
+        if (res.ok) {
+          toast({ title: "Contract Saved", description: "Contract downloaded and saved to the booking folder." });
+          queryClient.invalidateQueries({ queryKey: ["artistContracts"] });
+        } else {
+          toast({ title: "Contract Downloaded", description: "Contract downloaded. Could not save to platform." });
+        }
+      } catch (err) {
+        toast({ title: "Contract Downloaded", description: "Contract downloaded locally." });
+      } finally {
+        setIsSaving(false);
+      }
+    } else {
+      toast({ title: "Contract Downloaded", description: "Select a client from a booking to also save to the platform." });
+    }
+  };
+  
+  // Handle PDF upload to the platform
+  const handleSavePdfToBooking = async () => {
+    if (!uploadedPdf || !selectedBookingId) {
+      toast({ title: "Missing Info", description: "Please upload a PDF and select a client from a booking.", variant: "destructive" });
+      return;
+    }
+    
+    setIsSaving(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64Content = (reader.result as string).split(',')[1];
+        const res = await fetch(`/api/bookings/${selectedBookingId}/upload-contract`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            fileContent: base64Content,
+            fileName: uploadedPdf.name,
+            mimeType: 'application/pdf',
+            packageDetails: formData.serviceDetails,
+            totalAmount: formData.totalAmount * 100,
+            depositAmount: formData.depositAmount * 100,
+          }),
+        });
+        
+        if (res.ok) {
+          toast({ title: "PDF Saved", description: "Your contract PDF has been saved to the booking folder." });
+          queryClient.invalidateQueries({ queryKey: ["artistContracts"] });
+          setUploadedPdf(null);
+        } else {
+          const error = await res.json();
+          toast({ title: "Upload Failed", description: error.error || "Could not save PDF.", variant: "destructive" });
+        }
+        setIsSaving(false);
+      };
+      reader.readAsDataURL(uploadedPdf);
+    } catch (err) {
+      toast({ title: "Upload Failed", description: "Could not upload PDF.", variant: "destructive" });
+      setIsSaving(false);
+    }
   };
 
   if (authLoading) {
@@ -699,9 +779,27 @@ export default function ContractEditor() {
                   />
                 </label>
                 {uploadedPdf && (
-                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-xs flex items-center gap-2">
-                    <Check size={14} className="text-green-600" />
-                    <span>{uploadedPdf.name}</span>
+                  <div className="mt-2 space-y-2">
+                    <div className="p-2 bg-green-50 border border-green-200 rounded text-xs flex items-center gap-2">
+                      <Check size={14} className="text-green-600" />
+                      <span>{uploadedPdf.name}</span>
+                    </div>
+                    <button
+                      onClick={handleSavePdfToBooking}
+                      disabled={!selectedBookingId || isSaving}
+                      className="w-full bg-black text-white py-2 rounded text-xs hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      data-testid="button-save-pdf-to-booking"
+                    >
+                      {isSaving ? (
+                        <div className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full" />
+                      ) : (
+                        <Save size={12} />
+                      )}
+                      Save to Booking
+                    </button>
+                    {!selectedBookingId && (
+                      <p className="text-[0.6rem] text-center text-red-500">Select a client from a booking first</p>
+                    )}
                   </div>
                 )}
               </div>

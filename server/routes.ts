@@ -1768,6 +1768,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload contract file to object storage
+  app.post("/api/contracts/:id/upload-file", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const contractId = req.params.id;
+      
+      const contract = await storage.getContract(contractId);
+      if (!contract) {
+        return res.status(404).json({ error: "Contract not found" });
+      }
+      
+      if (contract.artistId !== userId) {
+        return res.status(403).json({ error: "You can only upload to your own contracts" });
+      }
+      
+      const { fileContent, fileName, mimeType } = req.body;
+      if (!fileContent) {
+        return res.status(400).json({ error: "File content is required" });
+      }
+      
+      const objectService = new ObjectStorageService();
+      const timestamp = Date.now();
+      const safeName = (fileName || 'contract').replace(/[^a-zA-Z0-9.-]/g, '_');
+      const objectPath = `.private/contracts/${userId}/${contractId}/${timestamp}-${safeName}`;
+      
+      const buffer = Buffer.from(fileContent, 'base64');
+      const servingUrl = await objectService.uploadBuffer(objectPath, buffer, mimeType || 'text/html', userId);
+      
+      const updatedContract = await storage.updateContract(contractId, { 
+        fileUrl: servingUrl 
+      });
+      
+      res.json({ 
+        success: true, 
+        fileUrl: servingUrl,
+        contract: updatedContract 
+      });
+    } catch (error: any) {
+      console.error("Contract file upload error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Upload contract file for a booking (create contract if needed)
+  app.post("/api/bookings/:bookingId/upload-contract", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const bookingId = req.params.bookingId;
+      
+      const booking = await storage.getBooking(bookingId);
+      if (!booking) {
+        return res.status(404).json({ error: "Booking not found" });
+      }
+      
+      if (booking.artistId !== userId) {
+        return res.status(403).json({ error: "You can only upload contracts for your own bookings" });
+      }
+      
+      const { fileContent, fileName, mimeType, packageDetails, totalAmount, depositAmount } = req.body;
+      if (!fileContent) {
+        return res.status(400).json({ error: "File content is required" });
+      }
+      
+      const objectService = new ObjectStorageService();
+      const timestamp = Date.now();
+      const safeName = (fileName || 'contract').replace(/[^a-zA-Z0-9.-]/g, '_');
+      const objectPath = `.private/contracts/${userId}/${bookingId}/${timestamp}-${safeName}`;
+      
+      const buffer = Buffer.from(fileContent, 'base64');
+      const servingUrl = await objectService.uploadBuffer(objectPath, buffer, mimeType || 'application/pdf', userId);
+      
+      // Create or update contract
+      let existingContracts = await storage.getContractsByBooking(bookingId);
+      let contract;
+      
+      if (existingContracts.length > 0) {
+        contract = await storage.updateContract(existingContracts[0].id, { 
+          fileUrl: servingUrl,
+          packageDetails: packageDetails || existingContracts[0].packageDetails,
+          totalAmount: totalAmount || existingContracts[0].totalAmount,
+          depositAmount: depositAmount || existingContracts[0].depositAmount,
+        });
+      } else {
+        contract = await storage.createContract({
+          bookingId,
+          artistId: userId,
+          clientId: booking.clientId,
+          packageDetails: packageDetails || 'Beauty Services',
+          totalAmount: totalAmount || 0,
+          depositAmount: depositAmount || 0,
+          status: 'draft',
+          fileUrl: servingUrl,
+        });
+      }
+      
+      res.json({ 
+        success: true, 
+        fileUrl: servingUrl,
+        contract 
+      });
+    } catch (error: any) {
+      console.error("Booking contract upload error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/contracts/artist/:artistId", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
