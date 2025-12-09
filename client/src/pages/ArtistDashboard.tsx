@@ -117,6 +117,7 @@ export default function ArtistDashboard() {
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [sendingAppointmentConfirmation, setSendingAppointmentConfirmation] = useState(false);
   
   const [messages, setMessages] = useState([
     { from: "other", text: "Select a client to start chatting." }
@@ -604,6 +605,48 @@ export default function ArtistDashboard() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleSendAppointmentConfirmation = async () => {
+    if (!selectedBooking?.id || !selectedBooking?.clientEmail) {
+      toast({
+        title: "Missing Information",
+        description: "Client email is required to send confirmation",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setSendingAppointmentConfirmation(true);
+    try {
+      const res = await fetch('/api/booking/send-appointment-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ bookingId: selectedBooking.id }),
+      });
+      
+      if (res.ok) {
+        toast({
+          title: "Confirmation Sent!",
+          description: "Appointment details have been sent to the client",
+        });
+      } else {
+        const error = await res.json();
+        toast({
+          title: "Error",
+          description: error.error || "Failed to send confirmation",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to send confirmation email",
+        variant: "destructive",
+      });
+    }
+    setSendingAppointmentConfirmation(false);
   };
 
   const sendMessage = () => {
@@ -2084,6 +2127,21 @@ export default function ArtistDashboard() {
                           data-testid="button-send-appointment-email"
                         >
                           Send Email
+                        </button>
+                        <button 
+                          onClick={handleSendAppointmentConfirmation}
+                          disabled={sendingAppointmentConfirmation || !selectedBooking?.clientEmail}
+                          className="text-[0.65rem] uppercase tracking-wide underline text-blue-600 disabled:opacity-50 flex items-center gap-1"
+                          data-testid="button-send-appointment-confirmation"
+                        >
+                          {sendingAppointmentConfirmation ? (
+                            <>
+                              <Loader2 size={10} className="animate-spin" />
+                              Sending...
+                            </>
+                          ) : (
+                            'Send Appointment Details'
+                          )}
                         </button>
                       </div>
                     </div>
