@@ -6096,6 +6096,164 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // ========== SCHEDULED EMAILS ==========
+  // Create a scheduled email (for invoice scheduling)
+  app.post("/api/scheduled-emails", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const { emailType, recipientEmail, recipientName, subject, htmlContent, textContent, 
+              scheduledFor, bookingId, paymentLinkUrl, amount } = req.body;
+      
+      if (!emailType || !recipientEmail || !scheduledFor) {
+        return res.status(400).json({ error: "Missing required fields: emailType, recipientEmail, scheduledFor" });
+      }
+      
+      const scheduledEmail = await storage.createScheduledEmail({
+        emailType,
+        recipientEmail,
+        recipientName: recipientName || null,
+        subject: subject || null,
+        htmlContent: htmlContent || null,
+        textContent: textContent || null,
+        scheduledFor: new Date(scheduledFor),
+        status: 'pending',
+        bookingId: bookingId || null,
+        createdBy: userId,
+        metadata: { paymentLinkUrl, amount },
+      });
+      
+      res.json(scheduledEmail);
+    } catch (error: any) {
+      console.error("[Scheduled Emails] Error creating:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Get user's scheduled emails
+  app.get("/api/scheduled-emails", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const status = req.query.status as string | undefined;
+      const scheduledEmails = await storage.getScheduledEmailsByUser(userId, status);
+      
+      res.json(scheduledEmails);
+    } catch (error: any) {
+      console.error("[Scheduled Emails] Error fetching:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Cancel a scheduled email
+  app.delete("/api/scheduled-emails/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const scheduledEmail = await storage.getScheduledEmail(req.params.id);
+      if (!scheduledEmail) {
+        return res.status(404).json({ error: "Scheduled email not found" });
+      }
+      
+      if (scheduledEmail.createdBy !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      if (scheduledEmail.status !== 'pending') {
+        return res.status(400).json({ error: "Can only cancel pending emails" });
+      }
+      
+      await storage.updateScheduledEmail(req.params.id, { status: 'cancelled' });
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("[Scheduled Emails] Error cancelling:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Resend an invoice email for a booking
+  app.post("/api/bookings/:id/resend-invoice", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const booking = await storage.getBooking(req.params.id);
+      if (!booking) {
+        return res.status(404).json({ error: "Booking not found" });
+      }
+      
+      if (booking.artistId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      // Get the payment link from the booking
+      const payments = await storage.getPaymentsByBooking(booking.id);
+      const pendingPayment = payments.find(p => p.status === 'pending' && p.paymentLinkUrl);
+      
+      if (!pendingPayment || !pendingPayment.paymentLinkUrl) {
+        return res.status(400).json({ error: "No pending payment link found for this booking" });
+      }
+      
+      // Get client info
+      let clientEmail = '';
+      let clientName = '';
+      
+      if (booking.clientContactId) {
+        const contact = await storage.getClientContact(booking.clientContactId);
+        if (contact) {
+          clientEmail = contact.email || '';
+          clientName = contact.name;
+        }
+      } else if (booking.clientId) {
+        const client = await storage.getUser(booking.clientId);
+        if (client) {
+          clientEmail = client.email || '';
+          clientName = `${client.firstName || ''} ${client.lastName || ''}`.trim();
+        }
+      }
+      
+      if (!clientEmail) {
+        return res.status(400).json({ error: "No client email found for this booking" });
+      }
+      
+      // Get vendor info
+      const vendor = await storage.getUser(userId);
+      const artistProfile = await storage.getArtistProfile(userId);
+      const vendorName = artistProfile?.businessName || `${vendor?.firstName || ''} ${vendor?.lastName || ''}`.trim() || 'Your Vendor';
+      
+      // Send the invoice email
+      const { sendInvoiceEmail } = await import('./emailService');
+      await sendInvoiceEmail({
+        toEmail: clientEmail,
+        clientName: clientName || 'Client',
+        vendorName,
+        amount: pendingPayment.amount,
+        description: `Payment for ${booking.serviceType || 'services'}`,
+        paymentLink: pendingPayment.paymentLinkUrl,
+        eventDate: booking.eventDate ? new Date(booking.eventDate).toLocaleDateString('en-US', { 
+          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+        }) : undefined,
+      });
+      
+      res.json({ success: true, message: `Invoice resent to ${clientEmail}` });
+    } catch (error: any) {
+      console.error("[Resend Invoice] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
