@@ -45,3 +45,4 @@ Beauvette is a full-stack TypeScript application. The frontend uses React 18 wit
 *   **Authentication:** Replit Auth (OpenID Connect) for user authentication.
 *   **Database:** Neon Database (serverless PostgreSQL provider).
 *   **Voice Input:** Browser Web Speech API (client-side only).
+*   **E-Signature:** OpenSign API for electronic contract signing (requires OPENSIGN_API_TOKEN environment variable). Service at `server/openSignService.ts` with routes at `/api/bookings/:bookingId/send-for-signing`. Supports mock mode when API token is not configured.

@@ -219,6 +219,9 @@ export const contracts = pgTable("contracts", {
   status: text("status").default("draft"), // 'draft', 'sent', 'signed', 'cancelled'
   signedAt: timestamp("signed_at"),
   fileUrl: text("file_url"),
+  openSignDocumentId: text("open_sign_document_id"),
+  openSignSigningUrl: text("open_sign_signing_url"),
+  openSignCertificateUrl: text("open_sign_certificate_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

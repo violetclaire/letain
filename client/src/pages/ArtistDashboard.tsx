@@ -119,6 +119,10 @@ export default function ArtistDashboard() {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [sendingAppointmentConfirmation, setSendingAppointmentConfirmation] = useState(false);
   
+  // E-Signature state (OpenSign)
+  const [sendingForSigning, setSendingForSigning] = useState(false);
+  const [contractSigningUrl, setContractSigningUrl] = useState<string | null>(null);
+  
   const [messages, setMessages] = useState([
     { from: "other", text: "Select a client to start chatting." }
   ]);
@@ -647,6 +651,40 @@ export default function ArtistDashboard() {
       });
     }
     setSendingAppointmentConfirmation(false);
+  };
+
+  const handleSendForSigning = async (bookingId: string) => {
+    setSendingForSigning(true);
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/send-for-signing`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setContractSigningUrl(data.signingUrl);
+        toast({
+          title: "Contract Sent!",
+          description: "The contract has been sent for electronic signature",
+        });
+      } else {
+        const error = await res.json();
+        toast({
+          title: "Error",
+          description: error.error || "Failed to send contract for signing",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to send contract for signing",
+        variant: "destructive",
+      });
+    }
+    setSendingForSigning(false);
   };
 
   const sendMessage = () => {
@@ -2097,13 +2135,44 @@ export default function ArtistDashboard() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="card-frame rounded-md px-4 py-3">
                       <h3 className="font-header text-sm ink-main mb-2 flex items-center gap-2">
-                        <FileText size={12} /> Contract
+                        <FileText size={12} /> Contract & E-Signature
                       </h3>
                       <div className="text-xs bg-[#fbfcff] border border-[#e5e8f2] p-2 rounded mb-2">
                         <p><strong>Package:</strong> {selectedBooking?.serviceType || 'Not set'}</p>
                         <p><strong>Status:</strong> {selectedBooking?.status || 'Pending'}</p>
                       </div>
-                      <Link href="/artist/contracts" className="text-[0.65rem] uppercase tracking-wide underline text-blue-600">Create Contract</Link>
+                      <div className="flex flex-col gap-2">
+                        <Link href="/artist/contracts" className="text-[0.65rem] uppercase tracking-wide underline text-blue-600">Create Contract</Link>
+                        <button
+                          onClick={() => {
+                            if (selectedBooking?.id) {
+                              handleSendForSigning(selectedBooking.id);
+                            }
+                          }}
+                          disabled={sendingForSigning || !selectedBooking?.clientEmail}
+                          className="text-[0.65rem] uppercase tracking-wide underline text-blue-600 disabled:opacity-50 text-left flex items-center gap-1"
+                          data-testid="button-send-for-signing"
+                        >
+                          {sendingForSigning ? (
+                            <>
+                              <Loader2 size={10} className="animate-spin" />
+                              Sending...
+                            </>
+                          ) : (
+                            'Send for E-Signature'
+                          )}
+                        </button>
+                        {contractSigningUrl && (
+                          <a 
+                            href={contractSigningUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[0.65rem] uppercase tracking-wide text-green-600 flex items-center gap-1"
+                          >
+                            <Check size={10} /> View Signing Link
+                          </a>
+                        )}
+                      </div>
                     </div>
                     <div className="card-frame rounded-md px-4 py-3">
                       <h3 className="font-header text-sm ink-main mb-2 flex items-center gap-2">

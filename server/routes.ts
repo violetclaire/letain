@@ -1887,6 +1887,163 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========== OPENSIGN E-SIGNATURE ==========
+  app.post("/api/bookings/:bookingId/send-for-signing", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const bookingId = req.params.bookingId;
+      
+      const booking = await storage.getBooking(bookingId);
+      if (!booking) {
+        return res.status(404).json({ error: "Booking not found" });
+      }
+      
+      if (booking.artistId !== userId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      const existingContracts = await storage.getContractsByBooking(bookingId);
+      let contract = existingContracts.length > 0 ? existingContracts[0] : null;
+      
+      if (!contract) {
+        const clientId = booking.clientId || booking.clientContactId;
+        if (!clientId) {
+          return res.status(400).json({ error: "No client associated with this booking" });
+        }
+        
+        contract = await storage.createContract({
+          bookingId,
+          artistId: userId,
+          clientId,
+          packageDetails: booking.serviceType || "Beauty Services",
+          totalAmount: booking.amount || 0,
+          depositAmount: Math.round((booking.amount || 0) * 0.5),
+          status: "draft",
+        });
+      }
+      
+      const artist = await storage.getUser(contract.artistId);
+      const client = await storage.getUser(contract.clientId);
+      
+      if (!client?.email) {
+        return res.status(400).json({ error: "Client email is required for signing" });
+      }
+      
+      const { createSigningDocument, generateContractPdfHtml } = await import("./openSignService");
+      
+      const eventDate = booking.eventDate 
+        ? new Date(booking.eventDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+        : "TBD";
+      
+      const pdfHtml = generateContractPdfHtml(
+        artist?.firstName ? `${artist.firstName} ${artist.lastName || ""}`.trim() : "Service Provider",
+        client?.firstName ? `${client.firstName} ${client.lastName || ""}`.trim() : "Client",
+        contract.packageDetails,
+        contract.totalAmount,
+        contract.depositAmount || 0,
+        eventDate,
+        booking.serviceType || "Beauty Services",
+        req.body.additionalTerms
+      );
+      
+      const pdfBase64 = Buffer.from(pdfHtml).toString("base64");
+      
+      const result = await createSigningDocument(
+        contractId,
+        `Contract - ${booking.serviceType || "Beauty Services"} - ${eventDate}`,
+        pdfBase64,
+        [
+          { name: artist?.firstName ? `${artist.firstName} ${artist.lastName || ""}`.trim() : "Artist", email: artist?.email || "", role: "Service Provider" },
+          { name: client?.firstName ? `${client.firstName} ${client.lastName || ""}`.trim() : "Client", email: client.email, role: "Client" },
+        ]
+      );
+      
+      if (!result.success) {
+        return res.status(500).json({ error: result.error || "Failed to create signing document" });
+      }
+      
+      res.json({ 
+        success: true, 
+        documentId: result.documentId,
+        signingUrl: result.signingUrl,
+        message: "Contract sent for e-signature" 
+      });
+    } catch (error: any) {
+      console.error("[OpenSign] Error sending for signing:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/contracts/:id/signing-status", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const contractId = req.params.id;
+      
+      const contract = await storage.getContract(contractId);
+      if (!contract) {
+        return res.status(404).json({ error: "Contract not found" });
+      }
+      
+      if (contract.artistId !== userId && contract.clientId !== userId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      if (!contract.openSignDocumentId) {
+        return res.json({ status: contract.status, signed: contract.status === "signed" });
+      }
+      
+      const { syncContractSigningStatus } = await import("./openSignService");
+      const result = await syncContractSigningStatus(contractId);
+      
+      const updatedContract = await storage.getContract(contractId);
+      res.json({ 
+        success: result.success,
+        status: updatedContract?.status,
+        signed: result.signed,
+        certificateUrl: updatedContract?.openSignCertificateUrl,
+        signingUrl: updatedContract?.openSignSigningUrl,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/contracts/:id/resend-signing", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const contractId = req.params.id;
+      
+      const contract = await storage.getContract(contractId);
+      if (!contract) {
+        return res.status(404).json({ error: "Contract not found" });
+      }
+      
+      if (contract.artistId !== userId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      if (!contract.openSignDocumentId) {
+        return res.status(400).json({ error: "Contract not sent for signing yet" });
+      }
+      
+      const client = await storage.getUser(contract.clientId);
+      if (!client?.email) {
+        return res.status(400).json({ error: "Client email not found" });
+      }
+      
+      const { resendSigningEmail } = await import("./openSignService");
+      const result = await resendSigningEmail(contract.openSignDocumentId, client.email);
+      
+      if (!result.success) {
+        return res.status(500).json({ error: result.error || "Failed to resend" });
+      }
+      
+      res.json({ success: true, message: "Signing reminder sent" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ========== PAYMENTS ==========
   app.post("/api/payments", isAuthenticated, async (req, res) => {
     try {
