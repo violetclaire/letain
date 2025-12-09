@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, Save, User, Mail, Phone, Building, Instagram, Globe, Camera, Plus, Trash2, Edit2, FileText, Upload, Download, DollarSign, Clock, X, Mic, ChevronUp, ChevronDown, Check, Bell } from "lucide-react";
+import { ArrowLeft, Save, User, Mail, Phone, Building, Instagram, Globe, Camera, Plus, Trash2, Edit2, FileText, Upload, Download, DollarSign, Clock, X, Mic, ChevronUp, ChevronDown, Check, Bell, Copy, Link2, ExternalLink } from "lucide-react";
 import type { NotificationPreferences } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -64,6 +64,7 @@ export default function ProfileSettings() {
   const [uploadingPortfolio, setUploadingPortfolio] = useState(false);
   const [editPortfolioMode, setEditPortfolioMode] = useState(false);
   const [savingPortfolioOrder, setSavingPortfolioOrder] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   
   const defaultNotificationPrefs: NotificationPreferences = {
     channels: { email: true, sms: false },
@@ -920,6 +921,53 @@ export default function ProfileSettings() {
         </div>
 
         {user?.role === "artist" && (
+          <>
+          {/* Share Your Profile Link */}
+          <div className="card-frame rounded-lg p-6 mb-6 bg-gradient-to-r from-[#A8929C]/10 to-[#9A9472]/10 border-2 border-[#A8929C]/30">
+            <h2 className="font-header text-lg ink-main mb-2 flex items-center gap-2">
+              <Link2 size={18} /> Share Your Beauvette Profile
+            </h2>
+            <p className="text-sm text-black/60 mb-4">
+              Post this link on your social media to direct clients to your Beauvette page.
+            </p>
+            <div className="flex items-center gap-2 mb-3">
+              <input
+                type="text"
+                readOnly
+                value={`${window.location.origin}/artist/${user?.id}`}
+                className="flex-1 border border-black/20 bg-white rounded px-3 py-2 text-sm focus:outline-none"
+                data-testid="input-profile-link"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/artist/${user?.id}`);
+                  setLinkCopied(true);
+                  toast({ title: "Link Copied!", description: "Your profile link has been copied to clipboard." });
+                  setTimeout(() => setLinkCopied(false), 2000);
+                }}
+                className={`px-4 py-2 rounded flex items-center gap-2 transition-colors ${
+                  linkCopied 
+                    ? 'bg-green-600 text-white' 
+                    : 'bg-black text-white hover:bg-gray-800'
+                }`}
+                data-testid="button-copy-profile-link"
+              >
+                {linkCopied ? <Check size={16} /> : <Copy size={16} />}
+                {linkCopied ? "Copied!" : "Copy"}
+              </button>
+            </div>
+            <a
+              href={`/artist/${user?.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm text-[#6B5A50] hover:underline"
+              data-testid="link-view-profile"
+            >
+              <ExternalLink size={14} /> View your public profile
+            </a>
+          </div>
+
           <form onSubmit={handleSaveBusiness} className="card-frame rounded-lg p-6 mb-6">
             <h2 className="font-header text-lg ink-main mb-4 flex items-center gap-2">
               <Building size={18} /> Business Information
@@ -1106,6 +1154,7 @@ export default function ProfileSettings() {
               {updateBusinessMutation.isPending ? "Saving..." : "Save Business Info"}
             </button>
           </form>
+          </>
         )}
 
         {/* Portfolio Photos Section - Artists Only */}

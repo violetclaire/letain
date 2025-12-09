@@ -651,11 +651,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/artist-profiles/:userId", isAuthenticated, async (req, res) => {
+  app.patch("/api/artist-profiles/:userId", isAuthenticated, async (req: any, res) => {
     try {
-      const profile = await storage.updateArtistProfile(req.params.userId, req.body);
+      const userId = req.params.userId;
+      const requesterId = getAuthUserId(req);
+      
+      // Authorization: Users can only update their own profile
+      if (!requesterId || requesterId !== userId) {
+        return res.status(403).json({ error: "You can only update your own profile" });
+      }
+      
+      // Security: Remove userId from body to prevent parameter override attacks
+      const { userId: _ignoredUserId, ...safeBody } = req.body;
+      
+      // Check if profile exists
+      let profile = await storage.getArtistProfile(userId);
+      
       if (!profile) {
-        return res.status(404).json({ error: "Profile not found" });
+        // Create a new profile if one doesn't exist (for new artists who haven't done intake)
+        profile = await storage.createArtistProfile({
+          ...safeBody,
+          userId, // Always use route param, not body
+        });
+      } else {
+        // Update existing profile
+        profile = await storage.updateArtistProfile(userId, safeBody);
+      }
+      
+      if (!profile) {
+        return res.status(500).json({ error: "Failed to save profile" });
       }
       res.json(profile);
     } catch (error: any) {
@@ -4182,7 +4206,10 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       return res.status(400).json({ error: "imageURL is required" });
     }
 
-    const userId = req.user.claims.sub;
+    const userId = getAuthUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
 
     try {
       const objectStorageService = new ObjectStorageService();
