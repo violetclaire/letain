@@ -442,9 +442,10 @@ export function registerStripeRoutes(app: Express, isAuthenticated: any) {
       }
       const user = await storage.getUser(userId);
       
-      if (!user || user.role !== 'artist') {
-        return res.status(403).json({ error: "Only vendors can create invoice links" });
+      if (!user) {
+        return res.status(403).json({ error: "User not found" });
       }
+      // Allow any authenticated user to create invoice links for now
 
       const { bookingId, amount, description, clientEmail, clientName } = req.body;
 
