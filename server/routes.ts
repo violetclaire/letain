@@ -346,7 +346,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete user account
   app.delete("/api/users/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const requesterId = req.user?.claims?.sub;
+      const requesterId = getAuthUserId(req);
       const targetId = req.params.id;
       
       if (!requesterId) {

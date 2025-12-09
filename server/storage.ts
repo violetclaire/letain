@@ -480,14 +480,95 @@ export class DatabaseStorage implements IStorage {
 
   async deleteUser(id: string): Promise<void> {
     // Delete related data first (in order of dependencies)
+    // Chat and messaging data
     await db.delete(aiChatMessages).where(eq(aiChatMessages.userId, id));
+    await db.delete(businessChatMessages).where(eq(businessChatMessages.senderId, id));
+    await db.delete(businessChatInsights).where(eq(businessChatInsights.senderId, id));
+    await db.update(businessChatInsights).set({ relatedClientId: null }).where(eq(businessChatInsights.relatedClientId, id));
+    await db.delete(messages).where(or(eq(messages.senderId, id), eq(messages.recipientId, id)));
+    
+    // Chat invites (both sender and invitee)
+    await db.delete(chatInvites).where(or(eq(chatInvites.senderId, id), eq(chatInvites.inviteeUserId, id)));
+    
+    // Intake forms
     await db.delete(clientIntakes).where(eq(clientIntakes.userId, id));
     await db.delete(artistIntakes).where(eq(artistIntakes.userId, id));
     await db.delete(plannerIntakes).where(eq(plannerIntakes.userId, id));
+    
+    // Artist-specific data
     await db.delete(artistServices).where(eq(artistServices.artistId, id));
+    await db.update(artistProfiles).set({ verifiedBy: null }).where(eq(artistProfiles.verifiedBy, id));
     await db.delete(artistProfiles).where(eq(artistProfiles.userId, id));
+    await db.delete(contractTemplates).where(eq(contractTemplates.artistId, id));
+    
+    // Profile reports
+    await db.delete(profileReports).where(or(eq(profileReports.reportedUserId, id), eq(profileReports.reporterId, id)));
+    await db.update(profileReports).set({ reviewedBy: null }).where(eq(profileReports.reviewedBy, id));
+    
+    // Scheduling data
     await db.delete(availability).where(eq(availability.userId, id));
+    await db.delete(eventDaySchedules).where(eq(eventDaySchedules.artistId, id));
+    
+    // Contacts and team
     await db.delete(clientContacts).where(eq(clientContacts.artistId, id));
+    await db.update(clientContacts).set({ linkedUserId: null }).where(eq(clientContacts.linkedUserId, id));
+    await db.delete(teamMembers).where(or(eq(teamMembers.ownerId, id), eq(teamMembers.memberId, id)));
+    
+    // CDI and IQS scoring data
+    await db.delete(cdiEvents).where(eq(cdiEvents.userId, id));
+    await db.delete(cdiScores).where(eq(cdiScores.userId, id));
+    await db.delete(cdiAiInsights).where(eq(cdiAiInsights.userId, id));
+    await db.delete(cdiBehavioralEvents).where(or(eq(cdiBehavioralEvents.userId, id), eq(cdiBehavioralEvents.targetUserId, id)));
+    await db.delete(cdiDimensionScores).where(eq(cdiDimensionScores.userId, id));
+    await db.delete(cdiCompositeScores).where(eq(cdiCompositeScores.userId, id));
+    await db.update(cdiThresholds).set({ createdBy: null }).where(eq(cdiThresholds.createdBy, id));
+    await db.delete(cdiAdminOverrides).where(eq(cdiAdminOverrides.adminId, id));
+    
+    // Communication logs
+    await db.delete(communicationLogs).where(eq(communicationLogs.artistId, id));
+    await db.delete(scheduledEmails).where(eq(scheduledEmails.artistId, id));
+    
+    // Support cases
+    await db.delete(supportCases).where(eq(supportCases.userId, id));
+    await db.update(supportCases).set({ assignedTo: null }).where(eq(supportCases.assignedTo, id));
+    
+    // Conversation participants (remove from conversations)
+    await db.delete(conversationParticipants).where(eq(conversationParticipants.userId, id));
+    
+    // Nullify conversation owner references
+    await db.update(conversations).set({ ownerId: null }).where(eq(conversations.ownerId, id));
+    
+    // Nullify references in bookings rather than delete (preserve booking history for other party)
+    await db.update(bookings).set({ clientId: null }).where(eq(bookings.clientId, id));
+    await db.update(bookings).set({ artistId: null }).where(eq(bookings.artistId, id));
+    await db.update(bookings).set({ plannerId: null }).where(eq(bookings.plannerId, id));
+    
+    // First get user's contracts to delete payments linked to them
+    const userContracts = await db.select({ id: contracts.id })
+      .from(contracts)
+      .where(or(eq(contracts.artistId, id), eq(contracts.clientId, id)));
+    
+    // Delete payments for user's contracts
+    for (const contract of userContracts) {
+      await db.delete(payments).where(eq(payments.contractId, contract.id));
+    }
+    
+    // Delete contracts where user is artist or client (contracts have NOT NULL constraints)
+    await db.delete(contracts).where(or(eq(contracts.artistId, id), eq(contracts.clientId, id)));
+    
+    // Delete inquiries where user is vendor (vendorId is NOT NULL)
+    await db.delete(inquiries).where(eq(inquiries.vendorId, id));
+    // Nullify inquiries clientId (it's nullable)
+    await db.update(inquiries).set({ clientId: null }).where(eq(inquiries.clientId, id));
+    
+    // Delete invitations where user is inviter (invitedBy is NOT NULL)
+    await db.delete(invitations).where(eq(invitations.invitedBy, id));
+    // Nullify invitation acceptedUserId (it's nullable)
+    await db.update(invitations).set({ acceptedUserId: null }).where(eq(invitations.acceptedUserId, id));
+    
+    // Nullify audit log references (preserve audit trail)
+    await db.update(auditLogs).set({ userId: null }).where(eq(auditLogs.userId, id));
+    
     // Delete the user
     await db.delete(users).where(eq(users.id, id));
   }
