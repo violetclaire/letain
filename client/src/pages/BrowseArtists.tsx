@@ -314,7 +314,7 @@ export default function BrowseArtists() {
                       value={inquiryForm.clientName}
                       onChange={(e) => setInquiryForm(prev => ({ ...prev, clientName: e.target.value }))}
                       className="w-full rounded-md border border-[#d1d5e0] bg-[#fbfcff] p-3 text-sm"
-                      placeholder="Jane Smith"
+                      placeholder=""
                       data-testid="input-inquiry-name"
                     />
                   </div>
@@ -325,7 +325,7 @@ export default function BrowseArtists() {
                       value={inquiryForm.clientEmail}
                       onChange={(e) => setInquiryForm(prev => ({ ...prev, clientEmail: e.target.value }))}
                       className="w-full rounded-md border border-[#d1d5e0] bg-[#fbfcff] p-3 text-sm"
-                      placeholder="jane@email.com"
+                      placeholder=""
                       data-testid="input-inquiry-email"
                     />
                   </div>
