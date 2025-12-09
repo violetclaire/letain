@@ -138,6 +138,19 @@ function getAuthUserId(req: any): string | null {
   return null;
 }
 
+// Helper to parse date strings as local time to avoid timezone issues
+// When a date string like "2026-01-01" is passed to new Date(), it's interpreted as UTC midnight
+// which can shift to the previous day in local time for timezones behind UTC
+function parseLocalDate(dateStr: string): Date {
+  if (!dateStr) return new Date();
+  // If already has time component, parse as-is
+  if (dateStr.includes('T')) {
+    return new Date(dateStr);
+  }
+  // Add noon time to avoid timezone day-shift issues
+  return new Date(dateStr + 'T12:00:00');
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   
   // Setup Replit Auth
@@ -792,7 +805,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { location, date, service, eventDate } = req.query;
       // Support both 'date' and 'eventDate' parameters
       const searchDate = date || eventDate;
-      const parsedDate = searchDate ? new Date(searchDate as string) : undefined;
+      const parsedDate = searchDate ? parseLocalDate(searchDate as string) : undefined;
       const results = await storage.searchArtists(
         location as string | undefined,
         parsedDate,
@@ -809,7 +822,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { location, date, service, eventDate } = req.query;
       const searchDate = date || eventDate;
-      const parsedDate = searchDate ? new Date(searchDate as string) : undefined;
+      const parsedDate = searchDate ? parseLocalDate(searchDate as string) : undefined;
       const results = await storage.searchArtists(
         location as string | undefined,
         parsedDate,
@@ -825,7 +838,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/bookings", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const data = insertBookingSchema.parse({ ...req.body, clientId: userId });
+      // Normalize eventDate to avoid timezone day-shift issues
+      const normalizedBody = {
+        ...req.body,
+        clientId: userId,
+        eventDate: req.body.eventDate ? parseLocalDate(req.body.eventDate) : undefined,
+      };
+      const data = insertBookingSchema.parse(normalizedBody);
       const booking = await storage.createBooking(data);
       
       // Record CDI behavioral event for booking request (choreography awareness dimension)
@@ -3096,7 +3115,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       const schedule = await storage.createEventDaySchedule({
         artistId: userId,
         eventName,
-        eventDate: new Date(eventDate),
+        eventDate: parseLocalDate(eventDate),
         eventLocation,
         readyByTime,
         notes,
@@ -3165,7 +3184,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       const schedule = await storage.createEventDaySchedule({
         artistId: userId,
         eventName,
-        eventDate: new Date(eventDate),
+        eventDate: parseLocalDate(eventDate),
         eventLocation,
         readyByTime,
         notes,
@@ -4198,7 +4217,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         artistId: user.id, // Violet is the artist
         plannerId: plannerUser?.id,
         status: 'accepted',
-        eventDate: new Date(eventDate),
+        eventDate: parseLocalDate(eventDate),
         location: eventLocation,
         serviceType: serviceType || 'Bridal Beauty',
         notes,
@@ -4323,13 +4342,15 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         }
       }
       
+      const parsedEventDate = parseLocalDate(eventDate);
+      
       // Create booking
       const booking = await storage.createBooking({
         clientId: clientUser.id,
         artistId: user.id,
         plannerId: plannerUser?.id,
         status: 'accepted',
-        eventDate: new Date(eventDate),
+        eventDate: parsedEventDate,
         location: eventLocation,
         serviceType: serviceType || 'Bridal Beauty',
         notes,
@@ -4352,7 +4373,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       });
       
       // Create conversation with descriptive title
-      const eventDateObj = new Date(eventDate);
+      const eventDateObj = parsedEventDate;
       const dateStr = eventDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       const conversationTitle = `${clientFirstName} ${clientLastName} - ${dateStr}`;
       const conversation = await storage.createConversation({
@@ -4501,12 +4522,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         });
       }
       
+      const parsedEventDate = parseLocalDate(eventDate);
+      
       // Create booking with client contact (not user account)
       const booking = await storage.createBooking({
         clientContactId: contact.id,
         artistId: user.id,
         status: 'confirmed',
-        eventDate: new Date(eventDate),
+        eventDate: parsedEventDate,
         location: eventLocation || 'TBD',
         serviceType: serviceType || 'Beauty Services',
         amount: amount ? Math.round(amount * 100) : undefined, // Convert to cents
@@ -4516,7 +4539,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       // Block the booking date on vendor's calendar
       await storage.setAvailability({
         userId: user.id,
-        date: new Date(eventDate),
+        date: parsedEventDate,
         isAvailable: false,
       });
       
@@ -4631,7 +4654,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         artistId: vendorUser.id,
         plannerId: user.id,
         status: 'accepted',
-        eventDate: new Date(eventDate),
+        eventDate: parseLocalDate(eventDate),
         location: eventLocation,
         serviceType: serviceType || 'Bridal Beauty',
         notes,
