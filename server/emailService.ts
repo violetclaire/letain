@@ -518,6 +518,140 @@ export async function sendContractEmail({
   }
 }
 
+export async function sendAppointmentConfirmationEmail({
+  toEmail,
+  clientName,
+  artistBusinessName,
+  artistLogoUrl,
+  eventDate,
+  eventTime,
+  eventLocation,
+  serviceType,
+  paymentLink,
+  chatLink,
+  personalMessage
+}: {
+  toEmail: string;
+  clientName: string;
+  artistBusinessName: string;
+  artistLogoUrl?: string;
+  eventDate: string;
+  eventTime?: string;
+  eventLocation?: string;
+  serviceType?: string;
+  paymentLink?: string;
+  chatLink?: string;
+  personalMessage?: string;
+}) {
+  console.log("Getting Resend client for appointment confirmation email...");
+  const { client, fromEmail } = await getResendClient();
+
+  const logoHtml = artistLogoUrl 
+    ? `<img src="${artistLogoUrl}" alt="${artistBusinessName}" style="max-width: 120px; max-height: 60px; object-fit: contain; margin-bottom: 16px;" />`
+    : '';
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Georgia', serif; background-color: #f5f1e8; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { 
+          background: linear-gradient(135deg, #FAF7F2 0%, #f9f4ed 100%);
+          padding: 32px; 
+          text-align: center;
+          border-bottom: 2px solid #C9A961;
+        }
+        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 24px; margin: 0; color: #262329; }
+        .content { padding: 32px; color: #262329; line-height: 1.6; }
+        .details-card { background: #FAF7F2; border-radius: 8px; padding: 24px; margin: 24px 0; border-left: 4px solid #C9A961; }
+        .detail-row { display: flex; margin-bottom: 12px; }
+        .detail-label { color: #666; width: 100px; font-size: 13px; }
+        .detail-value { font-weight: 600; color: #262329; font-size: 14px; }
+        .message-box { background: #f9f9f9; border-radius: 6px; padding: 16px; margin: 20px 0; font-style: italic; color: #555; border-left: 3px solid #6B4A55; }
+        .button { display: inline-block; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-size: 14px; letter-spacing: 0.5px; margin: 8px 4px; }
+        .button-primary { background: #3D5A3B; color: white !important; }
+        .button-secondary { background: #6B4A55; color: white !important; }
+        .button-outline { background: transparent; color: #262329 !important; border: 1px solid #262329; }
+        .cta-section { text-align: center; margin: 32px 0; }
+        .footer { background: #262329; color: white; padding: 20px; text-align: center; font-size: 12px; }
+        .footer a { color: #C9A961; text-decoration: none; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          ${logoHtml}
+          <h1>${artistBusinessName}</h1>
+        </div>
+        <div class="content">
+          <p style="font-size: 16px; margin-bottom: 24px;">Dear ${clientName},</p>
+          <p style="margin-bottom: 16px;">Thank you for booking with <strong>${artistBusinessName}</strong>! We're excited to be part of your special day.</p>
+          
+          ${personalMessage ? `<div class="message-box">"${personalMessage}"</div>` : ''}
+          
+          <div class="details-card">
+            <h3 style="margin: 0 0 16px 0; font-size: 16px; color: #6B4A55;">Appointment Details</h3>
+            <div class="detail-row">
+              <span class="detail-label">Date:</span>
+              <span class="detail-value">${eventDate}</span>
+            </div>
+            ${eventTime ? `
+            <div class="detail-row">
+              <span class="detail-label">Time:</span>
+              <span class="detail-value">${eventTime}</span>
+            </div>
+            ` : ''}
+            ${eventLocation ? `
+            <div class="detail-row">
+              <span class="detail-label">Location:</span>
+              <span class="detail-value">${eventLocation}</span>
+            </div>
+            ` : ''}
+            ${serviceType ? `
+            <div class="detail-row">
+              <span class="detail-label">Service:</span>
+              <span class="detail-value">${serviceType}</span>
+            </div>
+            ` : ''}
+          </div>
+          
+          <div class="cta-section">
+            ${paymentLink ? `<a href="${paymentLink}" class="button button-primary">Complete Payment</a>` : ''}
+            ${chatLink ? `<a href="${chatLink}" class="button button-secondary">Message Us</a>` : ''}
+          </div>
+          
+          <p style="margin-top: 24px; font-size: 14px; color: #666;">If you have any questions or need to make changes, please don't hesitate to reach out. We look forward to seeing you!</p>
+          
+          <p style="margin-top: 32px;">Warmly,<br><strong>${artistBusinessName}</strong></p>
+        </div>
+        <div class="footer">
+          <p>Sent via <a href="https://beauvette.com">Beauvette</a> - Beauty services for life's most important days</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const senderEmail = `${artistBusinessName} via Beauvette <noreply@beauvette.com>`;
+  
+  try {
+    console.log("Sending appointment confirmation email to:", toEmail);
+    const result = await client.emails.send({
+      from: senderEmail,
+      to: toEmail.trim(),
+      subject: `Your Appointment with ${artistBusinessName} - ${eventDate}`,
+      html: htmlContent
+    });
+    console.log("Appointment confirmation email sent:", JSON.stringify(result));
+    return { success: true, result };
+  } catch (err: any) {
+    console.error("Failed to send appointment confirmation email:", err.message);
+    return { success: false, error: err.message };
+  }
+}
+
 export async function sendChatInviteEmail({
   toEmail,
   vendorName,

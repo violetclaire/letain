@@ -33,7 +33,9 @@ export default function ProfileSettings() {
     pinterestHandle: "",
     websiteUrl: "",
     portfolioUrl: "",
+    logoUrl: "",
   });
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   
   const [infoSheetData, setInfoSheetData] = useState({
     infoSheetType: "template" as "template" | "custom" | "pdf",
@@ -277,6 +279,7 @@ export default function ProfileSettings() {
         pinterestHandle: artistProfile.pinterestHandle || artistIntake?.pinterestHandle || "",
         websiteUrl: artistProfile.websiteUrl || artistIntake?.websiteUrl || "",
         portfolioUrl: artistProfile.portfolioUrl || artistIntake?.portfolioUrl || "",
+        logoUrl: artistProfile.logoUrl || "",
       }));
       if (artistProfile.portfolioUrls && Array.isArray(artistProfile.portfolioUrls)) {
         setPortfolioUrls(artistProfile.portfolioUrls);
@@ -447,6 +450,7 @@ export default function ProfileSettings() {
           pinterestHandle: data.pinterestHandle,
           websiteUrl: data.websiteUrl,
           portfolioUrl: data.portfolioUrl,
+          logoUrl: data.logoUrl,
         }),
       });
       if (!res.ok) {
@@ -914,6 +918,74 @@ export default function ProfileSettings() {
                 placeholder="Your business name"
                 data-testid="input-business-name"
               />
+            </div>
+
+            {/* Business Logo Upload */}
+            <div className="mb-6">
+              <label className="block text-xs uppercase tracking-wide text-black/60 mb-2">Business Logo</label>
+              <p className="text-xs text-black/50 mb-3">Your logo will appear on branded emails sent to clients.</p>
+              <div className="flex items-center gap-4">
+                {businessData.logoUrl ? (
+                  <div className="relative">
+                    <img
+                      src={businessData.logoUrl}
+                      alt="Business Logo"
+                      className="w-20 h-20 object-contain border border-black/20 rounded bg-white p-1"
+                      data-testid="img-business-logo"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setBusinessData(prev => ({ ...prev, logoUrl: "" }))}
+                      className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                      title="Remove logo"
+                      data-testid="button-remove-logo"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-20 h-20 border-2 border-dashed border-black/20 rounded flex items-center justify-center bg-black/5">
+                    <Building size={24} className="text-black/30" />
+                  </div>
+                )}
+                <ObjectUploader
+                  maxNumberOfFiles={1}
+                  maxFileSize={2097152}
+                  allowedFileTypes={["image/*"]}
+                  onGetUploadParameters={handleGetUploadParameters}
+                  onComplete={async (result) => {
+                    if (result.successful && result.successful.length > 0) {
+                      const uploadedUrl = result.successful[0].uploadURL;
+                      if (uploadedUrl) {
+                        setUploadingLogo(true);
+                        try {
+                          const res = await fetch(`/api/artist-profiles/${user?.id}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            credentials: "include",
+                            body: JSON.stringify({ logoUrl: uploadedUrl }),
+                          });
+                          if (res.ok) {
+                            setBusinessData(prev => ({ ...prev, logoUrl: uploadedUrl }));
+                            queryClient.invalidateQueries({ queryKey: ["artistProfile", user?.id] });
+                            toast({ title: "Logo Uploaded", description: "Your business logo has been saved." });
+                          }
+                        } catch (err) {
+                          toast({ title: "Upload Failed", description: "Could not save your logo.", variant: "destructive" });
+                        } finally {
+                          setUploadingLogo(false);
+                        }
+                      }
+                    }
+                  }}
+                  buttonClassName="bg-black hover:bg-gray-800 text-white text-sm px-4 py-2"
+                >
+                  <div className="flex items-center gap-2">
+                    <Upload size={14} />
+                    {uploadingLogo ? "Uploading..." : "Upload Logo"}
+                  </div>
+                </ObjectUploader>
+              </div>
             </div>
 
             <div className="mb-4">

@@ -1526,6 +1526,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========== BRANDED APPOINTMENT CONFIRMATION EMAIL ==========
+  app.post("/api/booking/send-appointment-confirmation", isAuthenticated, async (req: any, res) => {
+    try {
+      const { bookingId, personalMessage } = req.body;
+      const userId = getAuthUserId(req);
+
+      if (!bookingId) {
+        return res.status(400).json({ error: 'Booking ID is required' });
+      }
+
+      // Get booking
+      const booking = await storage.getBooking(bookingId);
+      if (!booking) {
+        return res.status(404).json({ error: 'Booking not found' });
+      }
+
+      // Verify the user is the artist on this booking
+      if (booking.artistId !== userId) {
+        return res.status(403).json({ error: 'Not authorized to send email for this booking' });
+      }
+
+      // Get client info
+      let clientEmail = '';
+      let clientName = '';
+      
+      if (booking.clientId) {
+        const client = await storage.getUser(booking.clientId);
+        if (client) {
+          clientEmail = client.email || '';
+          clientName = `${client.firstName || ''} ${client.lastName || ''}`.trim() || 'Client';
+        }
+      } else if (booking.clientContactId) {
+        const contact = await storage.getClientContact(booking.clientContactId);
+        if (contact) {
+          clientEmail = contact.email || '';
+          clientName = contact.name || 'Client';
+        }
+      }
+
+      if (!clientEmail) {
+        return res.status(400).json({ error: 'Client email not found for this booking' });
+      }
+
+      // Get artist profile for branding
+      const artistProfile = await storage.getArtistProfile(userId);
+      const artist = await storage.getUser(userId);
+      const businessName = artistProfile?.businessName || 
+        (artist ? `${artist.firstName || ''} ${artist.lastName || ''}`.trim() : 'Beauty Artist');
+      const logoUrl = artistProfile?.logoUrl || '';
+
+      // Format date
+      const eventDate = booking.eventDate 
+        ? new Date(booking.eventDate).toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })
+        : 'TBD';
+
+      const eventTime = booking.eventDate
+        ? new Date(booking.eventDate).toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          })
+        : undefined;
+
+      // Build chat link
+      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+        : process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.com';
+      const chatLink = `${baseUrl}/messages`;
+
+      // Send branded email
+      const emailService = await import("./emailService");
+      const result = await emailService.sendAppointmentConfirmationEmail({
+        toEmail: clientEmail,
+        clientName,
+        artistBusinessName: businessName,
+        artistLogoUrl: logoUrl,
+        eventDate,
+        eventTime,
+        eventLocation: booking.location || undefined,
+        serviceType: booking.serviceType || undefined,
+        paymentLink: booking.stripePaymentLinkUrl || undefined,
+        chatLink,
+        personalMessage
+      });
+
+      if (result.success) {
+        // Log the communication
+        await storage.createCommunicationLog({
+          artistId: userId,
+          recipientName: clientName,
+          recipientEmail: clientEmail,
+          communicationType: 'appointment_confirmation',
+          subject: `Appointment Confirmation - ${eventDate}`,
+          content: personalMessage || 'Appointment confirmation sent',
+          metadata: {
+            bookingId,
+            eventDate,
+            eventLocation: booking.location
+          }
+        });
+
+        res.json({ success: true, message: 'Appointment confirmation sent!' });
+      } else {
+        res.status(400).json({ error: result.error || 'Failed to send email' });
+      }
+    } catch (error: any) {
+      console.error("Appointment confirmation email error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/invoice/send-sms", isAuthenticated, async (req: any, res) => {
     try {
       const { toPhone, clientName, vendorName, amount, paymentLink } = req.body;

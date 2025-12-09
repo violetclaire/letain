@@ -117,6 +117,7 @@ export const artistProfiles = pgTable("artist_profiles", {
   websiteUrl: text("website_url"),
   stripeAccountId: text("stripe_account_id"),
   servicesMenuUrl: text("services_menu_url"),
+  logoUrl: text("logo_url"), // Business logo for branded emails/communications
   // Info sheet content - auto-sent to clients on inquiry
   infoSheetType: text("info_sheet_type").default("template"), // 'template', 'custom', or 'pdf'
   infoSheetContent: text("info_sheet_content"), // Rich text content of vendor's info sheet
