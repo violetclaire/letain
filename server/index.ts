@@ -5,6 +5,7 @@ import { serveStatic } from "./static";
 import { runMigrations } from 'stripe-replit-sync';
 import { getStripeSync } from './stripeClient';
 import { WebhookHandlers } from './webhookHandlers';
+import { startScheduledEmailJob } from './scheduledEmailJob';
 
 const app = express();
 
@@ -205,6 +206,8 @@ app.use((req, res, next) => {
         // Initialize Stripe in background after server starts (don't block startup)
         // This allows health checks to succeed while Stripe initializes
         initStripe().catch((err: any) => console.error('[Stripe] Background init error:', err));
+        // Start scheduled email job
+        startScheduledEmailJob();
       },
     );
   } catch (error) {

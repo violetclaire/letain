@@ -6105,25 +6105,23 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(401).json({ error: "Not authenticated" });
       }
       
-      const { emailType, recipientEmail, recipientName, subject, htmlContent, textContent, 
-              scheduledFor, bookingId, paymentLinkUrl, amount } = req.body;
+      const { emailType, recipientEmail, recipientName, subject, 
+              scheduledFor, bookingId, vendorName, amount, description, paymentLink } = req.body;
       
-      if (!emailType || !recipientEmail || !scheduledFor) {
-        return res.status(400).json({ error: "Missing required fields: emailType, recipientEmail, scheduledFor" });
+      if (!emailType || !recipientEmail || !recipientName || !scheduledFor) {
+        return res.status(400).json({ error: "Missing required fields: emailType, recipientEmail, recipientName, scheduledFor" });
       }
       
       const scheduledEmail = await storage.createScheduledEmail({
         emailType,
         recipientEmail,
-        recipientName: recipientName || null,
+        recipientName,
         subject: subject || null,
-        htmlContent: htmlContent || null,
-        textContent: textContent || null,
         scheduledFor: new Date(scheduledFor),
         status: 'pending',
         bookingId: bookingId || null,
-        createdBy: userId,
-        metadata: { paymentLinkUrl, amount },
+        artistId: userId,
+        emailData: { vendorName, amount, description, paymentLink },
       });
       
       res.json(scheduledEmail);
@@ -6141,8 +6139,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(401).json({ error: "Not authenticated" });
       }
       
-      const status = req.query.status as string | undefined;
-      const scheduledEmails = await storage.getScheduledEmailsByUser(userId, status);
+      const scheduledEmails = await storage.getScheduledEmailsByArtist(userId);
       
       res.json(scheduledEmails);
     } catch (error: any) {
@@ -6164,7 +6161,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(404).json({ error: "Scheduled email not found" });
       }
       
-      if (scheduledEmail.createdBy !== userId) {
+      if (scheduledEmail.artistId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
       

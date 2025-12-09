@@ -326,7 +326,8 @@ export async function sendInvoiceEmail({
   vendorName,
   amount,
   description,
-  paymentLink
+  paymentLink,
+  eventDate
 }: {
   toEmail: string;
   clientName: string;
@@ -334,6 +335,7 @@ export async function sendInvoiceEmail({
   amount: number;
   description: string;
   paymentLink: string;
+  eventDate?: string;
 }) {
   console.log("Getting Resend client for invoice email...");
   const { client, fromEmail } = await getResendClient();
@@ -361,6 +363,7 @@ export async function sendInvoiceEmail({
         .content { padding: 32px; }
         .amount { font-size: 32px; color: #3D5A3B; font-weight: bold; text-align: center; margin: 24px 0; }
         .description { text-align: center; color: #666; font-size: 14px; margin-bottom: 24px; }
+        .event-date { text-align: center; color: #6B4A55; font-size: 13px; margin-bottom: 16px; font-style: italic; }
         .button { display: inline-block; background: #3D5A3B; color: white !important; padding: 16px 32px; text-decoration: none; border-radius: 6px; font-size: 16px; letter-spacing: 1px; }
         .button:hover { background: #4a6d48; }
         .footer { text-align: center; padding: 20px; color: #888; font-size: 12px; border-top: 1px solid #eee; }
@@ -379,6 +382,7 @@ export async function sendInvoiceEmail({
           
           <div class="amount">${formattedAmount}</div>
           <div class="description">${description}</div>
+          ${eventDate ? `<div class="event-date">Event Date: ${eventDate}</div>` : ''}
           
           <p style="text-align: center; margin: 32px 0;">
             <a href="${paymentLink}" class="button">Pay Now</a>
