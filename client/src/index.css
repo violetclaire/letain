@@ -45,7 +45,7 @@
   --black: #4A3F42;        /* Warm dark text */
   --pink: #967D89;         /* Dusty Mauve */
   --gold: #C19A6B;         /* Classic Camel */
-  --forest: #5D564E;       /* Neutral Cocoa */
+  --forest: #6E5A54;       /* Deep Fig / Cocoa */
 
   /* Mapped to shadcn/ui variables where appropriate */
   --background: #E0DCC8;   /* Oatmeal / Ecru background */
@@ -57,7 +57,7 @@
   --popover: #F5F3E8;
   --popover-foreground: #4A3F42;
 
-  --primary: #5D564E;
+  --primary: #6E5A54;
   --primary-foreground: #EBE8DA;
 
   --secondary: #E0DCC8;
@@ -155,7 +155,7 @@
 
   /* Layout Classes from design */
   .frame-outer {
-    border: 2px solid #5D564E;
+    border: 2px solid #6E5A54;
     padding: 0.75rem;
     background-color: #E0DCC8;  /* Oatmeal / Ecru */
   }
