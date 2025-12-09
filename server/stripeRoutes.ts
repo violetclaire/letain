@@ -424,9 +424,13 @@ export function registerStripeRoutes(app: Express, isAuthenticated: any) {
     try {
       const stripe = await getUncachableStripeClient();
       const userId = req.user?.claims?.sub;
+      console.log("[Invoice] userId from claims:", userId);
+      console.log("[Invoice] req.user:", JSON.stringify(req.user));
       const user = await storage.getUser(userId);
+      console.log("[Invoice] user from DB:", user ? { id: user.id, role: user.role, email: user.email } : null);
       
       if (!user || user.role !== 'artist') {
+        console.log("[Invoice] Access denied - user role:", user?.role);
         return res.status(403).json({ error: "Only vendors can create invoice links" });
       }
 
