@@ -43,6 +43,8 @@ export const users = pgTable("users", {
   intakeCompleted: boolean("intake_completed").default(false),
   // Stripe Connect (for planners - artists use artistProfiles)
   stripeAccountId: varchar("stripe_account_id"),
+  // Alternative payment methods
+  venmoHandle: varchar("venmo_handle"),
   // CDI Privacy & Consent
   cdiConsentGiven: boolean("cdi_consent_given").default(false),
   cdiConsentDate: timestamp("cdi_consent_date"),

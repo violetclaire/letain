@@ -21,6 +21,7 @@ export default function ProfileSettings() {
     lastName: "",
     email: "",
     phone: "",
+    venmoHandle: "",
   });
 
   const [businessData, setBusinessData] = useState({
@@ -226,6 +227,7 @@ export default function ProfileSettings() {
         lastName: user.lastName || "",
         email: user.email || "",
         phone: user.phone || "",
+        venmoHandle: user.venmoHandle || "",
       });
       if (user.notificationPreferences) {
         setNotificationPrefs(user.notificationPreferences);
@@ -757,6 +759,21 @@ export default function ProfileSettings() {
               placeholder="(555) 123-4567"
               data-testid="input-phone"
             />
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-xs uppercase tracking-wide text-black/60 mb-1 flex items-center gap-1">
+              <DollarSign size={12} /> Venmo Handle
+            </label>
+            <input
+              type="text"
+              value={formData.venmoHandle}
+              onChange={(e) => setFormData(prev => ({ ...prev, venmoHandle: e.target.value }))}
+              className="w-full border border-black/20 bg-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
+              placeholder="@your-venmo-username"
+              data-testid="input-venmo-handle"
+            />
+            <p className="text-xs text-black/40 mt-1">Alternative payment option for clients without Stripe</p>
           </div>
 
           <button

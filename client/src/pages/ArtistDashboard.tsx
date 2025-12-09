@@ -3124,6 +3124,36 @@ export default function ArtistDashboard() {
                     )}
                   </button>
                 </div>
+
+                {/* Venmo Alternative */}
+                {user?.venmoHandle && (
+                  <div className="bg-blue-50 border border-blue-200 p-3 rounded mb-4">
+                    <p className="text-xs text-blue-800 font-medium mb-2 flex items-center gap-1">
+                      <Wallet size={12} /> Alternative: Venmo Payment
+                    </p>
+                    <p className="text-[0.65rem] text-blue-700 mb-2">
+                      You can also share your Venmo handle with clients who prefer not to use card payment:
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <span className="bg-white px-3 py-1.5 rounded text-sm font-medium text-blue-900 border border-blue-200" data-testid="text-venmo-handle">
+                        {user.venmoHandle}
+                      </span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(user.venmoHandle || "");
+                          toast({ title: "Copied", description: "Venmo handle copied to clipboard" });
+                        }}
+                        className="px-3 py-1.5 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+                        data-testid="button-copy-venmo"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                    <p className="text-[0.6rem] text-blue-600 mt-2">
+                      Note: Venmo payments are direct and do not include platform fees
+                    </p>
+                  </div>
+                )}
                 
                 <div className="flex gap-3 justify-end">
                   <button 
