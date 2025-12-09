@@ -39,42 +39,42 @@
 }
 
 :root {
-  /* Brand Colors - Plum Check by Claremont palette */
-  --powder-blue: #F7F4EF;  /* Ivory/cream background */
-  --cream: #FAF8F5;        /* Pure cream */
-  --black: #3D3538;        /* Warm dark text */
-  --pink: #A8929C;         /* Soft dusty plum/lavender */
-  --gold: #9A9472;         /* Sage/olive green */
-  --forest: #6B5A50;       /* Brown/taupe */
+  /* Brand Colors - Plum Check by Claremont palette (matched to fabric) */
+  --powder-blue: #F5F2EA;  /* Warm ivory/cream background */
+  --cream: #FAF7F2;        /* Pure cream */
+  --black: #4A3F42;        /* Warm dark text */
+  --pink: #C4B5BC;         /* Dusty lavender/plum */
+  --gold: #B5B08A;         /* Olive/sage green */
+  --forest: #7A6B5E;       /* Brown/taupe */
 
   /* Mapped to shadcn/ui variables where appropriate */
-  --background: #F7F4EF;   /* Ivory/cream background */
-  --foreground: #3D3538;   /* Warm dark text */
+  --background: #F5F2EA;   /* Warm ivory/cream background */
+  --foreground: #4A3F42;   /* Warm dark text */
 
-  --card: #FFFFFF;
-  --card-foreground: #3D3538;
+  --card: #FDFCFA;
+  --card-foreground: #4A3F42;
 
-  --popover: #FFFFFF;
-  --popover-foreground: #3D3538;
+  --popover: #FDFCFA;
+  --popover-foreground: #4A3F42;
 
-  --primary: #6B5A50;
-  --primary-foreground: #FAF8F5;
+  --primary: #7A6B5E;
+  --primary-foreground: #FAF7F2;
 
-  --secondary: #F7F4EF;
-  --secondary-foreground: #3D3538;
+  --secondary: #F5F2EA;
+  --secondary-foreground: #4A3F42;
 
-  --muted: #FAF8F5;
-  --muted-foreground: #7A6E70;
+  --muted: #FAF7F2;
+  --muted-foreground: #8A7D80;
 
-  --accent: #A8929C;
-  --accent-foreground: #FAF8F5;
+  --accent: #C4B5BC;
+  --accent-foreground: #4A3F42;
 
   --destructive: #C45B5B;
   --destructive-foreground: #ffffff;
 
-  --border: #D5CEC4;
-  --input: #F0EBE5;
-  --ring: #A8929C;
+  --border: #DDD6CC;
+  --input: #F0EBE3;
+  --ring: #C4B5BC;
 
   --radius: 0.5rem;
 }
@@ -117,79 +117,79 @@
     opacity: 0.4;
   }
 
-  /* Plum Check pattern for elevator doors - inspired by Claremont fabric */
+  /* Plum Check pattern for elevator doors - matched to Claremont fabric */
   .gingham-pattern {
-    background-color: #FAF8F5;
+    background-color: #FAF7F2;
     background-image:
-      linear-gradient(45deg, #A8929C 25%, transparent 25%),
-      linear-gradient(-45deg, #A8929C 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, #A8929C 75%),
-      linear-gradient(-45deg, transparent 75%, #A8929C 75%),
-      linear-gradient(45deg, #9A9472 25%, transparent 25%),
-      linear-gradient(-45deg, #9A9472 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, #9A9472 75%),
-      linear-gradient(-45deg, transparent 75%, #9A9472 75%);
+      linear-gradient(45deg, #C4B5BC 25%, transparent 25%),
+      linear-gradient(-45deg, #C4B5BC 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #C4B5BC 75%),
+      linear-gradient(-45deg, transparent 75%, #C4B5BC 75%),
+      linear-gradient(45deg, #B5B08A 25%, transparent 25%),
+      linear-gradient(-45deg, #B5B08A 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #B5B08A 75%),
+      linear-gradient(-45deg, transparent 75%, #B5B08A 75%);
     background-size: 20px 20px;
     background-position: 0 0, 10px 0, 10px -10px, 0px 10px, 0 0, 10px 0, 10px -10px, 0px 10px;
   }
   
-  /* Plum Check pattern - inspired by Claremont fabric */
+  /* Plum Check pattern - matched to Claremont fabric */
   .gingham-check {
-    background-color: #FAF8F5;
+    background-color: #FAF7F2;
     background-image:
       repeating-linear-gradient(
         0deg,
         transparent,
-        transparent 12px,
-        rgba(168, 146, 156, 0.4) 12px,
-        rgba(168, 146, 156, 0.4) 24px
+        transparent 24px,
+        rgba(196, 181, 188, 0.5) 24px,
+        rgba(196, 181, 188, 0.5) 48px
       ),
       repeating-linear-gradient(
         90deg,
         transparent,
-        transparent 12px,
-        rgba(154, 148, 114, 0.35) 12px,
-        rgba(154, 148, 114, 0.35) 24px
+        transparent 24px,
+        rgba(181, 176, 138, 0.45) 24px,
+        rgba(181, 176, 138, 0.45) 48px
       );
   }
 
   /* Layout Classes from design */
   .frame-outer {
-    border: 2px solid #3D3538;
+    border: 2px solid #4A3F42;
     padding: 0.75rem;
-    background-color: #F7F4EF;  /* Ivory/cream */
+    background-color: #F5F2EA;  /* Ivory/cream */
   }
 
   .frame-inner {
-    border: 1px solid #D5CEC4;
+    border: 1px solid #DDD6CC;
     padding: 2rem;
-    background-color: #FAF8F5;
+    background-color: #FAF7F2;
   }
 
   .card-frame {
-    border: 1px solid #D5CEC4;
-    box-shadow: inset 0 0 0 1px #FAF8F5;
-    background-color: #ffffff;
+    border: 1px solid #DDD6CC;
+    box-shadow: inset 0 0 0 1px #FAF7F2;
+    background-color: #FDFCFA;
   }
 
-  .ink-main { color: #3D3538; }
-  .ink-soft { color: #7A6E70; }
+  .ink-main { color: #4A3F42; }
+  .ink-soft { color: #8A7D80; }
 
   .btn-soft {
-    background-color: #F0EBE5;
-    color: #3D3538;
+    background-color: #F0EBE3;
+    color: #4A3F42;
     transition: background-color 0.2s;
   }
   .btn-soft:hover {
-    background-color: #E8E2DA;
+    background-color: #E8E1D8;
   }
 
   .bubble-mine {
-    background-color: #F0EBE5;
-    color: #3D3538;
+    background-color: #F0EBE3;
+    color: #4A3F42;
   }
   .bubble-other {
-    background-color: #FAF8F5;
-    color: #3D3538;
+    background-color: #FAF7F2;
+    color: #4A3F42;
   }
 }
