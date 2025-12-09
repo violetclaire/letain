@@ -189,7 +189,7 @@ export default function ScheduleList() {
   const getSelectedShareLink = (schedules: EventDaySchedule[]) => {
     const selectedTokens = getSelectedShareTokens(schedules);
     if (selectedTokens.length === 0) return '';
-    const baseUrl = 'https://code-paste-html--violetherod.replit.app';
+    const baseUrl = window.location.origin;
     return `${baseUrl}/schedules/${selectedTokens.join(',')}`;
   };
 
