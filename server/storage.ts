@@ -642,7 +642,13 @@ export class DatabaseStorage implements IStorage {
     // Convert eventDate string to Date object if it's a string
     const insertData = { ...booking };
     if (insertData.eventDate && typeof insertData.eventDate === 'string') {
-      (insertData as any).eventDate = new Date(insertData.eventDate);
+      const dateStr = insertData.eventDate as string;
+      // If date-only string (YYYY-MM-DD), add noon to avoid timezone shift
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        (insertData as any).eventDate = new Date(`${dateStr}T12:00:00`);
+      } else {
+        (insertData as any).eventDate = new Date(dateStr);
+      }
     }
     
     const [newBooking] = await db.insert(bookings).values(insertData as any).returning();
@@ -653,7 +659,13 @@ export class DatabaseStorage implements IStorage {
     // Convert eventDate string to Date object if it's a string
     const updateData = { ...booking };
     if (updateData.eventDate && typeof updateData.eventDate === 'string') {
-      updateData.eventDate = new Date(updateData.eventDate);
+      const dateStr = updateData.eventDate as string;
+      // If date-only string (YYYY-MM-DD), add noon to avoid timezone shift
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        updateData.eventDate = new Date(`${dateStr}T12:00:00`);
+      } else {
+        updateData.eventDate = new Date(dateStr);
+      }
     }
     
     const [updated] = await db
@@ -702,7 +714,6 @@ export class DatabaseStorage implements IStorage {
     await db.delete(chatInvites).where(eq(chatInvites.bookingId, id));
     await db.delete(supportCases).where(eq(supportCases.bookingId, id));
     await db.delete(cdiEvents).where(eq(cdiEvents.bookingId, id));
-    await db.delete(communicationLogs).where(eq(communicationLogs.bookingId, id));
     
     // Finally delete the booking itself
     await db.delete(bookings).where(eq(bookings.id, id));
