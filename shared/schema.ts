@@ -1295,6 +1295,38 @@ export const insertCommunicationLogSchema = createInsertSchema(communicationLogs
   createdAt: true,
 });
 
+// Scheduled Emails - for scheduling invoice/reminder emails to be sent at a specific time
+export const scheduledEmails = pgTable("scheduled_emails", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  artistId: varchar("artist_id").notNull().references(() => users.id),
+  bookingId: varchar("booking_id").references(() => bookings.id),
+  emailType: text("email_type").notNull(), // 'invoice', 'reminder', 'follow_up'
+  recipientEmail: text("recipient_email").notNull(),
+  recipientName: text("recipient_name").notNull(),
+  subject: text("subject"),
+  // Email-specific data
+  emailData: jsonb("email_data").$type<{
+    vendorName?: string;
+    amount?: number;
+    description?: string;
+    paymentLink?: string;
+    personalMessage?: string;
+    [key: string]: string | number | boolean | undefined;
+  }>(),
+  scheduledFor: timestamp("scheduled_for").notNull(), // When to send the email
+  status: text("status").default("pending"), // 'pending', 'sent', 'failed', 'cancelled'
+  sentAt: timestamp("sent_at"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertScheduledEmailSchema = createInsertSchema(scheduledEmails).omit({
+  id: true,
+  createdAt: true,
+  sentAt: true,
+  errorMessage: true,
+});
+
 // Types for Replit Auth
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -1439,3 +1471,7 @@ export type IqsLearningRun = typeof iqsLearningRuns.$inferSelect;
 // Communication Log Types
 export type InsertCommunicationLog = z.infer<typeof insertCommunicationLogSchema>;
 export type CommunicationLog = typeof communicationLogs.$inferSelect;
+
+// Scheduled Email Types
+export type InsertScheduledEmail = z.infer<typeof insertScheduledEmailSchema>;
+export type ScheduledEmail = typeof scheduledEmails.$inferSelect;

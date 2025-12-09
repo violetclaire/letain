@@ -131,6 +131,9 @@ import {
   communicationLogs,
   type CommunicationLog,
   type InsertCommunicationLog,
+  scheduledEmails,
+  type ScheduledEmail,
+  type InsertScheduledEmail,
   inquiries,
   inquiryNotifications,
   type Inquiry,
@@ -393,6 +396,16 @@ export interface IStorage {
   getCommunicationLogsByArtist(artistId: string, limit?: number): Promise<CommunicationLog[]>;
   getCommunicationLogsByRecipient(artistId: string, recipientEmail: string): Promise<CommunicationLog[]>;
   getCommunicationLog(id: string): Promise<CommunicationLog | undefined>;
+  
+  // Scheduled Emails
+  createScheduledEmail(email: InsertScheduledEmail): Promise<ScheduledEmail>;
+  getScheduledEmail(id: string): Promise<ScheduledEmail | undefined>;
+  getScheduledEmailsByArtist(artistId: string): Promise<ScheduledEmail[]>;
+  getPendingScheduledEmails(): Promise<ScheduledEmail[]>;
+  updateScheduledEmail(id: string, data: Partial<InsertScheduledEmail>): Promise<ScheduledEmail | undefined>;
+  markScheduledEmailSent(id: string): Promise<ScheduledEmail | undefined>;
+  markScheduledEmailFailed(id: string, errorMessage: string): Promise<ScheduledEmail | undefined>;
+  cancelScheduledEmail(id: string): Promise<ScheduledEmail | undefined>;
   
   // Inquiries
   createInquiry(data: InsertInquiry): Promise<Inquiry>;
@@ -1884,6 +1897,73 @@ export class DatabaseStorage implements IStorage {
   async getCommunicationLog(id: string): Promise<CommunicationLog | undefined> {
     const [log] = await db.select().from(communicationLogs).where(eq(communicationLogs.id, id));
     return log || undefined;
+  }
+  
+  // Scheduled Emails
+  async createScheduledEmail(email: InsertScheduledEmail): Promise<ScheduledEmail> {
+    const [newEmail] = await db.insert(scheduledEmails).values(email as any).returning();
+    return newEmail;
+  }
+  
+  async getScheduledEmail(id: string): Promise<ScheduledEmail | undefined> {
+    const [email] = await db.select().from(scheduledEmails).where(eq(scheduledEmails.id, id));
+    return email || undefined;
+  }
+  
+  async getScheduledEmailsByArtist(artistId: string): Promise<ScheduledEmail[]> {
+    return await db
+      .select()
+      .from(scheduledEmails)
+      .where(eq(scheduledEmails.artistId, artistId))
+      .orderBy(desc(scheduledEmails.scheduledFor));
+  }
+  
+  async getPendingScheduledEmails(): Promise<ScheduledEmail[]> {
+    const now = new Date();
+    return await db
+      .select()
+      .from(scheduledEmails)
+      .where(and(
+        eq(scheduledEmails.status, 'pending'),
+        sql`${scheduledEmails.scheduledFor} <= ${now}`
+      ))
+      .orderBy(scheduledEmails.scheduledFor);
+  }
+  
+  async updateScheduledEmail(id: string, data: Partial<InsertScheduledEmail>): Promise<ScheduledEmail | undefined> {
+    const [updated] = await db
+      .update(scheduledEmails)
+      .set(data as any)
+      .where(eq(scheduledEmails.id, id))
+      .returning();
+    return updated || undefined;
+  }
+  
+  async markScheduledEmailSent(id: string): Promise<ScheduledEmail | undefined> {
+    const [updated] = await db
+      .update(scheduledEmails)
+      .set({ status: 'sent', sentAt: new Date() })
+      .where(eq(scheduledEmails.id, id))
+      .returning();
+    return updated || undefined;
+  }
+  
+  async markScheduledEmailFailed(id: string, errorMessage: string): Promise<ScheduledEmail | undefined> {
+    const [updated] = await db
+      .update(scheduledEmails)
+      .set({ status: 'failed', errorMessage })
+      .where(eq(scheduledEmails.id, id))
+      .returning();
+    return updated || undefined;
+  }
+  
+  async cancelScheduledEmail(id: string): Promise<ScheduledEmail | undefined> {
+    const [updated] = await db
+      .update(scheduledEmails)
+      .set({ status: 'cancelled' })
+      .where(eq(scheduledEmails.id, id))
+      .returning();
+    return updated || undefined;
   }
   
   // Inquiries
