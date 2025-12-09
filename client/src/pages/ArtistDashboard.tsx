@@ -55,6 +55,10 @@ export default function ArtistDashboard() {
   const [invoiceLink, setInvoiceLink] = useState<string | null>(null);
   const [sendingInvoiceEmail, setSendingInvoiceEmail] = useState(false);
   const [sendingInvoiceSms, setSendingInvoiceSms] = useState(false);
+  const [invoiceScheduleMode, setInvoiceScheduleMode] = useState<"now" | "schedule">("now");
+  const [invoiceScheduleDate, setInvoiceScheduleDate] = useState("");
+  const [invoiceScheduleTime, setInvoiceScheduleTime] = useState("09:00");
+  const [schedulingInvoice, setSchedulingInvoice] = useState(false);
   
   // Stripe Connect state
   const [stripeStatus, setStripeStatus] = useState<{
@@ -1146,6 +1150,92 @@ export default function ArtistDashboard() {
       });
     }
     setSendingInvoiceEmail(false);
+  };
+
+  const handleScheduleInvoiceEmail = async () => {
+    const selectedBooking = clients.find(c => c.id === invoiceBookingId);
+    if (!invoiceLink || !selectedBooking?.clientEmail) {
+      toast({
+        title: "Missing Email",
+        description: "No email address found for this client.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!invoiceScheduleDate || !invoiceScheduleTime) {
+      toast({
+        title: "Missing Schedule",
+        description: "Please select a date and time to schedule the email.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const amountCents = invoiceAmount ? Math.round(parseFloat(invoiceAmount) * 100) : 0;
+    if (!amountCents || isNaN(amountCents)) {
+      toast({
+        title: "Missing Amount",
+        description: "Invoice amount is required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const vendorName = user?.firstName && user?.lastName 
+      ? `${user.firstName} ${user.lastName}` 
+      : user?.firstName || 'Your Vendor';
+
+    const scheduledFor = new Date(`${invoiceScheduleDate}T${invoiceScheduleTime}`).toISOString();
+
+    setSchedulingInvoice(true);
+    try {
+      const res = await fetch('/api/scheduled-emails', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          emailType: 'invoice',
+          recipientEmail: selectedBooking.clientEmail,
+          recipientName: selectedBooking.name || 'Client',
+          scheduledFor,
+          bookingId: invoiceBookingId,
+          vendorName,
+          amount: amountCents,
+          description: invoiceDescription || 'Beauty Services',
+          paymentLink: invoiceLink,
+        }),
+      });
+
+      if (res.ok) {
+        const scheduledDate = new Date(scheduledFor);
+        toast({
+          title: "Email Scheduled!",
+          description: `Invoice will be sent on ${scheduledDate.toLocaleDateString()} at ${scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+        });
+        setShowInvoiceModal(false);
+        setInvoiceLink(null);
+        setInvoiceAmount("");
+        setInvoiceDescription("");
+        setInvoiceScheduleDate("");
+        setInvoiceScheduleTime("09:00");
+        setInvoiceScheduleMode("now");
+      } else {
+        const err = await res.json();
+        toast({
+          title: "Error",
+          description: err.error || "Failed to schedule email",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to schedule invoice email",
+        variant: "destructive",
+      });
+    }
+    setSchedulingInvoice(false);
   };
 
   const handleSendInvoiceSms = async () => {
@@ -2945,31 +3035,81 @@ export default function ArtistDashboard() {
                   </div>
                 </div>
 
+                {/* Send Now vs Schedule Toggle */}
+                <div className="mb-4">
+                  <label className="block text-[0.65rem] uppercase tracking-wide ink-soft mb-2">Send Options</label>
+                  <div className="flex gap-2 mb-3">
+                    <button
+                      onClick={() => setInvoiceScheduleMode("now")}
+                      className={`flex-1 px-3 py-2 text-xs rounded border flex items-center justify-center gap-2 ${invoiceScheduleMode === "now" ? "bg-forest text-white border-forest" : "border-gray-300 hover:bg-gray-50"}`}
+                      data-testid="button-send-now"
+                    >
+                      <Send size={12} />
+                      Send Now
+                    </button>
+                    <button
+                      onClick={() => setInvoiceScheduleMode("schedule")}
+                      className={`flex-1 px-3 py-2 text-xs rounded border flex items-center justify-center gap-2 ${invoiceScheduleMode === "schedule" ? "bg-forest text-white border-forest" : "border-gray-300 hover:bg-gray-50"}`}
+                      data-testid="button-schedule"
+                    >
+                      <Clock size={12} />
+                      Schedule
+                    </button>
+                  </div>
+
+                  {invoiceScheduleMode === "schedule" && (
+                    <div className="bg-cream p-3 rounded space-y-3">
+                      <div>
+                        <label className="block text-[0.65rem] uppercase tracking-wide ink-soft mb-1">Date *</label>
+                        <input
+                          type="date"
+                          value={invoiceScheduleDate}
+                          onChange={(e) => setInvoiceScheduleDate(e.target.value)}
+                          min={new Date().toISOString().split('T')[0]}
+                          className="w-full border border-[#c5ccd8] bg-white rounded px-3 py-2 text-sm"
+                          data-testid="input-schedule-date"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[0.65rem] uppercase tracking-wide ink-soft mb-1">Time *</label>
+                        <input
+                          type="time"
+                          value={invoiceScheduleTime}
+                          onChange={(e) => setInvoiceScheduleTime(e.target.value)}
+                          className="w-full border border-[#c5ccd8] bg-white rounded px-3 py-2 text-sm"
+                          data-testid="input-schedule-time"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* Send via Email/SMS buttons */}
                 <div className="flex gap-2 mb-4">
                   <button
-                    onClick={handleSendInvoiceEmail}
-                    disabled={sendingInvoiceEmail}
+                    onClick={invoiceScheduleMode === "now" ? handleSendInvoiceEmail : handleScheduleInvoiceEmail}
+                    disabled={sendingInvoiceEmail || schedulingInvoice || (invoiceScheduleMode === "schedule" && !invoiceScheduleDate)}
                     className="flex-1 px-3 py-2 text-xs rounded bg-forest text-white hover:bg-forest/80 flex items-center justify-center gap-2 disabled:opacity-50"
                     data-testid="button-send-invoice-email"
                   >
-                    {sendingInvoiceEmail ? (
+                    {sendingInvoiceEmail || schedulingInvoice ? (
                       <>
                         <Loader2 size={12} className="animate-spin" />
-                        Sending...
+                        {invoiceScheduleMode === "schedule" ? "Scheduling..." : "Sending..."}
                       </>
                     ) : (
                       <>
-                        <Send size={12} />
-                        Send via Email
+                        {invoiceScheduleMode === "schedule" ? <Clock size={12} /> : <Send size={12} />}
+                        {invoiceScheduleMode === "schedule" ? "Schedule Email" : "Send via Email"}
                       </>
                     )}
                   </button>
                   <button
                     onClick={handleSendInvoiceSms}
-                    disabled={sendingInvoiceSms}
+                    disabled={sendingInvoiceSms || invoiceScheduleMode === "schedule"}
                     className="flex-1 px-3 py-2 text-xs rounded bg-pink text-white hover:bg-pink/80 flex items-center justify-center gap-2 disabled:opacity-50"
                     data-testid="button-send-invoice-sms"
+                    title={invoiceScheduleMode === "schedule" ? "SMS scheduling not supported" : ""}
                   >
                     {sendingInvoiceSms ? (
                       <>
@@ -2987,7 +3127,7 @@ export default function ArtistDashboard() {
                 
                 <div className="flex gap-3 justify-end">
                   <button 
-                    onClick={() => { setShowInvoiceModal(false); setInvoiceLink(null); setInvoiceAmount(""); setInvoiceDescription(""); }} 
+                    onClick={() => { setShowInvoiceModal(false); setInvoiceLink(null); setInvoiceAmount(""); setInvoiceDescription(""); setInvoiceScheduleMode("now"); setInvoiceScheduleDate(""); setInvoiceScheduleTime("09:00"); }} 
                     className="px-4 py-2 text-xs rounded bg-black text-white hover:bg-gray-800"
                   >
                     Done
