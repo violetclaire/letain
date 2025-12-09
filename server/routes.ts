@@ -126,7 +126,7 @@ async function loadCDI() {
 }
 
 // Helper to get authenticated user ID from either email/password session or Replit OAuth
-function getAuthUserId(req: any): string | null {
+export function getAuthUserId(req: any): string | null {
   // Check email/password session first
   if (req.session?.userId) {
     return req.session.userId;

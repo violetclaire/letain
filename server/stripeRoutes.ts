@@ -1,6 +1,7 @@
 import { Express, Request, Response } from "express";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { storage } from "./storage";
+import { getAuthUserId } from "./routes";
 
 // Platform fee: 1% (Beauvette's cut)
 const PLATFORM_FEE_PERCENT = 1;
@@ -22,7 +23,7 @@ export function registerStripeRoutes(app: Express, isAuthenticated: any) {
   app.post("/api/stripe/checkout", isAuthenticated, async (req: any, res) => {
     try {
       const stripe = await getUncachableStripeClient();
-      const userId = req.user?.claims?.sub;
+      const userId = getAuthUserId(req);
       
       const { 
         bookingId, 
@@ -157,7 +158,7 @@ export function registerStripeRoutes(app: Express, isAuthenticated: any) {
   app.post("/api/stripe/create-payment-intent", isAuthenticated, async (req: any, res) => {
     try {
       const stripe = await getUncachableStripeClient();
-      const userId = req.user?.claims?.sub;
+      const userId = getAuthUserId(req);
       
       const { amount, bookingId, vendorStripeAccountId } = req.body;
 
@@ -205,7 +206,10 @@ export function registerStripeRoutes(app: Express, isAuthenticated: any) {
   app.post("/api/stripe/connect/onboard", isAuthenticated, async (req: any, res) => {
     try {
       const stripe = await getUncachableStripeClient();
-      const userId = req.user?.claims?.sub;
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
       const user = await storage.getUser(userId);
 
       if (!user || (user.role !== 'artist' && user.role !== 'planner')) {
@@ -276,7 +280,10 @@ export function registerStripeRoutes(app: Express, isAuthenticated: any) {
   app.get("/api/stripe/connect/status", isAuthenticated, async (req: any, res) => {
     try {
       const stripe = await getUncachableStripeClient();
-      const userId = req.user?.claims?.sub;
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
       const user = await storage.getUser(userId);
       
       let accountId: string | null = null;
@@ -315,7 +322,10 @@ export function registerStripeRoutes(app: Express, isAuthenticated: any) {
   app.get("/api/stripe/connect/dashboard", isAuthenticated, async (req: any, res) => {
     try {
       const stripe = await getUncachableStripeClient();
-      const userId = req.user?.claims?.sub;
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
       const user = await storage.getUser(userId);
       
       let accountId: string | null = null;
@@ -344,7 +354,10 @@ export function registerStripeRoutes(app: Express, isAuthenticated: any) {
   app.post("/api/stripe/payment-link", isAuthenticated, async (req: any, res) => {
     try {
       const stripe = await getUncachableStripeClient();
-      const userId = req.user?.claims?.sub;
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
       const user = await storage.getUser(userId);
       
       if (!user || (user.role !== 'artist' && user.role !== 'planner')) {
@@ -423,14 +436,13 @@ export function registerStripeRoutes(app: Express, isAuthenticated: any) {
   app.post("/api/stripe/create-invoice-link", isAuthenticated, async (req: any, res) => {
     try {
       const stripe = await getUncachableStripeClient();
-      const userId = req.user?.claims?.sub;
-      console.log("[Invoice] userId from claims:", userId);
-      console.log("[Invoice] req.user:", JSON.stringify(req.user));
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
       const user = await storage.getUser(userId);
-      console.log("[Invoice] user from DB:", user ? { id: user.id, role: user.role, email: user.email } : null);
       
       if (!user || user.role !== 'artist') {
-        console.log("[Invoice] Access denied - user role:", user?.role);
         return res.status(403).json({ error: "Only vendors can create invoice links" });
       }
 
