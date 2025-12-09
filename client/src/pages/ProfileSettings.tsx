@@ -1012,6 +1012,21 @@ export default function ProfileSettings() {
               />
             </div>
 
+            <div className="mb-4">
+              <label className="block text-xs uppercase tracking-wide text-black/60 mb-1 flex items-center gap-1">
+                <DollarSign size={12} /> Price Range
+              </label>
+              <input
+                type="text"
+                value={businessData.priceRange}
+                onChange={(e) => setBusinessData(prev => ({ ...prev, priceRange: e.target.value }))}
+                className="w-full border border-black/20 bg-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
+                placeholder="e.g., $300-$800 per event"
+                data-testid="input-price-range"
+              />
+              <p className="text-xs text-black/50 mt-1">This is displayed on your public profile</p>
+            </div>
+
             <h3 className="text-sm font-medium mb-3 mt-6">Social Media</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div>
