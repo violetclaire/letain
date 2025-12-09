@@ -123,6 +123,19 @@ export default function ArtistDashboard() {
   const [sendingForSigning, setSendingForSigning] = useState(false);
   const [contractSigningUrl, setContractSigningUrl] = useState<string | null>(null);
   
+  // Booking contracts state
+  const [bookingContracts, setBookingContracts] = useState<Array<{
+    id: string;
+    bookingId: string;
+    fileUrl?: string;
+    status: string;
+    packageDetails?: string;
+    totalAmount?: number;
+    createdAt: string;
+  }>>([]);
+  const [loadingContracts, setLoadingContracts] = useState(false);
+  const [uploadingContract, setUploadingContract] = useState(false);
+  
   const [messages, setMessages] = useState([
     { from: "other", text: "Select a client to start chatting." }
   ]);
@@ -729,6 +742,89 @@ export default function ArtistDashboard() {
     c.location?.toLowerCase().includes(clientSearch.toLowerCase())
   );
 
+  const fetchBookingContracts = async (bookingId: string) => {
+    setLoadingContracts(true);
+    try {
+      const res = await fetch(`/api/contracts/booking/${bookingId}`, { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setBookingContracts(data || []);
+      }
+    } catch (err) {
+      console.error("Error fetching contracts:", err);
+    }
+    setLoadingContracts(false);
+  };
+
+  const handleContractUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !selectedBooking?.id) return;
+    
+    const bookingId = selectedBooking.id;
+    setUploadingContract(true);
+    
+    const file = files[0];
+    const reader = new FileReader();
+    
+    reader.onload = async () => {
+      try {
+        if (!reader.result || typeof reader.result !== 'string') {
+          throw new Error("Failed to read file");
+        }
+        
+        const base64 = reader.result.split(',')[1];
+        const res = await fetch(`/api/bookings/${bookingId}/upload-contract`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            fileContent: base64,
+            fileName: file.name,
+            mimeType: file.type,
+          }),
+        });
+        
+        if (res.ok) {
+          toast({
+            title: "Contract Uploaded",
+            description: "Your contract file has been saved.",
+          });
+          fetchBookingContracts(bookingId);
+        } else {
+          const error = await res.json();
+          toast({
+            title: "Upload Failed",
+            description: error.error || "Failed to upload contract",
+            variant: "destructive",
+          });
+        }
+      } catch (err) {
+        toast({
+          title: "Error",
+          description: "Failed to upload contract",
+          variant: "destructive",
+        });
+      } finally {
+        setUploadingContract(false);
+      }
+    };
+    
+    reader.onerror = () => {
+      toast({
+        title: "Error",
+        description: "Failed to read file",
+        variant: "destructive",
+      });
+      setUploadingContract(false);
+    };
+    
+    reader.readAsDataURL(file);
+    
+    if (e.target) {
+      e.target.value = '';
+    }
+  };
+
   const openClientFolder = (clientId: string) => {
     const booking = clients.find(c => c.id === clientId);
     if (booking) {
@@ -744,6 +840,8 @@ export default function ArtistDashboard() {
       });
       setDayOfReminders(booking.dayOfReminders || "");
       setRemindersSaved(false);
+      setBookingContracts([]);
+      fetchBookingContracts(booking.id);
       setView("folder");
     }
   };
@@ -2214,6 +2312,81 @@ export default function ArtistDashboard() {
                         </button>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Contracts Section */}
+                  <div className="card-frame rounded-md px-5 py-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-header text-md ink-main flex items-center gap-2">
+                        <FileText size={14} /> Contracts
+                      </h3>
+                      <label 
+                        className={`flex items-center gap-1 px-2 py-1 text-xs bg-black text-white rounded cursor-pointer hover:bg-gray-800 transition-colors ${uploadingContract ? 'opacity-50 cursor-wait' : ''}`}
+                        data-testid="button-upload-contract"
+                      >
+                        {uploadingContract ? (
+                          <>
+                            <Loader2 size={12} className="animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload size={12} /> Upload Contract
+                          </>
+                        )}
+                        <input 
+                          type="file" 
+                          accept=".pdf,.doc,.docx,.html" 
+                          className="hidden" 
+                          onChange={handleContractUpload}
+                          disabled={uploadingContract}
+                          data-testid="input-upload-contract"
+                        />
+                      </label>
+                    </div>
+                    
+                    {loadingContracts ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 size={20} className="animate-spin text-gray-400" />
+                      </div>
+                    ) : bookingContracts.length === 0 ? (
+                      <div className="text-center py-4 bg-[#fbfcff] border border-[#e5e8f2] rounded">
+                        <FileText size={24} className="mx-auto text-gray-300 mb-2" />
+                        <p className="text-xs text-gray-500">No contracts uploaded yet</p>
+                        <p className="text-[0.65rem] text-gray-400 mt-1">Upload a PDF, DOC, or HTML contract file</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {bookingContracts.map((contract) => (
+                          <div 
+                            key={contract.id} 
+                            className="flex items-center justify-between p-2 bg-[#fbfcff] border border-[#e5e8f2] rounded hover:border-black transition-colors"
+                            data-testid={`contract-item-${contract.id}`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <FileText size={14} className="text-gray-500" />
+                              <div>
+                                <p className="text-xs font-medium">{contract.packageDetails || 'Contract'}</p>
+                                <p className="text-[0.65rem] text-gray-500">
+                                  {contract.status} • {new Date(contract.createdAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                            {contract.fileUrl && (
+                              <a
+                                href={contract.fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 px-2 py-1 text-[0.65rem] text-blue-600 hover:underline"
+                                data-testid={`button-download-contract-${contract.id}`}
+                              >
+                                <Eye size={12} /> View
+                              </a>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="card-frame rounded-md px-5 py-4">
