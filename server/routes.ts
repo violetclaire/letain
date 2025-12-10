@@ -2193,6 +2193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const artist = await storage.getUser(contract.artistId);
       const client = await storage.getUser(contract.clientId);
+      const artistProfile = await storage.getArtistProfile(contract.artistId);
       
       if (!client?.email) {
         return res.status(400).json({ error: "Client email is required for signing" });
@@ -2212,7 +2213,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         contract.depositAmount || 0,
         eventDate,
         booking.serviceType || "Beauty Services",
-        req.body.additionalTerms
+        req.body.additionalTerms,
+        artistProfile?.businessName || (artist?.firstName ? `${artist.firstName} ${artist.lastName || ""}`.trim() : "Service Provider"),
+        booking.location
       );
       
       const pdfBase64 = Buffer.from(pdfHtml).toString("base64");
