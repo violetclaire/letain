@@ -29,8 +29,10 @@ export default function ArtistDashboard() {
   const [thankYouRecipient, setThankYouRecipient] = useState("");
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteClientName, setInviteClientName] = useState("");
   const [selectedContact, setSelectedContact] = useState<string>("Client");
   const [loading, setLoading] = useState(true);
+  const [sendingInvite, setSendingInvite] = useState(false);
   
   // Create Booking Modal state
   const [showCreateBooking, setShowCreateBooking] = useState(false);
@@ -2707,22 +2709,100 @@ export default function ArtistDashboard() {
             <p className="text-xs ink-soft mb-4">
               Invite your current clients to chat and collaborate on Beauvette. They'll receive an invite link to join and start chatting with you about their events.
             </p>
-            <input
-              type="email"
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              placeholder="email@example.com"
-              className="w-full border border-[#c5ccd8] bg-[#fbfcff] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black mb-4"
-            />
+            <div className="space-y-3 mb-4">
+              <div>
+                <label className="block text-[0.7rem] uppercase tracking-wide ink-soft mb-1">Client Name (Optional)</label>
+                <input
+                  type="text"
+                  value={inviteClientName}
+                  onChange={(e) => setInviteClientName(e.target.value)}
+                  placeholder="Client name"
+                  className="w-full border border-[#c5ccd8] bg-[#fbfcff] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
+                />
+              </div>
+              <div>
+                <label className="block text-[0.7rem] uppercase tracking-wide ink-soft mb-1">Email Address *</label>
+                <input
+                  type="email"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  placeholder="client@example.com"
+                  className="w-full border border-[#c5ccd8] bg-[#fbfcff] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
+                />
+              </div>
+            </div>
             <div className="flex gap-3 justify-end">
-              <button onClick={() => setShowInviteModal(false)} className="px-4 py-2 text-xs rounded border border-gray-300 hover:bg-gray-50">
+              <button 
+                onClick={() => {
+                  setShowInviteModal(false);
+                  setInviteEmail("");
+                  setInviteClientName("");
+                }}
+                disabled={sendingInvite}
+                className="px-4 py-2 text-xs rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+              >
                 Cancel
               </button>
               <button 
-                onClick={() => { alert(`Invite sent to ${inviteEmail}`); setInviteEmail(""); setShowInviteModal(false); }}
-                className="px-4 py-2 text-xs rounded bg-black text-white hover:bg-gray-800"
+                onClick={async () => {
+                  if (!inviteEmail) {
+                    toast({
+                      title: "Error",
+                      description: "Email address is required",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  
+                  setSendingInvite(true);
+                  try {
+                    const res = await fetch("/api/send-client-invite", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      credentials: "include",
+                      body: JSON.stringify({
+                        clientEmail: inviteEmail,
+                        clientName: inviteClientName || "Client",
+                      }),
+                    });
+                    
+                    if (res.ok) {
+                      const data = await res.json();
+                      toast({
+                        title: "Invite Sent!",
+                        description: `${inviteEmail} will receive an email with a link to chat and collaborate on Beauvette.`,
+                      });
+                      setInviteEmail("");
+                      setInviteClientName("");
+                      setShowInviteModal(false);
+                    } else {
+                      const error = await res.json();
+                      toast({
+                        title: "Error",
+                        description: error.error || "Failed to send invite",
+                        variant: "destructive",
+                      });
+                    }
+                  } catch (err) {
+                    toast({
+                      title: "Error",
+                      description: "Failed to send invite",
+                      variant: "destructive",
+                    });
+                  }
+                  setSendingInvite(false);
+                }}
+                disabled={sendingInvite || !inviteEmail}
+                className="px-4 py-2 text-xs rounded bg-black text-white hover:bg-gray-800 disabled:opacity-50 flex items-center gap-2"
               >
-                Send Invite Link
+                {sendingInvite ? (
+                  <>
+                    <Loader2 size={12} className="animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  "Send Invite Link"
+                )}
               </button>
             </div>
           </div>

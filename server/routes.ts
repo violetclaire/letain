@@ -6244,6 +6244,67 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
   
+  // Send direct chat invite to client (from artist dashboard)
+  app.post("/api/send-client-invite", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const { clientEmail, clientName, clientPhone } = req.body;
+      
+      if (!clientEmail) {
+        return res.status(400).json({ error: "Client email is required" });
+      }
+      
+      // Create a chat invite with a signed token
+      const token = randomUUID();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7); // 7 day expiry
+      
+      const chatInvite = await storage.createChatInvite({
+        senderId: userId,
+        inviteeEmail: clientEmail,
+        status: 'pending',
+        token,
+        expiresAt,
+      });
+      
+      // Get vendor info
+      const vendor = await storage.getUser(userId);
+      const artistProfile = await storage.getArtistProfile(userId);
+      const vendorName = artistProfile?.businessName || vendor?.firstName || 'The Vendor';
+      
+      // Build chat link
+      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+        : process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.com';
+      const chatLink = `${baseUrl}/chat-invite/${token}`;
+      
+      // Send chat invite email
+      import('./emailService').then(({ sendChatInviteEmail }) => {
+        sendChatInviteEmail({
+          toEmail: clientEmail,
+          vendorName,
+          clientName: clientName || 'Client',
+          chatLink,
+          expiresAt,
+        }).catch((err: any) => console.error('[Chat Invite Email] Error:', err));
+      });
+      
+      // If phone number provided, optionally send SMS (future enhancement)
+      if (clientPhone) {
+        console.log(`[Chat Invite] SMS to ${clientPhone} not yet implemented`);
+      }
+      
+      res.json({ 
+        success: true, 
+        message: `Invite sent to ${clientEmail}`,
+        chatInviteId: chatInvite.id 
+      });
+    } catch (error: any) {
+      console.error("[Client Invite] Error sending invite:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
   // Decline inquiry
   app.post("/api/inquiries/:id/decline", isAuthenticated, async (req: any, res) => {
     try {
