@@ -176,7 +176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.user || !req.user.claims || !req.user.claims.sub) {
         return res.json(null);
       }
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error: any) {
@@ -396,7 +396,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // CDI Consent Management
   app.post("/api/users/:id/cdi-consent", isAuthenticated, async (req: any, res) => {
     try {
-      const requesterId = req.user.claims.sub;
+      const requesterId = getAuthUserId(req);
       const targetId = req.params.id;
       
       // Users can only update their own consent unless they're admin
@@ -775,7 +775,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Reorder portfolio photos
   app.patch("/api/artist-profiles/:userId/portfolio/order", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       if (req.params.userId !== userId) {
         return res.status(403).json({ error: "Not authorized" });
       }
@@ -835,7 +835,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/artist-services", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const service = await storage.createArtistService({ ...req.body, artistId: userId });
       res.json(service);
     } catch (error: any) {
@@ -850,7 +850,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Service not found" });
       }
       // Verify ownership
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       if (service.artistId !== userId) {
         return res.status(403).json({ error: "Not authorized to update this service" });
       }
@@ -868,7 +868,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Service not found" });
       }
       // Verify ownership
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       if (service.artistId !== userId) {
         return res.status(403).json({ error: "Not authorized to delete this service" });
       }
@@ -1832,7 +1832,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Contract not found" });
       }
 
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       if (contract.artistId !== userId) {
         return res.status(403).json({ error: "You can only send your own contracts" });
       }
@@ -1870,7 +1870,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Upload contract file to object storage
   app.post("/api/contracts/:id/upload-file", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const contractId = req.params.id;
       
       const contract = await storage.getContract(contractId);
@@ -1913,7 +1913,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Upload contract file for a booking (create contract if needed)
   app.post("/api/bookings/:bookingId/upload-contract", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const bookingId = req.params.bookingId;
       
       const booking = await storage.getBooking(bookingId);
@@ -1975,7 +1975,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/contracts/artist/:artistId", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       if (userId !== req.params.artistId) {
         return res.status(403).json({ error: "You can only view your own contracts" });
       }
@@ -2013,7 +2013,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ========== CONTRACT TEMPLATES ==========
   app.get("/api/contract-templates", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const templates = await storage.getContractTemplatesByArtist(userId);
       res.json(templates);
     } catch (error: any) {
@@ -2023,7 +2023,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/contract-templates/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const template = await storage.getContractTemplate(req.params.id);
       if (!template) {
         return res.status(404).json({ error: "Template not found" });
@@ -2039,7 +2039,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/contract-templates", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const templateData = { ...req.body, artistId: userId };
       const template = await storage.createContractTemplate(templateData);
       res.json(template);
@@ -2050,7 +2050,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/contract-templates/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const existing = await storage.getContractTemplate(req.params.id);
       if (!existing) {
         return res.status(404).json({ error: "Template not found" });
@@ -2067,7 +2067,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/contract-templates/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const existing = await storage.getContractTemplate(req.params.id);
       if (!existing) {
         return res.status(404).json({ error: "Template not found" });
@@ -2084,7 +2084,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/contract-templates/default", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const template = await storage.getDefaultContractTemplate(userId);
       res.json(template || null);
     } catch (error: any) {
@@ -2297,7 +2297,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get chat history
   app.get("/api/ai/chat/history", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const messages = await storage.getAiChatMessages(userId);
       res.json(messages);
     } catch (error: any) {
@@ -2308,7 +2308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Clear chat history
   app.delete("/api/ai/chat/history", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       await storage.clearAiChatMessages(userId);
       res.json({ success: true });
     } catch (error: any) {
@@ -2318,7 +2318,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/ai/chat", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const { message, attachments } = req.body;
       
       if (!message && (!attachments || attachments.length === 0)) {
@@ -2581,7 +2581,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI Schedule Creation Chat
   app.post("/api/ai/schedule-chat", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const { message } = req.body;
       
       if (!message) {
@@ -2718,7 +2718,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // ========== AVAILABILITY ==========
   app.post("/api/availability", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const data = insertAvailabilitySchema.parse({ ...req.body, userId });
       const availability = await storage.setAvailability(data);
       res.json(availability);
@@ -2730,7 +2730,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Sync Google Calendar availability for a vendor
   app.post("/api/availability/sync-google-calendar", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
       
       if (user?.role !== 'artist') {
@@ -2792,7 +2792,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
 
   app.delete("/api/availability", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const { date } = req.body;
       await storage.deleteAvailability(userId, new Date(date));
       res.json({ success: true });
@@ -2866,7 +2866,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Invite someone to network
   app.post("/api/artist-network/invite", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const { name, email, specialty, notes } = req.body;
       
       // Create an invitation for this contact
@@ -2893,7 +2893,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Get all schedules for current user (artist/vendor)
   app.get("/api/event-schedules", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const schedules = await storage.getEventDaySchedulesByArtist(userId);
       res.json(schedules);
     } catch (error: any) {
@@ -2910,7 +2910,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       
       // Verify ownership
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       if (schedule.artistId !== userId) {
         return res.status(403).json({ error: "Not authorized" });
       }
@@ -2996,7 +2996,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Send schedule via email
   app.post("/api/event-schedules/send-email", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const { toEmails, shareTokens, personalMessage } = req.body;
       
       if (!toEmails || !Array.isArray(toEmails) || toEmails.length === 0) {
@@ -3070,7 +3070,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Send schedule via SMS
   app.post("/api/event-schedules/send-sms", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const { toPhones, shareTokens } = req.body;
       
       if (!toPhones || !Array.isArray(toPhones) || toPhones.length === 0) {
@@ -3181,7 +3181,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Confirm and save parsed timeline as a new schedule
   app.post("/api/event-schedules/import/confirm", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const { eventName, eventDate, eventLocation, readyByTime, notes, teamMembers, appointments } = req.body;
       
       if (!eventName || !eventDate) {
@@ -3255,7 +3255,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Create new schedule
   app.post("/api/event-schedules", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const { eventName, eventDate, eventLocation, readyByTime, notes, bookingId } = req.body;
       
       // Generate share token
@@ -3287,7 +3287,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         return res.status(404).json({ error: "Schedule not found" });
       }
       
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       if (schedule.artistId !== userId) {
         return res.status(403).json({ error: "Not authorized" });
       }
@@ -3307,7 +3307,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         return res.status(404).json({ error: "Schedule not found" });
       }
       
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       if (schedule.artistId !== userId) {
         return res.status(403).json({ error: "Not authorized" });
       }
@@ -3329,7 +3329,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         return res.status(404).json({ error: "Schedule not found" });
       }
       
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       if (schedule.artistId !== userId) {
         return res.status(403).json({ error: "Not authorized" });
       }
@@ -3353,7 +3353,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Update team member
   app.patch("/api/event-schedules/team/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const member = await storage.getScheduleTeamMember(req.params.id);
       if (!member) {
         return res.status(404).json({ error: "Team member not found" });
@@ -3377,7 +3377,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Delete team member
   app.delete("/api/event-schedules/team/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const member = await storage.getScheduleTeamMember(req.params.id);
       if (!member) {
         return res.status(404).json({ error: "Team member not found" });
@@ -3405,7 +3405,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         return res.status(404).json({ error: "Schedule not found" });
       }
       
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       if (schedule.artistId !== userId) {
         return res.status(403).json({ error: "Not authorized" });
       }
@@ -3438,7 +3438,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         return res.status(404).json({ error: "Schedule not found" });
       }
       
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       if (schedule.artistId !== userId) {
         return res.status(403).json({ error: "Not authorized" });
       }
@@ -3463,7 +3463,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Update appointment
   app.patch("/api/event-schedules/appointments/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const appointment = await storage.getScheduleAppointment(req.params.id);
       if (!appointment) {
         return res.status(404).json({ error: "Appointment not found" });
@@ -3487,7 +3487,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Delete appointment
   app.delete("/api/event-schedules/appointments/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const appointment = await storage.getScheduleAppointment(req.params.id);
       if (!appointment) {
         return res.status(404).json({ error: "Appointment not found" });
@@ -3508,7 +3508,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // ========== CHAT INVITES ==========
   app.post("/api/chat-invites", isAuthenticated, async (req: any, res) => {
     try {
-      const senderId = req.user.claims.sub;
+      const senderId = getAuthUserId(req);
       const data = insertChatInviteSchema.parse({ ...req.body, senderId, status: 'pending' });
       
       const existingUser = await storage.getUserByEmail(data.inviteeEmail);
@@ -3548,7 +3548,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // ========== CONVERSATIONS ==========
   app.post("/api/conversations", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const { bookingId, participantIds } = req.body;
       
       const conversation = await storage.createConversation({ bookingId: bookingId || null });
@@ -3607,7 +3607,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Get vendor/planner's business conversations
   app.get("/api/business-chat/conversations", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
       
       if (!user || (user.role !== 'artist' && user.role !== 'planner')) {
@@ -3624,7 +3624,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Create a new business conversation
   app.post("/api/business-chat/conversations", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
       
       if (!user || (user.role !== 'artist' && user.role !== 'planner')) {
@@ -3646,7 +3646,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Get messages in a business conversation
   app.get("/api/business-chat/conversations/:id/messages", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const conversation = await storage.getConversation(req.params.id);
       
       if (!conversation || conversation.channelType !== 'business') {
@@ -3675,7 +3675,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Send a message in a business conversation
   app.post("/api/business-chat/conversations/:id/messages", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const conversation = await storage.getConversation(req.params.id);
       
       if (!conversation || conversation.channelType !== 'business') {
@@ -3782,7 +3782,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Get team members for a vendor/planner
   app.get("/api/team-members", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
       
       if (!user || (user.role !== 'artist' && user.role !== 'planner')) {
@@ -3799,7 +3799,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Add a team member
   app.post("/api/team-members", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
       
       if (!user || (user.role !== 'artist' && user.role !== 'planner')) {
@@ -3841,7 +3841,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Update a team member
   app.patch("/api/team-members/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const member = await storage.getTeamMember(req.params.id);
       
       if (!member || member.ownerId !== userId) {
@@ -3865,7 +3865,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Remove a team member
   app.delete("/api/team-members/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const member = await storage.getTeamMember(req.params.id);
       
       if (!member || member.ownerId !== userId) {
@@ -3882,7 +3882,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Add participant to business conversation
   app.post("/api/business-chat/conversations/:id/participants", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const conversation = await storage.getConversation(req.params.id);
       
       if (!conversation || conversation.channelType !== 'business') {
@@ -3921,7 +3921,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Import clients and message history in bulk
   app.post("/api/admin/import/clients-and-messages", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -3944,7 +3944,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Import clients only
   app.post("/api/admin/import/clients", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -3967,7 +3967,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Import messages only
   app.post("/api/admin/import/messages", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -3991,7 +3991,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // New realtime CDI endpoint using white paper framework
   app.post("/api/admin/cdi/compute-realtime/:bookingId", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -4021,7 +4021,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Get realtime CDI components for a booking
   app.get("/api/admin/cdi/realtime/:bookingId", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -4050,7 +4050,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // ========== SUPPORT CASES ==========
   app.post("/api/support-cases", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const data = insertSupportCaseSchema.parse({ ...req.body, userId });
       const supportCase = await storage.createSupportCase(data);
       
@@ -4094,7 +4094,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Create invitation (admin only)
   app.post("/api/invitations", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -4140,7 +4140,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Get all invitations (admin only)
   app.get("/api/invitations", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -4154,7 +4154,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Accept invitation (authenticated user)
   app.post("/api/invitations/accept/:token", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const invitation = await storage.acceptInvitation(req.params.token, userId);
       if (!invitation) {
         return res.status(404).json({ error: "Invitation not found" });
@@ -4244,7 +4244,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Import a pre-existing booking with client/planner info
   app.post("/api/admin/import-booking", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -4375,7 +4375,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // ========== VENDOR SELF-SERVICE IMPORT ==========
   app.post("/api/vendor/import-booking", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (!user || (user.role !== 'artist' && user.role !== 'admin')) {
         return res.status(403).json({ error: "Vendor access required" });
       }
@@ -4532,7 +4532,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // ========== VENDOR CLIENT CONTACTS ==========
   app.get("/api/vendor/contacts", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (!user || (user.role !== 'artist' && user.role !== 'admin')) {
         return res.status(403).json({ error: "Vendor access required" });
       }
@@ -4547,7 +4547,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
 
   app.post("/api/vendor/contacts", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (!user || (user.role !== 'artist' && user.role !== 'admin')) {
         return res.status(403).json({ error: "Vendor access required" });
       }
@@ -4578,7 +4578,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // ========== VENDOR CREATE BOOKING FOR CLIENT ==========
   app.post("/api/vendor/create-booking", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (!user || (user.role !== 'artist' && user.role !== 'admin')) {
         return res.status(403).json({ error: "Vendor access required" });
       }
@@ -4808,7 +4808,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // ========== ADMIN ROUTES ==========
   app.get("/api/admin/users", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -4821,7 +4821,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
 
   app.get("/api/admin/bookings", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -4834,7 +4834,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
 
   app.get("/api/admin/contracts", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -4847,7 +4847,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
 
   app.get("/api/admin/payments", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -4860,7 +4860,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
 
   app.get("/api/admin/support-cases", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -4875,7 +4875,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Get all vendors pending verification
   app.get("/api/admin/vendors/pending", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -4889,7 +4889,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Get all vendors with their verification status
   app.get("/api/admin/vendors", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -4903,7 +4903,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Approve a vendor
   app.post("/api/admin/vendors/:userId/approve", isAuthenticated, async (req: any, res) => {
     try {
-      const adminUser = await storage.getUser(req.user.claims.sub);
+      const adminUser = await storage.getUser(getAuthUserId(req));
       if (adminUser?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -4937,7 +4937,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Reject a vendor
   app.post("/api/admin/vendors/:userId/reject", isAuthenticated, async (req: any, res) => {
     try {
-      const adminUser = await storage.getUser(req.user.claims.sub);
+      const adminUser = await storage.getUser(getAuthUserId(req));
       if (adminUser?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -4973,7 +4973,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Suspend a vendor (e.g., after reports)
   app.post("/api/admin/vendors/:userId/suspend", isAuthenticated, async (req: any, res) => {
     try {
-      const adminUser = await storage.getUser(req.user.claims.sub);
+      const adminUser = await storage.getUser(getAuthUserId(req));
       if (adminUser?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -5008,7 +5008,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Get all profile reports
   app.get("/api/admin/reports", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -5022,7 +5022,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Review a profile report
   app.post("/api/admin/reports/:id/review", isAuthenticated, async (req: any, res) => {
     try {
-      const adminUser = await storage.getUser(req.user.claims.sub);
+      const adminUser = await storage.getUser(getAuthUserId(req));
       if (adminUser?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -5049,7 +5049,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Submit a profile report (any authenticated user can report)
   app.post("/api/reports", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const { reportedUserId, reason, description } = req.body;
       
       const report = await storage.createProfileReport({
@@ -5069,7 +5069,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // ========== CDI (Choreography Depth Index) ==========
   app.get("/api/admin/cdi/scores", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -5082,7 +5082,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
 
   app.get("/api/admin/cdi/events/:userId", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -5095,7 +5095,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
 
   app.post("/api/admin/cdi/calculate/:userId", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -5172,7 +5172,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Get AI insights for a client
   app.get("/api/admin/cdi/ai/insights/:userId", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -5186,7 +5186,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Get latest AI insight for a client
   app.get("/api/admin/cdi/ai/insights/:userId/latest", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -5200,7 +5200,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Get threshold policies
   app.get("/api/admin/cdi/thresholds", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -5214,13 +5214,13 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Create threshold policy
   app.post("/api/admin/cdi/thresholds", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
       const data = insertCdiThresholdSchema.parse({
         ...req.body,
-        createdBy: req.user.claims.sub,
+        createdBy: getAuthUserId(req),
       });
       const threshold = await storage.createCdiThreshold(data);
       res.json(threshold);
@@ -5232,7 +5232,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Update threshold policy
   app.patch("/api/admin/cdi/thresholds/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -5249,13 +5249,13 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Record admin override (for HACO adaptive learning)
   app.post("/api/admin/cdi/overrides", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
       const data = insertCdiAdminOverrideSchema.parse({
         ...req.body,
-        adminId: req.user.claims.sub,
+        adminId: getAuthUserId(req),
       });
       const override = await storage.createCdiAdminOverride(data);
       
@@ -5279,7 +5279,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Get all admin overrides
   app.get("/api/admin/cdi/overrides", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -5293,7 +5293,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Trigger AI analysis for a specific client
   app.post("/api/admin/cdi/ai/analyze/:userId", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -5319,7 +5319,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Get invisible labor stats for the current user (vendor/planner)
   app.get("/api/invisible-labor/stats", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
       
       if (!user || (user.role !== 'artist' && user.role !== 'planner')) {
@@ -5336,7 +5336,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Get recent pivots (admin view)
   app.get("/api/admin/invisible-labor/pivots", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -5351,7 +5351,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Get insights for a conversation
   app.get("/api/business-chat/conversations/:id/insights", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const conversation = await storage.getConversation(req.params.id);
       
       if (!conversation || conversation.channelType !== 'business') {
@@ -5378,7 +5378,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Get all composite scores with dimension breakdown
   app.get("/api/admin/cdi/composite-scores", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -5392,7 +5392,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Get latest composite score for a user
   app.get("/api/admin/cdi/composite-scores/:userId", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -5406,7 +5406,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Get dimension scores history for a user
   app.get("/api/admin/cdi/dimension-scores/:userId", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -5420,7 +5420,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Get behavioral events for a user
   app.get("/api/admin/cdi/behavioral-events/:userId", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -5434,7 +5434,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Trigger three-dimension CDI analysis
   app.post("/api/admin/cdi/analyze-dimensions/:userId", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -5495,7 +5495,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Submit feedback for evolutionary learning
   app.post("/api/admin/cdi/feedback", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin' && user?.role !== 'planner') {
         return res.status(403).json({ error: "Admin or planner access required" });
       }
@@ -5528,7 +5528,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Get learning runs history
   app.get("/api/admin/cdi/learning-runs", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -5559,7 +5559,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // Test CDI analysis with raw text - useful for analyzing message threads
   app.post("/api/admin/cdi/test-analyze", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       const authorizedAdmins = ['49899480', '50616407'];
       if (user?.role !== 'admin' && !authorizedAdmins.includes(user?.id || '')) {
         return res.status(403).json({ error: "Admin access required" });
@@ -5639,7 +5639,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // Get all lead scores for a vendor
   app.get("/api/iqs/lead-scores", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
       if (!user || (user.role !== 'artist' && user.role !== 'admin')) {
         return res.status(403).json({ error: "Vendor access required" });
@@ -5662,7 +5662,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // Get high-risk warnings for vendor dashboard
   app.get("/api/iqs/warnings", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
       if (!user || (user.role !== 'artist' && user.role !== 'admin')) {
         return res.status(403).json({ error: "Vendor access required" });
@@ -5699,7 +5699,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // Analyze a lead (create or update score)
   app.post("/api/iqs/analyze", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
       if (!user || (user.role !== 'artist' && user.role !== 'admin')) {
         return res.status(403).json({ error: "Vendor access required" });
@@ -5729,7 +5729,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // Analyze a message for red flags
   app.post("/api/iqs/analyze-message", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
       if (!user || (user.role !== 'artist' && user.role !== 'admin')) {
         return res.status(403).json({ error: "Vendor access required" });
@@ -5758,7 +5758,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // Log an interaction event
   app.post("/api/iqs/events", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const { leadScoreId, eventType, details, occurredAt, expectedAt } = req.body;
       
       if (!leadScoreId || !eventType) {
@@ -5784,7 +5784,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // Submit vendor feedback on a lead
   app.post("/api/iqs/feedback", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const { leadScoreId, feedbackType, rating, notes, patternId, eventId, wasAccurate, actualOutcome } = req.body;
       
       if (!leadScoreId || !feedbackType) {
@@ -5819,7 +5819,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // Admin: Trigger learning cycle
   app.post("/api/admin/iqs/learn", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -5835,7 +5835,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // Admin: Get learning run history
   app.get("/api/admin/iqs/learning-runs", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -5851,7 +5851,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // Admin: Update a pattern
   app.patch("/api/admin/iqs/patterns/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -5963,7 +5963,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // Get inquiries for a vendor
   app.get("/api/vendor/inquiries", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
       
       if (!user || user.role !== 'artist') {
@@ -5987,7 +5987,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       }
       
       // Check access - vendor or admin only
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
       if (inquiry.vendorId !== userId && user?.role !== 'admin') {
         return res.status(403).json({ error: "Access denied" });
@@ -6006,7 +6006,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // Vendor responds to inquiry (send info sheet manually if not auto-sent)
   app.post("/api/inquiries/:id/respond", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const inquiry = await storage.getInquiry(req.params.id);
       
       if (!inquiry) {
@@ -6070,7 +6070,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // Send chat invite to client
   app.post("/api/inquiries/:id/chat-invite", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const inquiry = await storage.getInquiry(req.params.id);
       
       if (!inquiry) {
@@ -6154,7 +6154,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // Decline inquiry
   app.post("/api/inquiries/:id/decline", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const inquiry = await storage.getInquiry(req.params.id);
       
       if (!inquiry) {
