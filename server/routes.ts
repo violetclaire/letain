@@ -1095,6 +1095,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             bookingFields.clientContactId = newContact.id;
           }
         }
+        // Also update the booking's direct email field
+        if (clientEmail) {
+          bookingFields.clientEmail = clientEmail;
+        }
       }
       
       // If eventTime is provided (not empty) and eventDate exists, combine them

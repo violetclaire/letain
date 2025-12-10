@@ -640,8 +640,8 @@ export class DatabaseStorage implements IStorage {
     
     let filtered = results
       .filter(r => r.artist_profiles !== null)
-      // Show approved vendors + newly signed up vendors (no status yet)
-      .filter(r => r.artist_profiles!.verificationStatus === 'approved' || !r.artist_profiles!.verificationStatus);
+      // Show approved vendors, pending vendors, and newly signed up vendors (no status yet)
+      .filter(r => r.artist_profiles!.verificationStatus === 'approved' || r.artist_profiles!.verificationStatus === 'pending' || !r.artist_profiles!.verificationStatus);
     
     // Filter by location (case-insensitive partial match)
     if (location) {
