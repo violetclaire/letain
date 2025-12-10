@@ -2573,12 +2573,25 @@ export default function ArtistDashboard() {
               </div>
               
               {/* Business Chat - Internal Team (Below) */}
-              {user && (
-                <BusinessChatPanel 
-                  userId={user.id}
-                  userName={user.firstName || user.email?.split('@')[0] || 'there'}
-                />
-              )}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-playfair font-medium text-black/70">Team Chat</span>
+                  <button 
+                    onClick={() => setShowInviteModal(true)}
+                    className="text-xs px-3 py-1.5 bg-pink/10 text-pink border border-pink/30 rounded hover:bg-pink/20 transition-colors flex items-center gap-1"
+                    data-testid="button-invite-clients-chat"
+                  >
+                    <UserPlus size={12} />
+                    Invite Your Clients
+                  </button>
+                </div>
+                {user && (
+                  <BusinessChatPanel 
+                    userId={user.id}
+                    userName={user.firstName || user.email?.split('@')[0] || 'there'}
+                  />
+                )}
+              </div>
               
               {/* Availability Calendar */}
               {user && <AvailabilityCalendar userId={user.id} key={`calendar-${calendarRefreshKey}`} />}
@@ -2685,9 +2698,14 @@ export default function ArtistDashboard() {
       {showInviteModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
-            <h3 className="font-header text-lg ink-main mb-4">Invite Someone to Chat</h3>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-pink/20 rounded-full">
+                <UserPlus size={20} className="text-pink" />
+              </div>
+              <h3 className="font-header text-lg ink-main">Invite Your Clients</h3>
+            </div>
             <p className="text-xs ink-soft mb-4">
-              Enter their email. They'll receive an invite link to create a Beauvette profile.
+              Invite your current clients to chat and collaborate on Beauvette. They'll receive an invite link to join and start chatting with you about their events.
             </p>
             <input
               type="email"
