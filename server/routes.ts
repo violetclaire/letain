@@ -640,17 +640,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ========== PUBLIC VENDOR PROFILE ==========
   // Publicly accessible vendor profile (no auth required)
   // Only shows approved vendors to prevent spam/scam profiles from being visible
+  // BUT owners can view their own unapproved profiles
   app.get("/api/vendor-public/:id", async (req, res) => {
     try {
-      const user = await storage.getUser(req.params.id);
+      const authId = getAuthUserId(req); // Get auth user if logged in
+      const targetId = req.params.id;
+      const user = await storage.getUser(targetId);
       if (!user || user.role !== 'artist') {
         return res.status(404).json({ error: "Vendor not found" });
       }
 
-      const profile = await storage.getArtistProfile(req.params.id);
+      const profile = await storage.getArtistProfile(targetId);
       
-      // Only show approved vendors publicly
-      if (!profile || profile.verificationStatus !== 'approved') {
+      // Allow if: (1) approved, OR (2) it's the owner viewing their own profile
+      const isOwner = authId === targetId;
+      if (!profile || (profile.verificationStatus !== 'approved' && !isOwner)) {
         return res.status(404).json({ error: "Vendor not found" });
       }
       
