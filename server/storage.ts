@@ -13,6 +13,7 @@ import {
   eventDaySchedules,
   scheduleTeamMembers,
   scheduleAppointments,
+  scheduleChatMessages,
   chatInvites,
   conversations,
   conversationParticipants,
@@ -65,6 +66,8 @@ import {
   type InsertScheduleTeamMember,
   type ScheduleAppointment,
   type InsertScheduleAppointment,
+  type ScheduleChatMessage,
+  type InsertScheduleChatMessage,
   type ChatInvite,
   type InsertChatInvite,
   type Conversation,
@@ -255,6 +258,10 @@ export interface IStorage {
   updateScheduleAppointment(id: string, appointment: Partial<InsertScheduleAppointment>): Promise<ScheduleAppointment | undefined>;
   deleteScheduleAppointment(id: string): Promise<void>;
   bulkCreateScheduleAppointments(appointments: InsertScheduleAppointment[]): Promise<ScheduleAppointment[]>;
+  
+  // Schedule Chat Messages (guest chat on public schedule)
+  getScheduleChatMessages(scheduleId: string): Promise<ScheduleChatMessage[]>;
+  createScheduleChatMessage(message: InsertScheduleChatMessage): Promise<ScheduleChatMessage>;
   
   // Chat Invites
   getChatInvitesByUser(userId: string): Promise<ChatInvite[]>;
@@ -1132,6 +1139,16 @@ export class DatabaseStorage implements IStorage {
   async bulkCreateScheduleAppointments(appointments: InsertScheduleAppointment[]): Promise<ScheduleAppointment[]> {
     if (appointments.length === 0) return [];
     return await db.insert(scheduleAppointments).values(appointments as any).returning();
+  }
+
+  // Schedule Chat Messages (guest chat on public schedule)
+  async getScheduleChatMessages(scheduleId: string): Promise<ScheduleChatMessage[]> {
+    return await db.select().from(scheduleChatMessages).where(eq(scheduleChatMessages.scheduleId, scheduleId)).orderBy(scheduleChatMessages.createdAt);
+  }
+
+  async createScheduleChatMessage(message: InsertScheduleChatMessage): Promise<ScheduleChatMessage> {
+    const [created] = await db.insert(scheduleChatMessages).values(message as any).returning();
+    return created;
   }
 
   // Chat Invites

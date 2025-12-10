@@ -3113,6 +3113,107 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     }
   });
 
+  // ========== SCHEDULE CHAT (Guest chat on public schedule - no auth required) ==========
+  
+  // Rate limiter for schedule chat to prevent abuse
+  const scheduleChatLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 10, // 10 messages per minute per IP
+    message: { error: "Too many messages, please slow down" },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+  
+  // Zod schema for chat message validation
+  const scheduleChatSchema = z.object({
+    senderName: z.string().min(1, "Name is required").max(50, "Name too long").transform(s => s.trim()),
+    content: z.string().min(1, "Message is required").max(500, "Message too long").transform(s => s.trim()),
+  });
+  
+  // Get schedule chat messages
+  app.get("/api/event-schedules/share/:shareToken/chat", async (req, res) => {
+    try {
+      const schedule = await storage.getEventDayScheduleByShareToken(req.params.shareToken);
+      if (!schedule) {
+        return res.status(404).json({ error: "Schedule not found" });
+      }
+      
+      const messages = await storage.getScheduleChatMessages(schedule.id);
+      res.json(messages);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Post a new chat message (guest or AI) - with rate limiting and validation
+  app.post("/api/event-schedules/share/:shareToken/chat", scheduleChatLimiter, async (req, res) => {
+    try {
+      // Validate input with Zod
+      const parseResult = scheduleChatSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        const firstError = parseResult.error.errors[0];
+        return res.status(400).json({ error: firstError.message });
+      }
+      
+      const { senderName, content } = parseResult.data;
+      const schedule = await storage.getEventDayScheduleByShareToken(req.params.shareToken);
+      
+      if (!schedule) {
+        return res.status(404).json({ error: "Schedule not found" });
+      }
+      
+      // Create the guest message (sanitized)
+      const guestMessage = await storage.createScheduleChatMessage({
+        scheduleId: schedule.id,
+        senderName,
+        senderType: 'guest',
+        content,
+      });
+      
+      // Get schedule data for AI context
+      const appointments = await storage.getScheduleAppointments(schedule.id);
+      const teamMembers = await storage.getScheduleTeamMembers(schedule.id);
+      
+      // Process with AI and get response (AI is read-only - cannot modify schedule)
+      try {
+        const scheduleAI = await import("./scheduleAI");
+        const aiResponse = await scheduleAI.processScheduleChat({
+          message: content,
+          senderName,
+          schedule,
+          appointments,
+          teamMembers,
+        });
+        
+        // Create AI response message (read-only - no metadata, no changes)
+        if (aiResponse?.response) {
+          await storage.createScheduleChatMessage({
+            scheduleId: schedule.id,
+            senderName: 'Beauvette AI',
+            senderType: 'ai',
+            content: aiResponse.response,
+          });
+        }
+      } catch (aiError) {
+        console.error("[Schedule AI] Error processing chat:", aiError);
+        // Create fallback AI response
+        await storage.createScheduleChatMessage({
+          scheduleId: schedule.id,
+          senderName: 'Beauvette AI',
+          senderType: 'ai',
+          content: "Thanks for your message! I've noted that down. Feel free to add any other notes or questions about the schedule.",
+        });
+      }
+      
+      // Return all messages
+      const messages = await storage.getScheduleChatMessages(schedule.id);
+      res.json({ success: true, messages });
+    } catch (error: any) {
+      console.error("[Schedule Chat] Error:", error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   // Send schedule via email
   app.post("/api/event-schedules/send-email", isAuthenticated, async (req: any, res) => {
     try {

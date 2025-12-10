@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Calendar, MapPin, Clock, User, Star, MessageSquare, Send, CreditCard, DollarSign, Loader2, CheckCircle, XCircle, Edit3, X } from "lucide-react";
+import ScheduleChat from "@/components/ScheduleChat";
 
 type ScheduleTeamMember = {
   id: string;
@@ -557,6 +558,9 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
           </div>
         </div>
       )}
+      
+      {/* AI Chat Widget */}
+      <ScheduleChat shareToken={shareToken} />
     </div>
   );
 }

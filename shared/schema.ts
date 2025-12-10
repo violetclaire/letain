@@ -350,6 +350,21 @@ export const scheduleAppointments = pgTable("schedule_appointments", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Schedule Chat Messages - For guest chat on public schedule pages (no login required)
+export const scheduleChatMessages = pgTable("schedule_chat_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  scheduleId: varchar("schedule_id").notNull().references(() => eventDaySchedules.id, { onDelete: 'cascade' }),
+  senderName: text("sender_name").notNull(), // Guest name or "Beauvette AI"
+  senderType: text("sender_type").notNull(), // 'guest', 'ai', 'artist'
+  content: text("content").notNull(),
+  metadata: jsonb("metadata").$type<{
+    aiAction?: string; // 'update_schedule', 'add_note', 'answer_question'
+    appointmentId?: string; // If AI modified an appointment
+    changeDescription?: string; // What AI changed
+  }>(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Chat invites - for inviting people to chat
 export const chatInvites = pgTable("chat_invites", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -933,6 +948,11 @@ export const insertScheduleAppointmentSchema = createInsertSchema(scheduleAppoin
   createdAt: true,
 });
 
+export const insertScheduleChatMessageSchema = createInsertSchema(scheduleChatMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertChatInviteSchema = createInsertSchema(chatInvites).omit({
   id: true,
   createdAt: true,
@@ -1388,6 +1408,9 @@ export type ScheduleTeamMember = typeof scheduleTeamMembers.$inferSelect;
 
 export type InsertScheduleAppointment = z.infer<typeof insertScheduleAppointmentSchema>;
 export type ScheduleAppointment = typeof scheduleAppointments.$inferSelect;
+
+export type InsertScheduleChatMessage = z.infer<typeof insertScheduleChatMessageSchema>;
+export type ScheduleChatMessage = typeof scheduleChatMessages.$inferSelect;
 
 export type InsertChatInvite = z.infer<typeof insertChatInviteSchema>;
 export type ChatInvite = typeof chatInvites.$inferSelect;
