@@ -522,8 +522,18 @@ export function registerStripeRoutes(app: Express, isAuthenticated: any) {
         vendorReceives: amount - platformFee,
       });
     } catch (error: any) {
-      console.error("Invoice link error:", error);
-      res.status(500).json({ error: error.message || "Failed to create invoice link" });
+      console.error("Invoice link error:", {
+        message: error.message,
+        type: error.type,
+        code: error.code,
+        requestId: error.requestId,
+        full: error
+      });
+      res.status(500).json({ 
+        error: error.message || "Failed to create invoice link",
+        type: error.type,
+        code: error.code 
+      });
     }
   });
 }
