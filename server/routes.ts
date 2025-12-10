@@ -2154,7 +2154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pdfBase64 = Buffer.from(pdfHtml).toString("base64");
       
       const result = await createSigningDocument(
-        contractId,
+        contract.id,
         `Contract - ${booking.serviceType || "Beauty Services"} - ${eventDate}`,
         pdfBase64,
         [
