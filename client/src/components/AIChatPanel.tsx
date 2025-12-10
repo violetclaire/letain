@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Mic, MicOff, Paperclip, X, Image as ImageIcon, Bot, User, Loader2 } from "lucide-react";
+import { Send, Mic, MicOff, Paperclip, X, Image as ImageIcon, Bot, User, Loader2, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import VoiceDictation from "./VoiceDictation";
 
@@ -15,9 +15,10 @@ interface AIChatPanelProps {
   userId: string;
   userName?: string;
   onAvailabilityUpdate?: (dates: string[], isAvailable: boolean) => void;
+  onInviteClick?: () => void;
 }
 
-export default function AIChatPanel({ userId, userName, onAvailabilityUpdate }: AIChatPanelProps) {
+export default function AIChatPanel({ userId, userName, onAvailabilityUpdate, onInviteClick }: AIChatPanelProps) {
   const { toast } = useToast();
   const welcomeMessage: Message = {
     id: "welcome",
@@ -258,14 +259,26 @@ export default function AIChatPanel({ userId, userName, onAvailabilityUpdate }: 
   return (
     <div className="flex flex-col h-full bg-white rounded-lg border border-[#c5ccd8] overflow-hidden">
       <div className="bg-gradient-to-r from-pink/20 to-powder/30 px-4 py-3 border-b border-[#c5ccd8]">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-pink rounded-full">
-            <Bot size={14} className="text-white" />
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-pink rounded-full">
+              <Bot size={14} className="text-white" />
+            </div>
+            <div>
+              <h3 className="font-header text-sm ink-main">Beauvette Assistant</h3>
+              <p className="text-[0.65rem] ink-soft">Voice, text, or upload photos</p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-header text-sm ink-main">Beauvette Assistant</h3>
-            <p className="text-[0.65rem] ink-soft">Voice, text, or upload photos</p>
-          </div>
+          {onInviteClick && (
+            <button 
+              onClick={onInviteClick}
+              className="text-xs px-2 py-1 bg-pink/10 text-pink border border-pink/30 rounded hover:bg-pink/20 transition-colors flex items-center gap-1 whitespace-nowrap"
+              title="Invite your clients to chat"
+            >
+              <UserPlus size={12} />
+              Invite
+            </button>
+          )}
         </div>
       </div>
 

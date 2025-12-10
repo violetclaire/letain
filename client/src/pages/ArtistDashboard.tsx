@@ -2570,6 +2570,7 @@ export default function ArtistDashboard() {
                         description: `Updated ${dates.length} date(s) via AI assistant`
                       });
                     }}
+                    onInviteClick={() => setShowInviteModal(true)}
                   />
                 )}
               </div>
