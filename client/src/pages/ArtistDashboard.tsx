@@ -681,13 +681,27 @@ export default function ArtistDashboard() {
     setSendingAppointmentConfirmation(false);
   };
 
+  const [docusignUrl, setDocusignUrl] = useState("");
+  const [showDocusignModal, setShowDocusignModal] = useState(false);
+  const [pendingBookingId, setPendingBookingId] = useState<string | null>(null);
+
   const handleSendForSigning = async (bookingId: string) => {
+    setPendingBookingId(bookingId);
+    setShowDocusignModal(true);
+  };
+
+  const submitDocusignContract = async () => {
+    if (!pendingBookingId) return;
+    
     setSendingForSigning(true);
     try {
-      const res = await fetch(`/api/bookings/${bookingId}/send-for-signing`, {
+      const res = await fetch(`/api/bookings/${pendingBookingId}/send-for-signing`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
+        body: JSON.stringify({
+          docusignUrl: docusignUrl || undefined,
+        }),
       });
       
       if (res.ok) {
@@ -695,8 +709,13 @@ export default function ArtistDashboard() {
         setContractSigningUrl(data.signingUrl);
         toast({
           title: "Contract Sent!",
-          description: "The contract has been sent for electronic signature",
+          description: docusignUrl 
+            ? "Contract sent with your DocuSign link"
+            : "The contract has been sent for electronic signature",
         });
+        setDocusignUrl("");
+        setShowDocusignModal(false);
+        setPendingBookingId(null);
       } else {
         const error = await res.json();
         toast({
@@ -2690,6 +2709,63 @@ export default function ArtistDashboard() {
                   </>
                 ) : (
                   "Send Email"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DocuSign Contract Modal */}
+      {showDocusignModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-pink/20 rounded-full">
+                <FileText size={20} className="text-pink" />
+              </div>
+              <h3 className="font-header text-lg ink-main">Send Contract for Signature</h3>
+            </div>
+            <p className="text-xs ink-soft mb-4">
+              Paste your DocuSign signing link below. If you don't have one yet, <strong>create an envelope in DocuSign first</strong> and copy the signing link here.
+            </p>
+            <div className="mb-4">
+              <label className="block text-[0.7rem] uppercase tracking-wide ink-soft mb-1">DocuSign Signing Link (Optional)</label>
+              <input
+                type="url"
+                value={docusignUrl}
+                onChange={(e) => setDocusignUrl(e.target.value)}
+                placeholder="https://app.docusign.com/..."
+                className="w-full border border-[#c5ccd8] bg-[#fbfcff] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
+              />
+              <p className="text-[0.6rem] ink-soft mt-2">
+                Don't have a DocuSign link? <a href="https://www.docusign.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Create one here</a>
+              </p>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button 
+                onClick={() => {
+                  setShowDocusignModal(false);
+                  setDocusignUrl("");
+                  setPendingBookingId(null);
+                }}
+                disabled={sendingForSigning}
+                className="px-4 py-2 text-xs rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={submitDocusignContract}
+                disabled={sendingForSigning}
+                className="px-4 py-2 text-xs rounded bg-black text-white hover:bg-gray-800 disabled:opacity-50 flex items-center gap-2"
+              >
+                {sendingForSigning ? (
+                  <>
+                    <Loader2 size={12} className="animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  "Send Contract"
                 )}
               </button>
             </div>
