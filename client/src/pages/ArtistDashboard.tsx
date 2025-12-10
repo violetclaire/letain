@@ -2557,31 +2557,6 @@ export default function ArtistDashboard() {
               {/* Availability Calendar */}
               {user && <AvailabilityCalendar userId={user.id} key={`calendar-${calendarRefreshKey}`} />}
 
-              {/* Quick Actions */}
-              <div className="card-frame rounded-md px-4 py-3">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-header text-sm ink-main">Quick Actions</h3>
-                  <button 
-                    onClick={() => setShowInviteModal(true)}
-                    className="flex items-center gap-1 text-[0.7rem] ink-soft hover:ink-main transition-colors"
-                  >
-                    <UserPlus size={14} /> Invite
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {contacts.slice(0, 3).map(contact => (
-                    <button
-                      key={contact.id}
-                      onClick={() => setSelectedContact(contact.name)}
-                      className="flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors border bg-white border-gray-200 text-gray-600 hover:border-black hover:text-black"
-                    >
-                      <MessageCircle size={10} />
-                      {contact.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
             </div>
           </section>
 
