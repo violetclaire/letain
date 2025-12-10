@@ -879,12 +879,29 @@ export default function ArtistDashboard() {
       });
       
       if (res.ok) {
+        // Immediately update UI with new values
+        const updatedBooking = {
+          ...selectedBooking,
+          name: editBookingForm.clientName,
+          clientName: editBookingForm.clientName,
+          clientEmail: editBookingForm.clientEmail,
+          serviceType: editBookingForm.serviceType,
+          rawEventDate: editBookingForm.eventDate,
+          eventTime: editBookingForm.eventTime,
+          location: editBookingForm.location,
+        };
+        setSelectedBooking(updatedBooking);
+        
+        // Also update in clients list
+        setClients(prev => prev.map(c => 
+          c.id === selectedBooking.id ? updatedBooking : c
+        ));
+        
         toast({
           title: "Saved",
           description: "Booking details updated successfully.",
         });
         setIsEditingBooking(false);
-        fetchArtistData();
       } else {
         toast({
           title: "Error",
@@ -2151,7 +2168,18 @@ export default function ArtistDashboard() {
                       ) : (
                         <div className="flex gap-2">
                           <button 
-                            onClick={() => setIsEditingBooking(false)}
+                            onClick={() => {
+                              // Reset form to original booking data
+                              setEditBookingForm({
+                                clientName: selectedBooking?.name || "",
+                                clientEmail: selectedBooking?.clientEmail || "",
+                                serviceType: selectedBooking?.serviceType || "Bridal Beauty",
+                                eventDate: selectedBooking?.rawEventDate || "",
+                                eventTime: selectedBooking?.eventTime || "",
+                                location: selectedBooking?.location || "",
+                              });
+                              setIsEditingBooking(false);
+                            }}
                             className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 transition-colors"
                           >
                             Cancel
