@@ -437,6 +437,7 @@ export function registerStripeRoutes(app: Express, isAuthenticated: any) {
   });
 
   // Generate a payment link for a booking (vendor invoicing clients)
+  // Simple direct payment to platform Stripe account - no Connect needed
   app.post("/api/stripe/create-invoice-link", isAuthenticated, async (req: any, res) => {
     try {
       const stripe = await getUncachableStripeClient();
@@ -449,7 +450,6 @@ export function registerStripeRoutes(app: Express, isAuthenticated: any) {
       if (!user) {
         return res.status(403).json({ error: "User not found" });
       }
-      // Allow any authenticated user to create invoice links for now
 
       const { bookingId, amount, description, clientEmail, clientName } = req.body;
 
@@ -457,11 +457,7 @@ export function registerStripeRoutes(app: Express, isAuthenticated: any) {
         return res.status(400).json({ error: "Amount must be at least $1.00" });
       }
 
-      const profile = await storage.getArtistProfile(userId);
       const baseUrl = `https://${req.get('host')}`;
-      
-      // Calculate platform fee (1%)
-      const platformFee = Math.round(amount * (PLATFORM_FEE_PERCENT / 100));
 
       // Create a product for this invoice
       const product = await stripe.products.create({
@@ -476,8 +472,8 @@ export function registerStripeRoutes(app: Express, isAuthenticated: any) {
         product: product.id,
       });
 
-      // Payment link configuration
-      const paymentLinkConfig: any = {
+      // Simple payment link - money goes directly to your Stripe account
+      const paymentLink = await stripe.paymentLinks.create({
         line_items: [{
           price: price.id,
           quantity: 1,
@@ -486,7 +482,6 @@ export function registerStripeRoutes(app: Express, isAuthenticated: any) {
           bookingId: bookingId || '',
           vendorId: userId,
           clientEmail: clientEmail || '',
-          platformFee: platformFee.toString(),
         },
         after_completion: {
           type: 'redirect',
@@ -494,17 +489,7 @@ export function registerStripeRoutes(app: Express, isAuthenticated: any) {
             url: `${baseUrl}/payment-success?bookingId=${bookingId || 'invoice'}`,
           },
         },
-      };
-
-      // If vendor has Stripe Connect, route payment to their account
-      if (profile?.stripeAccountId) {
-        paymentLinkConfig.application_fee_percent = PLATFORM_FEE_PERCENT;
-        paymentLinkConfig.transfer_data = {
-          destination: profile.stripeAccountId,
-        };
-      }
-
-      const paymentLink = await stripe.paymentLinks.create(paymentLinkConfig);
+      });
 
       // Update booking with payment link if bookingId provided
       if (bookingId) {
@@ -518,21 +503,11 @@ export function registerStripeRoutes(app: Express, isAuthenticated: any) {
         paymentLink: paymentLink.url,
         paymentLinkId: paymentLink.id,
         amount: amount,
-        platformFee: platformFee,
-        vendorReceives: amount - platformFee,
       });
     } catch (error: any) {
-      console.error("Invoice link error:", {
-        message: error.message,
-        type: error.type,
-        code: error.code,
-        requestId: error.requestId,
-        full: error
-      });
+      console.error("Invoice link error:", error.message);
       res.status(500).json({ 
-        error: error.message || "Failed to create invoice link",
-        type: error.type,
-        code: error.code 
+        error: error.message || "Failed to create invoice link"
       });
     }
   });
