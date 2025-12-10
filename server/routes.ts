@@ -2175,7 +2175,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let contract = existingContracts.length > 0 ? existingContracts[0] : null;
       
       if (!contract) {
-        const clientId = booking.clientId || booking.clientContactId;
+        // Use clientId if available (it's a user), otherwise create/find user from contact
+        let clientId = booking.clientId;
+        
+        if (!clientId && booking.clientContactId) {
+          // Get the contact details
+          const contact = await storage.getClientContact(booking.clientContactId);
+          if (!contact) {
+            return res.status(400).json({ error: "Client contact not found" });
+          }
+          
+          // Try to find existing user by email
+          const existingUser = await storage.getUserByEmail(contact.email);
+          if (existingUser) {
+            clientId = existingUser.id;
+          } else {
+            // Create a new user from the contact with a temporary password
+            const tempPassword = Math.random().toString(36).substring(2, 15);
+            const newUser = await storage.createUser({
+              email: contact.email,
+              password: tempPassword,
+              firstName: contact.name?.split(' ')[0] || contact.name || "Client",
+              lastName: contact.name?.split(' ').slice(1).join(' ') || "",
+            });
+            clientId = newUser.id;
+          }
+        }
+        
         if (!clientId) {
           return res.status(400).json({ error: "No client associated with this booking" });
         }
