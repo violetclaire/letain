@@ -917,7 +917,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ========== BOOKINGS ==========
   app.post("/api/bookings", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       // Normalize eventDate to avoid timezone day-shift issues
       const normalizedBody = {
         ...req.body,
