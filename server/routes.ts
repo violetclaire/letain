@@ -447,7 +447,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ========== INTAKE FORMS ==========
   app.post("/api/intakes/client", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
       const { cdiConsent, ...intakeData } = req.body;
       const data = insertClientIntakeSchema.parse({ ...intakeData, userId });
       const intake = await storage.createClientIntake(data);
@@ -488,7 +488,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/intakes/artist", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
       const { cdiConsent, ...intakeData } = req.body;
       const data = insertArtistIntakeSchema.parse({ ...intakeData, userId });
       const intake = await storage.createArtistIntake(data);
@@ -537,7 +540,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/intakes/planner", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
       const { cdiConsent, ...intakeData } = req.body;
       const data = insertPlannerIntakeSchema.parse({ ...intakeData, userId });
       const intake = await storage.createPlannerIntake(data);
