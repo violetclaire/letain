@@ -1977,8 +1977,7 @@ export default function ArtistDashboard() {
 
                         <div className="grid grid-cols-2 gap-2">
                           <button 
-                            className="flex flex-col items-center justify-center gap-1 p-2 border border-[#c5ccd8] rounded bg-white hover:border-black transition-colors disabled:opacity-50"
-                            disabled={!stripeStatus?.chargesEnabled}
+                            className="flex flex-col items-center justify-center gap-1 p-2 border border-[#c5ccd8] rounded bg-white hover:border-black transition-colors"
                             onClick={() => setShowInvoiceModal(true)}
                             data-testid="button-send-invoice"
                           >
@@ -1986,28 +1985,18 @@ export default function ArtistDashboard() {
                             <span className="text-[0.65rem] font-medium">Send Invoice</span>
                           </button>
                           
-                          {stripeStatus?.connected && stripeStatus.chargesEnabled ? (
-                            <button 
-                              onClick={handleStripeDashboard}
-                              className="flex flex-col items-center justify-center gap-1 p-2 border border-[#c5ccd8] rounded bg-white hover:border-black transition-colors"
-                              data-testid="button-stripe-dashboard"
-                            >
-                              <Wallet size={14} />
-                              <span className="text-[0.65rem] font-medium">Stripe Dashboard</span>
-                            </button>
-                          ) : (
-                            <button 
-                              onClick={handleStripeConnect}
-                              disabled={stripeLoading}
-                              className="flex flex-col items-center justify-center gap-1 p-2 border border-[#c5ccd8] rounded bg-white hover:border-black transition-colors disabled:opacity-50"
-                              data-testid="button-stripe-connect"
-                            >
-                              <CreditCard size={14} />
-                              <span className="text-[0.65rem] font-medium">
-                                {stripeLoading ? 'Loading...' : 'Connect Stripe'}
-                              </span>
-                            </button>
-                          )}
+                          <button 
+                            onClick={handleStripeConnect}
+                            disabled={stripeLoading}
+                            className="flex flex-col items-center justify-center gap-1 p-2 border border-[#c5ccd8] rounded bg-white hover:border-black transition-colors disabled:opacity-50"
+                            data-testid="button-stripe-connect"
+                            title="Optional: Connect for advanced features"
+                          >
+                            <CreditCard size={14} />
+                            <span className="text-[0.65rem] font-medium">
+                              {stripeLoading ? 'Loading...' : 'Advanced'}
+                            </span>
+                          </button>
                         </div>
                         
                         <p className="text-[0.6rem] text-center ink-soft">
