@@ -474,14 +474,23 @@ export default function ArtistDashboard() {
       
       if (res.ok) {
         const data = await res.json();
+        // Redirect to Stripe onboarding
         window.location.href = data.url;
       } else {
-        const err = await res.json();
-        toast({
-          title: "Error",
-          description: err.error || "Failed to start Stripe setup",
-          variant: "destructive",
-        });
+        try {
+          const err = await res.json();
+          toast({
+            title: "Stripe Setup Error",
+            description: err.error || "Failed to start Stripe setup. Please try again.",
+            variant: "destructive",
+          });
+        } catch {
+          toast({
+            title: "Error",
+            description: "Failed to connect to Stripe. Please refresh and try again.",
+            variant: "destructive",
+          });
+        }
       }
     } catch (err) {
       toast({

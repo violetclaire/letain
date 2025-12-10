@@ -218,6 +218,10 @@ export function registerStripeRoutes(app: Express, isAuthenticated: any) {
 
       const baseUrl = `https://${req.get('host')}`;
       const dashboardPath = user.role === 'planner' ? '/planner' : '/artist';
+      
+      if (!user.email) {
+        return res.status(400).json({ error: "Email address required for Stripe setup" });
+      }
 
       // Check if user already has a Stripe account (artists have profile, planners store directly on user)
       let accountId: string | null = null;
