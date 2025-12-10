@@ -1475,8 +1475,8 @@ export default function ArtistDashboard() {
   };
 
   return (
-    <div className="font-sans min-h-screen overflow-y-auto p-4 bg-powder-blue">
-      <div className="max-w-6xl mx-auto frame-outer shadow-sm">
+    <div className="font-sans min-h-screen overflow-y-auto p-2 sm:p-4 bg-powder-blue">
+      <div className="max-w-full sm:max-w-full lg:max-w-6xl mx-auto frame-outer shadow-sm">
         <div className="frame-inner">
           {/* HEADER - Desktop */}
           <header className="hidden md:flex items-baseline justify-between mb-6">
@@ -1602,7 +1602,7 @@ export default function ArtistDashboard() {
           </header>
 
           {/* GRID LAYOUT */}
-          <section className="grid md:grid-cols-3 gap-6 items-start">
+          <section className="grid md:grid-cols-3 gap-4 md:gap-6 items-start">
             
             {/* LEFT COLUMN */}
             <div className="md:col-span-2 space-y-6">

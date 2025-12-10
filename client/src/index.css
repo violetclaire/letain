@@ -162,8 +162,20 @@
 
   .frame-inner {
     border: 1px solid #DDD9D0;
-    padding: 2rem;
+    padding: 1rem;
     background-color: #FAF9F5;
+  }
+
+  @media (min-width: 640px) {
+    .frame-inner {
+      padding: 1.5rem;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .frame-inner {
+      padding: 2rem;
+    }
   }
 
   .card-frame {
