@@ -582,6 +582,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========== PRIVATE VENDOR PROFILE (authenticated) ==========
+  // Users can view their own profile while building it (even if not approved)
+  app.get("/api/vendor-profile/:id", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const targetId = req.params.id;
+      
+      // Users can only view their own profile or if it's public/approved
+      const isOwnProfile = userId === targetId;
+      
+      const user = await storage.getUser(targetId);
+      if (!user || user.role !== 'artist') {
+        return res.status(404).json({ error: "Vendor not found" });
+      }
+
+      const profile = await storage.getArtistProfile(targetId);
+      const services = await storage.getArtistServices(targetId);
+
+      // If viewing someone else's profile, only show if approved
+      if (!isOwnProfile && (!profile || profile.verificationStatus !== 'approved')) {
+        return res.status(404).json({ error: "Vendor not found" });
+      }
+      
+      res.json({
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: isOwnProfile ? user.email : null,
+        profileImageUrl: user.profileImageUrl,
+        role: user.role,
+        profile: profile ? {
+          businessName: profile.businessName,
+          bio: profile.bio,
+          location: profile.location,
+          specialties: profile.specialties,
+          portfolioUrls: profile.portfolioUrls,
+          priceRange: profile.priceRange,
+          instagramHandle: profile.instagramHandle,
+          websiteUrl: profile.websiteUrl,
+          verificationStatus: profile.verificationStatus,
+        } : null,
+        services: services.map(s => ({
+          id: s.id,
+          name: s.name,
+          description: s.description,
+          price: s.price,
+          duration: s.duration,
+          category: s.category,
+        })),
+      });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   // ========== PUBLIC VENDOR PROFILE ==========
   // Publicly accessible vendor profile (no auth required)
   // Only shows approved vendors to prevent spam/scam profiles from being visible
@@ -1843,13 +1898,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { sendContractEmail } = await import('../server/emailService');
+      const artist = await storage.getUser(userId);
       const result = await sendContractEmail({
         toEmail: recipientEmail,
         clientName: contract.clientName || "Client",
         packageDetails: contract.packageDetails || "Beauty Services",
         totalAmount: contract.totalAmount ? contract.totalAmount / 100 : 0,
         depositAmount: contract.depositAmount ? contract.depositAmount / 100 : 0,
-        senderName: `${req.user.claims.email}`
+        senderName: artist?.email || "Artist"
       });
 
       res.json({ success: true, message: "Contract email sent successfully" });
