@@ -1246,7 +1246,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ========== MESSAGES ==========
   app.post("/api/messages", isAuthenticated, async (req: any, res) => {
     try {
-      const senderId = req.user.claims.sub;
+      const senderId = getAuthUserId(req);
       const data = insertMessageSchema.parse({ ...req.body, senderId });
       
       // Security: Only allow messaging between users with confirmed bookings
