@@ -681,7 +681,6 @@ export default function ArtistDashboard() {
     setSendingAppointmentConfirmation(false);
   };
 
-  const [docusignUrl, setDocusignUrl] = useState("");
   const [showDocusignModal, setShowDocusignModal] = useState(false);
   const [pendingBookingId, setPendingBookingId] = useState<string | null>(null);
 
@@ -699,35 +698,30 @@ export default function ArtistDashboard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          docusignUrl: docusignUrl || undefined,
-        }),
+        body: JSON.stringify({}),
       });
       
       if (res.ok) {
         const data = await res.json();
         setContractSigningUrl(data.signingUrl);
         toast({
-          title: "Contract Sent!",
-          description: docusignUrl 
-            ? "Contract sent with your DocuSign link"
-            : "The contract has been sent for electronic signature",
+          title: "Contract Marked as Sent!",
+          description: "DocuSign will send the signing request to your client. The contract is now tracked in Beauvette.",
         });
-        setDocusignUrl("");
         setShowDocusignModal(false);
         setPendingBookingId(null);
       } else {
         const error = await res.json();
         toast({
           title: "Error",
-          description: error.error || "Failed to send contract for signing",
+          description: error.error || "Failed to update contract status",
           variant: "destructive",
         });
       }
     } catch (err) {
       toast({
         title: "Error",
-        description: "Failed to send contract for signing",
+        description: "Failed to update contract status",
         variant: "destructive",
       });
     }
@@ -2724,29 +2718,21 @@ export default function ArtistDashboard() {
               <div className="p-2 bg-pink/20 rounded-full">
                 <FileText size={20} className="text-pink" />
               </div>
-              <h3 className="font-header text-lg ink-main">Send Contract for Signature</h3>
+              <h3 className="font-header text-lg ink-main">DocuSign Contract</h3>
             </div>
             <p className="text-xs ink-soft mb-4">
-              Paste your DocuSign signing link below. If you don't have one yet, <strong>create an envelope in DocuSign first</strong> and copy the signing link here.
+              Have you created and sent this envelope in DocuSign? DocuSign will handle sending the signing request to your client. Click "Confirm" to track this contract in Beauvette.
             </p>
-            <div className="mb-4">
-              <label className="block text-[0.7rem] uppercase tracking-wide ink-soft mb-1">DocuSign Signing Link (Optional)</label>
-              <input
-                type="url"
-                value={docusignUrl}
-                onChange={(e) => setDocusignUrl(e.target.value)}
-                placeholder="https://app.docusign.com/..."
-                className="w-full border border-[#c5ccd8] bg-[#fbfcff] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
-              />
-              <p className="text-[0.6rem] ink-soft mt-2">
-                Don't have a DocuSign link? <a href="https://www.docusign.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Create one here</a>
+            <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-4">
+              <p className="text-[0.65rem] text-blue-900">
+                <strong>What happens next:</strong><br />
+                DocuSign sends the signing email → Client receives invitation → Client signs → You're notified
               </p>
             </div>
             <div className="flex gap-3 justify-end">
               <button 
                 onClick={() => {
                   setShowDocusignModal(false);
-                  setDocusignUrl("");
                   setPendingBookingId(null);
                 }}
                 disabled={sendingForSigning}
@@ -2762,10 +2748,10 @@ export default function ArtistDashboard() {
                 {sendingForSigning ? (
                   <>
                     <Loader2 size={12} className="animate-spin" />
-                    Sending...
+                    Confirming...
                   </>
                 ) : (
-                  "Send Contract"
+                  "Confirm Sent"
                 )}
               </button>
             </div>
