@@ -301,7 +301,7 @@ export async function sendInfoSheetEmail({
     </html>
   `;
 
-  const senderEmail = 'Beauvette <noreply@beauvette.com>';
+  const senderEmail = 'Beauvette <violet@beauvette.com>';
   
   try {
     console.log("Sending info sheet email to:", toEmail);
@@ -400,7 +400,7 @@ export async function sendInvoiceEmail({
     </html>
   `;
 
-  const senderEmail = 'Beauvette <noreply@beauvette.com>';
+  const senderEmail = 'Beauvette <violet@beauvette.com>';
   
   try {
     console.log("Sending invoice email to:", toEmail);
@@ -504,7 +504,7 @@ export async function sendContractEmail({
     </html>
   `;
 
-  const senderEmail = 'Beauvette <noreply@beauvette.com>';
+  const senderEmail = 'Beauvette <violet@beauvette.com>';
   
   try {
     console.log("Sending contract email to:", toEmail);
@@ -615,7 +615,7 @@ export async function sendContractWithSigningLink({
     </html>
   `;
 
-  const senderEmail = 'Beauvette <noreply@beauvette.com>';
+  const senderEmail = 'Beauvette <violet@beauvette.com>';
   
   try {
     console.log("Sending contract with signing link to:", toEmail);
@@ -749,7 +749,7 @@ export async function sendAppointmentConfirmationEmail({
     </html>
   `;
 
-  const senderEmail = `${artistBusinessName} via Beauvette <noreply@beauvette.com>`;
+  const senderEmail = `${artistBusinessName} via Beauvette <violet@beauvette.com>`;
   
   try {
     console.log("Sending appointment confirmation email to:", toEmail);
@@ -853,7 +853,7 @@ export async function sendChatInviteEmail({
     </html>
   `;
 
-  const senderEmail = 'Beauvette <noreply@beauvette.com>';
+  const senderEmail = 'Beauvette <violet@beauvette.com>';
   
   try {
     console.log("Sending chat invite email to:", toEmail);

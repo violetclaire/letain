@@ -1660,7 +1660,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       `;
 
       const result = await resendClient.emails.send({
-        from: 'Beauvette <noreply@beauvette.com>',
+        from: 'Beauvette <violet@beauvette.com>',
         to: toEmail.trim(),
         subject: subject,
         html: htmlContent
