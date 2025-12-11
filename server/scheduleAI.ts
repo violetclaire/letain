@@ -70,19 +70,22 @@ Current guest: ${senderName}`;
   try {
     const result = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: systemPrompt + "\n\nGuest message: " + message }]
-        }
-      ],
+      contents: systemPrompt + "\n\nGuest message: " + message,
       config: {
         temperature: 0.7,
-        maxOutputTokens: 300,
+        maxOutputTokens: 1024,
       }
     });
 
-    const responseText = result.text || "Thanks for your message! Feel free to ask me anything about the schedule.";
+    // Extract text from response
+    let responseText = "";
+    if (result.text) {
+      responseText = result.text;
+    } else if (result.candidates?.[0]?.content?.parts?.[0]?.text) {
+      responseText = result.candidates[0].content.parts[0].text;
+    } else {
+      responseText = "Thanks for your message! Feel free to ask me anything about the schedule.";
+    }
 
     return { response: responseText };
   } catch (error) {
