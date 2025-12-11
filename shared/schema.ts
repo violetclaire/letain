@@ -51,6 +51,8 @@ export const users = pgTable("users", {
   cdiOptOut: boolean("cdi_opt_out").default(false),
   // Notification preferences
   notificationPreferences: jsonb("notification_preferences").$type<NotificationPreferences>(),
+  isBetaUser: boolean("is_beta_user").default(false),
+  sharedToInstagram: boolean("shared_to_instagram").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -130,6 +132,13 @@ export const artistProfiles = pgTable("artist_profiles", {
   verifiedAt: timestamp("verified_at"),
   verifiedBy: varchar("verified_by").references(() => users.id),
   rejectionReason: text("rejection_reason"),
+  artistSlug: varchar("artist_slug").unique(),
+  referralArtists: jsonb("referral_artists").$type<string[]>(),
+  responsiveBadge: boolean("responsive_badge").default(false),
+  avgResponseTimeMinutes: integer("avg_response_time_minutes"),
+  totalChatsAnswered: integer("total_chats_answered").default(0),
+  responseRate: integer("response_rate").default(0),
+  lastChatResponseAt: timestamp("last_chat_response_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -1252,6 +1261,29 @@ export const insertIqsLearningRunSchema = createInsertSchema(iqsLearningRuns).om
   startedAt: true,
 });
 
+// Analytics Events - for tracking platform metrics
+export const analyticsEvents = pgTable("analytics_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventType: text("event_type").notNull(), // 'calendar_created', 'chat_started', 'artist_signup_from_chat', 'artist_responded', 'response_time_logged', 'chat_7day_retention'
+  artistId: varchar("artist_id").references(() => users.id),
+  clientId: varchar("client_id").references(() => users.id),
+  inquiryId: varchar("inquiry_id"),
+  metadata: jsonb("metadata").$type<{
+    responseTimeMinutes?: number;
+    source?: string;
+    artistSlug?: string;
+    clientEmail?: string;
+    eventDate?: string;
+    [key: string]: string | number | boolean | undefined;
+  }>(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [index("idx_analytics_events_type").on(table.eventType), index("idx_analytics_events_created").on(table.createdAt)]);
+
+export const insertAnalyticsEventSchema = createInsertSchema(analyticsEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
 // AI Chat Messages - stores chat history for the AI assistant
 export const aiChatMessages = pgTable("ai_chat_messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1500,3 +1532,7 @@ export type CommunicationLog = typeof communicationLogs.$inferSelect;
 // Scheduled Email Types
 export type InsertScheduledEmail = z.infer<typeof insertScheduledEmailSchema>;
 export type ScheduledEmail = typeof scheduledEmails.$inferSelect;
+
+// Analytics Event Types
+export type InsertAnalyticsEvent = z.infer<typeof insertAnalyticsEventSchema>;
+export type AnalyticsEvent = typeof analyticsEvents.$inferSelect;
