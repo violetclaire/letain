@@ -230,7 +230,7 @@ export default function PublicAnalytics() {
                 <p className="text-sm text-[#666]">Be the first to join the leaderboard!</p>
                 <a
                   href="/onboarding"
-                  className="inline-block mt-4 px-6 py-2 bg-[#2C2C2C] text-[#FFFEF9] hover:bg-[#1a1a1a] transition-colors"
+                  className="inline-block mt-4 px-6 py-2 bg-[#FAF9F7] text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#f0efe9] transition-colors"
                 >
                   Create Your Calendar
                 </a>

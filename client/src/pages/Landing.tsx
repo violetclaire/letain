@@ -22,14 +22,14 @@ export default function Landing() {
             transition={{ duration: 0.5, delay: 1 }}
           >
             <motion.div
-              className="absolute left-0 top-0 w-1/2 h-full border-r border-[#2C2C2C]/20 overflow-hidden bg-[#FFFEF9]"
+              className="absolute left-0 top-0 w-1/2 h-full border-r border-[#2C2C2C]/20 overflow-hidden gingham-check"
               initial={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
             />
 
             <motion.div
-              className="absolute right-0 top-0 w-1/2 h-full border-l border-[#2C2C2C]/20 overflow-hidden bg-[#FFFEF9]"
+              className="absolute right-0 top-0 w-1/2 h-full border-l border-[#2C2C2C]/20 overflow-hidden gingham-check"
               initial={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
@@ -77,8 +77,8 @@ export default function Landing() {
             <h2 className="font-header text-2xl md:text-3xl text-[#2C2C2C] mb-4">
               Share your availability.
             </h2>
-            <p className="text-lg text-[#666]">
-              Stop answering "are you available?" emails.
+            <p className="text-lg text-[#666] italic">
+              Beauvette answers the #1 question: "Are you available for my date?"
             </p>
           </div>
 
@@ -91,7 +91,7 @@ export default function Landing() {
               
               <button
                 onClick={() => setLocation("/onboarding")}
-                className="px-10 py-4 text-base font-medium bg-[#2C2C2C] text-[#FFFEF9] hover:bg-[#1a1a1a] transition-colors tracking-wide"
+                className="px-10 py-4 text-base font-medium bg-[#FAF9F7] text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#f0efe9] transition-colors tracking-wide"
                 data-testid="button-create-calendar"
               >
                 Create My Calendar

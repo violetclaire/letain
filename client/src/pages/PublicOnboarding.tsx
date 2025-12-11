@@ -333,7 +333,7 @@ export default function PublicOnboarding() {
                 <div className="flex gap-3 mb-6">
                   <button
                     onClick={copyLink}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#2C2C2C] text-[#FFFEF9] hover:bg-[#1a1a1a] transition-colors"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#FAF9F7] text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#f0efe9] transition-colors"
                     data-testid="button-copy-link"
                   >
                     <Copy size={18} />
@@ -395,7 +395,7 @@ export default function PublicOnboarding() {
                 <div className="flex gap-3">
                   <button
                     onClick={() => setLocation(`/${artistSlug}`)}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#2C2C2C] text-[#FFFEF9] hover:bg-[#1a1a1a] transition-colors"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#FAF9F7] text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#f0efe9] transition-colors"
                     data-testid="button-view-calendar"
                   >
                     <Calendar size={18} />
@@ -463,7 +463,7 @@ export default function PublicOnboarding() {
                   <button
                     onClick={() => setStep(step + 1)}
                     disabled={!canProceed()}
-                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-[#2C2C2C] text-[#FFFEF9] hover:bg-[#1a1a1a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-[#FAF9F7] text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#f0efe9] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     data-testid="button-next"
                   >
                     Next
@@ -473,7 +473,7 @@ export default function PublicOnboarding() {
                   <button
                     onClick={handleSubmit}
                     disabled={isSubmitting || !canProceed()}
-                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-[#2C2C2C] text-[#FFFEF9] hover:bg-[#1a1a1a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-[#FAF9F7] text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#f0efe9] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     data-testid="button-create-calendar"
                   >
                     {isSubmitting ? "Creating..." : "Create My Calendar"}

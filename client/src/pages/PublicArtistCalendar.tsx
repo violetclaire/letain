@@ -139,7 +139,7 @@ export default function PublicArtistCalendar() {
             <p className="text-[#666] mb-6">This calendar doesn't exist or has been removed.</p>
             <button
               onClick={() => setLocation("/")}
-              className="px-6 py-3 bg-[#2C2C2C] text-[#FFFEF9] hover:bg-[#1a1a1a] transition-colors"
+              className="px-6 py-3 bg-[#FAF9F7] text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#f0efe9] transition-colors"
             >
               Go Home
             </button>
@@ -171,7 +171,7 @@ export default function PublicArtistCalendar() {
                 setShowInquiryForm(false);
                 setForm({ clientName: "", clientEmail: "", eventDate: null, message: "" });
               }}
-              className="px-6 py-3 bg-[#2C2C2C] text-[#FFFEF9] hover:bg-[#1a1a1a] transition-colors"
+              className="px-6 py-3 bg-[#FAF9F7] text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#f0efe9] transition-colors"
             >
               Back to Calendar
             </button>
@@ -272,7 +272,7 @@ export default function PublicArtistCalendar() {
                 <button
                   type="submit"
                   disabled={submitInquiry.isPending}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#2C2C2C] text-[#FFFEF9] hover:bg-[#1a1a1a] transition-colors disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#FAF9F7] text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#f0efe9] transition-colors disabled:opacity-50"
                   data-testid="button-send-inquiry"
                 >
                   {submitInquiry.isPending ? "Sending..." : "Send Inquiry"}
@@ -433,7 +433,7 @@ export default function PublicArtistCalendar() {
                       {ref.isOnPlatform && ref.slug ? (
                         <button
                           onClick={() => setLocation(`/${ref.slug}`)}
-                          className="px-3 py-1 text-xs bg-[#2C2C2C] text-[#FFFEF9]"
+                          className="px-3 py-1 text-xs bg-[#FAF9F7] text-[#2C2C2C] border border-[#2C2C2C]"
                         >
                           View Calendar
                         </button>
@@ -449,7 +449,7 @@ export default function PublicArtistCalendar() {
             <div className="p-4 border-t border-[#2C2C2C]">
               <button
                 onClick={() => setShowInquiryForm(true)}
-                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#2C2C2C] text-[#FFFEF9] hover:bg-[#1a1a1a] transition-colors"
+                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#FAF9F7] text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#f0efe9] transition-colors"
                 data-testid="button-chat-with-artist"
               >
                 <MessageCircle size={18} />
