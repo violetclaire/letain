@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Mic, MicOff, Paperclip, X, Image as ImageIcon, Bot, User, Loader2, UserPlus } from "lucide-react";
+import { Send, Mic, MicOff, Paperclip, X, Image as ImageIcon, Bot, User, Loader2, UserPlus, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 import VoiceDictation from "./VoiceDictation";
+import ChatCalendar from "./ChatCalendar";
 
 interface Message {
   id: string;
@@ -9,6 +11,8 @@ interface Message {
   content: string;
   attachments?: { type: string; url: string; name: string }[];
   timestamp: Date;
+  showCalendar?: boolean;
+  calendarPrompt?: string;
 }
 
 interface AIChatPanelProps {
@@ -33,8 +37,42 @@ export default function AIChatPanel({ userId, userName, onAvailabilityUpdate, on
   const [attachments, setAttachments] = useState<File[]>([]);
   const [attachmentPreviews, setAttachmentPreviews] = useState<string[]>([]);
   const [isCompressing, setIsCompressing] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [calendarPrompt, setCalendarPrompt] = useState("Select a date");
+  const [activeCalendarMessageId, setActiveCalendarMessageId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  const detectDateQuestion = (text: string): string | null => {
+    const questionIndicators = [
+      /what\s+(?:is\s+(?:the|your)\s+)?(?:event\s+)?date\??/i,
+      /which\s+date[s]?\s+(?:would|do|should|are)/i,
+      /when\s+(?:is|would|will|are)\s+(?:the|your|you)/i,
+      /(?:please\s+)?(?:pick|choose|select)\s+(?:a\s+|the\s+)?date/i,
+      /what\s+date[s]?\s+(?:would|do|should|are)/i,
+      /could\s+you\s+(?:please\s+)?(?:provide|tell|share|give)/i,
+      /would\s+you\s+like\s+to\s+(?:block|schedule|book)/i,
+      /which\s+date[s]?\s+(?:do\s+you\s+want|should\s+I|would\s+you)/i,
+    ];
+    
+    const hasQuestion = text.includes("?") || questionIndicators.some(p => p.test(text));
+    if (!hasQuestion) return null;
+    
+    if (/(?:block|unavailable|availability)/i.test(text)) {
+      return "Select dates to block";
+    }
+    if (/(?:wedding|event)\s+date/i.test(text)) {
+      return "Select event date";
+    }
+    if (/(?:booking|appointment|schedule)\s+(?:date|for)/i.test(text)) {
+      return "Select booking date";
+    }
+    if (/date/i.test(text)) {
+      return "Select a date";
+    }
+    
+    return null;
+  };
 
   // Load chat history on mount
   useEffect(() => {
@@ -219,14 +257,25 @@ export default function AIChatPanel({ userId, userName, onAvailabilityUpdate, on
 
       const data = await response.json();
 
+      const msgId = (Date.now() + 1).toString();
+      const datePrompt = detectDateQuestion(data.response);
+      
       const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: msgId,
         role: "assistant",
         content: data.response,
-        timestamp: new Date()
+        timestamp: new Date(),
+        showCalendar: !!datePrompt,
+        calendarPrompt: datePrompt || undefined
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+      
+      if (datePrompt) {
+        setShowCalendar(true);
+        setCalendarPrompt(datePrompt);
+        setActiveCalendarMessageId(msgId);
+      }
 
       if (data.availabilityUpdates && onAvailabilityUpdate) {
         onAvailabilityUpdate(data.availabilityUpdates.dates, data.availabilityUpdates.isAvailable);
@@ -254,6 +303,43 @@ export default function AIChatPanel({ userId, userName, onAvailabilityUpdate, on
 
   const handleVoiceTranscript = (transcript: string) => {
     setInput(prev => prev + (prev ? " " : "") + transcript);
+  };
+
+  const handleCalendarDatesSelected = (dates: Date[]) => {
+    const formattedDates = dates.map(d => format(d, "MMMM d, yyyy"));
+    let dateMessage: string;
+    
+    if (dates.length === 1) {
+      dateMessage = formattedDates[0];
+    } else if (dates.length === 2) {
+      dateMessage = `${formattedDates[0]} and ${formattedDates[1]}`;
+    } else {
+      dateMessage = formattedDates.slice(0, -1).join(", ") + ", and " + formattedDates[formattedDates.length - 1];
+    }
+    
+    setShowCalendar(false);
+    setActiveCalendarMessageId(null);
+    setInput(dateMessage);
+    
+    setTimeout(() => {
+      sendMessage();
+    }, 100);
+  };
+
+  const handleCalendarCancel = () => {
+    setShowCalendar(false);
+    setActiveCalendarMessageId(null);
+  };
+
+  const toggleCalendar = () => {
+    if (showCalendar) {
+      setShowCalendar(false);
+      setActiveCalendarMessageId(null);
+    } else {
+      setShowCalendar(true);
+      setCalendarPrompt("Select dates");
+      setActiveCalendarMessageId(null);
+    }
   };
 
   return (
@@ -334,6 +420,20 @@ export default function AIChatPanel({ userId, userName, onAvailabilityUpdate, on
             </div>
           </div>
         )}
+        
+        {showCalendar && (
+          <div className="flex gap-2">
+            <div className="p-1.5 rounded-full bg-pink h-fit">
+              <Calendar size={12} className="text-white" />
+            </div>
+            <ChatCalendar
+              prompt={calendarPrompt}
+              onDatesSelected={handleCalendarDatesSelected}
+              onCancel={handleCalendarCancel}
+              multiSelect={true}
+            />
+          </div>
+        )}
       </div>
 
       {attachmentPreviews.length > 0 && (
@@ -384,6 +484,15 @@ export default function AIChatPanel({ userId, userName, onAvailabilityUpdate, on
             )}
           </div>
           
+          <button
+            onClick={toggleCalendar}
+            className={`p-2 rounded-full transition-colors ${showCalendar ? "bg-pink text-white" : "text-gray-500 hover:text-black hover:bg-gray-100"}`}
+            title="Pick dates from calendar"
+            data-testid="button-toggle-calendar"
+          >
+            <Calendar size={18} />
+          </button>
+          
           <div className="flex-1 relative">
             <textarea
               value={input}
@@ -408,7 +517,7 @@ export default function AIChatPanel({ userId, userName, onAvailabilityUpdate, on
           </button>
         </div>
         <p className="text-[0.6rem] text-gray-400 mt-2 text-center">
-          Try: "Block Dec 15-20" or upload up to 3 photos at a time
+          Try: "Block Dec 15-20" or tap the calendar icon to pick dates
         </p>
       </div>
     </div>
