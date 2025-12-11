@@ -1,33 +1,36 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar, MapPin, Upload, Search } from "lucide-react";
-import VoiceDictation from "../components/VoiceDictation";
+import AIOnboardingChat from "../components/AIOnboardingChat";
+import VintageCalendar from "../components/VintageCalendar";
 
 export default function Landing() {
   const [isOpen, setIsOpen] = useState(false);
   const [, setLocation] = useLocation();
-  const [searchDate, setSearchDate] = useState("");
-  const [searchLocation, setSearchLocation] = useState("");
+  const [bookedDates, setBookedDates] = useState<Date[]>([]);
 
   const openElevator = () => {
     setIsOpen(true);
   };
 
-  const handleSearch = () => {
-    const params = new URLSearchParams();
-    if (searchLocation) params.append("location", searchLocation);
-    if (searchDate) params.append("eventDate", searchDate);
-    setLocation(`/search?${params.toString()}`);
-  };
-
-  const handleVoiceSearch = (transcript: string) => {
-    setSearchLocation(prev => prev ? prev + " " + transcript : transcript);
+  const handleDatesMentioned = (dates: Date[]) => {
+    setBookedDates(prev => {
+      const combined = [...prev, ...dates];
+      const unique = combined.filter((date, index, self) => 
+        self.findIndex(d => d.getTime() === date.getTime()) === index
+      );
+      return unique.sort((a, b) => a.getTime() - b.getTime());
+    });
   };
 
   return (
-    <div className="min-h-screen overflow-y-auto overflow-x-hidden bg-powder-blue font-sans flex items-center justify-center p-4">
-      {/* ELEVATOR DOOR CONTAINER */}
+    <div 
+      className="min-h-screen overflow-y-auto overflow-x-hidden font-sans"
+      style={{ 
+        backgroundColor: '#FFF9F0',
+        fontFamily: 'Georgia, Garamond, serif'
+      }}
+    >
       <AnimatePresence>
         {!isOpen && (
           <motion.div 
@@ -36,212 +39,303 @@ export default function Landing() {
             exit={{ opacity: 0, pointerEvents: "none" }}
             transition={{ duration: 0.5, delay: 1 }}
           >
-            {/* Left Elevator Panel */}
             <motion.div
-              className="absolute left-0 top-0 w-1/2 h-full border-r border-black/20 overflow-hidden gingham-check"
+              className="absolute left-0 top-0 w-1/2 h-full border-r overflow-hidden"
+              style={{ 
+                backgroundColor: '#F5EDE0',
+                borderColor: '#D4A574'
+              }}
               initial={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
             >
-              {/* Subtle border frame */}
-              <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute top-0 left-0 right-0 h-1 bg-cream/80" />
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-cream/80" />
-                <div className="absolute top-0 left-0 bottom-0 w-1 bg-cream/80" />
-                <div className="absolute top-0 right-0 bottom-0 w-1 bg-cream/80" />
+              <div className="absolute inset-0 opacity-10">
+                <div 
+                  className="w-full h-full"
+                  style={{
+                    backgroundImage: `repeating-linear-gradient(
+                      0deg,
+                      transparent,
+                      transparent 40px,
+                      #D4A574 40px,
+                      #D4A574 41px
+                    ),
+                    repeating-linear-gradient(
+                      90deg,
+                      transparent,
+                      transparent 40px,
+                      #D4A574 40px,
+                      #D4A574 41px
+                    )`
+                  }}
+                />
               </div>
             </motion.div>
 
-            {/* Right Elevator Panel */}
             <motion.div
-              className="absolute right-0 top-0 w-1/2 h-full border-l border-black/20 overflow-hidden gingham-check"
+              className="absolute right-0 top-0 w-1/2 h-full border-l overflow-hidden"
+              style={{ 
+                backgroundColor: '#F5EDE0',
+                borderColor: '#D4A574'
+              }}
               initial={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
             >
-              {/* Subtle border frame */}
-              <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute top-0 left-0 right-0 h-1 bg-cream/80" />
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-cream/80" />
-                <div className="absolute top-0 left-0 bottom-0 w-1 bg-cream/80" />
-                <div className="absolute top-0 right-0 bottom-0 w-1 bg-cream/80" />
+              <div className="absolute inset-0 opacity-10">
+                <div 
+                  className="w-full h-full"
+                  style={{
+                    backgroundImage: `repeating-linear-gradient(
+                      0deg,
+                      transparent,
+                      transparent 40px,
+                      #D4A574 40px,
+                      #D4A574 41px
+                    ),
+                    repeating-linear-gradient(
+                      90deg,
+                      transparent,
+                      transparent 40px,
+                      #D4A574 40px,
+                      #D4A574 41px
+                    )`
+                  }}
+                />
               </div>
             </motion.div>
 
-            {/* Center Content (on top of panels) */}
             <motion.div 
               className="relative z-10 flex flex-col items-center justify-center text-center pointer-events-none"
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
             >
-              {/* Outer cream frame */}
-              <div className="bg-cream p-3 rounded-sm shadow-xl">
-                {/* Inner decorative border */}
-                <div className="border-[3px] border-powder-blue/40 p-1">
-                  {/* Main content box - blue background, wider rectangle */}
-                  <div className="bg-powder-blue px-20 py-8 border-2 border-cream/60">
-                    <h1 className="font-script text-6xl text-black drop-shadow-sm mb-4">
-                      Beauvette
-                    </h1>
-
-                    <p className="text-[0.55rem] uppercase tracking-[0.15em] text-black font-medium max-w-[280px] leading-relaxed border-t border-black/20 pt-4 mt-2 mx-auto">
-                      The First Platform for Vendors <em className="italic">and</em> Clients
-                    </p>
-                  </div>
+              <div 
+                className="p-6 rounded-lg shadow-xl"
+                style={{ 
+                  backgroundColor: '#FFF9F0',
+                  border: '3px solid #D4A574'
+                }}
+              >
+                <div 
+                  className="px-12 py-8"
+                  style={{ 
+                    borderTop: '1px solid #D4A574',
+                    borderBottom: '1px solid #D4A574'
+                  }}
+                >
+                  <h1 
+                    className="text-5xl md:text-6xl mb-4"
+                    style={{ 
+                      color: '#5D4037',
+                      fontFamily: 'Playfair Display, Georgia, serif',
+                      fontStyle: 'italic'
+                    }}
+                  >
+                    Beauvette
+                  </h1>
+                  <p 
+                    className="text-xs uppercase tracking-[0.2em]"
+                    style={{ color: '#8B7355' }}
+                  >
+                    The First Concierge for Beauty
+                  </p>
                 </div>
               </div>
             </motion.div>
-
-            {/* Elevator door frame */}
-            <div className="absolute inset-0 pointer-events-none">
-              <div className="absolute top-0 left-0 right-0 h-4 bg-black/10" />
-              <div className="absolute bottom-0 left-0 right-0 h-4 bg-black/10" />
-            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* MAIN CONTENT (revealed after elevator opens) */}
       <motion.div 
-        className={`w-full max-w-3xl transition-opacity duration-1000 ${isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: isOpen ? 1 : 0, y: isOpen ? 0 : 20 }}
+        className={`min-h-screen transition-opacity duration-1000 ${isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: isOpen ? 1 : 0 }}
         transition={{ delay: 0.8, duration: 0.8 }}
       >
-        {/* Cream Mat Border - like a picture frame */}
-        <div className="bg-cream p-4 rounded-sm shadow-lg border border-black/20">
-          <div className="frame-outer shadow-sm w-full border border-black/30">
-            <div className="frame-inner relative flex flex-col items-center">
-            
-            {/* HEADER */}
-            <header className="text-center mb-6 relative w-full">
-              <p className="text-[0.65rem] uppercase tracking-[0.2em] ink-soft font-medium mb-2">
-                Welcome to the World of
-              </p>
-              <h1 className="font-script text-5xl ink-main relative z-10 mb-2">
-                Beauvette
-              </h1>
-              <p className="text-xs uppercase tracking-[0.18em] ink-soft relative z-10">
-                For Life's Most Important Days
-              </p>
-            </header>
+        <header 
+          className="w-full px-6 py-4 flex items-center justify-between border-b"
+          style={{ 
+            backgroundColor: '#FFF9F0',
+            borderColor: '#E8DFD0'
+          }}
+        >
+          <h1 
+            className="text-2xl"
+            style={{ 
+              color: '#5D4037',
+              fontFamily: 'Playfair Display, Georgia, serif',
+              fontStyle: 'italic'
+            }}
+          >
+            Beauvette
+          </h1>
+          <button
+            onClick={() => setLocation("/login")}
+            className="text-sm px-4 py-2 rounded-lg transition-colors"
+            style={{ 
+              color: '#8B7355',
+              backgroundColor: 'transparent'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#F5EDE0';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+            data-testid="button-sign-in"
+          >
+            Sign in
+          </button>
+        </header>
 
-            {/* 1. SEARCH SECTION (Primary) */}
-            <div className="w-full max-w-2xl mb-10 relative z-10">
-              <div className="card-frame rounded-md px-6 py-6 bg-white/50">
-                <h2 className="font-header text-lg ink-main mb-4 text-center">Start Your Search</h2>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  {/* Date */}
-                  <div className="space-y-1">
-                    <label className="text-[0.65rem] uppercase tracking-wide ink-soft flex items-center gap-1">
-                      <Calendar size={10} /> Event Date
-                    </label>
-                    <input 
-                      type="date" 
-                      value={searchDate}
-                      onChange={(e) => setSearchDate(e.target.value)}
-                      className="w-full border border-[#c5ccd8] bg-[#fbfcff] rounded px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-black"
-                      data-testid="input-event-date"
-                    />
-                  </div>
+        <main className="px-4 py-8 max-w-7xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 
+              className="text-3xl md:text-4xl mb-3"
+              style={{ 
+                color: '#5D4037',
+                fontFamily: 'Playfair Display, Georgia, serif'
+              }}
+            >
+              Beauvette
+            </h2>
+            <p 
+              className="text-lg mb-2"
+              style={{ color: '#8B7355' }}
+            >
+              The first concierge for beauty artists and clients
+            </p>
+            <p 
+              className="text-sm italic"
+              style={{ color: '#A89F8F' }}
+            >
+              We answer the #1 question: "Are you available for my date?"
+            </p>
+          </div>
 
-                  {/* Location with Voice */}
-                  <div className="space-y-1">
-                     <label className="text-[0.65rem] uppercase tracking-wide ink-soft flex items-center gap-1">
-                      <MapPin size={10} /> Location
-                    </label>
-                    <div className="flex gap-1">
-                      <input 
-                        type="text" 
-                        placeholder="City, Venue, or Zip" 
-                        value={searchLocation}
-                        onChange={(e) => setSearchLocation(e.target.value)}
-                        className="flex-1 border border-[#c5ccd8] bg-[#fbfcff] rounded px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-black"
-                        data-testid="input-location"
-                      />
-                      <div className="flex flex-col items-center">
-                        <VoiceDictation onTranscript={handleVoiceSearch} />
-                        <span className="text-[0.5rem] text-gray-400 mt-0.5">Voice</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Upload */}
-                  <div className="space-y-1">
-                     <label className="text-[0.65rem] uppercase tracking-wide ink-soft flex items-center gap-1">
-                      <Upload size={10} /> Inspiration
-                    </label>
-                    <div className="w-full border border-dashed border-[#c5ccd8] bg-[#fbfcff] rounded px-3 py-1.5 text-xs text-gray-400 cursor-pointer hover:border-black hover:text-black transition-colors flex items-center justify-center h-[34px]" data-testid="button-upload-photos">
-                      Upload Photos
-                    </div>
-                  </div>
-                </div>
-
-                <button 
-                  onClick={handleSearch}
-                  className="w-full bg-black text-white text-xs uppercase tracking-widest py-3 rounded hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
-                  data-testid="button-search-vendors"
-                >
-                  <Search size={14} /> Search Vendors
-                </button>
-              </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            <div className="order-1 lg:order-1">
+              <AIOnboardingChat onDatesMentioned={handleDatesMentioned} />
             </div>
 
-            {/* 2. PERSONAS - Create Account */}
-            <div className="w-full max-w-2xl mb-8 relative z-10">
-              <p className="text-center text-[0.65rem] uppercase tracking-widest ink-soft mb-3">— Create Your Account —</p>
-              <div className="grid grid-cols-3 gap-3">
-                <div 
-                  onClick={() => setLocation("/register?role=client")}
-                  className="card-frame rounded-md p-3 text-center cursor-pointer hover:border-black hover:shadow-sm transition group"
-                  data-testid="button-client-register"
-                >
-                  <h3 className="font-header text-sm ink-main group-hover:text-black">Client</h3>
-                  <p className="text-[0.6rem] ink-soft mt-1">Request Services</p>
-                </div>
-
-                <div 
-                  onClick={() => setLocation("/register?role=artist")}
-                  className="card-frame rounded-md p-3 text-center cursor-pointer hover:border-black hover:shadow-sm transition group"
-                  data-testid="button-artist-register"
-                >
-                  <h3 className="font-header text-sm ink-main group-hover:text-black">Vendor</h3>
-                  <p className="text-[0.6rem] ink-soft mt-1">Offer your Services</p>
-                </div>
-
-                <div 
-                  onClick={() => setLocation("/register?role=planner")}
-                  className="card-frame rounded-md p-3 text-center cursor-pointer hover:border-black hover:shadow-sm transition group"
-                  data-testid="button-planner-register"
-                >
-                  <h3 className="font-header text-sm ink-main group-hover:text-black">Planner</h3>
-                  <p className="text-[0.6rem] ink-soft mt-1">Coordinate Events</p>
-                </div>
-              </div>
+            <div className="order-2 lg:order-2">
+              <VintageCalendar 
+                bookedDates={bookedDates}
+                onDatesChange={setBookedDates}
+                minYear={2026}
+                maxYear={2027}
+              />
               
-              <p className="text-center text-[0.6rem] ink-soft mt-4">
-                Already have an account?{" "}
-                <a href="/login" className="underline hover:text-black transition-colors">
-                  Log in here
-                </a>
-              </p>
-            </div>
-
-            {/* 3. ADMIN LINK (Footer) */}
-            <div className="mt-auto pt-4 relative z-10">
-              <button 
-                onClick={() => setLocation("/admin")}
-                className="text-[0.6rem] uppercase tracking-widest text-gray-400 hover:text-[#dc2626] transition-colors border-b border-transparent hover:border-[#dc2626]"
-                data-testid="button-admin-login"
+              <div 
+                className="mt-4 p-4 rounded-lg text-center"
+                style={{ 
+                  backgroundColor: '#F5EDE0',
+                  border: '1px solid #E8DFD0'
+                }}
               >
-                Admin Console
-              </button>
-            </div>
-
+                <p 
+                  className="text-sm mb-3"
+                  style={{ color: '#5D4037' }}
+                >
+                  Tap dates on the calendar to mark your availability
+                </p>
+                <p 
+                  className="text-xs"
+                  style={{ color: '#8B7355' }}
+                >
+                  Or tell the assistant about your event dates
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        </main>
+
+        <footer 
+          className="w-full px-6 py-6 mt-8 border-t text-center"
+          style={{ 
+            backgroundColor: '#F5EDE0',
+            borderColor: '#E8DFD0'
+          }}
+        >
+          <p 
+            className="text-sm mb-4"
+            style={{ color: '#8B7355' }}
+          >
+            Are you a beauty artist or vendor?
+          </p>
+          <button
+            onClick={() => setLocation("/register?role=artist")}
+            className="px-6 py-3 rounded-lg text-sm font-medium transition-colors"
+            style={{ 
+              backgroundColor: '#C85A54',
+              color: '#FFFFFF'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#B04A44';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#C85A54';
+            }}
+            data-testid="button-vendor-create-account"
+          >
+            Create Vendor Account
+          </button>
+          
+          <div className="mt-6 flex items-center justify-center gap-6">
+            <button
+              onClick={() => setLocation("/register?role=client")}
+              className="text-xs transition-colors"
+              style={{ color: '#A89F8F' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#5D4037';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#A89F8F';
+              }}
+              data-testid="button-client-register"
+            >
+              Client Registration
+            </button>
+            <span style={{ color: '#D4A574' }}>|</span>
+            <button
+              onClick={() => setLocation("/register?role=planner")}
+              className="text-xs transition-colors"
+              style={{ color: '#A89F8F' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#5D4037';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#A89F8F';
+              }}
+              data-testid="button-planner-register"
+            >
+              Planner Registration
+            </button>
+            <span style={{ color: '#D4A574' }}>|</span>
+            <button
+              onClick={() => setLocation("/admin")}
+              className="text-xs transition-colors"
+              style={{ color: '#A89F8F' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#5D4037';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#A89F8F';
+              }}
+              data-testid="button-admin-login"
+            >
+              Admin
+            </button>
+          </div>
+          
+          <p 
+            className="mt-6 text-xs"
+            style={{ color: '#C5B8A8' }}
+          >
+            © 2025 Beauvette. For life's most important days.
+          </p>
+        </footer>
       </motion.div>
     </div>
   );
