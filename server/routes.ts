@@ -6658,6 +6658,239 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // ========== PUBLIC ROUTES (No Auth Required) ==========
+  
+  // Public artist onboarding
+  app.post("/api/public/artists/onboard", async (req, res) => {
+    try {
+      const { name, businessName, instagramHandle, tiktokHandle, pinterestHandle, 
+              websiteUrl, bookedDates, referralArtists } = req.body;
+      
+      if (!name || !businessName || !instagramHandle) {
+        return res.status(400).json({ error: "Name, business name, and Instagram handle are required" });
+      }
+      
+      // Generate artist slug from Instagram handle
+      const artistSlug = instagramHandle.toLowerCase().replace(/[^a-z0-9]/g, '');
+      
+      // Check if slug already exists
+      const existingProfile = await storage.getArtistProfileBySlug(artistSlug);
+      if (existingProfile) {
+        return res.status(400).json({ error: "An artist with this Instagram handle already exists" });
+      }
+      
+      // Create user and profile using the public artist method (no email required)
+      const user = await storage.createPublicArtistUser({
+        firstName: name.split(' ')[0],
+        lastName: name.split(' ').slice(1).join(' ') || null,
+        role: 'artist',
+      });
+      
+      // Create artist profile
+      const profile = await storage.createArtistProfile({
+        userId: user.id,
+        businessName,
+        instagramHandle,
+        tiktokHandle: tiktokHandle || null,
+        pinterestHandle: pinterestHandle || null,
+        websiteUrl: websiteUrl || null,
+        artistSlug,
+        referralArtists: referralArtists || [],
+        verificationStatus: 'approved',
+      });
+      
+      // Save availability (booked dates)
+      if (bookedDates && bookedDates.length > 0) {
+        for (const dateStr of bookedDates) {
+          await storage.createAvailability({
+            userId: user.id,
+            date: new Date(dateStr),
+            isAvailable: false,
+          });
+        }
+      }
+      
+      // Track analytics event
+      await storage.createAnalyticsEvent({
+        eventType: 'calendar_created',
+        artistId: user.id,
+        metadata: { artistSlug, bookedDatesCount: bookedDates?.length || 0 }
+      });
+      
+      res.json({ artistSlug, userId: user.id });
+    } catch (error: any) {
+      console.error("[Public Onboarding] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Confirm Instagram share
+  app.post("/api/public/artists/confirm-share", async (req, res) => {
+    try {
+      const { artistSlug } = req.body;
+      const profile = await storage.getArtistProfileBySlug(artistSlug);
+      if (profile) {
+        await storage.updateUser(profile.userId, { sharedToInstagram: true });
+      }
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("[Confirm Share] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Get public artist profile
+  app.get("/api/public/artists/:artistSlug", async (req, res) => {
+    try {
+      const profile = await storage.getArtistProfileBySlug(req.params.artistSlug);
+      if (!profile) {
+        return res.status(404).json({ error: "Artist not found" });
+      }
+      
+      const user = await storage.getUser(profile.userId);
+      const availability = await storage.getAvailabilityByUser(profile.userId);
+      const bookedDates = availability
+        .filter(a => !a.isAvailable)
+        .map(a => a.date.toISOString());
+      
+      // Get referral artist info
+      let referralArtistsInfo: any[] = [];
+      if (profile.referralArtists && Array.isArray(profile.referralArtists)) {
+        for (const refHandle of profile.referralArtists as string[]) {
+          const cleanHandle = refHandle.replace('@', '').toLowerCase();
+          const refProfile = await storage.getArtistProfileBySlug(cleanHandle);
+          referralArtistsInfo.push({
+            name: refHandle,
+            instagramHandle: cleanHandle,
+            slug: refProfile?.artistSlug || null,
+            isOnPlatform: !!refProfile
+          });
+        }
+      }
+      
+      res.json({
+        id: profile.id,
+        name: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || profile.businessName,
+        businessName: profile.businessName,
+        instagramHandle: profile.instagramHandle,
+        tiktokHandle: profile.tiktokHandle,
+        pinterestHandle: profile.pinterestHandle,
+        websiteUrl: profile.websiteUrl,
+        responsiveBadge: profile.responsiveBadge,
+        avgResponseTimeMinutes: profile.avgResponseTimeMinutes,
+        bookedDates,
+        referralArtists: referralArtistsInfo
+      });
+    } catch (error: any) {
+      console.error("[Public Artist] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Public inquiry submission
+  app.post("/api/public/inquiries", async (req, res) => {
+    try {
+      const { artistSlug, clientName, clientEmail, eventDate, message } = req.body;
+      
+      if (!artistSlug || !clientName || !clientEmail || !eventDate) {
+        return res.status(400).json({ error: "Artist, name, email, and event date are required" });
+      }
+      
+      const profile = await storage.getArtistProfileBySlug(artistSlug);
+      if (!profile) {
+        return res.status(404).json({ error: "Artist not found" });
+      }
+      
+      // Create inquiry
+      const inquiry = await storage.createInquiry({
+        vendorId: profile.userId,
+        clientName,
+        clientEmail,
+        eventDate: new Date(eventDate),
+        message: message || null,
+        serviceType: 'beauty',
+        status: 'pending',
+        metadata: { source: 'public_calendar', artistSlug }
+      });
+      
+      // Track analytics event
+      await storage.createAnalyticsEvent({
+        eventType: 'chat_started',
+        artistId: profile.userId,
+        inquiryId: inquiry.id,
+        metadata: { clientEmail, artistSlug }
+      });
+      
+      // Send immediate SMS and email notifications
+      const artist = await storage.getUser(profile.userId);
+      const artistProfile = await storage.getArtistProfile(profile.userId);
+      
+      // Try to send SMS notification
+      if (artist?.phone) {
+        try {
+          await smsService.sendSMS(
+            artist.phone,
+            `${clientName} wants to chat about booking ${new Date(eventDate).toLocaleDateString()}. Respond here: ${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'https://beauvette.com'}/artist?inquiry=${inquiry.id}`
+          );
+        } catch (smsError) {
+          console.error("[Public Inquiry] SMS send failed:", smsError);
+        }
+      }
+      
+      // Send email notification
+      if (artist?.email) {
+        try {
+          const { sendInquiryNotificationEmail } = await import('./emailService');
+          await sendInquiryNotificationEmail({
+            toEmail: artist.email,
+            vendorName: artistProfile?.businessName || artist.firstName || 'Artist',
+            clientName,
+            eventDate: new Date(eventDate).toLocaleDateString('en-US', { 
+              weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+            }),
+            message: message || 'No message provided',
+            inquiryLink: `${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'https://beauvette.com'}/artist?inquiry=${inquiry.id}`
+          });
+        } catch (emailError) {
+          console.error("[Public Inquiry] Email send failed:", emailError);
+        }
+      }
+      
+      res.json({ success: true, inquiryId: inquiry.id });
+    } catch (error: any) {
+      console.error("[Public Inquiry] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Public analytics metrics
+  app.get("/api/public/analytics/metrics", async (req, res) => {
+    try {
+      const metrics = await storage.getAnalyticsMetrics24h();
+      res.json({
+        calendarsCreated: metrics.calendarsCreated || 0,
+        chatsStarted: metrics.chatsStarted || 0,
+        artistActivationRate: metrics.artistActivationRate || 0,
+        chatsPerCalendar: metrics.chatsPerCalendar || 0,
+        lastUpdated: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error("[Analytics Metrics] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Public leaderboard
+  app.get("/api/public/analytics/leaderboard", async (req, res) => {
+    try {
+      const leaderboard = await storage.getArtistLeaderboard();
+      res.json(leaderboard);
+    } catch (error: any) {
+      console.error("[Analytics Leaderboard] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

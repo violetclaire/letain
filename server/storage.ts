@@ -38,6 +38,9 @@ import {
   cdiPatternLibrary,
   auditLogs,
   aiChatMessages,
+  analyticsEvents,
+  type AnalyticsEvent,
+  type InsertAnalyticsEvent,
   type User,
   type UpsertUser,
   type ArtistProfile,
@@ -447,6 +450,18 @@ export class DatabaseStorage implements IStorage {
         password: userData.password,
         firstName: userData.firstName || null,
         lastName: userData.lastName || null,
+      })
+      .returning();
+    return user;
+  }
+
+  async createPublicArtistUser(userData: { firstName?: string | null; lastName?: string | null; role: string }): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values({
+        firstName: userData.firstName || null,
+        lastName: userData.lastName || null,
+        role: userData.role,
       })
       .returning();
     return user;
@@ -2127,6 +2142,145 @@ export class DatabaseStorage implements IStorage {
       .from(inquiryNotifications)
       .where(eq(inquiryNotifications.inquiryId, inquiryId))
       .orderBy(desc(inquiryNotifications.createdAt));
+  }
+  
+  // Analytics Events
+  async createAnalyticsEvent(data: InsertAnalyticsEvent): Promise<AnalyticsEvent> {
+    const [event] = await db.insert(analyticsEvents).values(data as any).returning();
+    return event;
+  }
+  
+  async getAnalyticsEvents(eventType?: string, sinceDate?: Date): Promise<AnalyticsEvent[]> {
+    let query = db.select().from(analyticsEvents);
+    const conditions: any[] = [];
+    
+    if (eventType) {
+      conditions.push(eq(analyticsEvents.eventType, eventType));
+    }
+    if (sinceDate) {
+      conditions.push(sql`${analyticsEvents.createdAt} >= ${sinceDate}`);
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+    
+    return await query.orderBy(desc(analyticsEvents.createdAt));
+  }
+  
+  async getAnalyticsMetrics24h(): Promise<{
+    calendarsCreated: number;
+    chatsStarted: number;
+    artistActivationRate: number;
+    chatsPerCalendar: number;
+  }> {
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    
+    const calendars = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(analyticsEvents)
+      .where(and(
+        eq(analyticsEvents.eventType, 'calendar_created'),
+        sql`${analyticsEvents.createdAt} >= ${since}`
+      ));
+    
+    const chats = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(analyticsEvents)
+      .where(and(
+        eq(analyticsEvents.eventType, 'chat_started'),
+        sql`${analyticsEvents.createdAt} >= ${since}`
+      ));
+    
+    const activations = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(analyticsEvents)
+      .where(and(
+        eq(analyticsEvents.eventType, 'artist_signup_from_chat'),
+        sql`${analyticsEvents.createdAt} >= ${since}`
+      ));
+    
+    const calendarsCreated = Number(calendars[0]?.count || 0);
+    const chatsStarted = Number(chats[0]?.count || 0);
+    const artistSignups = Number(activations[0]?.count || 0);
+    
+    return {
+      calendarsCreated,
+      chatsStarted,
+      artistActivationRate: chatsStarted > 0 ? Math.round((artistSignups / chatsStarted) * 100) : 0,
+      chatsPerCalendar: calendarsCreated > 0 ? chatsStarted / calendarsCreated : 0
+    };
+  }
+  
+  // Artist Profile by Slug
+  async getArtistProfileBySlug(slug: string): Promise<ArtistProfile | undefined> {
+    const [profile] = await db
+      .select()
+      .from(artistProfiles)
+      .where(eq(artistProfiles.artistSlug, slug));
+    return profile || undefined;
+  }
+  
+  // Leaderboard
+  async getArtistLeaderboard(): Promise<Array<{
+    rank: number;
+    artistName: string;
+    instagramHandle?: string;
+    artistSlug: string;
+    badge: 'quick_responder' | null;
+    avgResponseMinutes: number;
+    totalChats: number;
+    responseRate: number;
+  }>> {
+    const profiles = await db
+      .select()
+      .from(artistProfiles)
+      .where(sql`${artistProfiles.totalChatsAnswered} > 0`)
+      .orderBy(artistProfiles.avgResponseTimeMinutes)
+      .limit(10);
+    
+    const result = [];
+    for (let i = 0; i < profiles.length; i++) {
+      const profile = profiles[i];
+      const user = await this.getUser(profile.userId);
+      result.push({
+        rank: i + 1,
+        artistName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || profile.businessName || 'Artist',
+        instagramHandle: profile.instagramHandle || undefined,
+        artistSlug: profile.artistSlug || profile.id,
+        badge: profile.responsiveBadge ? 'quick_responder' as const : null,
+        avgResponseMinutes: profile.avgResponseTimeMinutes || 0,
+        totalChats: profile.totalChatsAnswered || 0,
+        responseRate: profile.responseRate || 0
+      });
+    }
+    
+    return result;
+  }
+  
+  // Update artist response metrics
+  async updateArtistResponseMetrics(userId: string, responseTimeMinutes: number): Promise<void> {
+    const profile = await this.getArtistProfile(userId);
+    if (!profile) return;
+    
+    const currentTotal = profile.totalChatsAnswered || 0;
+    const currentAvg = profile.avgResponseTimeMinutes || 0;
+    
+    const newTotal = currentTotal + 1;
+    const newAvg = (currentAvg * currentTotal + responseTimeMinutes) / newTotal;
+    
+    const responsiveBadge = newAvg < 10 && newTotal >= 3;
+    
+    await db
+      .update(artistProfiles)
+      .set({
+        totalChatsAnswered: newTotal,
+        avgResponseTimeMinutes: Math.round(newAvg),
+        responsiveBadge,
+        responseRate: 100,
+        lastChatResponseAt: new Date()
+      })
+      .where(eq(artistProfiles.userId, userId));
   }
 }
 

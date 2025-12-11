@@ -964,3 +964,103 @@ export async function sendGeneralEmail({
   console.log("General email sent:", JSON.stringify(result));
   return { success: true, result };
 }
+
+export async function sendInquiryNotificationEmail({
+  toEmail,
+  vendorName,
+  clientName,
+  eventDate,
+  message,
+  inquiryLink
+}: {
+  toEmail: string;
+  vendorName: string;
+  clientName: string;
+  eventDate: string;
+  message: string;
+  inquiryLink: string;
+}) {
+  const { client } = await getResendClient();
+
+  const safeVendorName = sanitizeSenderName(vendorName) || 'Artist';
+  const safeClientName = escapeHtml(clientName);
+  const safeMessage = escapeHtml(message).replace(/\n/g, '<br>');
+  
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Georgia', serif; background-color: #f5f1e8; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { 
+          background-color: #FAF7F2;
+          background-image:
+            repeating-linear-gradient(0deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px),
+            repeating-linear-gradient(90deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px);
+          padding: 28px; 
+          text-align: center;
+          border-bottom: 1px solid rgba(107, 74, 85, 0.2);
+        }
+        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55; }
+        .header p { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin: 8px 0 0 0; color: #6B4A55; opacity: 0.8; }
+        .content { padding: 32px; }
+        .alert { background: #C9A961; color: white; padding: 16px; border-radius: 6px; text-align: center; margin-bottom: 24px; font-weight: bold; }
+        .client-info { background: #f5f1e8; padding: 20px; border-radius: 6px; margin-bottom: 24px; }
+        .client-name { font-size: 18px; color: #6B4A55; margin-bottom: 8px; font-weight: bold; }
+        .event-date { color: #666; font-size: 14px; margin-bottom: 12px; }
+        .message { font-style: italic; color: #444; border-left: 3px solid #C9A961; padding-left: 16px; }
+        .button { display: inline-block; background: #6B4A55; color: white !important; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-size: 14px; letter-spacing: 1px; }
+        .button:hover { background: #8a6270; }
+        .footer { text-align: center; padding: 20px; color: #888; font-size: 12px; border-top: 1px solid #eee; }
+        .tip { background: #e8f4f8; padding: 12px; border-radius: 6px; font-size: 12px; color: #444; margin-top: 20px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Beauvette</h1>
+          <p>For Life's Most Important Days</p>
+        </div>
+        <div class="content">
+          <div class="alert">New Inquiry!</div>
+          
+          <div class="client-info">
+            <div class="client-name">${safeClientName}</div>
+            <div class="event-date">Event Date: ${eventDate}</div>
+            <div class="message">${safeMessage || 'No message provided'}</div>
+          </div>
+          
+          <div style="text-align: center; margin-bottom: 24px;">
+            <a href="${inquiryLink}" class="button">Respond Now</a>
+          </div>
+          
+          <div class="tip">
+            💡 <strong>Tip:</strong> Respond in under 10 minutes to earn the Quick Responder badge and rank higher on our leaderboard!
+          </div>
+        </div>
+        <div class="footer">
+          Sent to ${safeVendorName} via <a href="https://beauvette.com" style="color: #C9A961;">Beauvette</a>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const senderEmail = 'Beauvette <violet@beauvette.com>';
+  
+  try {
+    console.log("Sending inquiry notification email to:", toEmail);
+    const result = await client.emails.send({
+      from: senderEmail,
+      to: toEmail.trim(),
+      subject: `New inquiry from ${safeClientName} for ${eventDate}`,
+      html: htmlContent
+    });
+    console.log("Inquiry notification email sent:", JSON.stringify(result));
+    return { success: true, result };
+  } catch (err: any) {
+    console.error("Failed to send inquiry notification email:", err.message);
+    return { success: false, error: err.message };
+  }
+}

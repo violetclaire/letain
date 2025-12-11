@@ -39,6 +39,9 @@ import DemoPlannerDashboard from "@/pages/demo/DemoPlannerDashboard";
 import DemoAdminDashboard from "@/pages/demo/DemoAdminDashboard";
 import ArtistRolodex from "@/pages/ArtistRolodex";
 import PaymentSuccess from "@/pages/PaymentSuccess";
+import PublicOnboarding from "@/pages/PublicOnboarding";
+import PublicArtistCalendar from "@/pages/PublicArtistCalendar";
+import PublicAnalytics from "@/pages/PublicAnalytics";
 
 function InviteRedirectHandler() {
   const [location, setLocation] = useLocation();
@@ -109,6 +112,13 @@ function Router() {
       
       {/* Payment Routes */}
       <Route path="/payment-success" component={PaymentSuccess} />
+      
+      {/* Public Routes */}
+      <Route path="/onboarding" component={PublicOnboarding} />
+      <Route path="/analytics" component={PublicAnalytics} />
+      <Route path="/:artistSlug">
+        {(params) => <PublicArtistCalendar />}
+      </Route>
       
       <Route component={NotFound} />
     </Switch>

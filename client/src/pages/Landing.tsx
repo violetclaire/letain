@@ -1,26 +1,13 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import AIOnboardingChat from "../components/AIOnboardingChat";
-import VintageCalendar from "../components/VintageCalendar";
 
 export default function Landing() {
   const [isOpen, setIsOpen] = useState(false);
   const [, setLocation] = useLocation();
-  const [bookedDates, setBookedDates] = useState<Date[]>([]);
 
   const openElevator = () => {
     setIsOpen(true);
-  };
-
-  const handleDatesMentioned = (dates: Date[]) => {
-    setBookedDates(prev => {
-      const combined = [...prev, ...dates];
-      const unique = combined.filter((date, index, self) => 
-        self.findIndex(d => d.getTime() === date.getTime()) === index
-      );
-      return unique.sort((a, b) => a.getTime() - b.getTime());
-    });
   };
 
   return (
@@ -101,83 +88,64 @@ export default function Landing() {
           </button>
         </header>
 
-        <main className="px-4 py-8 max-w-7xl mx-auto">
-          <div className="text-center mb-10">
-            <h2 className="font-script text-4xl md:text-5xl ink-main mb-3">Beauvette</h2>
+        <main className="px-4 py-12 max-w-2xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="font-header text-2xl md:text-3xl ink-main mb-4">
+              Share your availability.
+            </h2>
             <p className="text-lg ink-soft mb-2">
-              The first concierge for beauty artists and clients
-            </p>
-            <p className="text-sm italic text-gold">
-              We answer the #1 question: "Are you available for my date?"
+              Stop answering "are you available?" emails.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-            <div className="order-1 lg:order-1">
-              <AIOnboardingChat onDatesMentioned={handleDatesMentioned} />
-            </div>
-
-            <div className="order-2 lg:order-2">
-              <VintageCalendar 
-                bookedDates={bookedDates}
-                onDatesChange={setBookedDates}
-                minYear={2026}
-                maxYear={2027}
-              />
-              
-              <div className="mt-4 p-4 rounded-lg text-center bg-cream border border-[#c5ccd8]">
-                <p className="text-sm mb-3 ink-main">
-                  Tap dates on the calendar to mark your availability
-                </p>
-                <p className="text-xs ink-soft">
-                  Or tell the assistant about your event dates
-                </p>
-              </div>
+          <div className="bg-cream rounded-2xl shadow-xl p-8 border-2 border-[#c5ccd8] text-center">
+            <p className="text-sm ink-soft mb-6">
+              Create your public calendar in 2 minutes. Share it in your Instagram bio.
+              Clients can see your availability and reach out instantly.
+            </p>
+            
+            <button
+              onClick={() => setLocation("/onboarding")}
+              className="px-8 py-4 rounded-xl text-lg font-medium bg-pink text-white hover:bg-pink/90 transition-colors shadow-lg"
+              data-testid="button-create-calendar"
+            >
+              Create My Calendar
+            </button>
+            
+            <div className="mt-8 pt-6 border-t border-[#c5ccd8]">
+              <p className="text-xs ink-soft mb-4">
+                Looking for an artist? Browse calendars below:
+              </p>
+              <button
+                onClick={() => setLocation("/analytics")}
+                className="text-sm text-gold hover:underline"
+                data-testid="button-browse-artists"
+              >
+                View Top Responsive Artists
+              </button>
             </div>
           </div>
         </main>
 
         <footer className="w-full px-6 py-6 mt-8 border-t border-[#c5ccd8] text-center bg-cream">
-          <p className="text-sm mb-4 ink-soft">
-            Are you a beauty artist or vendor?
-          </p>
-          <button
-            onClick={() => setLocation("/register?role=artist")}
-            className="px-6 py-3 rounded-lg text-sm font-medium bg-pink text-white hover:bg-pink/90 transition-colors"
-            data-testid="button-vendor-create-account"
-          >
-            Create Vendor Account
-          </button>
-          
-          <div className="mt-6 flex items-center justify-center gap-6">
-            <button
-              onClick={() => setLocation("/register?role=client")}
-              className="text-xs ink-soft hover:ink-main transition-colors"
-              data-testid="button-client-register"
-            >
-              Client Registration
-            </button>
-            <span className="text-gold">|</span>
-            <button
-              onClick={() => setLocation("/register?role=planner")}
-              className="text-xs ink-soft hover:ink-main transition-colors"
-              data-testid="button-planner-register"
-            >
-              Planner Registration
-            </button>
-            <span className="text-gold">|</span>
-            <button
-              onClick={() => setLocation("/admin")}
-              className="text-xs ink-soft hover:ink-main transition-colors"
-              data-testid="button-admin-login"
-            >
-              Admin
-            </button>
-          </div>
-          
-          <p className="mt-6 text-xs ink-soft">
+          <p className="text-xs ink-soft mb-4">
             © 2025 Beauvette. For life's most important days.
           </p>
+          <div className="flex items-center justify-center gap-4">
+            <button
+              onClick={() => setLocation("/login")}
+              className="text-xs ink-soft hover:ink-main transition-colors"
+            >
+              Already using Beauvette? Sign in
+            </button>
+            <span className="text-gold">|</span>
+            <button
+              onClick={() => setLocation("/analytics")}
+              className="text-xs ink-soft hover:ink-main transition-colors"
+            >
+              Leaderboard
+            </button>
+          </div>
         </footer>
       </motion.div>
     </div>
