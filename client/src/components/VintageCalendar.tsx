@@ -73,64 +73,39 @@ export default function VintageCalendar({
 
   return (
     <div 
-      className="rounded-xl overflow-hidden shadow-lg border-2"
-      style={{ 
-        backgroundColor: '#FFF9F0',
-        borderColor: '#D4A574',
-        fontFamily: 'Georgia, Garamond, serif'
-      }}
+      className="rounded-xl overflow-hidden shadow-lg border-2 border-[#c5ccd8] bg-cream"
       data-testid="vintage-calendar"
     >
-      <div 
-        className="px-4 py-3 border-b-2"
-        style={{ 
-          backgroundColor: '#F5EDE0',
-          borderColor: '#D4A574'
-        }}
-      >
+      <div className="px-4 py-3 border-b border-[#c5ccd8] bg-powder-blue/30">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Calendar size={18} style={{ color: '#8B4513' }} />
-            <span className="text-sm font-medium" style={{ color: '#5D4037' }}>
-              Your Availability
-            </span>
+            <Calendar size={18} className="text-pink" />
+            <span className="text-sm font-header ink-main">Your Availability</span>
           </div>
-          <span className="text-xs" style={{ color: '#8B7355' }}>
-            {formatBookedCount()}
-          </span>
+          <span className="text-xs ink-soft">{formatBookedCount()}</span>
         </div>
       </div>
 
-      <div className="p-4">
+      <div className="p-4 bg-cream">
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={handlePrevMonth}
             disabled={!canGoPrev}
-            className="p-2 rounded-full transition-all duration-200 touch-manipulation disabled:opacity-30"
-            style={{ 
-              backgroundColor: canGoPrev ? '#F5EDE0' : 'transparent',
-              color: '#8B4513'
-            }}
+            className="p-2 rounded-full transition-all duration-200 touch-manipulation disabled:opacity-30 hover:bg-powder-blue/50"
             data-testid="button-prev-month"
           >
-            <ChevronLeft size={22} />
+            <ChevronLeft size={22} className="text-forest" />
           </button>
           
           <div className="text-center">
-            <span 
-              className="text-xl font-semibold tracking-wide"
-              style={{ color: '#5D4037', fontFamily: 'Georgia, Garamond, serif' }}
-            >
+            <span className="text-xl font-header ink-main tracking-wide">
               {format(currentMonth, "MMMM")}
             </span>
-            <span 
-              className="text-lg ml-2"
-              style={{ color: '#8B7355' }}
-            >
+            <span className="text-lg ml-2 ink-soft">
               {format(currentMonth, "yyyy")}
             </span>
             {currentMonthBookings > 0 && (
-              <div className="text-xs mt-1" style={{ color: '#C85A54' }}>
+              <div className="text-xs mt-1 text-pink">
                 {currentMonthBookings} booked this month
               </div>
             )}
@@ -139,14 +114,10 @@ export default function VintageCalendar({
           <button
             onClick={handleNextMonth}
             disabled={!canGoNext}
-            className="p-2 rounded-full transition-all duration-200 touch-manipulation disabled:opacity-30"
-            style={{ 
-              backgroundColor: canGoNext ? '#F5EDE0' : 'transparent',
-              color: '#8B4513'
-            }}
+            className="p-2 rounded-full transition-all duration-200 touch-manipulation disabled:opacity-30 hover:bg-powder-blue/50"
             data-testid="button-next-month"
           >
-            <ChevronRight size={22} />
+            <ChevronRight size={22} className="text-forest" />
           </button>
         </div>
 
@@ -154,8 +125,7 @@ export default function VintageCalendar({
           {["S", "M", "T", "W", "T", "F", "S"].map((day, i) => (
             <div 
               key={`${day}-${i}`}
-              className="text-center text-xs font-medium py-2"
-              style={{ color: '#8B7355' }}
+              className="text-center text-xs font-medium py-2 text-gold"
             >
               {day}
             </div>
@@ -180,22 +150,18 @@ export default function VintageCalendar({
                   transition-all duration-200 touch-manipulation
                   min-h-[44px] min-w-[44px] relative
                   ${isPast ? 'opacity-40' : 'hover:scale-105'}
+                  ${isBooked 
+                    ? 'bg-pink text-white font-medium shadow-md' 
+                    : isCurrentDay 
+                      ? 'ring-2 ring-gold ink-main bg-powder-blue/30' 
+                      : 'ink-main hover:bg-powder-blue/50'
+                  }
                 `}
-                style={{
-                  backgroundColor: isBooked ? '#C85A54' : isCurrentDay ? '#F5EDE0' : 'transparent',
-                  color: isBooked ? '#FFFFFF' : isPast ? '#A89F8F' : '#5D4037',
-                  fontWeight: isBooked || isCurrentDay ? 600 : 400,
-                  boxShadow: isBooked ? '0 2px 4px rgba(0,0,0,0.1)' : 'none',
-                  border: isCurrentDay && !isBooked ? '2px solid #D4A574' : 'none'
-                }}
                 data-testid={`calendar-day-${format(day, "yyyy-MM-dd")}`}
               >
                 {format(day, "d")}
                 {isBooked && isEditMode && (
-                  <span 
-                    className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: '#8B4513' }}
-                  >
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center bg-forest">
                     <X size={10} className="text-white" />
                   </span>
                 )}
@@ -206,24 +172,14 @@ export default function VintageCalendar({
       </div>
 
       {bookedDates.length > 0 && (
-        <div 
-          className="px-4 py-3 border-t-2"
-          style={{ 
-            backgroundColor: '#F5EDE0',
-            borderColor: '#D4A574'
-          }}
-        >
+        <div className="px-4 py-3 border-t border-[#c5ccd8] bg-powder-blue/20">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium" style={{ color: '#5D4037' }}>
+            <span className="text-xs font-medium ink-main">
               {isEditMode ? "Tap dates above to remove" : "Booked dates:"}
             </span>
             <button
               onClick={() => setIsEditMode(!isEditMode)}
-              className="p-1.5 rounded-full transition-colors"
-              style={{ 
-                backgroundColor: isEditMode ? '#C85A54' : '#F5EDE0',
-                color: isEditMode ? '#FFFFFF' : '#8B4513'
-              }}
+              className={`p-1.5 rounded-full transition-colors ${isEditMode ? 'bg-pink text-white' : 'bg-powder-blue/50 text-forest hover:bg-powder-blue'}`}
               title={isEditMode ? "Done editing" : "Edit booked dates"}
               data-testid="button-edit-dates"
             >
@@ -236,11 +192,7 @@ export default function VintageCalendar({
               {bookedDates.slice(0, 12).map((date) => (
                 <span
                   key={date.toISOString()}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs cursor-pointer transition-colors hover:opacity-80"
-                  style={{ 
-                    backgroundColor: '#C85A54',
-                    color: '#FFFFFF'
-                  }}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs cursor-pointer transition-colors hover:opacity-80 bg-pink text-white"
                   onClick={() => handleDateClick(date)}
                 >
                   {format(date, "M/d")}
@@ -248,9 +200,7 @@ export default function VintageCalendar({
                 </span>
               ))}
               {bookedDates.length > 12 && (
-                <span className="text-xs py-1" style={{ color: '#8B7355' }}>
-                  +{bookedDates.length - 12} more
-                </span>
+                <span className="text-xs py-1 ink-soft">+{bookedDates.length - 12} more</span>
               )}
             </div>
           ) : (
@@ -258,33 +208,21 @@ export default function VintageCalendar({
               {bookedDates.slice(0, 8).map((date) => (
                 <span
                   key={date.toISOString()}
-                  className="px-2 py-1 rounded-full text-xs"
-                  style={{ 
-                    backgroundColor: 'rgba(200, 90, 84, 0.15)',
-                    color: '#C85A54'
-                  }}
+                  className="px-2 py-1 rounded-full text-xs bg-pink/20 text-pink"
                 >
                   {format(date, "MMM d")}
                 </span>
               ))}
               {bookedDates.length > 8 && (
-                <span className="text-xs py-1" style={{ color: '#8B7355' }}>
-                  +{bookedDates.length - 8} more
-                </span>
+                <span className="text-xs py-1 ink-soft">+{bookedDates.length - 8} more</span>
               )}
             </div>
           )}
         </div>
       )}
 
-      <div 
-        className="px-4 py-2 text-center border-t"
-        style={{ 
-          backgroundColor: '#FFF9F0',
-          borderColor: '#E8DFD0'
-        }}
-      >
-        <span className="text-xs italic" style={{ color: '#A89F8F' }}>
+      <div className="px-4 py-2 text-center border-t border-[#c5ccd8] bg-cream">
+        <span className="text-xs italic ink-soft">
           Tap any date to mark as booked
         </span>
       </div>

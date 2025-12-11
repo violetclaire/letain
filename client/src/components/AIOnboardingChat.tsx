@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Paperclip, Bot, User, Loader2, FileText, X, Mic } from "lucide-react";
+import { Send, Paperclip, Bot, User, Loader2, FileText, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import VoiceDictation from "./VoiceDictation";
 
@@ -165,48 +165,24 @@ export default function AIOnboardingChat({ onDatesMentioned }: AIOnboardingChatP
 
   return (
     <div 
-      className="flex flex-col h-full rounded-xl overflow-hidden shadow-lg border-2"
-      style={{ 
-        backgroundColor: '#FFF9F0',
-        borderColor: '#D4A574',
-        fontFamily: 'Georgia, Garamond, serif'
-      }}
+      className="flex flex-col h-full rounded-xl overflow-hidden shadow-lg border-2 border-[#c5ccd8] bg-cream"
       data-testid="onboarding-chat"
     >
-      <div 
-        className="px-4 py-3 border-b-2"
-        style={{ 
-          backgroundColor: '#F5EDE0',
-          borderColor: '#D4A574'
-        }}
-      >
+      <div className="px-4 py-3 border-b border-[#c5ccd8] bg-powder-blue/30">
         <div className="flex items-center gap-3">
-          <div 
-            className="p-2 rounded-full"
-            style={{ backgroundColor: '#C85A54' }}
-          >
+          <div className="p-2 rounded-full bg-pink">
             <Bot size={18} className="text-white" />
           </div>
           <div>
-            <h3 
-              className="font-semibold text-sm"
-              style={{ color: '#5D4037' }}
-            >
-              Beauvette Assistant
-            </h3>
-            <p 
-              className="text-xs"
-              style={{ color: '#8B7355' }}
-            >
-              Ask me anything about availability
-            </p>
+            <h3 className="font-header text-sm ink-main">Beauvette Assistant</h3>
+            <p className="text-xs ink-soft">Ask me anything about availability</p>
           </div>
         </div>
       </div>
 
       <div 
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4"
+        className="flex-1 overflow-y-auto p-4 space-y-4 bg-cream"
         style={{ minHeight: '300px', maxHeight: '400px' }}
       >
         {messages.map((msg) => (
@@ -215,10 +191,7 @@ export default function AIOnboardingChat({ onDatesMentioned }: AIOnboardingChatP
             className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
           >
             <div 
-              className="p-1.5 rounded-full h-fit"
-              style={{ 
-                backgroundColor: msg.role === "user" ? '#5D4037' : '#C85A54'
-              }}
+              className={`p-1.5 rounded-full h-fit ${msg.role === "user" ? "bg-forest" : "bg-pink"}`}
             >
               {msg.role === "user" ? (
                 <User size={14} className="text-white" />
@@ -228,22 +201,19 @@ export default function AIOnboardingChat({ onDatesMentioned }: AIOnboardingChatP
             </div>
             <div
               className={`max-w-[80%] rounded-xl px-4 py-3 ${
-                msg.role === "user" ? "" : ""
+                msg.role === "user" 
+                  ? "bg-forest text-white" 
+                  : "bg-powder-blue/50 ink-main"
               }`}
-              style={{
-                backgroundColor: msg.role === "user" ? '#5D4037' : '#F5EDE0',
-                color: msg.role === "user" ? '#FFFFFF' : '#5D4037'
-              }}
             >
               {msg.attachments && msg.attachments.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-2">
                   {msg.attachments.map((att, i) => (
                     <span
                       key={i}
-                      className="flex items-center gap-1 px-2 py-1 rounded text-xs"
-                      style={{ 
-                        backgroundColor: msg.role === "user" ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)'
-                      }}
+                      className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${
+                        msg.role === "user" ? "bg-white/20" : "bg-white/50"
+                      }`}
                     >
                       <FileText size={12} />
                       {att.name}
@@ -252,9 +222,7 @@ export default function AIOnboardingChat({ onDatesMentioned }: AIOnboardingChatP
                 </div>
               )}
               <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-              <span 
-                className="text-xs mt-2 block opacity-60"
-              >
+              <span className="text-xs mt-2 block opacity-60">
                 {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </span>
             </div>
@@ -263,29 +231,14 @@ export default function AIOnboardingChat({ onDatesMentioned }: AIOnboardingChatP
         
         {isLoading && (
           <div className="flex gap-3">
-            <div 
-              className="p-1.5 rounded-full h-fit"
-              style={{ backgroundColor: '#C85A54' }}
-            >
+            <div className="p-1.5 rounded-full h-fit bg-pink">
               <Bot size={14} className="text-white" />
             </div>
-            <div 
-              className="rounded-xl px-4 py-3"
-              style={{ backgroundColor: '#F5EDE0' }}
-            >
+            <div className="rounded-xl px-4 py-3 bg-powder-blue/50">
               <div className="flex items-center gap-1">
-                <span 
-                  className="w-2 h-2 rounded-full animate-bounce"
-                  style={{ backgroundColor: '#8B7355', animationDelay: '0ms' }}
-                />
-                <span 
-                  className="w-2 h-2 rounded-full animate-bounce"
-                  style={{ backgroundColor: '#8B7355', animationDelay: '150ms' }}
-                />
-                <span 
-                  className="w-2 h-2 rounded-full animate-bounce"
-                  style={{ backgroundColor: '#8B7355', animationDelay: '300ms' }}
-                />
+                <span className="w-2 h-2 rounded-full bg-gold animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-2 h-2 rounded-full bg-gold animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-2 h-2 rounded-full bg-gold animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
             </div>
           </div>
@@ -293,26 +246,18 @@ export default function AIOnboardingChat({ onDatesMentioned }: AIOnboardingChatP
       </div>
 
       {attachments.length > 0 && (
-        <div 
-          className="px-4 py-2 border-t"
-          style={{ 
-            backgroundColor: '#F5EDE0',
-            borderColor: '#E8DFD0'
-          }}
-        >
+        <div className="px-4 py-2 border-t border-[#c5ccd8] bg-powder-blue/20">
           <div className="flex gap-2 flex-wrap">
             {attachments.map((file, i) => (
               <div 
                 key={i} 
-                className="flex items-center gap-2 px-2 py-1 rounded text-xs"
-                style={{ backgroundColor: '#FFF9F0', color: '#5D4037' }}
+                className="flex items-center gap-2 px-2 py-1 rounded text-xs bg-cream ink-main"
               >
                 <FileText size={12} />
                 <span className="truncate max-w-[100px]">{file.name}</span>
                 <button
                   onClick={() => removeAttachment(i)}
-                  className="p-0.5 rounded-full hover:opacity-70"
-                  style={{ color: '#C85A54' }}
+                  className="p-0.5 rounded-full hover:opacity-70 text-pink"
                 >
                   <X size={12} />
                 </button>
@@ -322,20 +267,10 @@ export default function AIOnboardingChat({ onDatesMentioned }: AIOnboardingChatP
         </div>
       )}
 
-      <div 
-        className="border-t-2 p-3"
-        style={{ 
-          backgroundColor: '#F5EDE0',
-          borderColor: '#D4A574'
-        }}
-      >
+      <div className="border-t border-[#c5ccd8] p-3 bg-powder-blue/20">
         <div className="flex gap-2 items-end">
           <label
-            className="p-2.5 rounded-full cursor-pointer transition-colors touch-manipulation"
-            style={{ 
-              backgroundColor: '#FFF9F0',
-              color: '#8B4513'
-            }}
+            className="p-2.5 rounded-full cursor-pointer transition-colors touch-manipulation bg-cream text-forest hover:bg-powder-blue/50"
             title="Attach PDF or image"
             data-testid="button-attach-file"
           >
@@ -357,13 +292,7 @@ export default function AIOnboardingChat({ onDatesMentioned }: AIOnboardingChatP
               onKeyPress={handleKeyPress}
               placeholder="Tell me about your event..."
               rows={1}
-              className="w-full px-4 py-2.5 text-sm rounded-xl resize-none focus:outline-none focus:ring-2"
-              style={{ 
-                backgroundColor: '#FFFFFF',
-                borderColor: '#D4A574',
-                border: '1px solid #D4A574',
-                color: '#5D4037'
-              }}
+              className="w-full px-4 py-2.5 text-sm rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-pink border border-[#c5ccd8] bg-white ink-main"
               data-testid="input-chat-message"
             />
           </div>
@@ -373,21 +302,14 @@ export default function AIOnboardingChat({ onDatesMentioned }: AIOnboardingChatP
           <button
             onClick={sendMessage}
             disabled={isLoading || (!input.trim() && attachments.length === 0)}
-            className="p-2.5 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
-            style={{ 
-              backgroundColor: '#C85A54',
-              color: '#FFFFFF'
-            }}
+            className="p-2.5 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation bg-pink text-white hover:bg-pink/90"
             data-testid="button-send-message"
           >
             <Send size={18} />
           </button>
         </div>
         
-        <p 
-          className="text-xs mt-2 text-center italic"
-          style={{ color: '#A89F8F' }}
-        >
+        <p className="text-xs mt-2 text-center italic ink-soft">
           Ask about availability, services, or upload inspiration photos
         </p>
       </div>
