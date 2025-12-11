@@ -6702,7 +6702,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       // Save availability (booked dates)
       if (bookedDates && bookedDates.length > 0) {
         for (const dateStr of bookedDates) {
-          await storage.createAvailability({
+          await storage.setAvailability({
             userId: user.id,
             date: new Date(dateStr),
             isAvailable: false,

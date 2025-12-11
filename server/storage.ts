@@ -1010,6 +1010,13 @@ export class DatabaseStorage implements IStorage {
       );
   }
 
+  async getAvailabilityByUser(userId: string): Promise<Availability[]> {
+    return await db
+      .select()
+      .from(availability)
+      .where(eq(availability.userId, userId));
+  }
+
   async checkAvailability(userId: string, date: Date): Promise<boolean> {
     const dateOnly = new Date(date.toISOString().split('T')[0]);
     const result = await db
