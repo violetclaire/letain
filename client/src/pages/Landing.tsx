@@ -46,7 +46,7 @@ export default function Landing() {
                     Beauvette
                   </h1>
                   <p className="text-[0.6rem] uppercase tracking-[0.2em] text-[#666] font-normal max-w-[260px] leading-relaxed border-t border-[#2C2C2C]/30 pt-4 mt-2 mx-auto">
-                    The First Platform for Vendors <em className="italic">and</em> Clients
+                    We answer the question: are you available for my date?
                   </p>
                 </div>
               </div>
@@ -78,7 +78,7 @@ export default function Landing() {
               Share your availability.
             </h2>
             <p className="text-lg text-[#666] italic">
-              Beauvette answers the #1 question: "Are you available for my date?"
+              We answer the question: "Are you available for my date?"
             </p>
           </div>
 
@@ -96,19 +96,6 @@ export default function Landing() {
               >
                 Create My Calendar
               </button>
-              
-              <div className="mt-10 pt-6 border-t border-[#2C2C2C]/30">
-                <p className="text-xs text-[#666] mb-4">
-                  Looking for an artist? Browse calendars below:
-                </p>
-                <button
-                  onClick={() => setLocation("/analytics")}
-                  className="text-sm text-[#2C2C2C] hover:underline"
-                  data-testid="button-browse-artists"
-                >
-                  View Top Responsive Artists
-                </button>
-              </div>
             </div>
           </div>
         </main>
@@ -117,21 +104,12 @@ export default function Landing() {
           <p className="text-xs text-[#666] mb-4">
             © 2025 Beauvette. For life's most important days.
           </p>
-          <div className="flex items-center justify-center gap-4">
-            <button
-              onClick={() => setLocation("/login")}
-              className="text-xs text-[#666] hover:text-[#2C2C2C] transition-colors"
-            >
-              Already using Beauvette? Sign in
-            </button>
-            <span className="text-[#ccc]">|</span>
-            <button
-              onClick={() => setLocation("/analytics")}
-              className="text-xs text-[#666] hover:text-[#2C2C2C] transition-colors"
-            >
-              Leaderboard
-            </button>
-          </div>
+          <button
+            onClick={() => setLocation("/login")}
+            className="text-xs text-[#666] hover:text-[#2C2C2C] transition-colors"
+          >
+            Already using Beauvette? Sign in
+          </button>
         </footer>
       </motion.div>
     </div>
