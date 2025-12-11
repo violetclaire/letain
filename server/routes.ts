@@ -3288,6 +3288,48 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     }
   });
 
+  // ========== COMPOSE EMAIL (Unified email sender) ==========
+  const composeEmailSchema = z.object({
+    to: z.string().email("Invalid email address"),
+    subject: z.string().min(1, "Subject is required").max(200),
+    body: z.string().min(1, "Message body is required").max(10000),
+    templateType: z.enum(['general', 'invoice', 'schedule', 'confirmation']).optional(),
+  });
+
+  app.post("/api/emails/compose", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const parseResult = composeEmailSchema.safeParse(req.body);
+      
+      if (!parseResult.success) {
+        const firstError = parseResult.error.errors[0];
+        return res.status(400).json({ error: firstError.message });
+      }
+      
+      const { to, subject, body } = parseResult.data;
+      
+      // Get sender info
+      const user = await storage.getUser(userId);
+      const senderName = user?.firstName && user?.lastName 
+        ? `${user.firstName} ${user.lastName}` 
+        : user?.firstName || 'Beauvette';
+      
+      // Send the email
+      const emailService = await import("./emailService");
+      await emailService.sendGeneralEmail({
+        to,
+        subject,
+        body,
+        senderName,
+      });
+      
+      res.json({ success: true, message: "Email sent successfully" });
+    } catch (error: any) {
+      console.error("[Compose Email] Error:", error);
+      res.status(400).json({ error: error.message || "Failed to send email" });
+    }
+  });
+
   // Send schedule via SMS
   app.post("/api/event-schedules/send-sms", isAuthenticated, async (req: any, res) => {
     try {

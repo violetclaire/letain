@@ -2,6 +2,31 @@ import { Resend } from 'resend';
 
 let connectionSettings: any;
 
+function sanitizeSenderName(name: string): string {
+  return name
+    .replace(/[<>"'\r\n\\]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .substring(0, 50);
+}
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
+
+function sanitizeSubject(subject: string): string {
+  return subject
+    .replace(/[\r\n\t]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .substring(0, 200);
+}
+
 async function getCredentials() {
   console.log("=== Getting Resend credentials ===");
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
@@ -869,4 +894,73 @@ export async function sendChatInviteEmail({
     console.error("Failed to send chat invite email:", err.message);
     return { success: false, error: err.message };
   }
+}
+
+export async function sendGeneralEmail({
+  to,
+  subject,
+  body,
+  senderName
+}: {
+  to: string;
+  subject: string;
+  body: string;
+  senderName: string;
+}) {
+  const { client } = await getResendClient();
+
+  const safeSenderName = sanitizeSenderName(senderName) || 'Beauvette User';
+  const safeBody = escapeHtml(body).replace(/\n/g, '<br>');
+  const safeSubject = sanitizeSubject(subject);
+  
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Georgia', serif; background-color: #f5f1e8; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { 
+          background-color: #FAF7F2;
+          background-image:
+            repeating-linear-gradient(0deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px),
+            repeating-linear-gradient(90deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px);
+          padding: 28px; 
+          text-align: center;
+          border-bottom: 1px solid rgba(107, 74, 85, 0.2);
+        }
+        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55; }
+        .header p { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin: 8px 0 0 0; color: #6B4A55; opacity: 0.8; }
+        .content { padding: 32px; line-height: 1.6; color: #333; }
+        .footer { text-align: center; padding: 20px; color: #888; font-size: 12px; border-top: 1px solid #eee; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Beauvette</h1>
+          <p>For Life's Most Important Days</p>
+        </div>
+        <div class="content">
+          ${safeBody}
+        </div>
+        <div class="footer">
+          Sent by ${safeSenderName} via <a href="https://beauvette.com" style="color: #C9A961;">Beauvette</a>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const senderEmail = `${safeSenderName} via Beauvette <violet@beauvette.com>`;
+  
+  console.log("Sending general email to:", to);
+  const result = await client.emails.send({
+    from: senderEmail,
+    to: to.trim(),
+    subject: safeSubject,
+    html: htmlContent
+  });
+  console.log("General email sent:", JSON.stringify(result));
+  return { success: true, result };
 }

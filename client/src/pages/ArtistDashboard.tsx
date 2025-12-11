@@ -5,6 +5,7 @@ import VoiceDictation from "../components/VoiceDictation";
 import AvailabilityCalendar from "../components/AvailabilityCalendar";
 import AIChatPanel from "../components/AIChatPanel";
 import BusinessChatPanel from "../components/BusinessChatPanel";
+import ComposeEmailModal from "../components/ComposeEmailModal";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -30,6 +31,7 @@ export default function ArtistDashboard() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteClientName, setInviteClientName] = useState("");
+  const [showComposeEmail, setShowComposeEmail] = useState(false);
   const [selectedContact, setSelectedContact] = useState<string>("Client");
   const [loading, setLoading] = useState(true);
   const [sendingInvite, setSendingInvite] = useState(false);
@@ -1555,6 +1557,14 @@ export default function ArtistDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-4">
+              <button
+                onClick={() => setShowComposeEmail(true)}
+                className="px-4 py-2 bg-[#6B4A55] text-white text-sm rounded-lg hover:bg-[#8a6270] transition-colors flex items-center gap-2 shadow-sm"
+                data-testid="button-compose-email"
+              >
+                <Mail size={16} />
+                Send Email
+              </button>
               <div className="flex items-center gap-2">
                 <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-full hover:bg-black/10 transition-colors" data-testid="link-instagram">
                   <Instagram size={16} className="ink-soft" />
@@ -1600,6 +1610,14 @@ export default function ArtistDashboard() {
                 <h1 className="font-script text-2xl ink-main">Beauvette</h1>
                 <p className="font-script text-lg ink-main">Bonjour, {user?.firstName || 'there'}</p>
               </div>
+              <button
+                onClick={() => setShowComposeEmail(true)}
+                className="px-3 py-2 bg-[#6B4A55] text-white text-xs rounded-lg flex items-center gap-1"
+                data-testid="button-compose-email-mobile"
+              >
+                <Mail size={14} />
+                Email
+              </button>
             </div>
             
             {/* Mobile Info Menu */}
@@ -3330,6 +3348,13 @@ export default function ArtistDashboard() {
           </div>
         </div>
       )}
+
+      {/* Compose Email Modal */}
+      <ComposeEmailModal
+        isOpen={showComposeEmail}
+        onClose={() => setShowComposeEmail(false)}
+        contacts={contacts.filter(c => c.email).map(c => ({ name: c.name, email: c.email, role: c.role }))}
+      />
     </div>
   );
 }
