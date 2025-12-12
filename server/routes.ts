@@ -6938,14 +6938,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // =====================
   
   // Create proposal
-  app.post("/api/proposals", async (req, res) => {
-    console.log('[POST /api/proposals] Session ID:', req.sessionID);
-    console.log('[POST /api/proposals] isAuthenticated:', req.isAuthenticated());
-    console.log('[POST /api/proposals] User ID:', req.user?.id);
-    if (!req.isAuthenticated()) {
-      console.log('[POST /api/proposals] Auth failed - returning 401');
-      return res.status(401).json({ error: "Not authenticated" });
-    }
+  app.post("/api/proposals", isAuthenticated, async (req: any, res) => {
     try {
       const { clientName, clientEmail, clientPhone, clientCompany, eventDate, eventLocation, completionTime, lineItems, travelFee, discount, notes, terms, validUntil } = req.body;
       
@@ -6984,8 +6977,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
   
   // Get all proposals for current user
-  app.get("/api/proposals", async (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).json({ error: "Not authenticated" });
+  app.get("/api/proposals", isAuthenticated, async (req: any, res) => {
     try {
       const proposals = await storage.getProposalsByArtist(req.user!.id);
       res.json(proposals);
@@ -6996,8 +6988,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
   
   // Get single proposal
-  app.get("/api/proposals/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).json({ error: "Not authenticated" });
+  app.get("/api/proposals/:id", isAuthenticated, async (req: any, res) => {
     try {
       const proposal = await storage.getProposal(req.params.id);
       if (!proposal) return res.status(404).json({ error: "Proposal not found" });
@@ -7010,8 +7001,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
   
   // Update proposal
-  app.patch("/api/proposals/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).json({ error: "Not authenticated" });
+  app.patch("/api/proposals/:id", isAuthenticated, async (req: any, res) => {
     try {
       const existing = await storage.getProposal(req.params.id);
       if (!existing) return res.status(404).json({ error: "Proposal not found" });
@@ -7055,8 +7045,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
   
   // Send proposal via email
-  app.post("/api/proposals/:id/send", async (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).json({ error: "Not authenticated" });
+  app.post("/api/proposals/:id/send", isAuthenticated, async (req: any, res) => {
     try {
       const proposal = await storage.getProposal(req.params.id);
       if (!proposal) return res.status(404).json({ error: "Proposal not found" });
@@ -7092,8 +7081,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
   
   // Delete proposal
-  app.delete("/api/proposals/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).json({ error: "Not authenticated" });
+  app.delete("/api/proposals/:id", isAuthenticated, async (req: any, res) => {
     try {
       const existing = await storage.getProposal(req.params.id);
       if (!existing) return res.status(404).json({ error: "Proposal not found" });
