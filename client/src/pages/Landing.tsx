@@ -77,19 +77,19 @@ export default function Landing() {
             <h2 className="font-script text-6xl md:text-7xl text-[#2C2C2C] mb-6">
               Beauvette
             </h2>
-            <p className="text-xl text-[#2C2C2C] mb-2">
+            <p className="font-elegant text-2xl text-[#2C2C2C] mb-3">
               Are you available?
             </p>
-            <p className="text-lg text-[#666] italic mb-2">
+            <p className="font-elegant text-xl text-[#666] italic mb-2">
               Wonderful. Let's make it happen.
             </p>
-            <p className="text-lg text-[#666] italic mb-6">
+            <p className="font-elegant text-xl text-[#666] italic mb-6">
               If not, who do you trust?
             </p>
-            <p className="text-sm text-[#666] tracking-wide mb-2">
+            <p className="font-elegant text-base text-[#666] tracking-wide mb-2">
               For life's most important days, the details matter.
             </p>
-            <p className="text-sm text-[#666] tracking-wide">
+            <p className="font-elegant text-base text-[#666] tracking-wide">
               Create your calendar.
             </p>
           </div>
