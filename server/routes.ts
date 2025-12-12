@@ -7076,13 +7076,10 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const user = await storage.getUser(userId);
       const artistProfile = await storage.getArtistProfile(userId);
       
-      // Build chat link using artist slug - use production URL
-      const baseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://beauvette.com'
-        : `https://${process.env.REPL_SLUG || 'beauvette'}.replit.app`;
+      // Build chat link using artist slug - always use production URL for emails
       const chatLink = artistProfile?.artistSlug 
-        ? `${baseUrl}/${artistProfile.artistSlug}` 
-        : baseUrl;
+        ? `https://beauvette.com/${artistProfile.artistSlug}` 
+        : 'https://beauvette.com';
       
       // Send email
       const { sendProposalEmail } = await import('./emailService');
