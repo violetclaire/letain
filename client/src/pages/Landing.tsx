@@ -74,27 +74,28 @@ export default function Landing() {
 
         <main className="px-4 py-16 max-w-lg mx-auto">
           <div className="text-center mb-10">
-            <h2 className="font-header text-2xl md:text-3xl text-[#2C2C2C] mb-4">
-              Share your availability.
+            <h2 className="font-header text-2xl md:text-3xl text-[#2C2C2C] mb-3">
+              Are you available?
             </h2>
-            <p className="text-lg text-[#666] italic">
-              We answer the question: "Are you available for my date?"
+            <p className="text-lg text-[#666] italic mb-2">
+              Wonderful. Let's talk.
+            </p>
+            <p className="text-lg text-[#666] italic mb-6">
+              If not, who do you trust?
+            </p>
+            <p className="text-sm text-[#666] tracking-wide">
+              For life's most important days, the details matter.
             </p>
           </div>
 
           <div className="bg-[#FFFEF9] p-1 border border-[#2C2C2C]">
             <div className="border border-[#2C2C2C] p-8 text-center">
-              <p className="text-sm text-[#666] mb-8">
-                Create your public calendar in 2 minutes. Share it in your Instagram bio.
-                Clients can see your availability and reach out instantly.
-              </p>
-              
               <button
                 onClick={() => setLocation("/onboarding")}
                 className="px-10 py-4 text-base font-medium bg-[#FAF9F7] text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#f0efe9] transition-colors tracking-wide"
                 data-testid="button-create-calendar"
               >
-                Create My Calendar
+                Join Beauvette
               </button>
             </div>
           </div>
