@@ -129,14 +129,20 @@ export default function Proposals() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
       });
-      if (!res.ok) throw new Error("Failed to create proposal");
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Failed to create proposal" }));
+        throw new Error(error.error || "Failed to create proposal");
+      }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/proposals"] });
       setShowForm(false);
       setForm(defaultFormData);
-      toast({ title: "Proposal created!" });
+      toast({ title: "Proposal saved!" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   });
 
@@ -524,16 +530,6 @@ export default function Proposals() {
                       rows={3}
                       className="w-full px-3 py-2 border border-[#2C2C2C] bg-[#FAF9F7] text-[#2C2C2C] resize-none"
                       data-testid="input-terms"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-[#666] mb-1">Valid Until</label>
-                    <input
-                      type="date"
-                      value={form.validUntil}
-                      onChange={(e) => setForm(prev => ({ ...prev, validUntil: e.target.value }))}
-                      className="w-full px-3 py-2 border border-[#2C2C2C] bg-[#FAF9F7] text-[#2C2C2C]"
-                      data-testid="input-valid-until"
                     />
                   </div>
                 </div>
