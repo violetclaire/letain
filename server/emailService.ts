@@ -1210,10 +1210,6 @@ export async function sendInquiryNotificationEmail({
           <div style="text-align: center; margin-bottom: 24px;">
             <a href="${inquiryLink}" class="button">Respond Now</a>
           </div>
-          
-          <div class="tip">
-            💡 <strong>Tip:</strong> Respond in under 10 minutes to earn the Quick Responder badge and rank higher on our leaderboard!
-          </div>
         </div>
         <div class="footer">
           Sent to ${safeVendorName} via <a href="https://beauvette.com" style="color: #C9A961;">Beauvette</a>

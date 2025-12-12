@@ -6872,7 +6872,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         try {
           await smsService.sendSMS(
             artist.phone,
-            `${clientName} wants to chat about booking ${new Date(eventDate).toLocaleDateString()}. Respond here: ${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'https://beauvette.com'}/artist?inquiry=${inquiry.id}`
+            `${clientName} wants to chat about booking ${new Date(eventDate).toLocaleDateString()}. Respond here: ${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'https://beauvette.com'}/artist`
           );
         } catch (smsError) {
           console.error("[Public Inquiry] SMS send failed:", smsError);
@@ -6891,7 +6891,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
               weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
             }),
             message: message || 'No message provided',
-            inquiryLink: `${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'https://beauvette.com'}/artist?inquiry=${inquiry.id}`
+            inquiryLink: `${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'https://beauvette.com'}/artist`
           });
         } catch (emailError) {
           console.error("[Public Inquiry] Email send failed:", emailError);
@@ -7229,7 +7229,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
             weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
           }) || 'Date TBD',
           message: message || `New ${serviceType || 'beauty'} inquiry from ${source || 'external form'}`,
-          inquiryLink: `${baseUrl}/artist?inquiry=${inquiry.id}`
+          inquiryLink: `${baseUrl}/artist`
         }).catch((err: any) => {
           console.error('[Public Webhook] Email notification error:', err);
         });
