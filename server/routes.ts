@@ -6940,6 +6940,11 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // Create proposal
   app.post("/api/proposals", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
       const { clientName, clientEmail, clientPhone, clientCompany, eventDate, eventLocation, completionTime, lineItems, travelFee, discount, notes, terms, validUntil } = req.body;
       
       if (!clientName || !clientEmail) {
@@ -6951,7 +6956,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const total = subtotal + (travelFee || 0) - (discount || 0);
       
       const proposal = await storage.createProposal({
-        artistId: req.user!.id,
+        artistId: userId,
         clientName,
         clientEmail,
         clientPhone: clientPhone || null,
@@ -6979,7 +6984,11 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // Get all proposals for current user
   app.get("/api/proposals", isAuthenticated, async (req: any, res) => {
     try {
-      const proposals = await storage.getProposalsByArtist(req.user!.id);
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const proposals = await storage.getProposalsByArtist(userId);
       res.json(proposals);
     } catch (error: any) {
       console.error("[Get Proposals] Error:", error);
@@ -6990,9 +6999,13 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // Get single proposal
   app.get("/api/proposals/:id", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
       const proposal = await storage.getProposal(req.params.id);
       if (!proposal) return res.status(404).json({ error: "Proposal not found" });
-      if (proposal.artistId !== req.user!.id) return res.status(403).json({ error: "Not authorized" });
+      if (proposal.artistId !== userId) return res.status(403).json({ error: "Not authorized" });
       res.json(proposal);
     } catch (error: any) {
       console.error("[Get Proposal] Error:", error);
@@ -7003,9 +7016,13 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // Update proposal
   app.patch("/api/proposals/:id", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
       const existing = await storage.getProposal(req.params.id);
       if (!existing) return res.status(404).json({ error: "Proposal not found" });
-      if (existing.artistId !== req.user!.id) return res.status(403).json({ error: "Not authorized" });
+      if (existing.artistId !== userId) return res.status(403).json({ error: "Not authorized" });
       
       const { clientName, clientEmail, clientPhone, clientCompany, eventDate, eventLocation, completionTime, lineItems, travelFee, discount, notes, terms, validUntil, status } = req.body;
       
@@ -7047,20 +7064,24 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // Send proposal via email
   app.post("/api/proposals/:id/send", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
       const proposal = await storage.getProposal(req.params.id);
       if (!proposal) return res.status(404).json({ error: "Proposal not found" });
-      if (proposal.artistId !== req.user!.id) return res.status(403).json({ error: "Not authorized" });
+      if (proposal.artistId !== userId) return res.status(403).json({ error: "Not authorized" });
       
-      // Get artist profile
-      const artist = req.user!;
-      const artistProfile = await storage.getArtistProfile(artist.id);
+      // Get artist profile and user info
+      const user = await storage.getUser(userId);
+      const artistProfile = await storage.getArtistProfile(userId);
       
       // Send email
       const { sendProposalEmail } = await import('./emailService');
       const result = await sendProposalEmail({
         toEmail: proposal.clientEmail,
         clientName: proposal.clientName,
-        artistName: `${artist.firstName || ''} ${artist.lastName || ''}`.trim() || artistProfile?.businessName || 'Your Beauty Artist',
+        artistName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || artistProfile?.businessName || 'Your Beauty Artist',
         businessName: artistProfile?.businessName || '',
         proposal
       });
@@ -7083,9 +7104,13 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // Delete proposal
   app.delete("/api/proposals/:id", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
       const existing = await storage.getProposal(req.params.id);
       if (!existing) return res.status(404).json({ error: "Proposal not found" });
-      if (existing.artistId !== req.user!.id) return res.status(403).json({ error: "Not authorized" });
+      if (existing.artistId !== userId) return res.status(403).json({ error: "Not authorized" });
       
       await storage.deleteProposal(req.params.id);
       res.json({ success: true });
