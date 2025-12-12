@@ -1167,29 +1167,24 @@ export async function sendInquiryNotificationEmail({
     <html>
     <head>
       <style>
-        body { font-family: 'Georgia', serif; background-color: #f5f1e8; margin: 0; padding: 20px; }
-        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        body { font-family: 'Georgia', serif; background-color: #FAF9F7; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: #FFFEF9; overflow: hidden; }
         .header { 
-          background-color: #FAF7F2;
-          background-image:
-            repeating-linear-gradient(0deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px),
-            repeating-linear-gradient(90deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px);
+          background-color: #FAF9F7;
           padding: 28px; 
           text-align: center;
-          border-bottom: 1px solid rgba(107, 74, 85, 0.2);
+          border-bottom: 1px solid #6B4A55;
         }
         .header h1 { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55; }
         .header p { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin: 8px 0 0 0; color: #6B4A55; opacity: 0.8; }
         .content { padding: 32px; }
-        .alert { background: #C9A961; color: white; padding: 16px; border-radius: 6px; text-align: center; margin-bottom: 24px; font-weight: bold; }
-        .client-info { background: #f5f1e8; padding: 20px; border-radius: 6px; margin-bottom: 24px; }
+        .alert { background: #6B4A55; color: #FFFEF9; padding: 16px; text-align: center; margin-bottom: 24px; font-weight: bold; }
+        .client-info { background: #FAF9F7; padding: 20px; margin-bottom: 24px; border: 1px solid #6B4A55; }
         .client-name { font-size: 18px; color: #6B4A55; margin-bottom: 8px; font-weight: bold; }
-        .event-date { color: #666; font-size: 14px; margin-bottom: 12px; }
-        .message { font-style: italic; color: #444; border-left: 3px solid #C9A961; padding-left: 16px; }
-        .button { display: inline-block; background: #6B4A55; color: white !important; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-size: 14px; letter-spacing: 1px; }
-        .button:hover { background: #8a6270; }
-        .footer { text-align: center; padding: 20px; color: #888; font-size: 12px; border-top: 1px solid #eee; }
-        .tip { background: #e8f4f8; padding: 12px; border-radius: 6px; font-size: 12px; color: #444; margin-top: 20px; }
+        .event-date { color: #6B4A55; font-size: 14px; margin-bottom: 12px; }
+        .message { font-style: italic; color: #6B4A55; border-left: 2px solid #6B4A55; padding-left: 16px; }
+        .button { display: inline-block; background: #6B4A55; color: #FFFEF9 !important; padding: 14px 28px; text-decoration: none; font-size: 14px; letter-spacing: 1px; }
+        .footer { text-align: center; padding: 20px; color: #6B4A55; font-size: 12px; border-top: 1px solid #6B4A55; }
       </style>
     </head>
     <body>
@@ -1212,7 +1207,7 @@ export async function sendInquiryNotificationEmail({
           </div>
         </div>
         <div class="footer">
-          Sent to ${safeVendorName} via <a href="https://beauvette.com" style="color: #C9A961;">Beauvette</a>
+          Sent to ${safeVendorName} via <a href="https://beauvette.com" style="color: #6B4A55;">Beauvette</a>
         </div>
       </div>
     </body>
