@@ -119,6 +119,7 @@ export default function ArtistDashboard() {
   const [respondingInquiry, setRespondingInquiry] = useState<string | null>(null);
   const [sendingChatInvite, setSendingChatInvite] = useState<string | null>(null);
   const [decliningInquiry, setDecliningInquiry] = useState<string | null>(null);
+  const [expandedInquiry, setExpandedInquiry] = useState<string | null>(null);
   
   // Appointment email state
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -1758,134 +1759,94 @@ export default function ArtistDashboard() {
                             {inquiries.map(inquiry => (
                               <div 
                                 key={inquiry.id} 
-                                className="border border-[#e5e8f2] bg-[#fbfcff] p-3 rounded-md text-xs"
+                                className="border border-[#e5e8f2] bg-[#fbfcff] rounded-md text-xs overflow-hidden"
                                 data-testid={`inquiry-card-${inquiry.id}`}
                               >
-                                <div className="flex justify-between items-start mb-1">
-                                  <div>
+                                <button
+                                  onClick={() => setExpandedInquiry(expandedInquiry === inquiry.id ? null : inquiry.id)}
+                                  className="w-full p-3 flex justify-between items-center hover:bg-gray-50 transition-colors text-left"
+                                  data-testid={`button-expand-inquiry-${inquiry.id}`}
+                                >
+                                  <div className="flex items-center gap-2">
                                     <h3 className="font-header text-xs ink-main">{inquiry.clientName}</h3>
-                                    <p className="text-[0.6rem] ink-soft">{inquiry.clientEmail}</p>
+                                    {inquiry.status === 'pending' && (
+                                      <span className="bg-[#6B4A55]/10 text-[#6B4A55] text-[0.5rem] px-1.5 py-0.5 rounded-full font-semibold uppercase">New</span>
+                                    )}
                                   </div>
-                                  <span className={`text-[0.55rem] px-1.5 py-0.5 rounded-full ${getInquiryStatusColor(inquiry.status)}`}>
-                                    {inquiry.status}
-                                  </span>
+                                  <ChevronDown size={14} className={`ink-soft transition-transform ${expandedInquiry === inquiry.id ? 'rotate-180' : ''}`} />
+                                </button>
+                                
+                                {expandedInquiry === inquiry.id && (
+                                  <div className="px-3 pb-3 border-t border-[#e5e8f2]">
+                                    <div className="pt-3 space-y-2">
+                                      <p className="text-[0.65rem] ink-soft">{inquiry.clientEmail}</p>
+                                      <div className="flex flex-wrap gap-2 text-[0.65rem] ink-soft">
+                                        <span className="flex items-center gap-1">
+                                          <Calendar size={10} />
+                                          {new Date(inquiry.eventDate).toLocaleDateString()}
+                                        </span>
+                                        <span>• {inquiry.serviceType}</span>
+                                        {inquiry.partySize && <span>• Party of {inquiry.partySize}</span>}
+                                      </div>
+                                      {inquiry.message && (
+                                        <p className="text-[0.65rem] ink-soft italic bg-[#FAF9F7] p-2 rounded">"{inquiry.message}"</p>
+                                      )}
+                                      
+                                      {inquiry.status === 'pending' && (
+                                        <div className="flex gap-1 mt-3 flex-wrap">
+                                          <button 
+                                            onClick={() => handleDeclineInquiry(inquiry.id)}
+                                            disabled={decliningInquiry === inquiry.id}
+                                            className="flex-1 min-w-[60px] py-1.5 rounded-md border border-gray-200 text-gray-500 hover:border-red-200 hover:text-red-600 transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+                                            title="Decline"
+                                            data-testid={`button-decline-inquiry-${inquiry.id}`}
+                                          >
+                                            {decliningInquiry === inquiry.id ? (
+                                              <Loader2 size={10} className="animate-spin" />
+                                            ) : (
+                                              <XCircle size={10} />
+                                            )}
+                                            <span>Decline</span>
+                                          </button>
+                                          <button 
+                                            onClick={() => handleSendChatInvite(inquiry.id)}
+                                            disabled={sendingChatInvite === inquiry.id}
+                                            className="flex-1 min-w-[60px] py-1.5 rounded-md bg-[#6B4A55] text-white border border-[#6B4A55] hover:bg-[#5a3d47] transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+                                            title="Start Chat"
+                                            data-testid={`button-chat-invite-${inquiry.id}`}
+                                          >
+                                            {sendingChatInvite === inquiry.id ? (
+                                              <Loader2 size={10} className="animate-spin" />
+                                            ) : (
+                                              <MessageCircle size={10} />
+                                            )}
+                                            <span>Start Chat</span>
+                                          </button>
+                                          <button 
+                                            onClick={() => {
+                                              const truncatedNotes = inquiry.message ? inquiry.message.substring(0, 200) : '';
+                                              const params = new URLSearchParams();
+                                              params.set('clientName', inquiry.clientName || '');
+                                              params.set('clientEmail', inquiry.clientEmail || '');
+                                              params.set('eventDate', inquiry.eventDate || '');
+                                              params.set('serviceType', inquiry.serviceType || '');
+                                              if (truncatedNotes) params.set('notes', truncatedNotes);
+                                              if (inquiry.budget) params.set('budget', String(inquiry.budget));
+                                              setLocation(`/artist/proposals?${params.toString()}`);
+                                            }}
+                                            className="flex-1 min-w-[60px] py-1.5 rounded-md bg-[#9A9472] text-white border border-[#9A9472] hover:bg-[#8a8462] transition-colors flex items-center justify-center gap-1"
+                                            title="Create Proposal"
+                                            data-testid={`button-create-proposal-${inquiry.id}`}
+                                          >
+                                            <FileText size={10} />
+                                            <span>Proposal</span>
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
                                 </div>
-                                <div className="flex flex-wrap gap-2 mb-2 text-[0.65rem] ink-soft">
-                                  <span className="flex items-center gap-1">
-                                    <Calendar size={10} />
-                                    {new Date(inquiry.eventDate).toLocaleDateString()}
-                                  </span>
-                                  <span>• {inquiry.serviceType}</span>
-                                  {inquiry.partySize && <span>• Party of {inquiry.partySize}</span>}
-                                </div>
-                                {inquiry.message && (
-                                  <p className="text-[0.65rem] ink-soft mb-2 line-clamp-2 italic">"{inquiry.message}"</p>
-                                )}
-                                {inquiry.status === 'pending' && (
-                                  <div className="flex gap-1 mt-2 flex-wrap">
-                                    <button 
-                                      onClick={() => handleDeclineInquiry(inquiry.id)}
-                                      disabled={decliningInquiry === inquiry.id}
-                                      className="flex-1 min-w-[60px] py-1.5 rounded-md border border-gray-200 text-gray-500 hover:border-red-200 hover:text-red-600 transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
-                                      title="Decline"
-                                      data-testid={`button-decline-inquiry-${inquiry.id}`}
-                                    >
-                                      {decliningInquiry === inquiry.id ? (
-                                        <Loader2 size={10} className="animate-spin" />
-                                      ) : (
-                                        <XCircle size={10} />
-                                      )}
-                                      <span className="hidden sm:inline">Decline</span>
-                                    </button>
-                                    <button 
-                                      onClick={() => handleRespondToInquiry(inquiry.id)}
-                                      disabled={respondingInquiry === inquiry.id}
-                                      className="flex-1 min-w-[60px] py-1.5 rounded-md bg-powder-blue text-black border border-powder-blue hover:bg-[#8fb5d9] transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
-                                      title="Respond"
-                                      data-testid={`button-respond-inquiry-${inquiry.id}`}
-                                    >
-                                      {respondingInquiry === inquiry.id ? (
-                                        <Loader2 size={10} className="animate-spin" />
-                                      ) : (
-                                        <Send size={10} />
-                                      )}
-                                      <span className="hidden sm:inline">Respond</span>
-                                    </button>
-                                    <button 
-                                      onClick={() => handleSendChatInvite(inquiry.id)}
-                                      disabled={sendingChatInvite === inquiry.id}
-                                      className="flex-1 min-w-[60px] py-1.5 rounded-md bg-black text-white border border-black hover:bg-gray-800 transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
-                                      title="Invite to Chat"
-                                      data-testid={`button-chat-invite-${inquiry.id}`}
-                                    >
-                                      {sendingChatInvite === inquiry.id ? (
-                                        <Loader2 size={10} className="animate-spin" />
-                                      ) : (
-                                        <MessageCircle size={10} />
-                                      )}
-                                      <span className="hidden sm:inline">Chat</span>
-                                    </button>
-                                    <button 
-                                      onClick={() => {
-                                        // Truncate notes to avoid overly long URLs
-                                        const truncatedNotes = inquiry.message ? inquiry.message.substring(0, 200) : '';
-                                        const params = new URLSearchParams();
-                                        params.set('clientName', inquiry.clientName || '');
-                                        params.set('clientEmail', inquiry.clientEmail || '');
-                                        params.set('eventDate', inquiry.eventDate || '');
-                                        params.set('serviceType', inquiry.serviceType || '');
-                                        if (truncatedNotes) params.set('notes', truncatedNotes);
-                                        if (inquiry.budget) params.set('budget', String(inquiry.budget));
-                                        setLocation(`/artist/proposals?${params.toString()}`);
-                                      }}
-                                      className="flex-1 min-w-[60px] py-1.5 rounded-md bg-[#9A9472] text-white border border-[#9A9472] hover:bg-[#8a8462] transition-colors flex items-center justify-center gap-1"
-                                      title="Create Proposal"
-                                      data-testid={`button-create-proposal-${inquiry.id}`}
-                                    >
-                                      <FileText size={10} />
-                                      <span className="hidden sm:inline">Proposal</span>
-                                    </button>
-                                  </div>
-                                )}
-                                {inquiry.status === 'responded' && (
-                                  <div className="flex gap-1 mt-2">
-                                    <button 
-                                      onClick={() => handleSendChatInvite(inquiry.id)}
-                                      disabled={sendingChatInvite === inquiry.id}
-                                      className="flex-1 py-1.5 rounded-md bg-black text-white border border-black hover:bg-gray-800 transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
-                                      title="Invite to Chat"
-                                      data-testid={`button-chat-invite-responded-${inquiry.id}`}
-                                    >
-                                      {sendingChatInvite === inquiry.id ? (
-                                        <Loader2 size={10} className="animate-spin" />
-                                      ) : (
-                                        <MessageCircle size={10} />
-                                      )}
-                                      <span>Invite to Chat</span>
-                                    </button>
-                                    <button 
-                                      onClick={() => {
-                                        // Truncate notes to avoid overly long URLs
-                                        const truncatedNotes = inquiry.message ? inquiry.message.substring(0, 200) : '';
-                                        const params = new URLSearchParams();
-                                        params.set('clientName', inquiry.clientName || '');
-                                        params.set('clientEmail', inquiry.clientEmail || '');
-                                        params.set('eventDate', inquiry.eventDate || '');
-                                        params.set('serviceType', inquiry.serviceType || '');
-                                        if (truncatedNotes) params.set('notes', truncatedNotes);
-                                        if (inquiry.budget) params.set('budget', String(inquiry.budget));
-                                        setLocation(`/artist/proposals?${params.toString()}`);
-                                      }}
-                                      className="flex-1 py-1.5 rounded-md bg-[#9A9472] text-white border border-[#9A9472] hover:bg-[#8a8462] transition-colors flex items-center justify-center gap-1"
-                                      title="Create Proposal"
-                                      data-testid={`button-create-proposal-responded-${inquiry.id}`}
-                                    >
-                                      <FileText size={10} />
-                                      <span>Create Proposal</span>
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
                             ))}
                           </div>
                         )}
