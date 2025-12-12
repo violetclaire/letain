@@ -132,14 +132,18 @@ export default function Proposals() {
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
+      console.log("[Proposals] Creating proposal with data:", JSON.stringify(data));
+      console.log("[Proposals] User authenticated:", !!user);
       const res = await fetch("/api/proposals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(data)
       });
+      console.log("[Proposals] Response status:", res.status);
       if (!res.ok) {
         const error = await res.json().catch(() => ({ error: "Failed to create proposal" }));
+        console.error("[Proposals] Error response:", error);
         throw new Error(error.error || "Failed to create proposal");
       }
       return res.json();
