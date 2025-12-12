@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Plus, Send, Trash2, Edit, FileText, Calendar, MapPin, Clock, DollarSign, X, Check, User, Mail, Building } from "lucide-react";
+import { Plus, Send, Trash2, Edit, FileText, Calendar, MapPin, Clock, DollarSign, X, Check, User, Mail, Building, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import type { Proposal, ProposalLineItem } from "@shared/schema";
@@ -54,6 +54,7 @@ export default function Proposals() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ProposalFormData>(defaultFormData);
+  const [previewProposal, setPreviewProposal] = useState<Proposal | null>(null);
 
   const { data: proposals = [], isLoading } = useQuery<Proposal[]>({
     queryKey: ["/api/proposals"],
@@ -592,6 +593,13 @@ export default function Proposals() {
                       </div>
                       <div className="flex items-center gap-2">
                         <button
+                          onClick={() => setPreviewProposal(proposal)}
+                          className="p-2 border border-[#2C2C2C] hover:bg-[#FAF9F7] transition-colors"
+                          title="Preview Email"
+                        >
+                          <Eye size={16} className="text-[#2C2C2C]" />
+                        </button>
+                        <button
                           onClick={() => startEdit(proposal)}
                           className="p-2 border border-[#2C2C2C] hover:bg-[#FAF9F7] transition-colors"
                           title="Edit"
@@ -623,6 +631,149 @@ export default function Proposals() {
                 </div>
               </motion.div>
             ))}
+          </div>
+        )}
+
+        {/* Preview Modal */}
+        {previewProposal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-[#FAF9F7] max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-1 border border-[#2C2C2C]">
+                <div className="border border-[#2C2C2C]">
+                  {/* Header */}
+                  <div className="p-6 text-center border-b border-[#2C2C2C]">
+                    <h2 className="font-header text-2xl text-[#2C2C2C]">Violet / The Makeup Dolls</h2>
+                    <p className="text-sm text-[#666] mt-1">Service Proposal</p>
+                  </div>
+                  
+                  {/* Content */}
+                  <div className="p-6">
+                    <p className="mb-4">Hi {previewProposal.clientName},</p>
+                    <p className="mb-6 text-[#666]">Thank you for your inquiry! Here is a detailed proposal for your upcoming event:</p>
+                    
+                    {/* Event Details */}
+                    <div className="bg-[#FFFEF9] p-4 border border-[#2C2C2C] mb-6">
+                      {previewProposal.eventDate && (
+                        <div className="mb-2">
+                          <strong>Event Date:</strong> {format(new Date(previewProposal.eventDate), "EEEE, MMMM d, yyyy")}
+                        </div>
+                      )}
+                      {previewProposal.eventLocation && (
+                        <div className="mb-2">
+                          <strong>Location:</strong> {previewProposal.eventLocation}
+                        </div>
+                      )}
+                      {previewProposal.completionTime && (
+                        <div>
+                          <strong>Complete By:</strong> {previewProposal.completionTime}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Services Table */}
+                    <table className="w-full mb-6">
+                      <thead>
+                        <tr className="bg-[#FAF9F7] border-b-2 border-[#2C2C2C]">
+                          <th className="p-3 text-left font-semibold">Service</th>
+                          <th className="p-3 text-center font-semibold">Qty</th>
+                          <th className="p-3 text-right font-semibold">Rate</th>
+                          <th className="p-3 text-right font-semibold">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {previewProposal.lineItems?.map((item, i) => (
+                          <tr key={i} className="border-b border-[#eee]">
+                            <td className="p-3">{item.description}</td>
+                            <td className="p-3 text-center">{item.quantity}</td>
+                            <td className="p-3 text-right">{formatCurrency(item.unitPrice)}</td>
+                            <td className="p-3 text-right">{formatCurrency(item.unitPrice * item.quantity)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    
+                    {/* Totals */}
+                    <div className="bg-[#FAF9F7] p-4 border border-[#2C2C2C]">
+                      <div className="flex justify-between py-2">
+                        <span>Subtotal</span>
+                        <span>{formatCurrency(previewProposal.subtotal || 0)}</span>
+                      </div>
+                      {previewProposal.travelFee ? (
+                        <div className="flex justify-between py-2">
+                          <span>Travel Fee</span>
+                          <span>{formatCurrency(previewProposal.travelFee)}</span>
+                        </div>
+                      ) : null}
+                      {previewProposal.discount ? (
+                        <div className="flex justify-between py-2">
+                          <span>Discount</span>
+                          <span>-{formatCurrency(previewProposal.discount)}</span>
+                        </div>
+                      ) : null}
+                      <div className="flex justify-between py-2 border-t-2 border-[#2C2C2C] mt-2 pt-4 text-lg font-bold">
+                        <span>Total</span>
+                        <span>{formatCurrency(previewProposal.total || 0)}</span>
+                      </div>
+                    </div>
+                    
+                    {/* Notes */}
+                    {previewProposal.notes && (
+                      <div className="mt-6 p-4 bg-[#FAF9F7] border border-[#2C2C2C]">
+                        <strong>Notes:</strong>
+                        <p className="mt-2 text-[#666] whitespace-pre-wrap">{previewProposal.notes}</p>
+                      </div>
+                    )}
+                    
+                    {/* Terms */}
+                    {previewProposal.terms && (
+                      <div className="mt-4 p-4 bg-[#FAF9F7] border border-[#2C2C2C]">
+                        <strong>Terms:</strong>
+                        <p className="mt-2 text-[#666] whitespace-pre-wrap">{previewProposal.terms}</p>
+                      </div>
+                    )}
+                    
+                    {/* Valid Until */}
+                    {previewProposal.validUntil && (
+                      <div className="mt-6 text-center p-3 bg-[#FAF9F7] border border-[#2C2C2C] text-sm text-[#666]">
+                        This proposal is valid until {format(new Date(previewProposal.validUntil), "MMMM d, yyyy")}
+                      </div>
+                    )}
+                    
+                    <p className="mt-6 text-sm text-[#666]">
+                      To accept this proposal, please reply to this email or contact me directly.
+                    </p>
+                  </div>
+                  
+                  {/* Footer */}
+                  <div className="p-4 text-center border-t border-[#2C2C2C] text-sm text-[#666]">
+                    Sent via <span className="text-[#2C2C2C]">Beauvette</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex gap-3 p-4 border-t border-[#2C2C2C] bg-[#FFFEF9]">
+                <button
+                  onClick={() => setPreviewProposal(null)}
+                  className="flex-1 px-4 py-3 border border-[#2C2C2C] text-[#2C2C2C] hover:bg-[#FAF9F7] transition-colors"
+                >
+                  Close
+                </button>
+                {previewProposal.status === 'draft' && (
+                  <button
+                    onClick={() => {
+                      sendMutation.mutate(previewProposal.id);
+                      setPreviewProposal(null);
+                    }}
+                    disabled={sendMutation.isPending}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#2C2C2C] text-[#FFFEF9] hover:bg-[#1a1a1a] transition-colors disabled:opacity-50"
+                  >
+                    <Send size={18} />
+                    Send Proposal
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>
