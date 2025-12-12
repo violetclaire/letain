@@ -18,7 +18,13 @@ const getOidcConfig = memoize(
   { maxAge: 3600 * 1000 }
 );
 
-export function getSession() {
+let cachedSessionMiddleware: RequestHandler | null = null;
+
+export function getSession(): RequestHandler {
+  if (cachedSessionMiddleware) {
+    return cachedSessionMiddleware;
+  }
+  
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
@@ -27,7 +33,8 @@ export function getSession() {
     ttl: sessionTtl,
     tableName: "sessions",
   });
-  return session({
+  
+  cachedSessionMiddleware = session({
     secret: process.env.SESSION_SECRET!,
     store: sessionStore,
     resave: false,
@@ -39,6 +46,8 @@ export function getSession() {
       maxAge: sessionTtl,
     },
   });
+  
+  return cachedSessionMiddleware;
 }
 
 function updateUserSession(

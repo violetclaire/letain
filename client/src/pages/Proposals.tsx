@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Plus, Send, Trash2, Edit, FileText, Calendar, MapPin, Clock, DollarSign, X, Check, User, Mail, Building, Eye } from "lucide-react";
 import { format } from "date-fns";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import type { Proposal, ProposalLineItem } from "@shared/schema";
 
@@ -49,6 +50,7 @@ const defaultFormData: ProposalFormData = {
 };
 
 export default function Proposals() {
+  const { user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
@@ -123,8 +125,9 @@ export default function Proposals() {
       }
       return res.json();
     },
-    staleTime: 5000,
-    retry: 1
+    enabled: !!user && !authLoading,
+    staleTime: 30000,
+    retry: false
   });
 
   const createMutation = useMutation({
