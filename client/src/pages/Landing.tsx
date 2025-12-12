@@ -74,9 +74,12 @@ export default function Landing() {
 
         <main className="px-4 py-16 max-w-lg mx-auto">
           <div className="text-center mb-10">
-            <h2 className="font-header text-2xl md:text-3xl text-[#2C2C2C] mb-3">
-              Are you available?
+            <h2 className="font-script text-4xl md:text-5xl text-[#2C2C2C] mb-6">
+              Beauvette
             </h2>
+            <p className="text-xl text-[#2C2C2C] mb-2">
+              Are you available?
+            </p>
             <p className="text-lg text-[#666] italic mb-2">
               Wonderful. Let's talk.
             </p>
