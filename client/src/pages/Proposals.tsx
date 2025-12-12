@@ -116,7 +116,7 @@ export default function Proposals() {
   const { data: proposals = [], isLoading } = useQuery<Proposal[]>({
     queryKey: ["/api/proposals"],
     queryFn: async () => {
-      const res = await fetch("/api/proposals");
+      const res = await fetch("/api/proposals", { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch proposals");
       return res.json();
     }
@@ -127,6 +127,7 @@ export default function Proposals() {
       const res = await fetch("/api/proposals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(data)
       });
       if (!res.ok) {
@@ -151,6 +152,7 @@ export default function Proposals() {
       const res = await fetch(`/api/proposals/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(data)
       });
       if (!res.ok) throw new Error("Failed to update proposal");
@@ -162,13 +164,17 @@ export default function Proposals() {
       setEditingId(null);
       setForm(defaultFormData);
       toast({ title: "Proposal updated!" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   });
 
   const sendMutation = useMutation({
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/proposals/${id}/send`, {
-        method: "POST"
+        method: "POST",
+        credentials: "include"
       });
       if (!res.ok) throw new Error("Failed to send proposal");
       return res.json();
@@ -184,7 +190,10 @@ export default function Proposals() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/proposals/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/proposals/${id}`, { 
+        method: "DELETE",
+        credentials: "include"
+      });
       if (!res.ok) throw new Error("Failed to delete");
       return res.json();
     },
