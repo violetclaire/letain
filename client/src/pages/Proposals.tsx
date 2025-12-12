@@ -117,9 +117,14 @@ export default function Proposals() {
     queryKey: ["/api/proposals"],
     queryFn: async () => {
       const res = await fetch("/api/proposals", { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch proposals");
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.error || "Failed to fetch proposals");
+      }
       return res.json();
-    }
+    },
+    staleTime: 5000,
+    retry: 1
   });
 
   const createMutation = useMutation({
