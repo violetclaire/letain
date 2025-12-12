@@ -7101,6 +7101,161 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // ============================================================
+  // PUBLIC WEBHOOK - External Contact Form Submissions
+  // This endpoint allows external websites (like The Makeup Dolls)
+  // to submit contact forms directly to Beauvette as inquiries
+  // ============================================================
+  app.post("/api/public/contact-webhook", async (req, res) => {
+    try {
+      const { 
+        artistSlug,         // Required: identifies which artist receives the inquiry
+        clientName,         // Required: client's name
+        clientEmail,        // Required: client's email
+        clientPhone,        // Optional: client's phone
+        eventDate,          // Optional: event date (ISO string or parseable date)
+        serviceType,        // Optional: type of service requested
+        message,            // Optional: client's message
+        source,             // Optional: source identifier (e.g., "makeup-dolls", "website")
+        partySize,          // Optional: number of people
+        budget,             // Optional: mentioned budget
+        apiKey              // Optional: for future rate limiting/auth
+      } = req.body;
+      
+      // Validate required fields
+      if (!artistSlug) {
+        return res.status(400).json({ error: "artistSlug is required" });
+      }
+      if (!clientName) {
+        return res.status(400).json({ error: "clientName is required" });
+      }
+      if (!clientEmail) {
+        return res.status(400).json({ error: "clientEmail is required" });
+      }
+      
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(clientEmail)) {
+        return res.status(400).json({ error: "Invalid email format" });
+      }
+      
+      // Find the artist by slug
+      const artistProfile = await storage.getArtistProfileBySlug(artistSlug);
+      if (!artistProfile) {
+        return res.status(404).json({ error: "Artist not found" });
+      }
+      
+      // Parse event date - default to 1 month from now if not provided (eventDate is required in schema)
+      let parsedEventDate: Date;
+      if (eventDate) {
+        try {
+          const parsed = new Date(eventDate);
+          if (!isNaN(parsed.getTime())) {
+            parsedEventDate = parsed;
+          } else {
+            parsedEventDate = new Date();
+            parsedEventDate.setMonth(parsedEventDate.getMonth() + 1);
+          }
+        } catch {
+          parsedEventDate = new Date();
+          parsedEventDate.setMonth(parsedEventDate.getMonth() + 1);
+        }
+      } else {
+        parsedEventDate = new Date();
+        parsedEventDate.setMonth(parsedEventDate.getMonth() + 1);
+      }
+      
+      // Build message with source info
+      const fullMessage = source 
+        ? `[Source: ${source}] ${message || ''}`
+        : message || '';
+      
+      // Create the inquiry
+      const inquiry = await storage.createInquiry({
+        vendorId: artistProfile.userId,
+        clientName,
+        clientEmail,
+        clientPhone: clientPhone || null,
+        eventDate: parsedEventDate,
+        serviceType: serviceType || 'Beauty Services',
+        message: fullMessage || null,
+        partySize: partySize ? parseInt(String(partySize), 10) : null,
+        budget: budget ? String(budget) : null, // budget is text type in schema
+        status: 'pending',
+      });
+      
+      console.log(`[Public Webhook] Created inquiry ${inquiry.id} for artist ${artistSlug} from ${source || 'external'}`);
+      
+      // Get the artist for notifications
+      const artist = await storage.getUser(artistProfile.userId);
+      
+      // Send email notification to artist
+      if (artist?.email) {
+        const { sendInquiryNotificationEmail } = await import('./emailService');
+        const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+          ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+          : 'https://beauvette.com';
+        
+        sendInquiryNotificationEmail({
+          toEmail: artist.email,
+          vendorName: artist.firstName || artistProfile.businessName || 'Artist',
+          clientName,
+          eventDate: parsedEventDate?.toLocaleDateString('en-US', { 
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+          }) || 'Date TBD',
+          message: message || `New ${serviceType || 'beauty'} inquiry from ${source || 'external form'}`,
+          inquiryLink: `${baseUrl}/artist?inquiry=${inquiry.id}`
+        }).catch((err: any) => {
+          console.error('[Public Webhook] Email notification error:', err);
+        });
+      }
+      
+      // Send SMS notification if artist has phone
+      if (artist?.phone) {
+        try {
+          await smsService.sendSMS(
+            artist.phone,
+            `New inquiry from ${clientName} (${source || 'external form'}) for ${parsedEventDate ? new Date(parsedEventDate).toLocaleDateString() : 'TBD'}. Check Beauvette!`
+          );
+        } catch (smsError) {
+          console.error('[Public Webhook] SMS notification error:', smsError);
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        inquiryId: inquiry.id,
+        message: "Inquiry received successfully"
+      });
+    } catch (error: any) {
+      console.error("[Public Webhook] Error:", error);
+      res.status(500).json({ error: "Failed to process contact form" });
+    }
+  });
+  
+  // Public endpoint to get artist slug info (for external form integration)
+  app.get("/api/public/artist/:slug", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const profile = await storage.getArtistProfileBySlug(slug);
+      
+      if (!profile) {
+        return res.status(404).json({ error: "Artist not found" });
+      }
+      
+      // Return only public info needed for form integration
+      res.json({
+        slug: profile.slug,
+        businessName: profile.businessName || 'Beauty Artist',
+        specialties: profile.specialties || [],
+        location: profile.location || null
+      });
+    } catch (error: any) {
+      console.error("[Public Artist Info] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

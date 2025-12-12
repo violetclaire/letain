@@ -1891,22 +1891,42 @@ export default function ArtistDashboard() {
                         )}
                       </div>
 
-                      {/* Day-of Schedules - Under Service Requests */}
-                      <Link 
-                        href="/artist/schedules"
-                        className="card-frame rounded-md px-5 py-4 block hover:border-black transition-colors group"
-                        data-testid="link-day-schedules"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-powder-blue rounded-full group-hover:bg-black transition-colors">
-                            <Clock size={18} className="text-black group-hover:text-white transition-colors" />
+                      {/* Quick Actions Row */}
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* New Proposal - For off-platform requests */}
+                        <Link 
+                          href="/artist/proposals"
+                          className="card-frame rounded-md px-4 py-3 block hover:border-black transition-colors group"
+                          data-testid="link-new-proposal"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-[#9A9472] rounded-full group-hover:bg-black transition-colors">
+                              <FileText size={16} className="text-white" />
+                            </div>
+                            <div>
+                              <h3 className="font-header text-sm ink-main">New Proposal</h3>
+                              <p className="text-[0.6rem] ink-soft">For any client request</p>
+                            </div>
                           </div>
-                          <div>
-                            <h3 className="font-header text-sm ink-main">Day-of Schedules</h3>
-                            <p className="text-[0.65rem] ink-soft">View or create event timelines</p>
+                        </Link>
+                        
+                        {/* Day-of Schedules */}
+                        <Link 
+                          href="/artist/schedules"
+                          className="card-frame rounded-md px-4 py-3 block hover:border-black transition-colors group"
+                          data-testid="link-day-schedules"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-powder-blue rounded-full group-hover:bg-black transition-colors">
+                              <Clock size={16} className="text-black group-hover:text-white transition-colors" />
+                            </div>
+                            <div>
+                              <h3 className="font-header text-sm ink-main">Day-of Schedules</h3>
+                              <p className="text-[0.6rem] ink-soft">View or create timelines</p>
+                            </div>
                           </div>
-                        </div>
-                      </Link>
+                        </Link>
+                      </div>
 
                       {/* Portfolio Gallery */}
                       <div className="card-frame rounded-md px-5 py-4">
