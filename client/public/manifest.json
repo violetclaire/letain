@@ -1,0 +1,38 @@
+{
+  "name": "Beauvette",
+  "short_name": "Beauvette",
+  "description": "Beauty for Life's Most Important Days - Connect with beauty artists for your special events",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF9F7",
+  "theme_color": "#6B4A55",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["beauty", "lifestyle", "business"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Find Artists",
+      "url": "/browse",
+      "description": "Browse beauty artists"
+    },
+    {
+      "name": "My Dashboard",
+      "url": "/artist",
+      "description": "View your artist dashboard"
+    }
+  ]
+}
