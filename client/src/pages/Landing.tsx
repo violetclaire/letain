@@ -81,13 +81,16 @@ export default function Landing() {
               Are you available?
             </p>
             <p className="text-lg text-[#666] italic mb-2">
-              Wonderful. Let's talk.
+              Wonderful. Let's make it happen.
             </p>
             <p className="text-lg text-[#666] italic mb-6">
-              If not, who do you trust?
+              If not—who do you trust?
+            </p>
+            <p className="text-sm text-[#666] tracking-wide mb-2">
+              For life's most important days, the details matter.
             </p>
             <p className="text-sm text-[#666] tracking-wide">
-              For life's most important days, the details matter.
+              Create your calendar.
             </p>
           </div>
 
@@ -98,7 +101,7 @@ export default function Landing() {
                 className="px-10 py-4 text-base font-medium bg-[#FAF9F7] text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#f0efe9] transition-colors tracking-wide"
                 data-testid="button-create-calendar"
               >
-                Join Beauvette
+                Get started
               </button>
             </div>
           </div>
