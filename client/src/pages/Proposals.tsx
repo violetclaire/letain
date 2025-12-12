@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Plus, Send, Trash2, Edit, FileText, Calendar, MapPin, Clock, DollarSign, X, Check, User, Mail, Building, Eye } from "lucide-react";
@@ -55,6 +55,63 @@ export default function Proposals() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ProposalFormData>(defaultFormData);
   const [previewProposal, setPreviewProposal] = useState<Proposal | null>(null);
+
+  // Check for pre-fill params from inquiry (e.g., /artist/proposals?clientName=...&clientEmail=...)
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const clientName = searchParams.get('clientName');
+    const clientEmail = searchParams.get('clientEmail');
+    const eventDate = searchParams.get('eventDate');
+    const serviceType = searchParams.get('serviceType');
+    const notes = searchParams.get('notes');
+    const budget = searchParams.get('budget');
+    
+    if (clientName || clientEmail) {
+      // Format the event date for the date input if provided
+      let formattedDate = "";
+      if (eventDate) {
+        try {
+          const date = new Date(eventDate);
+          formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+        } catch {
+          formattedDate = "";
+        }
+      }
+      
+      // Build notes with service type and any message from inquiry
+      let proposalNotes = "";
+      if (serviceType) {
+        proposalNotes += `Service: ${serviceType}\n`;
+      }
+      if (notes) {
+        proposalNotes += `Client notes: ${notes}\n`;
+      }
+      if (budget) {
+        proposalNotes += `Budget mentioned: $${budget}`;
+      }
+      
+      setForm({
+        ...defaultFormData,
+        clientName: clientName || "",
+        clientEmail: clientEmail || "",
+        eventDate: formattedDate,
+        notes: proposalNotes.trim(),
+        // Pre-fill a line item with the service type if available
+        lineItems: serviceType 
+          ? [{ description: serviceType, quantity: 1, unitPrice: 0, services: [] }]
+          : [{ ...defaultLineItem }],
+      });
+      setShowForm(true);
+      
+      // Clear the URL params without triggering navigation
+      window.history.replaceState({}, '', '/artist/proposals');
+      
+      toast({
+        title: "Proposal Pre-filled",
+        description: `Creating proposal for ${clientName}`,
+      });
+    }
+  }, []);
 
   const { data: proposals = [], isLoading } = useQuery<Proposal[]>({
     queryKey: ["/api/proposals"],

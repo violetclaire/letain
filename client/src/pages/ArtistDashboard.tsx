@@ -1782,11 +1782,11 @@ export default function ArtistDashboard() {
                                   <p className="text-[0.65rem] ink-soft mb-2 line-clamp-2 italic">"{inquiry.message}"</p>
                                 )}
                                 {inquiry.status === 'pending' && (
-                                  <div className="flex gap-1 mt-2">
+                                  <div className="flex gap-1 mt-2 flex-wrap">
                                     <button 
                                       onClick={() => handleDeclineInquiry(inquiry.id)}
                                       disabled={decliningInquiry === inquiry.id}
-                                      className="flex-1 py-1.5 rounded-md border border-gray-200 text-gray-500 hover:border-red-200 hover:text-red-600 transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+                                      className="flex-1 min-w-[60px] py-1.5 rounded-md border border-gray-200 text-gray-500 hover:border-red-200 hover:text-red-600 transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
                                       title="Decline"
                                       data-testid={`button-decline-inquiry-${inquiry.id}`}
                                     >
@@ -1800,7 +1800,7 @@ export default function ArtistDashboard() {
                                     <button 
                                       onClick={() => handleRespondToInquiry(inquiry.id)}
                                       disabled={respondingInquiry === inquiry.id}
-                                      className="flex-1 py-1.5 rounded-md bg-powder-blue text-black border border-powder-blue hover:bg-[#8fb5d9] transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+                                      className="flex-1 min-w-[60px] py-1.5 rounded-md bg-powder-blue text-black border border-powder-blue hover:bg-[#8fb5d9] transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
                                       title="Respond"
                                       data-testid={`button-respond-inquiry-${inquiry.id}`}
                                     >
@@ -1814,7 +1814,7 @@ export default function ArtistDashboard() {
                                     <button 
                                       onClick={() => handleSendChatInvite(inquiry.id)}
                                       disabled={sendingChatInvite === inquiry.id}
-                                      className="flex-1 py-1.5 rounded-md bg-black text-white border border-black hover:bg-gray-800 transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+                                      className="flex-1 min-w-[60px] py-1.5 rounded-md bg-black text-white border border-black hover:bg-gray-800 transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
                                       title="Invite to Chat"
                                       data-testid={`button-chat-invite-${inquiry.id}`}
                                     >
@@ -1824,6 +1824,26 @@ export default function ArtistDashboard() {
                                         <MessageCircle size={10} />
                                       )}
                                       <span className="hidden sm:inline">Chat</span>
+                                    </button>
+                                    <button 
+                                      onClick={() => {
+                                        // Truncate notes to avoid overly long URLs
+                                        const truncatedNotes = inquiry.message ? inquiry.message.substring(0, 200) : '';
+                                        const params = new URLSearchParams();
+                                        params.set('clientName', inquiry.clientName || '');
+                                        params.set('clientEmail', inquiry.clientEmail || '');
+                                        params.set('eventDate', inquiry.eventDate || '');
+                                        params.set('serviceType', inquiry.serviceType || '');
+                                        if (truncatedNotes) params.set('notes', truncatedNotes);
+                                        if (inquiry.budget) params.set('budget', String(inquiry.budget));
+                                        setLocation(`/artist/proposals?${params.toString()}`);
+                                      }}
+                                      className="flex-1 min-w-[60px] py-1.5 rounded-md bg-[#9A9472] text-white border border-[#9A9472] hover:bg-[#8a8462] transition-colors flex items-center justify-center gap-1"
+                                      title="Create Proposal"
+                                      data-testid={`button-create-proposal-${inquiry.id}`}
+                                    >
+                                      <FileText size={10} />
+                                      <span className="hidden sm:inline">Proposal</span>
                                     </button>
                                   </div>
                                 )}
@@ -1842,6 +1862,26 @@ export default function ArtistDashboard() {
                                         <MessageCircle size={10} />
                                       )}
                                       <span>Invite to Chat</span>
+                                    </button>
+                                    <button 
+                                      onClick={() => {
+                                        // Truncate notes to avoid overly long URLs
+                                        const truncatedNotes = inquiry.message ? inquiry.message.substring(0, 200) : '';
+                                        const params = new URLSearchParams();
+                                        params.set('clientName', inquiry.clientName || '');
+                                        params.set('clientEmail', inquiry.clientEmail || '');
+                                        params.set('eventDate', inquiry.eventDate || '');
+                                        params.set('serviceType', inquiry.serviceType || '');
+                                        if (truncatedNotes) params.set('notes', truncatedNotes);
+                                        if (inquiry.budget) params.set('budget', String(inquiry.budget));
+                                        setLocation(`/artist/proposals?${params.toString()}`);
+                                      }}
+                                      className="flex-1 py-1.5 rounded-md bg-[#9A9472] text-white border border-[#9A9472] hover:bg-[#8a8462] transition-colors flex items-center justify-center gap-1"
+                                      title="Create Proposal"
+                                      data-testid={`button-create-proposal-responded-${inquiry.id}`}
+                                    >
+                                      <FileText size={10} />
+                                      <span>Create Proposal</span>
                                     </button>
                                   </div>
                                 )}
