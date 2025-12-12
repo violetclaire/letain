@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Mic, MicOff, Paperclip, X, Image as ImageIcon, Bot, User, Loader2, UserPlus, Calendar } from "lucide-react";
+import { Send, Mic, MicOff, Paperclip, X, Image as ImageIcon, Bot, User, Loader2, UserPlus, Calendar, FileText, Eye, Check, DollarSign, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import VoiceDictation from "./VoiceDictation";
@@ -13,6 +13,17 @@ interface Message {
   timestamp: Date;
   showCalendar?: boolean;
   calendarPrompt?: string;
+}
+
+interface PendingProposal {
+  clientName: string;
+  clientEmail?: string | null;
+  packageDetails: string;
+  totalAmount: number;
+  depositAmount?: number;
+  bookingId?: string | null;
+  eventDate?: string | null;
+  location?: string | null;
 }
 
 interface AIChatPanelProps {
@@ -40,6 +51,8 @@ export default function AIChatPanel({ userId, userName, onAvailabilityUpdate, on
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarPrompt, setCalendarPrompt] = useState("Select a date");
   const [activeCalendarMessageId, setActiveCalendarMessageId] = useState<string | null>(null);
+  const [pendingProposal, setPendingProposal] = useState<PendingProposal | null>(null);
+  const [isSendingProposal, setIsSendingProposal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -277,6 +290,11 @@ export default function AIChatPanel({ userId, userName, onAvailabilityUpdate, on
         setActiveCalendarMessageId(msgId);
       }
 
+      // Handle pending proposal - show preview modal
+      if (data.pendingProposal) {
+        setPendingProposal(data.pendingProposal);
+      }
+
       if (data.availabilityUpdates && onAvailabilityUpdate) {
         onAvailabilityUpdate(data.availabilityUpdates.dates, data.availabilityUpdates.isAvailable);
       }
@@ -340,6 +358,60 @@ export default function AIChatPanel({ userId, userName, onAvailabilityUpdate, on
       setCalendarPrompt("Select dates");
       setActiveCalendarMessageId(null);
     }
+  };
+
+  const formatCurrency = (cents: number) => {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
+  };
+
+  const handleConfirmProposal = async () => {
+    if (!pendingProposal) return;
+    
+    setIsSendingProposal(true);
+    try {
+      const response = await fetch("/api/ai/confirm-proposal", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(pendingProposal)
+      });
+
+      if (!response.ok) throw new Error("Failed to send proposal");
+
+      const data = await response.json();
+      
+      // Add confirmation message to chat
+      const confirmMsg: Message = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: `Proposal sent successfully to ${pendingProposal.clientName}! They'll receive an email with the details.`,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, confirmMsg]);
+      
+      toast({ title: "Proposal sent!" });
+      setPendingProposal(null);
+    } catch (error) {
+      console.error("Send proposal error:", error);
+      toast({
+        title: "Failed to send",
+        description: "Please try again",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSendingProposal(false);
+    }
+  };
+
+  const handleCancelProposal = () => {
+    setPendingProposal(null);
+    const cancelMsg: Message = {
+      id: Date.now().toString(),
+      role: "assistant",
+      content: "Proposal cancelled. Let me know if you'd like to make changes.",
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, cancelMsg]);
   };
 
   return (
@@ -432,6 +504,88 @@ export default function AIChatPanel({ userId, userName, onAvailabilityUpdate, on
               onCancel={handleCalendarCancel}
               multiSelect={true}
             />
+          </div>
+        )}
+        
+        {pendingProposal && (
+          <div className="flex gap-2">
+            <div className="p-1.5 rounded-full bg-pink h-fit">
+              <FileText size={12} className="text-white" />
+            </div>
+            <div className="bg-cream border border-pink/30 rounded-lg shadow-lg overflow-hidden max-w-[320px] w-full" data-testid="proposal-preview-modal">
+              <div className="bg-gradient-to-r from-pink/20 to-powder/30 px-4 py-3 border-b border-pink/20">
+                <div className="flex items-center gap-2">
+                  <Eye size={16} className="text-pink" />
+                  <span className="text-sm font-header text-forest">Proposal Preview</span>
+                </div>
+              </div>
+              
+              <div className="p-4 bg-cream space-y-3">
+                <div>
+                  <div className="flex items-center gap-1 text-xs text-gold mb-1">
+                    <User size={12} />
+                    <span>Client</span>
+                  </div>
+                  <p className="text-sm font-medium text-forest">{pendingProposal.clientName}</p>
+                  {pendingProposal.clientEmail && (
+                    <p className="text-xs text-gold">{pendingProposal.clientEmail}</p>
+                  )}
+                </div>
+                
+                <div>
+                  <div className="flex items-center gap-1 text-xs text-gold mb-1">
+                    <FileText size={12} />
+                    <span>Package Details</span>
+                  </div>
+                  <p className="text-xs text-forest whitespace-pre-wrap">{pendingProposal.packageDetails}</p>
+                </div>
+                
+                <div className="flex gap-4">
+                  <div>
+                    <div className="flex items-center gap-1 text-xs text-gold mb-1">
+                      <DollarSign size={12} />
+                      <span>Total</span>
+                    </div>
+                    <p className="text-sm font-medium text-forest">{formatCurrency(pendingProposal.totalAmount)}</p>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gold mb-1">Deposit</div>
+                    <p className="text-sm font-medium text-forest">{formatCurrency(pendingProposal.depositAmount || Math.round(pendingProposal.totalAmount * 0.5))}</p>
+                  </div>
+                </div>
+                
+                {pendingProposal.location && (
+                  <div>
+                    <div className="flex items-center gap-1 text-xs text-gold mb-1">
+                      <MapPin size={12} />
+                      <span>Location</span>
+                    </div>
+                    <p className="text-xs text-forest">{pendingProposal.location}</p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="px-4 py-3 bg-powder/50 border-t border-pink/20 flex gap-2">
+                <button
+                  onClick={handleCancelProposal}
+                  disabled={isSendingProposal}
+                  className="flex-1 flex items-center justify-center gap-1 py-2 px-3 text-sm text-forest border border-forest/20 rounded-lg hover:bg-forest/5 transition-colors disabled:opacity-50"
+                  data-testid="button-cancel-proposal"
+                >
+                  <X size={14} />
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmProposal}
+                  disabled={isSendingProposal}
+                  className="flex-1 flex items-center justify-center gap-1 py-2 px-3 text-sm bg-pink text-white rounded-lg hover:bg-pink/90 disabled:opacity-50 transition-colors"
+                  data-testid="button-send-proposal"
+                >
+                  {isSendingProposal ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                  Send
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -2552,23 +2552,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Handle contract creation
+      // Handle contract/proposal creation - return as pending for preview instead of auto-creating
       if (result?.createContract?.clientName && result?.createContract?.packageDetails) {
-        console.log("Processing contract creation:", result.createContract);
-        try {
-          const contractResult = await aiChat.createContractFromAI(userId, result.createContract);
-          if (contractResult.success) {
-            (result as any).contractCreated = true;
-            (result as any).contractId = contractResult.contractId;
-            console.log("Contract created successfully:", contractResult.contractId);
-          } else {
-            result.response = "I had trouble creating that contract. Please try again.";
-            console.error("Contract creation failed:", contractResult.error);
-          }
-        } catch (contractError) {
-          console.error("Contract creation error:", contractError);
-          result.response = "I had trouble creating that contract. Please try again.";
-        }
+        console.log("Returning proposal for preview:", result.createContract);
+        // Return the FULL proposal data for frontend preview instead of auto-creating
+        (result as any).pendingProposal = {
+          clientName: result.createContract.clientName,
+          clientEmail: result.createContract.clientEmail || null,
+          packageDetails: result.createContract.packageDetails,
+          totalAmount: result.createContract.totalAmount || 0,
+          depositAmount: result.createContract.depositAmount || Math.round((result.createContract.totalAmount || 0) * 0.5),
+          bookingId: result.createContract.bookingId || null,
+          eventDate: result.createContract.eventDate || null,
+          location: result.createContract.location || null
+        };
+        // Update response to indicate preview is ready
+        result.response = `I've prepared a proposal for ${result.createContract.clientName}. Please review the details and confirm to send.`;
       }
       
       // Handle thank you email
@@ -2638,6 +2637,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         response: "I'm having trouble right now. Please try again in a moment."
       });
+    }
+  });
+
+  // Confirm and send a proposal that was previewed in chat
+  app.post("/api/ai/confirm-proposal", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const { clientName, clientEmail, packageDetails, totalAmount, depositAmount, eventDate, location, bookingId } = req.body;
+
+      if (!clientName || !packageDetails) {
+        return res.status(400).json({ error: "Missing required fields (clientName and packageDetails are required)" });
+      }
+
+      // Create the contract using the existing function with ALL fields
+      const contractResult = await aiChat.createContractFromAI(userId, {
+        clientName,
+        clientEmail: clientEmail || undefined,
+        bookingId: bookingId || undefined,
+        packageDetails,
+        totalAmount: totalAmount || 0,
+        depositAmount: depositAmount || undefined,
+        eventDate: eventDate || undefined,
+        location: location || undefined
+      });
+
+      if (!contractResult.success) {
+        return res.status(500).json({ error: contractResult.error || "Failed to create proposal" });
+      }
+
+      console.log(`[Confirm Proposal] Created contract for ${clientName} (email: ${clientEmail || 'not provided'}):`, contractResult.contractId);
+
+      res.json({ 
+        success: true, 
+        contractId: contractResult.contractId,
+        message: `Proposal created for ${clientName}${clientEmail ? ` (will be sent to ${clientEmail})` : ''}`
+      });
+    } catch (error: any) {
+      console.error("Confirm proposal error:", error);
+      res.status(500).json({ error: error.message });
     }
   });
 

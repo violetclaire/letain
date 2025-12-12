@@ -614,10 +614,13 @@ export async function createContractFromAI(
   artistId: string,
   contract: {
     clientName: string;
+    clientEmail?: string;
     bookingId?: string;
     packageDetails: string;
     totalAmount: number;
     depositAmount?: number;
+    eventDate?: string;
+    location?: string;
   }
 ): Promise<{ success: boolean; contractId?: string; error?: string }> {
   try {
@@ -638,16 +641,25 @@ export async function createContractFromAI(
     }
 
     if (!bookingId) {
-      const eventDate = new Date();
-      eventDate.setMonth(eventDate.getMonth() + 1);
+      // Use provided eventDate or default to 1 month from now
+      let eventDate = new Date();
+      if (contract.eventDate) {
+        const parsedDate = new Date(contract.eventDate);
+        if (!isNaN(parsedDate.getTime())) {
+          eventDate = parsedDate;
+        }
+      } else {
+        eventDate.setMonth(eventDate.getMonth() + 1);
+      }
+      
       const newBooking = await storage.createBooking({
         artistId,
         clientId: null,
         status: "confirmed",
         eventDate,
-        location: "TBD",
+        location: contract.location || "TBD",
         serviceType: "Custom Package",
-        notes: `Contract for ${contract.clientName}`,
+        notes: `Contract for ${contract.clientName}${contract.clientEmail ? ` | Email: ${contract.clientEmail}` : ''}`,
       });
       bookingId = newBooking.id;
     }
@@ -669,11 +681,19 @@ export async function createContractFromAI(
     await storage.createCommunicationLog({
       artistId,
       recipientName: contract.clientName,
+      recipientEmail: contract.clientEmail || undefined,
       communicationType: "contract",
       subject: `Contract - ${contract.packageDetails.substring(0, 50)}`,
       content: `Package: ${contract.packageDetails}\nTotal: $${(contract.totalAmount / 100).toFixed(2)}\nDeposit: $${(depositAmountCents / 100).toFixed(2)}`,
-      metadata: { contractId: newContract.id, bookingId, totalAmountCents: contract.totalAmount, depositAmountCents },
-      status: "sent",
+      metadata: { 
+        contractId: newContract.id, 
+        bookingId, 
+        totalAmountCents: contract.totalAmount, 
+        depositAmountCents,
+        eventDate: contract.eventDate,
+        location: contract.location
+      },
+      status: "draft",
       sentVia: "ai_chat",
     });
 
