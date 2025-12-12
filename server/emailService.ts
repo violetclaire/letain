@@ -970,7 +970,8 @@ export async function sendProposalEmail({
   clientName,
   artistName,
   businessName,
-  proposal
+  proposal,
+  chatLink
 }: {
   toEmail: string;
   clientName: string;
@@ -989,6 +990,7 @@ export async function sendProposalEmail({
     terms?: string | null;
     validUntil?: Date | null;
   };
+  chatLink?: string;
 }) {
   const { client } = await getResendClient();
 
@@ -1097,9 +1099,20 @@ export async function sendProposalEmail({
             
             ${proposal.validUntil ? `<div class="valid-until">This proposal is valid until ${new Date(proposal.validUntil).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>` : ''}
             
+            ${chatLink ? `
+            <div style="text-align: center; margin-top: 32px;">
+              <a href="${chatLink}" style="display: inline-block; background-color: #2C2C2C; color: #FFFEF9; padding: 16px 32px; text-decoration: none; font-size: 16px; font-weight: 500; border: 1px solid #2C2C2C;">
+                Reply in Chat
+              </a>
+            </div>
+            <p style="margin-top: 16px; color: #666; font-size: 14px; text-align: center;">
+              Click above to continue the conversation with ${safeArtistName}
+            </p>
+            ` : `
             <p style="margin-top: 24px; color: #666; font-size: 14px;">
               To accept this proposal, please reply to this email or contact ${safeArtistName} directly.
             </p>
+            `}
           </div>
           <div class="footer">
             Sent by ${safeArtistName} via <a href="https://beauvette.com" style="color: #2C2C2C;">Beauvette</a>

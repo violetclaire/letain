@@ -7076,6 +7076,14 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const user = await storage.getUser(userId);
       const artistProfile = await storage.getArtistProfile(userId);
       
+      // Build chat link using artist slug
+      const baseUrl = process.env.REPLIT_DEPLOYMENT_URL || process.env.REPL_SLUG 
+        ? `https://${process.env.REPL_SLUG}.replit.app`
+        : 'https://beauvette.com';
+      const chatLink = artistProfile?.slug 
+        ? `${baseUrl}/${artistProfile.slug}` 
+        : baseUrl;
+      
       // Send email
       const { sendProposalEmail } = await import('./emailService');
       const result = await sendProposalEmail({
@@ -7083,7 +7091,8 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         clientName: proposal.clientName,
         artistName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || artistProfile?.businessName || 'Your Beauty Artist',
         businessName: artistProfile?.businessName || '',
-        proposal
+        proposal,
+        chatLink
       });
       
       if (result.success) {
