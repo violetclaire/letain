@@ -74,7 +74,7 @@ export default function Landing() {
 
         <main className="px-4 py-16 max-w-lg mx-auto">
           <div className="text-center mb-10">
-            <h2 className="font-script text-4xl md:text-5xl text-[#2C2C2C] mb-6">
+            <h2 className="font-script text-6xl md:text-7xl text-[#2C2C2C] mb-6">
               Beauvette
             </h2>
             <p className="text-xl text-[#2C2C2C] mb-2">
