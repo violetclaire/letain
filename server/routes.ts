@@ -6891,6 +6891,174 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // =====================
+  // PROPOSALS
+  // =====================
+  
+  // Create proposal
+  app.post("/api/proposals", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: "Not authenticated" });
+    try {
+      const { clientName, clientEmail, clientPhone, clientCompany, eventDate, eventLocation, completionTime, lineItems, travelFee, discount, notes, terms, validUntil } = req.body;
+      
+      if (!clientName || !clientEmail) {
+        return res.status(400).json({ error: "Client name and email are required" });
+      }
+      
+      const subtotal = (lineItems || []).reduce((sum: number, item: any) => 
+        sum + ((item.unitPrice || 0) * (item.quantity || 1)), 0);
+      const total = subtotal + (travelFee || 0) - (discount || 0);
+      
+      const proposal = await storage.createProposal({
+        artistId: req.user!.id,
+        clientName,
+        clientEmail,
+        clientPhone: clientPhone || null,
+        clientCompany: clientCompany || null,
+        eventDate: eventDate ? new Date(eventDate) : null,
+        eventLocation: eventLocation || null,
+        completionTime: completionTime || null,
+        lineItems: lineItems || [],
+        subtotal,
+        travelFee: travelFee || 0,
+        discount: discount || 0,
+        total,
+        notes: notes || null,
+        terms: terms || null,
+        validUntil: validUntil ? new Date(validUntil) : null,
+        status: 'draft'
+      });
+      res.json(proposal);
+    } catch (error: any) {
+      console.error("[Create Proposal] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Get all proposals for current user
+  app.get("/api/proposals", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: "Not authenticated" });
+    try {
+      const proposals = await storage.getProposalsByArtist(req.user!.id);
+      res.json(proposals);
+    } catch (error: any) {
+      console.error("[Get Proposals] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Get single proposal
+  app.get("/api/proposals/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: "Not authenticated" });
+    try {
+      const proposal = await storage.getProposal(req.params.id);
+      if (!proposal) return res.status(404).json({ error: "Proposal not found" });
+      if (proposal.artistId !== req.user!.id) return res.status(403).json({ error: "Not authorized" });
+      res.json(proposal);
+    } catch (error: any) {
+      console.error("[Get Proposal] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Update proposal
+  app.patch("/api/proposals/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: "Not authenticated" });
+    try {
+      const existing = await storage.getProposal(req.params.id);
+      if (!existing) return res.status(404).json({ error: "Proposal not found" });
+      if (existing.artistId !== req.user!.id) return res.status(403).json({ error: "Not authorized" });
+      
+      const { clientName, clientEmail, clientPhone, clientCompany, eventDate, eventLocation, completionTime, lineItems, travelFee, discount, notes, terms, validUntil, status } = req.body;
+      
+      const updateData: any = {};
+      if (clientName !== undefined) updateData.clientName = clientName;
+      if (clientEmail !== undefined) updateData.clientEmail = clientEmail;
+      if (clientPhone !== undefined) updateData.clientPhone = clientPhone || null;
+      if (clientCompany !== undefined) updateData.clientCompany = clientCompany || null;
+      if (eventDate !== undefined) updateData.eventDate = eventDate ? new Date(eventDate) : null;
+      if (eventLocation !== undefined) updateData.eventLocation = eventLocation || null;
+      if (completionTime !== undefined) updateData.completionTime = completionTime || null;
+      if (notes !== undefined) updateData.notes = notes || null;
+      if (terms !== undefined) updateData.terms = terms || null;
+      if (validUntil !== undefined) updateData.validUntil = validUntil ? new Date(validUntil) : null;
+      if (status !== undefined) updateData.status = status;
+      
+      if (lineItems !== undefined) {
+        updateData.lineItems = lineItems;
+        const subtotal = (lineItems || []).reduce((sum: number, item: any) => 
+          sum + ((item.unitPrice || 0) * (item.quantity || 1)), 0);
+        updateData.subtotal = subtotal;
+        updateData.travelFee = travelFee ?? existing.travelFee ?? 0;
+        updateData.discount = discount ?? existing.discount ?? 0;
+        updateData.total = subtotal + updateData.travelFee - updateData.discount;
+      } else if (travelFee !== undefined || discount !== undefined) {
+        updateData.travelFee = travelFee ?? existing.travelFee ?? 0;
+        updateData.discount = discount ?? existing.discount ?? 0;
+        updateData.total = (existing.subtotal || 0) + updateData.travelFee - updateData.discount;
+      }
+      
+      const proposal = await storage.updateProposal(req.params.id, updateData);
+      res.json(proposal);
+    } catch (error: any) {
+      console.error("[Update Proposal] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Send proposal via email
+  app.post("/api/proposals/:id/send", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: "Not authenticated" });
+    try {
+      const proposal = await storage.getProposal(req.params.id);
+      if (!proposal) return res.status(404).json({ error: "Proposal not found" });
+      if (proposal.artistId !== req.user!.id) return res.status(403).json({ error: "Not authorized" });
+      
+      // Get artist profile
+      const artist = req.user!;
+      const artistProfile = await storage.getArtistProfile(artist.id);
+      
+      // Send email
+      const { sendProposalEmail } = await import('./emailService');
+      const result = await sendProposalEmail({
+        toEmail: proposal.clientEmail,
+        clientName: proposal.clientName,
+        artistName: `${artist.firstName || ''} ${artist.lastName || ''}`.trim() || artistProfile?.businessName || 'Your Beauty Artist',
+        businessName: artistProfile?.businessName || '',
+        proposal
+      });
+      
+      if (result.success) {
+        await storage.updateProposal(proposal.id, { 
+          status: 'sent',
+          sentAt: new Date()
+        });
+        res.json({ success: true });
+      } else {
+        res.status(500).json({ error: result.error || 'Failed to send email' });
+      }
+    } catch (error: any) {
+      console.error("[Send Proposal] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Delete proposal
+  app.delete("/api/proposals/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: "Not authenticated" });
+    try {
+      const existing = await storage.getProposal(req.params.id);
+      if (!existing) return res.status(404).json({ error: "Proposal not found" });
+      if (existing.artistId !== req.user!.id) return res.status(403).json({ error: "Not authorized" });
+      
+      await storage.deleteProposal(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("[Delete Proposal] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

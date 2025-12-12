@@ -42,6 +42,7 @@ import PaymentSuccess from "@/pages/PaymentSuccess";
 import PublicOnboarding from "@/pages/PublicOnboarding";
 import PublicArtistCalendar from "@/pages/PublicArtistCalendar";
 import PublicAnalytics from "@/pages/PublicAnalytics";
+import Proposals from "@/pages/Proposals";
 
 function InviteRedirectHandler() {
   const [location, setLocation] = useLocation();
@@ -85,6 +86,7 @@ function Router() {
       <Route path="/artist/import" component={VendorImport} />
       <Route path="/artist/manage-bookings" component={ManageBookings} />
       <Route path="/artist/rolodex" component={ArtistRolodex} />
+      <Route path="/artist/proposals" component={Proposals} />
       <Route path="/planner/import" component={PlannerImport} />
       <Route path="/settings" component={ProfileSettings} />
       <Route path="/artist/contracts" component={ContractEditor} />

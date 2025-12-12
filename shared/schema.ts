@@ -1381,6 +1381,57 @@ export const insertScheduledEmailSchema = createInsertSchema(scheduledEmails).om
   errorMessage: true,
 });
 
+// Proposals - formal service proposals sent to clients
+export type ProposalLineItem = {
+  description: string; // e.g., "Bride - Hair & Makeup"
+  quantity: number;
+  unitPrice: number; // in cents
+  services: string[]; // e.g., ["hair", "makeup"]
+};
+
+export const proposals = pgTable("proposals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  artistId: varchar("artist_id").notNull().references(() => users.id),
+  // Client info
+  clientName: text("client_name").notNull(),
+  clientEmail: text("client_email").notNull(),
+  clientPhone: text("client_phone"),
+  clientCompany: text("client_company"),
+  // Event details
+  eventDate: timestamp("event_date"),
+  eventLocation: text("event_location"),
+  eventType: text("event_type"), // 'wedding', 'photoshoot', etc.
+  completionTime: text("completion_time"), // e.g., "2pm"
+  // Service breakdown
+  lineItems: jsonb("line_items").$type<ProposalLineItem[]>(),
+  subtotal: integer("subtotal"), // in cents
+  travelFee: integer("travel_fee").default(0), // in cents
+  discount: integer("discount").default(0), // in cents
+  total: integer("total"), // in cents
+  // Additional info
+  notes: text("notes"),
+  terms: text("terms"),
+  validUntil: timestamp("valid_until"),
+  // Status
+  status: text("status").default("draft"), // 'draft', 'sent', 'viewed', 'accepted', 'declined', 'expired'
+  sentAt: timestamp("sent_at"),
+  viewedAt: timestamp("viewed_at"),
+  respondedAt: timestamp("responded_at"),
+  // Linked booking (if accepted)
+  bookingId: varchar("booking_id").references(() => bookings.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertProposalSchema = createInsertSchema(proposals).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  sentAt: true,
+  viewedAt: true,
+  respondedAt: true,
+});
+
 // Types for Replit Auth
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -1536,3 +1587,7 @@ export type ScheduledEmail = typeof scheduledEmails.$inferSelect;
 // Analytics Event Types
 export type InsertAnalyticsEvent = z.infer<typeof insertAnalyticsEventSchema>;
 export type AnalyticsEvent = typeof analyticsEvents.$inferSelect;
+
+// Proposal Types
+export type InsertProposal = z.infer<typeof insertProposalSchema>;
+export type Proposal = typeof proposals.$inferSelect;

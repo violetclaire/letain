@@ -1651,6 +1651,10 @@ export default function ArtistDashboard() {
                     <BookUser size={16} className="ink-soft" /> 
                     <span>Your Network</span>
                   </Link>
+                  <Link href="/artist/proposals" className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 border-b border-[#e5e8f2]">
+                    <Send size={16} className="ink-soft" /> 
+                    <span>Proposals</span>
+                  </Link>
                   <a href="/api/logout" className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 text-red-600">
                     <LogOut size={16} /> 
                     <span>Logout</span>

@@ -146,6 +146,9 @@ import {
   type InsertInquiry,
   type InquiryNotification,
   type InsertInquiryNotification,
+  proposals,
+  type Proposal,
+  type InsertProposal,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc, or, sql } from "drizzle-orm";
@@ -428,6 +431,13 @@ export interface IStorage {
   // Inquiry Notifications
   createInquiryNotification(data: InsertInquiryNotification): Promise<InquiryNotification>;
   getInquiryNotifications(inquiryId: string): Promise<InquiryNotification[]>;
+  
+  // Proposals
+  createProposal(data: InsertProposal): Promise<Proposal>;
+  getProposal(id: string): Promise<Proposal | undefined>;
+  getProposalsByArtist(artistId: string): Promise<Proposal[]>;
+  updateProposal(id: string, data: Partial<InsertProposal>): Promise<Proposal | undefined>;
+  deleteProposal(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2288,6 +2298,31 @@ export class DatabaseStorage implements IStorage {
         lastChatResponseAt: new Date()
       })
       .where(eq(artistProfiles.userId, userId));
+  }
+  
+  // Proposals
+  async createProposal(data: InsertProposal): Promise<Proposal> {
+    const [proposal] = await db.insert(proposals).values(data as any).returning();
+    return proposal;
+  }
+  
+  async getProposal(id: string): Promise<Proposal | undefined> {
+    const [proposal] = await db.select().from(proposals).where(eq(proposals.id, id));
+    return proposal || undefined;
+  }
+  
+  async getProposalsByArtist(artistId: string): Promise<Proposal[]> {
+    return db.select().from(proposals).where(eq(proposals.artistId, artistId)).orderBy(desc(proposals.createdAt));
+  }
+  
+  async updateProposal(id: string, data: Partial<InsertProposal>): Promise<Proposal | undefined> {
+    const updateData: any = { ...data, updatedAt: new Date() };
+    const [proposal] = await db.update(proposals).set(updateData).where(eq(proposals.id, id)).returning();
+    return proposal || undefined;
+  }
+  
+  async deleteProposal(id: string): Promise<void> {
+    await db.delete(proposals).where(eq(proposals.id, id));
   }
 }
 

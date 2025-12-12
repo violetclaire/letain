@@ -965,6 +965,169 @@ export async function sendGeneralEmail({
   return { success: true, result };
 }
 
+export async function sendProposalEmail({
+  toEmail,
+  clientName,
+  artistName,
+  businessName,
+  proposal
+}: {
+  toEmail: string;
+  clientName: string;
+  artistName: string;
+  businessName?: string;
+  proposal: {
+    lineItems?: { description: string; quantity: number; unitPrice: number; services: string[] }[] | null;
+    subtotal?: number | null;
+    travelFee?: number | null;
+    discount?: number | null;
+    total?: number | null;
+    eventDate?: Date | null;
+    eventLocation?: string | null;
+    completionTime?: string | null;
+    notes?: string | null;
+    terms?: string | null;
+    validUntil?: Date | null;
+  };
+}) {
+  const { client } = await getResendClient();
+
+  const safeArtistName = sanitizeSenderName(artistName) || 'Your Beauty Artist';
+  const safeClientName = escapeHtml(clientName);
+  const safeBusinessName = businessName ? escapeHtml(businessName) : safeArtistName;
+  
+  const formatCurrency = (cents: number | null | undefined) => {
+    if (!cents) return '$0.00';
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
+  };
+  
+  const lineItemsHtml = proposal.lineItems?.map(item => `
+    <tr>
+      <td style="padding: 12px; border-bottom: 1px solid #eee;">${escapeHtml(item.description)}</td>
+      <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
+      <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: right;">${formatCurrency(item.unitPrice)}</td>
+      <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: right;">${formatCurrency(item.unitPrice * item.quantity)}</td>
+    </tr>
+  `).join('') || '';
+  
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Georgia', serif; background-color: #FAF9F7; margin: 0; padding: 20px; }
+        .container { max-width: 650px; margin: 0 auto; background: #FFFEF9; border: 1px solid #2C2C2C; }
+        .inner { border: 1px solid #2C2C2C; margin: 4px; }
+        .header { padding: 32px; text-align: center; border-bottom: 1px solid #2C2C2C; }
+        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 28px; margin: 0; color: #2C2C2C; }
+        .header p { font-size: 14px; margin: 8px 0 0 0; color: #666; }
+        .content { padding: 32px; }
+        .proposal-title { font-size: 20px; color: #2C2C2C; margin-bottom: 24px; font-weight: bold; text-align: center; }
+        .event-details { background: #FAF9F7; padding: 20px; margin-bottom: 24px; border: 1px solid #2C2C2C; }
+        .event-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .event-label { color: #666; }
+        .event-value { color: #2C2C2C; font-weight: 500; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+        th { background: #FAF9F7; padding: 12px; text-align: left; border-bottom: 2px solid #2C2C2C; color: #2C2C2C; font-weight: 600; }
+        .totals { background: #FAF9F7; padding: 16px; border: 1px solid #2C2C2C; }
+        .total-row { display: flex; justify-content: space-between; padding: 8px 0; }
+        .total-row.final { border-top: 2px solid #2C2C2C; padding-top: 16px; margin-top: 8px; font-size: 18px; font-weight: bold; }
+        .notes { margin-top: 24px; padding: 16px; background: #FAF9F7; border: 1px solid #2C2C2C; font-size: 14px; color: #666; }
+        .footer { text-align: center; padding: 24px; color: #666; font-size: 12px; border-top: 1px solid #2C2C2C; }
+        .valid-until { text-align: center; padding: 12px; background: #FAF9F7; color: #666; font-size: 13px; margin-top: 24px; border: 1px solid #2C2C2C; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="inner">
+          <div class="header">
+            <h1>${safeBusinessName}</h1>
+            <p>Service Proposal</p>
+          </div>
+          <div class="content">
+            <p style="margin-bottom: 24px;">Hi ${safeClientName},</p>
+            <p style="margin-bottom: 24px;">Thank you for your inquiry! Here is a detailed proposal for your upcoming event:</p>
+            
+            <div class="event-details">
+              ${proposal.eventDate ? `<div style="margin-bottom: 8px;"><strong>Event Date:</strong> ${new Date(proposal.eventDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>` : ''}
+              ${proposal.eventLocation ? `<div style="margin-bottom: 8px;"><strong>Location:</strong> ${escapeHtml(proposal.eventLocation)}</div>` : ''}
+              ${proposal.completionTime ? `<div><strong>Complete By:</strong> ${escapeHtml(proposal.completionTime)}</div>` : ''}
+            </div>
+            
+            <table>
+              <thead>
+                <tr>
+                  <th>Service</th>
+                  <th style="text-align: center;">Qty</th>
+                  <th style="text-align: right;">Rate</th>
+                  <th style="text-align: right;">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${lineItemsHtml}
+              </tbody>
+            </table>
+            
+            <div class="totals">
+              <div class="total-row">
+                <span>Subtotal</span>
+                <span>${formatCurrency(proposal.subtotal)}</span>
+              </div>
+              ${proposal.travelFee ? `
+              <div class="total-row">
+                <span>Travel Fee</span>
+                <span>${formatCurrency(proposal.travelFee)}</span>
+              </div>
+              ` : ''}
+              ${proposal.discount ? `
+              <div class="total-row">
+                <span>Discount</span>
+                <span>-${formatCurrency(proposal.discount)}</span>
+              </div>
+              ` : ''}
+              <div class="total-row final">
+                <span>Total</span>
+                <span>${formatCurrency(proposal.total)}</span>
+              </div>
+            </div>
+            
+            ${proposal.notes ? `<div class="notes"><strong>Notes:</strong><br>${escapeHtml(proposal.notes).replace(/\n/g, '<br>')}</div>` : ''}
+            
+            ${proposal.terms ? `<div class="notes"><strong>Terms:</strong><br>${escapeHtml(proposal.terms).replace(/\n/g, '<br>')}</div>` : ''}
+            
+            ${proposal.validUntil ? `<div class="valid-until">This proposal is valid until ${new Date(proposal.validUntil).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>` : ''}
+            
+            <p style="margin-top: 24px; color: #666; font-size: 14px;">
+              To accept this proposal, please reply to this email or contact ${safeArtistName} directly.
+            </p>
+          </div>
+          <div class="footer">
+            Sent by ${safeArtistName} via <a href="https://beauvette.com" style="color: #2C2C2C;">Beauvette</a>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const senderEmail = `${safeArtistName} via Beauvette <violet@beauvette.com>`;
+  
+  try {
+    console.log("Sending proposal email to:", toEmail);
+    const result = await client.emails.send({
+      from: senderEmail,
+      to: toEmail.trim(),
+      subject: `Service Proposal from ${safeBusinessName}`,
+      html: htmlContent
+    });
+    console.log("Proposal email sent:", JSON.stringify(result));
+    return { success: true, result };
+  } catch (err: any) {
+    console.error("Failed to send proposal email:", err.message);
+    return { success: false, error: err.message };
+  }
+}
+
 export async function sendInquiryNotificationEmail({
   toEmail,
   vendorName,
