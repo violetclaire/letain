@@ -90,8 +90,10 @@
 
 @layer utilities {
   .font-script {
-    font-family: 'Pinyon Script', cursive;
-    font-style: normal;
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-style: italic;
+    letter-spacing: 0.02em;
   }
 
   .font-header {

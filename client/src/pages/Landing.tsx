@@ -84,7 +84,7 @@ export default function Landing() {
               Wonderful. Let's make it happen.
             </p>
             <p className="text-lg text-[#666] italic mb-6">
-              If not—who do you trust?
+              If not, who do you trust?
             </p>
             <p className="text-sm text-[#666] tracking-wide mb-2">
               For life's most important days, the details matter.
