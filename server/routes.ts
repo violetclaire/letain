@@ -6939,7 +6939,13 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   
   // Create proposal
   app.post("/api/proposals", async (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).json({ error: "Not authenticated" });
+    console.log('[POST /api/proposals] Session ID:', req.sessionID);
+    console.log('[POST /api/proposals] isAuthenticated:', req.isAuthenticated());
+    console.log('[POST /api/proposals] User ID:', req.user?.id);
+    if (!req.isAuthenticated()) {
+      console.log('[POST /api/proposals] Auth failed - returning 401');
+      return res.status(401).json({ error: "Not authenticated" });
+    }
     try {
       const { clientName, clientEmail, clientPhone, clientCompany, eventDate, eventLocation, completionTime, lineItems, travelFee, discount, notes, terms, validUntil } = req.body;
       
