@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import GooglePlacesInput from "@/components/GooglePlacesInput";
+import DayOfReadiness from "@/components/DayOfReadiness";
 import { ArrowLeft, Edit2, Trash2, Loader2 } from "lucide-react";
 
 interface Booking {
@@ -367,8 +368,23 @@ export default function ManageBookings() {
                           Status: <span className="font-medium">{booking.status}</span>
                           {booking.clientEmail && <span className="ml-2">• {booking.clientEmail}</span>}
                         </p>
+                        
+                        {/* Day-of Readiness Checklist */}
+                        {(booking.status === 'confirmed' || booking.status === 'accepted') && (
+                          <DayOfReadiness
+                            booking={{
+                              id: booking.id,
+                              clientName: booking.clientName || 'Client',
+                              eventDate: booking.eventDate,
+                              eventLocation: booking.location,
+                              notes: booking.notes,
+                              serviceType: booking.serviceType,
+                            }}
+                            className="mt-3"
+                          />
+                        )}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 self-start mt-2">
                         <Button
                           size="sm"
                           variant="ghost"

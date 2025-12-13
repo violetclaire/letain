@@ -6,6 +6,7 @@ import AvailabilityCalendar from "../components/AvailabilityCalendar";
 import AIChatPanel from "../components/AIChatPanel";
 import BusinessChatPanel from "../components/BusinessChatPanel";
 import ComposeEmailModal from "../components/ComposeEmailModal";
+import DeclineReferralModal from "../components/DeclineReferralModal";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -148,6 +149,15 @@ export default function ArtistDashboard() {
   const [showProposeModal, setShowProposeModal] = useState(false);
   const [proposeInquiryId, setProposeInquiryId] = useState<string | null>(null);
   const [proposedDateInputs, setProposedDateInputs] = useState<string[]>(['']);
+  const [showDeclineReferralModal, setShowDeclineReferralModal] = useState(false);
+  const [declineReferralInquiry, setDeclineReferralInquiry] = useState<{
+    id: string;
+    clientName: string;
+    clientEmail: string;
+    eventDate: string;
+    eventType?: string;
+    serviceType: string;
+  } | null>(null);
   const [showTimelineId, setShowTimelineId] = useState<string | null>(null);
   const [timelineData, setTimelineData] = useState<{
     receivedAt?: string;
@@ -2322,19 +2332,24 @@ export default function ArtistDashboard() {
                                             <span>Propose</span>
                                           </button>
                                           
-                                          {/* Decline */}
+                                          {/* Decline with Referrals */}
                                           <button 
-                                            onClick={() => handleDeclineInquiry(inquiry.id)}
-                                            disabled={decliningInquiry === inquiry.id}
-                                            className="py-1.5 px-2 rounded-md border border-gray-200 text-gray-500 hover:border-red-200 hover:text-red-600 transition-colors flex items-center justify-center disabled:opacity-50"
-                                            title="Decline"
+                                            onClick={() => {
+                                              setDeclineReferralInquiry({
+                                                id: inquiry.id,
+                                                clientName: inquiry.clientName,
+                                                clientEmail: inquiry.clientEmail,
+                                                eventDate: inquiry.eventDate,
+                                                eventType: inquiry.eventType,
+                                                serviceType: inquiry.serviceType,
+                                              });
+                                              setShowDeclineReferralModal(true);
+                                            }}
+                                            className="py-1.5 px-2 rounded-md border border-gray-200 text-gray-500 hover:border-[#A8929C] hover:text-[#A8929C] transition-colors flex items-center justify-center"
+                                            title="Decline & Refer"
                                             data-testid={`button-decline-inquiry-${inquiry.id}`}
                                           >
-                                            {decliningInquiry === inquiry.id ? (
-                                              <Loader2 size={10} className="animate-spin" />
-                                            ) : (
-                                              <X size={10} />
-                                            )}
+                                            <UserPlus size={10} />
                                           </button>
                                         </div>
                                       )}
@@ -4063,6 +4078,19 @@ export default function ArtistDashboard() {
         isOpen={showComposeEmail}
         onClose={() => setShowComposeEmail(false)}
         contacts={contacts.filter(c => c.email).map(c => ({ name: c.name, email: c.email, role: c.role }))}
+      />
+
+      {/* Decline with Referrals Modal */}
+      <DeclineReferralModal
+        open={showDeclineReferralModal}
+        onOpenChange={setShowDeclineReferralModal}
+        inquiry={declineReferralInquiry}
+        onSuccess={async () => {
+          const inquiriesRes = await fetch('/api/vendor/inquiries', { credentials: 'include' });
+          if (inquiriesRes.ok) {
+            setInquiries(await inquiriesRes.json());
+          }
+        }}
       />
     </div>
   );
