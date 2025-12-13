@@ -450,6 +450,27 @@ export interface IStorage {
   getProposalsByArtist(artistId: string): Promise<Proposal[]>;
   updateProposal(id: string, data: Partial<InsertProposal>): Promise<Proposal | undefined>;
   deleteProposal(id: string): Promise<void>;
+  
+  // Vendor Metrics (Proving Ground)
+  getVendorMetrics(vendorId: string, sinceDays?: number): Promise<{
+    vendorId: string;
+    avgTimeToFirstResponseMinutes: number | null;
+    terminalStateUnder24hPercent: number;
+    holdExpiryRate: number;
+    confirmSuccessCount: number;
+    confirmFailedCount: number;
+    totalInquiries: number;
+  }>;
+  getTopVendorMetrics(limit?: number, sinceDays?: number): Promise<Array<{
+    vendorId: string;
+    vendorName: string;
+    avgTimeToFirstResponseMinutes: number | null;
+    terminalStateUnder24hPercent: number;
+    holdExpiryRate: number;
+    confirmSuccessCount: number;
+    confirmFailedCount: number;
+    totalInquiries: number;
+  }>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2375,6 +2396,141 @@ export class DatabaseStorage implements IStorage {
   
   async deleteProposal(id: string): Promise<void> {
     await db.delete(proposals).where(eq(proposals.id, id));
+  }
+  
+  // Vendor Metrics (Proving Ground) - compute from inquiries and audit logs
+  async getVendorMetrics(vendorId: string, sinceDays: number = 14): Promise<{
+    vendorId: string;
+    avgTimeToFirstResponseMinutes: number | null;
+    terminalStateUnder24hPercent: number;
+    holdExpiryRate: number;
+    confirmSuccessCount: number;
+    confirmFailedCount: number;
+    totalInquiries: number;
+  }> {
+    const sinceDate = new Date();
+    sinceDate.setDate(sinceDate.getDate() - sinceDays);
+    
+    // Get all inquiries for this vendor in the time period
+    const vendorInquiries = await db
+      .select()
+      .from(inquiries)
+      .where(
+        and(
+          eq(inquiries.vendorId, vendorId),
+          gte(inquiries.createdAt, sinceDate)
+        )
+      );
+    
+    const totalInquiries = vendorInquiries.length;
+    if (totalInquiries === 0) {
+      return {
+        vendorId,
+        avgTimeToFirstResponseMinutes: null,
+        terminalStateUnder24hPercent: 0,
+        holdExpiryRate: 0,
+        confirmSuccessCount: 0,
+        confirmFailedCount: 0,
+        totalInquiries: 0,
+      };
+    }
+    
+    // Compute avg time to first response
+    const inquiriesWithResponse = vendorInquiries.filter(i => i.firstResponseAt);
+    const avgTimeToFirstResponseMinutes = inquiriesWithResponse.length > 0
+      ? Math.round(
+          inquiriesWithResponse.reduce((sum, i) => {
+            const diffMs = new Date(i.firstResponseAt!).getTime() - new Date(i.createdAt).getTime();
+            return sum + diffMs / (1000 * 60);
+          }, 0) / inquiriesWithResponse.length
+        )
+      : null;
+    
+    // Compute terminal state under 24h %
+    const terminalStates = ['confirmed', 'declined', 'completed'];
+    const terminalInquiries = vendorInquiries.filter(i => {
+      if (!terminalStates.includes(i.status)) return false;
+      const lastAction = i.lastActionAt || i.updatedAt || i.createdAt;
+      const diffMs = new Date(lastAction).getTime() - new Date(i.createdAt).getTime();
+      return diffMs < 24 * 60 * 60 * 1000; // Under 24 hours
+    });
+    const terminalStateUnder24hPercent = Math.round((terminalInquiries.length / totalInquiries) * 100);
+    
+    // Compute hold expiry rate (from statusReason)
+    const holdExpiredInquiries = vendorInquiries.filter(i => i.statusReason === 'hold_expired');
+    const holdInquiries = vendorInquiries.filter(i => i.status === 'hold' || i.statusReason === 'hold_expired');
+    const holdExpiryRate = holdInquiries.length > 0
+      ? Math.round((holdExpiredInquiries.length / holdInquiries.length) * 100)
+      : 0;
+    
+    // Get confirm success/failed from audit logs
+    const confirmLogs = await db
+      .select()
+      .from(auditLogs)
+      .where(
+        and(
+          eq(auditLogs.resourceType, 'inquiry'),
+          inArray(auditLogs.action, ['confirm_clicked', 'confirm_failed']),
+          gte(auditLogs.createdAt, sinceDate)
+        )
+      );
+    
+    // Filter to this vendor's inquiries
+    const vendorInquiryIds = new Set(vendorInquiries.map(i => i.id));
+    const vendorConfirmLogs = confirmLogs.filter(l => l.resourceId && vendorInquiryIds.has(l.resourceId));
+    
+    const confirmSuccessCount = vendorConfirmLogs.filter(l => l.action === 'confirm_clicked').length;
+    const confirmFailedCount = vendorConfirmLogs.filter(l => l.action === 'confirm_failed').length;
+    
+    return {
+      vendorId,
+      avgTimeToFirstResponseMinutes,
+      terminalStateUnder24hPercent,
+      holdExpiryRate,
+      confirmSuccessCount,
+      confirmFailedCount,
+      totalInquiries,
+    };
+  }
+  
+  async getTopVendorMetrics(limit: number = 10, sinceDays: number = 14): Promise<Array<{
+    vendorId: string;
+    vendorName: string;
+    avgTimeToFirstResponseMinutes: number | null;
+    terminalStateUnder24hPercent: number;
+    holdExpiryRate: number;
+    confirmSuccessCount: number;
+    confirmFailedCount: number;
+    totalInquiries: number;
+  }>> {
+    const sinceDate = new Date();
+    sinceDate.setDate(sinceDate.getDate() - sinceDays);
+    
+    // Get vendors with inquiries in the time period
+    const vendorInquiryCounts = await db
+      .select({
+        vendorId: inquiries.vendorId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(inquiries)
+      .where(gte(inquiries.createdAt, sinceDate))
+      .groupBy(inquiries.vendorId)
+      .orderBy(desc(sql`count(*)`))
+      .limit(limit);
+    
+    const results = [];
+    for (const { vendorId } of vendorInquiryCounts) {
+      const metrics = await this.getVendorMetrics(vendorId, sinceDays);
+      const vendor = await this.getUser(vendorId);
+      const profile = await this.getArtistProfile(vendorId);
+      
+      results.push({
+        ...metrics,
+        vendorName: profile?.businessName || `${vendor?.firstName || ''} ${vendor?.lastName || ''}`.trim() || 'Unknown',
+      });
+    }
+    
+    return results;
   }
 }
 

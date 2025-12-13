@@ -5371,6 +5371,36 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     }
   });
 
+  // ========== Proving Ground Metrics ==========
+  app.get("/api/admin/vendor-metrics", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(getAuthUserId(req));
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const limit = parseInt(req.query.limit as string) || 10;
+      const sinceDays = parseInt(req.query.sinceDays as string) || 14;
+      const metrics = await storage.getTopVendorMetrics(limit, sinceDays);
+      res.json({ metrics, period: `${sinceDays} days` });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/vendor-metrics/:vendorId", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(getAuthUserId(req));
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const sinceDays = parseInt(req.query.sinceDays as string) || 14;
+      const metrics = await storage.getVendorMetrics(req.params.vendorId, sinceDays);
+      res.json({ metrics, period: `${sinceDays} days` });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   // ========== CDI (Choreography Depth Index) ==========
   app.get("/api/admin/cdi/scores", isAuthenticated, async (req: any, res) => {
     try {
