@@ -306,6 +306,10 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
         checkoutOptions: {
           redirectUrl: `${baseUrl}/payment-success?bookingId=${bookingId || 'invoice'}`,
           askForShippingAddress: false,
+          appFeeMoney: {
+            amount: BigInt(platformFee),
+            currency: 'USD',
+          },
         },
       });
 

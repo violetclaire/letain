@@ -51,3 +51,4 @@ integrations = ["javascript_database:1.0.0", "javascript_gemini_ai_integrations:
 
 [userenv.shared]
 SQUARE_APPLICATION_SECRET = "sq0csp-4vApNXGFC9W2l0Md8I4D1ZAt-6P970jees97YpcCRJY"
+SQUARE_LOCATION_ID = "F77FQXFR9EBFX"
