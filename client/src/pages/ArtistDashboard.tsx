@@ -131,6 +131,11 @@ export default function ArtistDashboard() {
     firstResponseAt?: string;
     proposedDates?: string[];
     escalationState?: string;
+    // SLA countdown fields (Stanley Tang schema sprint)
+    nextAction?: string;
+    nextActionDueAt?: string;
+    breachFlags?: string[];
+    statusReason?: string;
   }>>([]);
   const [inquiriesLoading, setInquiriesLoading] = useState(false);
   const [respondingInquiry, setRespondingInquiry] = useState<string | null>(null);
@@ -580,6 +585,39 @@ export default function ArtistDashboard() {
     const hours = Math.floor(diffMs / (1000 * 60 * 60));
     const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
     return hours > 0 ? `${hours}h ${mins}m left` : `${mins}m left`;
+  };
+  
+  // Format nextAction for display (Stanley Tang schema sprint)
+  const formatNextAction = (nextAction: string | undefined) => {
+    if (!nextAction) return null;
+    const actionLabels: Record<string, { label: string; owner: string; buttonLabel: string }> = {
+      'vendor_first_response': { label: 'Respond to inquiry', owner: 'You', buttonLabel: 'Respond' },
+      'vendor_confirm': { label: 'Confirm or decline', owner: 'You', buttonLabel: 'Confirm' },
+      'client_payment': { label: 'Awaiting payment', owner: 'Client', buttonLabel: 'Send Reminder' },
+      'client_reply': { label: 'Awaiting client reply', owner: 'Client', buttonLabel: 'Follow Up' },
+    };
+    return actionLabels[nextAction] || { label: nextAction, owner: 'Unknown', buttonLabel: 'Action' };
+  };
+  
+  // Get SLA countdown with urgency level
+  const getSlaCountdown = (dueAt: string | undefined) => {
+    if (!dueAt) return null;
+    const due = new Date(dueAt);
+    const now = new Date();
+    const diffMs = due.getTime() - now.getTime();
+    const isOverdue = diffMs <= 0;
+    // Fix: compute hours/mins from absolute diff to avoid negative truncation bugs
+    const absDiffMs = Math.abs(diffMs);
+    const hours = Math.floor(absDiffMs / (1000 * 60 * 60));
+    const mins = Math.floor((absDiffMs % (1000 * 60 * 60)) / (1000 * 60));
+    const isUrgent = !isOverdue && hours < 4;
+    return {
+      text: isOverdue 
+        ? (hours > 0 ? `${hours}h ${mins}m overdue` : `${mins}m overdue`)
+        : (hours > 0 ? `${hours}h ${mins}m left` : `${mins}m left`),
+      isOverdue,
+      isUrgent,
+    };
   };
 
   // Fetch inquiry timeline with race condition handling
@@ -2022,21 +2060,110 @@ export default function ArtistDashboard() {
                                         <p className="text-[0.65rem] ink-soft italic bg-[#FAF9F7] p-2 rounded">"{inquiry.message}"</p>
                                       )}
                                       
-                                      {/* Hold status with countdown - uses hold struct as source of truth, fallback to legacy */}
-                                      {inquiry.status === 'hold' && (inquiry.hold?.expiresAt || inquiry.holdExpiresAt) && (
-                                        <div className="bg-orange-50 border border-orange-200 rounded-md p-2 mt-2 flex items-center justify-between">
-                                          <div className="flex items-center gap-2">
-                                            <Clock size={12} className="text-orange-600" />
-                                            <span className="text-[0.65rem] text-orange-700 font-medium">On Hold</span>
-                                            {inquiry.hold?.reason && (
-                                              <span className="text-[0.6rem] text-orange-600 italic">- {inquiry.hold.reason}</span>
+                                      {/* SLA Countdown Banner - shows owner, action, and single countdown */}
+                                      {(() => {
+                                        const isHold = inquiry.status === 'hold' && (inquiry.hold?.expiresAt || inquiry.holdExpiresAt);
+                                        const hasNextAction = inquiry.nextAction && inquiry.nextActionDueAt;
+                                        const actionInfo = formatNextAction(inquiry.nextAction);
+                                        const slaCountdown = getSlaCountdown(isHold ? (inquiry.hold?.expiresAt || inquiry.holdExpiresAt) : inquiry.nextActionDueAt);
+                                        
+                                        if (!isHold && !hasNextAction) return null;
+                                        
+                                        const bgColor = isHold 
+                                          ? 'bg-orange-50 border-orange-200' 
+                                          : slaCountdown?.isOverdue 
+                                            ? 'bg-red-50 border-red-200' 
+                                            : slaCountdown?.isUrgent 
+                                              ? 'bg-yellow-50 border-yellow-200' 
+                                              : 'bg-blue-50 border-blue-200';
+                                        const textColor = isHold 
+                                          ? 'text-orange-700' 
+                                          : slaCountdown?.isOverdue 
+                                            ? 'text-red-700' 
+                                            : slaCountdown?.isUrgent 
+                                              ? 'text-yellow-700' 
+                                              : 'text-blue-700';
+                                        const iconColor = isHold 
+                                          ? 'text-orange-600' 
+                                          : slaCountdown?.isOverdue 
+                                            ? 'text-red-600' 
+                                            : slaCountdown?.isUrgent 
+                                              ? 'text-yellow-600' 
+                                              : 'text-blue-600';
+                                        
+                                        return (
+                                          <div className={`${bgColor} border rounded-md p-2 mt-2`} data-testid={`sla-banner-${inquiry.id}`}>
+                                            <div className="flex items-center justify-between">
+                                              <div className="flex items-center gap-2">
+                                                <Clock size={12} className={iconColor} />
+                                                <div className="flex flex-col">
+                                                  <span className={`text-[0.65rem] ${textColor} font-medium`}>
+                                                    {isHold ? 'On Hold' : actionInfo?.label}
+                                                  </span>
+                                                  <span className={`text-[0.55rem] ${textColor} opacity-75`}>
+                                                    {isHold 
+                                                      ? (inquiry.hold?.reason ? `- ${inquiry.hold.reason}` : 'Your turn to decide')
+                                                      : `Owner: ${actionInfo?.owner}`
+                                                    }
+                                                  </span>
+                                                </div>
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                <span className={`text-[0.65rem] ${textColor} font-semibold`}>
+                                                  {slaCountdown?.text}
+                                                </span>
+                                                {/* Quick action button - only show for vendor-actionable states with explicit nextAction */}
+                                                {(() => {
+                                                  // Determine if we should show a CTA button
+                                                  const showConfirmCta = isHold || inquiry.nextAction === 'vendor_confirm';
+                                                  const showRespondCta = inquiry.nextAction === 'vendor_first_response';
+                                                  
+                                                  // Only show button when we have explicit vendor action
+                                                  if (!showConfirmCta && !showRespondCta) return null;
+                                                  
+                                                  const buttonLabel = showConfirmCta ? 'Confirm' : 'Respond';
+                                                  const buttonColor = showConfirmCta 
+                                                    ? 'bg-green-600 hover:bg-green-700' 
+                                                    : 'bg-blue-600 hover:bg-blue-700';
+                                                  
+                                                  return (
+                                                    <button
+                                                      onClick={() => {
+                                                        if (showConfirmCta) {
+                                                          handleConfirmInquiry(inquiry.id);
+                                                        } else if (showRespondCta) {
+                                                          // Trigger respond flow - expand inquiry if not already
+                                                          if (expandedInquiry !== inquiry.id) {
+                                                            setExpandedInquiry(inquiry.id);
+                                                          }
+                                                        }
+                                                      }}
+                                                      disabled={confirmingInquiry === inquiry.id}
+                                                      className={`px-2 py-1 text-[0.55rem] rounded ${buttonColor} text-white transition-colors disabled:opacity-50`}
+                                                      data-testid={`button-sla-action-${inquiry.id}`}
+                                                    >
+                                                      {confirmingInquiry === inquiry.id ? (
+                                                        <Loader2 size={8} className="animate-spin" />
+                                                      ) : (
+                                                        buttonLabel
+                                                      )}
+                                                    </button>
+                                                  );
+                                                })()}
+                                              </div>
+                                            </div>
+                                            {/* Breach flags warning */}
+                                            {inquiry.breachFlags && inquiry.breachFlags.length > 0 && (
+                                              <div className="mt-1 flex items-center gap-1">
+                                                <AlertCircle size={10} className="text-red-500" />
+                                                <span className="text-[0.5rem] text-red-600 font-medium uppercase tracking-wide">
+                                                  SLA breach: {inquiry.breachFlags.join(', ').replace(/_/g, ' ')}
+                                                </span>
+                                              </div>
                                             )}
                                           </div>
-                                          <span className="text-[0.65rem] text-orange-600 font-semibold">
-                                            {getHoldCountdown(inquiry.hold?.expiresAt || inquiry.holdExpiresAt!)}
-                                          </span>
-                                        </div>
-                                      )}
+                                        );
+                                      })()}
                                       
                                       {(inquiry.status === 'pending' || inquiry.status === 'hold') && (
                                         <div className="flex gap-1 mt-3 flex-wrap">
