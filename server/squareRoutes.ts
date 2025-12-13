@@ -77,6 +77,7 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
         'MERCHANT_PROFILE_READ',
         'PAYMENTS_READ',
         'PAYMENTS_WRITE',
+        'PAYMENTS_WRITE_ADDITIONAL_RECIPIENTS',
         'INVOICES_READ',
         'INVOICES_WRITE',
         'ORDERS_READ',
