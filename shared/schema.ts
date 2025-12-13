@@ -78,6 +78,9 @@ export const users = pgTable("users", {
   notificationPreferences: jsonb("notification_preferences").$type<NotificationPreferences>(),
   isBetaUser: boolean("is_beta_user").default(false),
   sharedToInstagram: boolean("shared_to_instagram").default(false),
+  // Password reset
+  passwordResetToken: varchar("password_reset_token"),
+  passwordResetExpires: timestamp("password_reset_expires"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

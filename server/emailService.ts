@@ -1328,3 +1328,85 @@ export async function sendReferralNotificationEmail({
     return { success: false, error: err.message };
   }
 }
+
+export async function sendPasswordResetEmail({
+  toEmail,
+  userName,
+  resetLink,
+}: {
+  toEmail: string;
+  userName: string;
+  resetLink: string;
+}) {
+  console.log("Getting Resend client for password reset email...");
+  const { client, fromEmail } = await getResendClient();
+
+  const safeUserName = escapeHtml(userName);
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Georgia', serif; background-color: #f5f1e8; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { 
+          background-color: #FAF7F2;
+          background-image:
+            repeating-linear-gradient(0deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px),
+            repeating-linear-gradient(90deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px);
+          padding: 28px; 
+          text-align: center;
+          border-bottom: 1px solid rgba(107, 74, 85, 0.2);
+        }
+        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55; }
+        .content { padding: 32px; color: #333; line-height: 1.6; }
+        .button { display: inline-block; background: #6B4A55; color: white !important; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-size: 14px; letter-spacing: 1px; margin: 20px 0; }
+        .button:hover { background: #8a6270; }
+        .footer { text-align: center; padding: 20px; color: #888; font-size: 12px; border-top: 1px solid #eee; }
+        .note { font-size: 12px; color: #888; margin-top: 24px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Beauvette</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${safeUserName},</p>
+          
+          <p>We received a request to reset your password. Click the button below to create a new password:</p>
+          
+          <p style="text-align: center;">
+            <a href="${resetLink}" class="button">Reset Password</a>
+          </p>
+          
+          <p class="note">This link will expire in 1 hour. If you didn't request a password reset, you can safely ignore this email.</p>
+          
+          <p>Best,<br>The Beauvette Team</p>
+        </div>
+        <div class="footer">
+          <a href="https://beauvette.com" style="color: #6B4A55;">Beauvette</a> - For Life's Most Important Days
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const senderEmail = 'Beauvette <violet@beauvette.com>';
+  
+  try {
+    console.log("Sending password reset email to:", toEmail);
+    const result = await client.emails.send({
+      from: senderEmail,
+      to: toEmail.trim(),
+      subject: 'Reset Your Beauvette Password',
+      html: htmlContent
+    });
+    console.log("Password reset email sent:", JSON.stringify(result));
+    return { success: true, result };
+  } catch (err: any) {
+    console.error("Failed to send password reset email:", err.message);
+    return { success: false, error: err.message };
+  }
+}

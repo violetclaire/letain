@@ -9,6 +9,8 @@ import NotFound from "@/pages/not-found";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import Register from "@/pages/Register";
 import ServiceSelection from "@/pages/intake/ServiceSelection";
 import ClientDetails from "@/pages/intake/ClientDetails";
@@ -72,6 +74,8 @@ function Router() {
       <Route path="/" component={Landing} />
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
       <Route path="/register" component={Register} />
       <Route path="/intake/client" component={ServiceSelection} />
       <Route path="/intake/client/details" component={ClientDetails} />

@@ -279,6 +279,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // ========== PASSWORD RESET ==========
+  // Request password reset - sends email with reset link
+  app.post('/api/auth/forgot-password', authLimiter, async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      
+      const user = await storage.getUserByEmail(email);
+      
+      // Always return success to prevent email enumeration
+      if (!user) {
+        return res.json({ message: "If an account exists with this email, a reset link has been sent" });
+      }
+      
+      // Generate reset token
+      const resetToken = randomUUID();
+      const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+      
+      // Save token to user
+      await storage.updateUser(user.id, {
+        passwordResetToken: resetToken,
+        passwordResetExpires: resetExpires,
+      });
+      
+      // Send reset email
+      try {
+        const { sendPasswordResetEmail } = await import('./emailService');
+        const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+          ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+          : 'https://beauvette.com';
+        
+        await sendPasswordResetEmail({
+          toEmail: user.email!,
+          userName: user.firstName || 'there',
+          resetLink: `${baseUrl}/reset-password?token=${resetToken}`,
+        });
+      } catch (emailError) {
+        console.error("Failed to send password reset email:", emailError);
+        // Still return success to prevent enumeration
+      }
+      
+      res.json({ message: "If an account exists with this email, a reset link has been sent" });
+    } catch (error: any) {
+      console.error("Forgot password error:", error);
+      res.status(500).json({ message: "Something went wrong" });
+    }
+  });
+
+  // Verify reset token is valid
+  app.get('/api/auth/verify-reset-token', async (req, res) => {
+    try {
+      const { token } = req.query;
+      
+      if (!token || typeof token !== 'string') {
+        return res.json({ valid: false });
+      }
+      
+      const user = await storage.getUserByResetToken(token);
+      
+      if (!user || !user.passwordResetExpires || new Date(user.passwordResetExpires) < new Date()) {
+        return res.json({ valid: false });
+      }
+      
+      res.json({ valid: true });
+    } catch (error: any) {
+      console.error("Verify reset token error:", error);
+      res.json({ valid: false });
+    }
+  });
+
+  // Reset password with token
+  app.post('/api/auth/reset-password', authLimiter, async (req, res) => {
+    try {
+      const { token, password } = req.body;
+      
+      if (!token || !password) {
+        return res.status(400).json({ message: "Token and password are required" });
+      }
+      
+      // Validate password
+      if (password.length < 8) {
+        return res.status(400).json({ message: "Password must be at least 8 characters" });
+      }
+      if (!/\d/.test(password)) {
+        return res.status(400).json({ message: "Password must contain a number" });
+      }
+      if (!/[A-Z]/.test(password)) {
+        return res.status(400).json({ message: "Password must contain an uppercase letter" });
+      }
+      
+      const user = await storage.getUserByResetToken(token);
+      
+      if (!user || !user.passwordResetExpires || new Date(user.passwordResetExpires) < new Date()) {
+        return res.status(400).json({ message: "Invalid or expired reset link" });
+      }
+      
+      // Hash new password and clear reset token
+      const hashedPassword = await bcrypt.hash(password, 10);
+      await storage.updateUser(user.id, {
+        password: hashedPassword,
+        passwordResetToken: null,
+        passwordResetExpires: null,
+      });
+      
+      res.json({ message: "Password reset successfully" });
+    } catch (error: any) {
+      console.error("Reset password error:", error);
+      res.status(500).json({ message: "Something went wrong" });
+    }
+  });
+
   // ========== USER ROLE UPDATE ==========
   app.patch("/api/users/:id/role", isAuthenticated, async (req: any, res) => {
     try {
