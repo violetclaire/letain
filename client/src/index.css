@@ -126,10 +126,10 @@
   .gingham-pattern {
     background-color: #F4F2EC;
     background-image:
-      linear-gradient(45deg, #B8A5B0 25%, transparent 25%),
-      linear-gradient(-45deg, #B8A5B0 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, #B8A5B0 75%),
-      linear-gradient(-45deg, transparent 75%, #B8A5B0 75%),
+      linear-gradient(45deg, rgba(90, 31, 43, 0.35) 25%, transparent 25%),
+      linear-gradient(-45deg, rgba(90, 31, 43, 0.35) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, rgba(90, 31, 43, 0.35) 75%),
+      linear-gradient(-45deg, transparent 75%, rgba(90, 31, 43, 0.35) 75%),
       linear-gradient(45deg, #A9A17A 25%, transparent 25%),
       linear-gradient(-45deg, #A9A17A 25%, transparent 25%),
       linear-gradient(45deg, transparent 75%, #A9A17A 75%),
@@ -146,8 +146,8 @@
         0deg,
         transparent,
         transparent 16px,
-        rgba(184, 165, 176, 0.45) 16px,
-        rgba(184, 165, 176, 0.45) 32px
+        rgba(90, 31, 43, 0.3) 16px,
+        rgba(90, 31, 43, 0.3) 32px
       ),
       repeating-linear-gradient(
         90deg,
