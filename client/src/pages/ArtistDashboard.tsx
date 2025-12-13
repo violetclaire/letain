@@ -114,12 +114,40 @@ export default function ArtistDashboard() {
     budget?: number;
     status: string;
     createdAt: string;
+    holdPlacedAt?: string;
+    holdExpiresAt?: string;
+    holdReason?: string;
+    firstResponseAt?: string;
+    proposedDates?: string[];
   }>>([]);
   const [inquiriesLoading, setInquiriesLoading] = useState(false);
   const [respondingInquiry, setRespondingInquiry] = useState<string | null>(null);
   const [sendingChatInvite, setSendingChatInvite] = useState<string | null>(null);
   const [decliningInquiry, setDecliningInquiry] = useState<string | null>(null);
   const [expandedInquiry, setExpandedInquiry] = useState<string | null>(null);
+  const [confirmingInquiry, setConfirmingInquiry] = useState<string | null>(null);
+  const [holdingInquiry, setHoldingInquiry] = useState<string | null>(null);
+  const [proposingDates, setProposingDates] = useState<string | null>(null);
+  const [showProposeModal, setShowProposeModal] = useState(false);
+  const [proposeInquiryId, setProposeInquiryId] = useState<string | null>(null);
+  const [proposedDateInputs, setProposedDateInputs] = useState<string[]>(['']);
+  const [showTimelineId, setShowTimelineId] = useState<string | null>(null);
+  const [timelineData, setTimelineData] = useState<{
+    receivedAt?: string;
+    firstResponseAt?: string;
+    lastActionAt?: string;
+    nextSlaDue?: string;
+    slaBreached?: boolean;
+    holdExpiresAt?: string;
+    events: Array<{
+      id: string;
+      action: string;
+      performedBy?: string;
+      changes?: any;
+      createdAt: string;
+    }>;
+  } | null>(null);
+  const [loadingTimeline, setLoadingTimeline] = useState(false);
   
   // Appointment email state
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -435,9 +463,172 @@ export default function ArtistDashboard() {
     setDecliningInquiry(null);
   };
   
+  // Confirm inquiry - convert to booking
+  const handleConfirmInquiry = async (inquiryId: string) => {
+    setConfirmingInquiry(inquiryId);
+    try {
+      const res = await fetch(`/api/inquiries/${inquiryId}/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({}),
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        toast({
+          title: "Booking Confirmed!",
+          description: "The inquiry has been converted to a confirmed booking.",
+        });
+        const inquiriesRes = await fetch('/api/vendor/inquiries', { credentials: 'include' });
+        if (inquiriesRes.ok) setInquiries(await inquiriesRes.json());
+        setCalendarRefreshKey(prev => prev + 1);
+      } else {
+        const error = await res.json();
+        toast({ title: "Error", description: error.error || "Failed to confirm", variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to confirm inquiry", variant: "destructive" });
+    }
+    setConfirmingInquiry(null);
+  };
+
+  // Hold inquiry - tentative reservation
+  const handleHoldInquiry = async (inquiryId: string, expiresInHours: number = 24) => {
+    setHoldingInquiry(inquiryId);
+    try {
+      const res = await fetch(`/api/inquiries/${inquiryId}/hold`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ expiresInHours, reason: 'Tentatively reserved' }),
+      });
+      
+      if (res.ok) {
+        toast({
+          title: "Date Held",
+          description: `Tentatively reserved for ${expiresInHours} hours.`,
+        });
+        const inquiriesRes = await fetch('/api/vendor/inquiries', { credentials: 'include' });
+        if (inquiriesRes.ok) setInquiries(await inquiriesRes.json());
+        setCalendarRefreshKey(prev => prev + 1);
+      } else {
+        const error = await res.json();
+        toast({ title: "Error", description: error.error || "Failed to hold", variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to hold inquiry", variant: "destructive" });
+    }
+    setHoldingInquiry(null);
+  };
+
+  // Propose alternative dates
+  const handleProposeAlternative = async () => {
+    if (!proposeInquiryId) return;
+    setProposingDates(proposeInquiryId);
+    const validDates = proposedDateInputs.filter(d => d.trim());
+    if (validDates.length === 0) {
+      toast({ title: "Error", description: "Please add at least one date", variant: "destructive" });
+      setProposingDates(null);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/inquiries/${proposeInquiryId}/propose`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ proposedDates: validDates }),
+      });
+      if (res.ok) {
+        toast({ title: "Dates Proposed", description: "Alternative dates sent to client." });
+        const inquiriesRes = await fetch('/api/vendor/inquiries', { credentials: 'include' });
+        if (inquiriesRes.ok) setInquiries(await inquiriesRes.json());
+        setShowProposeModal(false);
+        setProposeInquiryId(null);
+        setProposedDateInputs(['']);
+      } else {
+        const error = await res.json();
+        toast({ title: "Error", description: error.error || "Failed to propose", variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to propose dates", variant: "destructive" });
+    }
+    setProposingDates(null);
+  };
+
+  // Calculate countdown for hold expiration
+  const getHoldCountdown = (expiresAt: string) => {
+    const expires = new Date(expiresAt);
+    const now = new Date();
+    const diffMs = expires.getTime() - now.getTime();
+    if (diffMs <= 0) return 'Expired';
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    return hours > 0 ? `${hours}h ${mins}m left` : `${mins}m left`;
+  };
+
+  // Fetch inquiry timeline with race condition handling
+  const timelineRequestRef = useRef<string | null>(null);
+  
+  const fetchInquiryTimeline = async (inquiryId: string) => {
+    if (showTimelineId === inquiryId) {
+      setShowTimelineId(null);
+      setTimelineData(null);
+      timelineRequestRef.current = null;
+      return;
+    }
+    
+    const requestId = inquiryId;
+    timelineRequestRef.current = requestId;
+    setTimelineData(null);
+    setLoadingTimeline(true);
+    setShowTimelineId(inquiryId);
+    
+    try {
+      const res = await fetch(`/api/inquiries/${inquiryId}/timeline`, { credentials: 'include' });
+      
+      if (timelineRequestRef.current !== requestId) {
+        return;
+      }
+      
+      if (res.ok) {
+        const data = await res.json();
+        setTimelineData(data);
+      } else {
+        setShowTimelineId(null);
+        setTimelineData(null);
+        toast({ title: "Error", description: "Failed to load timeline", variant: "destructive" });
+      }
+    } catch (err) {
+      if (timelineRequestRef.current === requestId) {
+        setShowTimelineId(null);
+        setTimelineData(null);
+        toast({ title: "Error", description: "Failed to load timeline", variant: "destructive" });
+      }
+    }
+    
+    if (timelineRequestRef.current === requestId) {
+      setLoadingTimeline(false);
+    }
+  };
+
+  const formatTimelineAction = (action: string) => {
+    const actionMap: Record<string, string> = {
+      'inquiry_created': 'Inquiry received',
+      'inquiry_responded': 'Info sheet sent',
+      'inquiry_hold': 'Hold placed',
+      'inquiry_confirmed': 'Booking confirmed',
+      'inquiry_declined': 'Inquiry declined',
+      'inquiry_propose_dates': 'Alternative dates proposed',
+      'chat_invite_sent': 'Chat invite sent',
+    };
+    return actionMap[action] || action.replace(/_/g, ' ');
+  };
+
   const getInquiryStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'hold': return 'bg-orange-100 text-orange-800';
       case 'responded': return 'bg-blue-100 text-blue-800';
       case 'chatting': return 'bg-purple-100 text-purple-800';
       case 'converted': return 'bg-green-100 text-green-800';
@@ -1792,55 +1983,163 @@ export default function ArtistDashboard() {
                                         <p className="text-[0.65rem] ink-soft italic bg-[#FAF9F7] p-2 rounded">"{inquiry.message}"</p>
                                       )}
                                       
-                                      {inquiry.status === 'pending' && (
+                                      {/* Hold status with countdown */}
+                                      {inquiry.status === 'hold' && inquiry.holdExpiresAt && (
+                                        <div className="bg-orange-50 border border-orange-200 rounded-md p-2 mt-2 flex items-center justify-between">
+                                          <div className="flex items-center gap-2">
+                                            <Clock size={12} className="text-orange-600" />
+                                            <span className="text-[0.65rem] text-orange-700 font-medium">On Hold</span>
+                                          </div>
+                                          <span className="text-[0.65rem] text-orange-600 font-semibold">{getHoldCountdown(inquiry.holdExpiresAt)}</span>
+                                        </div>
+                                      )}
+                                      
+                                      {(inquiry.status === 'pending' || inquiry.status === 'hold') && (
                                         <div className="flex gap-1 mt-3 flex-wrap">
+                                          {/* Confirm Button - Primary Action */}
+                                          <button 
+                                            onClick={() => handleConfirmInquiry(inquiry.id)}
+                                            disabled={confirmingInquiry === inquiry.id}
+                                            className="flex-1 min-w-[70px] py-1.5 rounded-md bg-green-600 text-white border border-green-600 hover:bg-green-700 transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+                                            title="Confirm booking"
+                                            data-testid={`button-confirm-inquiry-${inquiry.id}`}
+                                          >
+                                            {confirmingInquiry === inquiry.id ? (
+                                              <Loader2 size={10} className="animate-spin" />
+                                            ) : (
+                                              <Check size={10} />
+                                            )}
+                                            <span>Confirm</span>
+                                          </button>
+                                          
+                                          {/* Hold Button - Only show if not already on hold */}
+                                          {inquiry.status !== 'hold' && (
+                                            <button 
+                                              onClick={() => handleHoldInquiry(inquiry.id, 24)}
+                                              disabled={holdingInquiry === inquiry.id}
+                                              className="flex-1 min-w-[60px] py-1.5 rounded-md bg-orange-500 text-white border border-orange-500 hover:bg-orange-600 transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+                                              title="Hold for 24h"
+                                              data-testid={`button-hold-inquiry-${inquiry.id}`}
+                                            >
+                                              {holdingInquiry === inquiry.id ? (
+                                                <Loader2 size={10} className="animate-spin" />
+                                              ) : (
+                                                <Clock size={10} />
+                                              )}
+                                              <span>Hold</span>
+                                            </button>
+                                          )}
+                                          
+                                          {/* Propose Alternative */}
+                                          <button 
+                                            onClick={() => {
+                                              setProposeInquiryId(inquiry.id);
+                                              setShowProposeModal(true);
+                                            }}
+                                            className="flex-1 min-w-[60px] py-1.5 rounded-md bg-[#9A9472] text-white border border-[#9A9472] hover:bg-[#8a8462] transition-colors flex items-center justify-center gap-1"
+                                            title="Propose alternative dates"
+                                            data-testid={`button-propose-dates-${inquiry.id}`}
+                                          >
+                                            <Calendar size={10} />
+                                            <span>Propose</span>
+                                          </button>
+                                          
+                                          {/* Decline */}
                                           <button 
                                             onClick={() => handleDeclineInquiry(inquiry.id)}
                                             disabled={decliningInquiry === inquiry.id}
-                                            className="flex-1 min-w-[60px] py-1.5 rounded-md border border-gray-200 text-gray-500 hover:border-red-200 hover:text-red-600 transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+                                            className="py-1.5 px-2 rounded-md border border-gray-200 text-gray-500 hover:border-red-200 hover:text-red-600 transition-colors flex items-center justify-center disabled:opacity-50"
                                             title="Decline"
                                             data-testid={`button-decline-inquiry-${inquiry.id}`}
                                           >
                                             {decliningInquiry === inquiry.id ? (
                                               <Loader2 size={10} className="animate-spin" />
                                             ) : (
-                                              <XCircle size={10} />
+                                              <X size={10} />
                                             )}
-                                            <span>Decline</span>
                                           </button>
-                                          <button 
-                                            onClick={() => handleSendChatInvite(inquiry.id)}
-                                            disabled={sendingChatInvite === inquiry.id}
-                                            className="flex-1 min-w-[60px] py-1.5 rounded-md bg-[#6B4A55] text-white border border-[#6B4A55] hover:bg-[#5a3d47] transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
-                                            title="Start Chat"
-                                            data-testid={`button-chat-invite-${inquiry.id}`}
-                                          >
-                                            {sendingChatInvite === inquiry.id ? (
-                                              <Loader2 size={10} className="animate-spin" />
-                                            ) : (
-                                              <MessageCircle size={10} />
-                                            )}
-                                            <span>Start Chat</span>
-                                          </button>
-                                          <button 
-                                            onClick={() => {
-                                              const truncatedNotes = inquiry.message ? inquiry.message.substring(0, 200) : '';
-                                              const params = new URLSearchParams();
-                                              params.set('clientName', inquiry.clientName || '');
-                                              params.set('clientEmail', inquiry.clientEmail || '');
-                                              params.set('eventDate', inquiry.eventDate || '');
-                                              params.set('serviceType', inquiry.serviceType || '');
-                                              if (truncatedNotes) params.set('notes', truncatedNotes);
-                                              if (inquiry.budget) params.set('budget', String(inquiry.budget));
-                                              setLocation(`/artist/proposals?${params.toString()}`);
-                                            }}
-                                            className="flex-1 min-w-[60px] py-1.5 rounded-md bg-[#9A9472] text-white border border-[#9A9472] hover:bg-[#8a8462] transition-colors flex items-center justify-center gap-1"
-                                            title="Create Proposal"
-                                            data-testid={`button-create-proposal-${inquiry.id}`}
-                                          >
-                                            <FileText size={10} />
-                                            <span>Proposal</span>
-                                          </button>
+                                        </div>
+                                      )}
+                                      
+                                      {/* Timeline Toggle Button */}
+                                      <button
+                                        onClick={() => fetchInquiryTimeline(inquiry.id)}
+                                        className="mt-3 w-full py-1.5 text-[0.6rem] text-gray-500 hover:text-gray-700 border border-gray-200 rounded flex items-center justify-center gap-1 transition-colors"
+                                        data-testid={`button-timeline-${inquiry.id}`}
+                                      >
+                                        {loadingTimeline && showTimelineId === inquiry.id ? (
+                                          <Loader2 size={10} className="animate-spin" />
+                                        ) : (
+                                          <FileText size={10} />
+                                        )}
+                                        <span>{showTimelineId === inquiry.id ? 'Hide Timeline' : 'View Timeline'}</span>
+                                      </button>
+                                      
+                                      {/* Timeline Pane */}
+                                      {showTimelineId === inquiry.id && (
+                                        <div className="mt-2 border-t border-gray-100 pt-2">
+                                          {loadingTimeline ? (
+                                            <div className="flex items-center justify-center py-4">
+                                              <Loader2 size={16} className="animate-spin text-gray-400" />
+                                              <span className="ml-2 text-[0.6rem] text-gray-400">Loading timeline...</span>
+                                            </div>
+                                          ) : timelineData ? (
+                                            <div className="space-y-2">
+                                              {/* SLA Summary Banner */}
+                                              <div className="text-[0.55rem] font-semibold uppercase tracking-wider text-gray-500 mb-1">Inquiry Timeline</div>
+                                              
+                                              {/* Key timestamps */}
+                                              <div className="grid grid-cols-2 gap-2 text-[0.6rem]">
+                                                <div className="bg-gray-50 rounded p-1.5">
+                                                  <span className="text-gray-500">Received:</span>
+                                                  <span className="ml-1 text-gray-700">
+                                                    {timelineData.receivedAt ? new Date(timelineData.receivedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'N/A'}
+                                                  </span>
+                                                </div>
+                                                <div className={`rounded p-1.5 ${timelineData.firstResponseAt ? 'bg-blue-50' : 'bg-yellow-50'}`}>
+                                                  <span className={timelineData.firstResponseAt ? 'text-blue-600' : 'text-yellow-600'}>1st Response:</span>
+                                                  <span className={`ml-1 ${timelineData.firstResponseAt ? 'text-blue-700' : 'text-yellow-700'}`}>
+                                                    {timelineData.firstResponseAt 
+                                                      ? new Date(timelineData.firstResponseAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+                                                      : 'Pending'}
+                                                  </span>
+                                                </div>
+                                              </div>
+                                              
+                                              {/* SLA Status */}
+                                              {timelineData.slaBreached ? (
+                                                <div className="bg-red-50 border border-red-200 rounded p-1.5 flex items-center gap-1">
+                                                  <AlertCircle size={10} className="text-red-500" />
+                                                  <span className="text-[0.6rem] text-red-600 font-medium">SLA Breached - Response overdue</span>
+                                                </div>
+                                              ) : timelineData.nextSlaDue ? (
+                                                <div className="bg-green-50 border border-green-200 rounded p-1.5 flex items-center gap-1">
+                                                  <Check size={10} className="text-green-500" />
+                                                  <span className="text-[0.6rem] text-green-600">SLA on track - Next due: {new Date(timelineData.nextSlaDue).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+                                                </div>
+                                              ) : null}
+                                              
+                                              {/* Event timeline */}
+                                              {timelineData.events.length > 0 ? (
+                                                <div className="space-y-1 pt-1">
+                                                  <div className="text-[0.55rem] font-semibold uppercase tracking-wider text-gray-400">Activity</div>
+                                                  {timelineData.events.slice(0, 5).map((event, idx) => (
+                                                    <div key={event.id || idx} className="flex items-start gap-2 text-[0.6rem]">
+                                                      <div className="w-1.5 h-1.5 rounded-full bg-gray-300 mt-1 flex-shrink-0" />
+                                                      <div className="flex-1">
+                                                        <span className="text-gray-700">{formatTimelineAction(event.action)}</span>
+                                                        <span className="text-gray-400 ml-1">
+                                                          {new Date(event.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                                                        </span>
+                                                      </div>
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              ) : (
+                                                <p className="text-[0.6rem] text-gray-400 text-center py-2">No activity events recorded yet</p>
+                                              )}
+                                            </div>
+                                          ) : null}
                                         </div>
                                       )}
                                     </div>
@@ -2653,7 +2952,7 @@ export default function ArtistDashboard() {
               </div>
               
               {/* Availability Calendar */}
-              {user && <AvailabilityCalendar userId={user.id} key={`calendar-${calendarRefreshKey}`} />}
+              {user && <AvailabilityCalendar userId={user.id} refreshKey={calendarRefreshKey} />}
 
             </div>
           </section>

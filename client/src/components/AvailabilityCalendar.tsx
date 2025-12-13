@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 function toLocalDateKey(date: Date): string {
@@ -29,6 +29,7 @@ interface AvailabilityCalendarProps {
   onDateSelect?: (date: Date, status: string) => void;
   onRequestBooking?: (date: Date) => void;
   viewOnly?: boolean;
+  refreshKey?: number;
 }
 
 interface AvailabilityRecord {
@@ -46,13 +47,22 @@ interface BookingRecord {
   clientId?: string;
 }
 
-type DateStatus = 'booked' | 'pending' | 'blocked' | 'available';
+interface InquiryHold {
+  id: string;
+  eventDate: string;
+  status: string;
+  holdExpiresAt?: string;
+  clientName: string;
+}
 
-export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBooking, viewOnly = false }: AvailabilityCalendarProps) {
+type DateStatus = 'booked' | 'pending' | 'blocked' | 'available' | 'hold';
+
+export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBooking, viewOnly = false, refreshKey = 0 }: AvailabilityCalendarProps) {
   const { toast } = useToast();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [availability, setAvailability] = useState<Record<string, boolean>>({});
   const [bookings, setBookings] = useState<Record<string, { status: string; id: string }>>({});
+  const [holds, setHolds] = useState<Record<string, { id: string; expiresAt?: string; clientName: string }>>({});
   const [loading, setLoading] = useState(false);
 
   const monthNames = ["January", "February", "March", "April", "May", "June", 
@@ -62,7 +72,7 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
 
   useEffect(() => {
     fetchCalendarData();
-  }, [currentMonth, userId]);
+  }, [currentMonth, userId, refreshKey]);
 
   const fetchCalendarData = async () => {
     if (!userId) return;
@@ -71,7 +81,7 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
     const endDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
     
     try {
-      const [availResponse, bookingsResponse] = await Promise.all([
+      const [availResponse, bookingsResponse, inquiriesResponse] = await Promise.all([
         fetch(
           `/api/availability/${userId}?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`,
           { credentials: "include" }
@@ -79,7 +89,8 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
         fetch(
           `/api/bookings/artist/${userId}?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`,
           { credentials: "include" }
-        )
+        ),
+        fetch(`/api/vendor/inquiries`, { credentials: "include" })
       ]);
 
       if (availResponse.ok) {
@@ -100,6 +111,22 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
           bookingMap[dateKey] = { status: booking.status, id: booking.id };
         });
         setBookings(bookingMap);
+      }
+
+      if (inquiriesResponse.ok) {
+        const data: InquiryHold[] = await inquiriesResponse.json();
+        const holdMap: Record<string, { id: string; expiresAt?: string; clientName: string }> = {};
+        data.forEach((inquiry) => {
+          if (inquiry.status === 'hold' && inquiry.eventDate) {
+            const dateKey = parseToLocalDate(inquiry.eventDate);
+            holdMap[dateKey] = { 
+              id: inquiry.id, 
+              expiresAt: inquiry.holdExpiresAt,
+              clientName: inquiry.clientName 
+            };
+          }
+        });
+        setHolds(holdMap);
       }
     } catch (err) {
       console.error("Error fetching calendar data:", err);
@@ -197,11 +224,14 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
   const getDateStatus = (date: Date): DateStatus => {
     const dateKey = toLocalDateKey(date);
     const booking = bookings[dateKey];
+    const hold = holds[dateKey];
     
     if (booking) {
       if (booking.status === 'accepted' || booking.status === 'completed') return 'booked';
       if (booking.status === 'pending') return 'pending';
     }
+    
+    if (hold) return 'hold';
     
     if (availability[dateKey] === false) return 'blocked';
     
@@ -218,6 +248,8 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
         return 'bg-forest text-white cursor-default';
       case 'pending':
         return 'bg-gold/30 text-forest cursor-default border border-gold/50';
+      case 'hold':
+        return 'bg-orange-100 text-orange-800 cursor-default border border-orange-300';
       case 'blocked':
         return viewOnly 
           ? 'bg-gray-200 text-gray-500 cursor-default' 
@@ -234,9 +266,20 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
     switch (status) {
       case 'booked': return 'Booked';
       case 'pending': return 'Pending';
+      case 'hold': return 'On Hold';
       case 'blocked': return 'Blocked';
       case 'available': return 'Request to Book';
     }
+  };
+  
+  const getHoldCountdown = (expiresAt: string) => {
+    const expires = new Date(expiresAt);
+    const now = new Date();
+    const diffMs = expires.getTime() - now.getTime();
+    if (diffMs <= 0) return 'Exp';
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    return hours > 0 ? `${hours}h` : `${mins}m`;
   };
 
   const days = getDaysInMonth();
@@ -296,12 +339,15 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
             }
           };
           
+          const dateKey = toLocalDateKey(date);
+          const hold = holds[dateKey];
+          
           return (
             <button
               key={date.toISOString()}
               onClick={handleClick}
               disabled={(!canInteract && !canBook) || loading}
-              title={canBook ? 'Click to request booking' : getStatusLabel(status)}
+              title={canBook ? 'Click to request booking' : hold ? `Hold: ${hold.clientName}` : getStatusLabel(status)}
               className={`
                 h-8 rounded text-xs relative transition-all
                 ${today ? 'ring-2 ring-gold ring-offset-1' : ''}
@@ -310,6 +356,12 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
               data-testid={`calendar-day-${date.getDate()}`}
             >
               {date.getDate()}
+              {status === 'hold' && hold?.expiresAt && (
+                <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[0.45rem] px-1 rounded-full font-semibold flex items-center gap-0.5">
+                  <Clock size={6} />
+                  {getHoldCountdown(hold.expiresAt)}
+                </span>
+              )}
             </button>
           );
         })}
@@ -323,6 +375,10 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 bg-gold/30 rounded border border-gold/50" />
           <span className="ink-soft">Pending</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 bg-orange-100 rounded border border-orange-300" />
+          <span className="ink-soft">Hold</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 bg-forest rounded" />
