@@ -1719,6 +1719,169 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========== BOOKING CHECKLISTS (Day-of Readiness) ==========
+  // Get or create a checklist for a booking
+  app.get("/api/bookings/:bookingId/checklist", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const { bookingId } = req.params;
+      const { type = 'day_of_readiness' } = req.query;
+      
+      const booking = await storage.getBooking(bookingId);
+      if (!booking) {
+        return res.status(404).json({ error: "Booking not found" });
+      }
+      
+      // Only vendor (artist) of the booking can access checklist
+      if (booking.artistId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      let checklist = await storage.getBookingChecklist(bookingId, userId);
+      
+      // If no checklist exists, create one with default items
+      if (!checklist) {
+        const defaultItems = [
+          { id: 'prep_notes', label: 'Review prep notes and client preferences', completed: false },
+          { id: 'arrival_window', label: 'Confirm arrival time and location details', completed: false },
+          { id: 'contact_on_site', label: 'Have on-site contact number ready', completed: false },
+          { id: 'supplies_packed', label: 'All supplies and equipment packed', completed: false },
+          { id: 'travel_route', label: 'Confirm travel route and parking', completed: false },
+        ];
+        
+        checklist = await storage.createBookingChecklist({
+          bookingId,
+          vendorId: userId,
+          checklistType: type as string,
+          items: defaultItems,
+          allCompleted: false,
+        });
+        
+        // Audit log
+        await storage.createAuditLog({
+          action: 'checklist_created',
+          entityType: 'booking_checklist',
+          entityId: checklist.id,
+          performedBy: userId,
+          actorRole: 'artist',
+          changes: { bookingId, checklistType: type, itemCount: defaultItems.length },
+        });
+      }
+      
+      res.json(checklist);
+    } catch (error: any) {
+      console.error("[Checklist] Error getting checklist:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update checklist items
+  app.patch("/api/bookings/:bookingId/checklist", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const { bookingId } = req.params;
+      const { items, allCompleted } = req.body;
+      
+      const booking = await storage.getBooking(bookingId);
+      if (!booking) {
+        return res.status(404).json({ error: "Booking not found" });
+      }
+      
+      if (booking.artistId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const checklist = await storage.getBookingChecklist(bookingId, userId);
+      if (!checklist) {
+        return res.status(404).json({ error: "Checklist not found. GET first to create." });
+      }
+      
+      const now = new Date();
+      const updateData: any = {};
+      
+      if (items !== undefined) {
+        updateData.items = items;
+      }
+      
+      if (allCompleted !== undefined) {
+        updateData.allCompleted = allCompleted;
+        if (allCompleted) {
+          updateData.completedAt = now;
+        }
+      }
+      
+      const updated = await storage.updateBookingChecklist(checklist.id, updateData);
+      
+      // Audit log for each item change
+      const previousItems = checklist.items as any[];
+      const newItems = items || previousItems; // Use existing items if not provided
+      for (const newItem of newItems) {
+        const prevItem = previousItems.find((p: any) => p.id === newItem.id);
+        if (prevItem && prevItem.completed !== newItem.completed) {
+          await storage.createAuditLog({
+            action: newItem.completed ? 'checklist_item_completed' : 'checklist_item_unchecked',
+            entityType: 'booking_checklist',
+            entityId: checklist.id,
+            performedBy: userId,
+            actorRole: 'artist',
+            diff: { [`item_${newItem.id}`]: { from: prevItem.completed, to: newItem.completed } },
+            changes: { itemId: newItem.id, itemLabel: newItem.label, bookingId },
+          });
+          
+          // Silent CDI event for completed items
+          if (newItem.completed) {
+            await storage.createCdiEvent({
+              userId: userId,
+              eventType: 'checklist_item_completed',
+              bookingId: bookingId,
+              eventData: { checklistId: checklist.id, itemId: newItem.id, timestamp: now.toISOString() },
+              magnitude: 2, // Positive - completing prep work is good
+            });
+          }
+        }
+      }
+      
+      // CDI event and audit log for full checklist completion state change
+      if (allCompleted !== undefined && allCompleted !== checklist.allCompleted) {
+        await storage.createAuditLog({
+          action: allCompleted ? 'checklist_fully_completed' : 'checklist_completion_reverted',
+          entityType: 'booking_checklist',
+          entityId: checklist.id,
+          performedBy: userId,
+          actorRole: 'artist',
+          diff: { allCompleted: { from: checklist.allCompleted, to: allCompleted } },
+          changes: { bookingId },
+        });
+        
+        if (allCompleted) {
+          await storage.createCdiEvent({
+            userId: userId,
+            eventType: 'checklist_fully_completed',
+            bookingId: bookingId,
+            eventData: { checklistId: checklist.id, timestamp: now.toISOString() },
+            magnitude: 5, // Higher positive for full completion
+          });
+        }
+      }
+      
+      res.json(updated);
+    } catch (error: any) {
+      console.error("[Checklist] Error updating checklist:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get all checklists for vendor
+  app.get("/api/vendor/checklists", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const checklists = await storage.getBookingChecklistsByVendor(userId);
+      res.json(checklists);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ========== MESSAGES ==========
   app.post("/api/messages", isAuthenticated, async (req: any, res) => {
     try {
