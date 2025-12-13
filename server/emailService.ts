@@ -1231,3 +1231,100 @@ export async function sendInquiryNotificationEmail({
     return { success: false, error: err.message };
   }
 }
+
+export async function sendReferralNotificationEmail({
+  toEmail,
+  clientName,
+  referrerName,
+  declineReason,
+  referralMessage,
+  referralVendors
+}: {
+  toEmail: string;
+  clientName: string;
+  referrerName: string;
+  declineReason: string;
+  referralMessage?: string;
+  referralVendors: Array<{ name: string }>;
+}) {
+  const { client } = await getResendClient();
+
+  const safeClientName = escapeHtml(clientName);
+  const safeReferrerName = escapeHtml(referrerName);
+  const safeDeclineReason = escapeHtml(declineReason);
+  const safeMessage = referralMessage ? escapeHtml(referralMessage) : '';
+  
+  const vendorList = referralVendors.map(v => `<li style="margin: 8px 0;">${escapeHtml(v.name)}</li>`).join('');
+  
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Georgia', serif; background-color: #FAF9F7; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: #FFFEF9; overflow: hidden; }
+        .header { 
+          background-color: #FAF9F7;
+          padding: 28px; 
+          text-align: center;
+          border-bottom: 1px solid #6B4A55;
+        }
+        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55; }
+        .header p { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin: 8px 0 0 0; color: #6B4A55; opacity: 0.8; }
+        .content { padding: 32px; color: #6B4A55; }
+        .message { font-style: italic; border-left: 2px solid #6B4A55; padding-left: 16px; margin: 20px 0; }
+        .referrals { background: #FAF9F7; padding: 20px; margin: 24px 0; border: 1px solid #6B4A55; }
+        .referrals h3 { margin: 0 0 12px 0; color: #6B4A55; }
+        .referrals ul { margin: 0; padding-left: 20px; }
+        .footer { text-align: center; padding: 20px; color: #6B4A55; font-size: 12px; border-top: 1px solid #6B4A55; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Beauvette</h1>
+          <p>For Life's Most Important Days</p>
+        </div>
+        <div class="content">
+          <p>Dear ${safeClientName},</p>
+          
+          <p>Unfortunately, ${safeReferrerName} is not available for your event${safeDeclineReason ? ` (${safeDeclineReason})` : ''}.</p>
+          
+          ${safeMessage ? `<div class="message">${safeMessage}</div>` : ''}
+          
+          <p>However, they've recommended some wonderful colleagues who may be able to help:</p>
+          
+          <div class="referrals">
+            <h3>Recommended Vendors</h3>
+            <ul>${vendorList}</ul>
+          </div>
+          
+          <p>These vendors will be reaching out to you shortly. You can also expect inquiries directly in your inbox.</p>
+          
+          <p>Warm regards,<br>The Beauvette Team</p>
+        </div>
+        <div class="footer">
+          <a href="https://beauvette.com" style="color: #6B4A55;">Beauvette</a> - For Life's Most Important Days
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const senderEmail = 'Beauvette <violet@beauvette.com>';
+  
+  try {
+    console.log("Sending referral notification email to:", toEmail);
+    const result = await client.emails.send({
+      from: senderEmail,
+      to: toEmail.trim(),
+      subject: `${safeReferrerName} has recommended some vendors for your event`,
+      html: htmlContent
+    });
+    console.log("Referral notification email sent:", JSON.stringify(result));
+    return { success: true, result };
+  } catch (err: any) {
+    console.error("Failed to send referral notification email:", err.message);
+    return { success: false, error: err.message };
+  }
+}

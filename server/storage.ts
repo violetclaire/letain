@@ -4,6 +4,7 @@ import {
   artistServices,
   clientContacts,
   bookings,
+  bookingChecklists,
   messages,
   contracts,
   contractTemplates,
@@ -51,6 +52,8 @@ import {
   type InsertClientContact,
   type Booking,
   type InsertBooking,
+  type BookingChecklist,
+  type InsertBookingChecklist,
   type Message,
   type InsertMessage,
   type Contract,
@@ -202,6 +205,12 @@ export interface IStorage {
   updateBooking(id: string, booking: Partial<InsertBooking>): Promise<Booking | undefined>;
   deleteBooking(id: string): Promise<void>;
   getAllBookings(): Promise<Booking[]>;
+  
+  // Booking Checklists (day-of readiness)
+  getBookingChecklist(bookingId: string, vendorId: string): Promise<BookingChecklist | undefined>;
+  createBookingChecklist(data: InsertBookingChecklist): Promise<BookingChecklist>;
+  updateBookingChecklist(id: string, data: Partial<InsertBookingChecklist>): Promise<BookingChecklist | undefined>;
+  getBookingChecklistsByVendor(vendorId: string): Promise<BookingChecklist[]>;
   
   // Messages
   getMessage(id: string): Promise<Message | undefined>;
@@ -903,6 +912,50 @@ export class DatabaseStorage implements IStorage {
 
   async getAllBookings(): Promise<Booking[]> {
     return await db.select().from(bookings).orderBy(desc(bookings.createdAt));
+  }
+
+  // Booking Checklists (day-of readiness)
+  async getBookingChecklist(bookingId: string, vendorId: string): Promise<BookingChecklist | undefined> {
+    const [checklist] = await db
+      .select()
+      .from(bookingChecklists)
+      .where(and(eq(bookingChecklists.bookingId, bookingId), eq(bookingChecklists.vendorId, vendorId)));
+    return checklist || undefined;
+  }
+
+  async createBookingChecklist(data: InsertBookingChecklist): Promise<BookingChecklist> {
+    const [checklist] = await db.insert(bookingChecklists).values({
+      bookingId: data.bookingId,
+      vendorId: data.vendorId,
+      checklistType: data.checklistType,
+      items: data.items as any,
+      allCompleted: data.allCompleted,
+      completedAt: data.completedAt,
+    }).returning();
+    return checklist;
+  }
+
+  async updateBookingChecklist(id: string, data: Partial<InsertBookingChecklist>): Promise<BookingChecklist | undefined> {
+    const updateData: any = { updatedAt: new Date() };
+    if (data.checklistType !== undefined) updateData.checklistType = data.checklistType;
+    if (data.items !== undefined) updateData.items = data.items;
+    if (data.allCompleted !== undefined) updateData.allCompleted = data.allCompleted;
+    if (data.completedAt !== undefined) updateData.completedAt = data.completedAt;
+    
+    const [updated] = await db
+      .update(bookingChecklists)
+      .set(updateData)
+      .where(eq(bookingChecklists.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async getBookingChecklistsByVendor(vendorId: string): Promise<BookingChecklist[]> {
+    return await db
+      .select()
+      .from(bookingChecklists)
+      .where(eq(bookingChecklists.vendorId, vendorId))
+      .orderBy(desc(bookingChecklists.createdAt));
   }
 
   // Messages

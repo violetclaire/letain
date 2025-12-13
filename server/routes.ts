@@ -7271,6 +7271,259 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // Decline inquiry with referrals - decline and automatically create forked inquiries for recommended vendors
+  const declineWithReferralsSchema = z.object({
+    declineReason: z.string().min(1, "Decline reason is required"),
+    referralMessage: z.string().optional(),
+    referralVendorIds: z.array(z.string()).min(1, "At least one referral vendor is required").max(5),
+    notifyClient: z.boolean().default(true),
+  });
+
+  app.post("/api/inquiries/:id/decline-with-referrals", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const user = await storage.getUser(userId);
+      const inquiry = await storage.getInquiry(req.params.id);
+      
+      if (!inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+      
+      if (inquiry.vendorId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      // Enforce valid state transitions - only allow from pending|responded|hold
+      const validFromStates = ['pending', 'responded', 'hold'];
+      if (!validFromStates.includes(inquiry.status)) {
+        return res.status(400).json({ error: `Cannot decline from status: ${inquiry.status}` });
+      }
+      
+      // Validate request body
+      const parseResult = declineWithReferralsSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: parseResult.error.errors[0].message });
+      }
+      
+      const { declineReason, referralMessage, referralVendorIds, notifyClient } = parseResult.data;
+      const now = new Date();
+      const previousStatus = inquiry.status;
+      const actorRole = user?.role === 'artist' ? 'artist' : user?.role === 'planner' ? 'planner' : 'artist';
+      
+      // Validate referral vendors exist and are active artists
+      const referralVendors: Array<{ id: string; name: string; email: string; businessName?: string }> = [];
+      for (const vendorId of referralVendorIds) {
+        const vendor = await storage.getUser(vendorId);
+        if (!vendor || vendor.role !== 'artist') {
+          return res.status(400).json({ error: `Invalid referral vendor: ${vendorId}` });
+        }
+        const vendorProfile = await storage.getArtistProfile(vendorId);
+        referralVendors.push({
+          id: vendor.id,
+          name: `${vendor.firstName || ''} ${vendor.lastName || ''}`.trim() || vendor.email || 'Vendor',
+          email: vendor.email || '',
+          businessName: vendorProfile?.businessName || undefined,
+        });
+      }
+      
+      // Get referrer's info for the client message
+      const referrerProfile = await storage.getArtistProfile(userId);
+      const referrerName = referrerProfile?.businessName || 
+        `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Your vendor';
+      
+      // Calculate CDI fit scores for referral vendors (for ranking in response)
+      const referralSummaries: Array<{
+        vendorId: string;
+        vendorName: string;
+        businessName?: string;
+        inquiryId: string;
+        fitScore: number;
+      }> = [];
+      
+      // Create forked inquiries for each referral vendor
+      for (const vendor of referralVendors) {
+        // Calculate fit score for this vendor (with defensive defaults)
+        const vendorMetrics = await storage.getVendorMetrics(vendor.id, 30) || {
+          vendorId: vendor.id,
+          avgTimeToFirstResponseMinutes: null,
+          terminalStateUnder24hPercent: 0,
+          holdExpiryRate: 50,
+          confirmSuccessCount: 0,
+          confirmFailedCount: 0,
+          totalInquiries: 0,
+        };
+        let fitScore = 60; // Base score for referrals
+        
+        if (vendorMetrics.avgTimeToFirstResponseMinutes !== null) {
+          if (vendorMetrics.avgTimeToFirstResponseMinutes < 60) fitScore += 30;
+          else if (vendorMetrics.avgTimeToFirstResponseMinutes < 120) fitScore += 20;
+          else if (vendorMetrics.avgTimeToFirstResponseMinutes < 240) fitScore += 10;
+        }
+        
+        if (vendorMetrics.totalInquiries > 0) {
+          const conversionRate = vendorMetrics.confirmSuccessCount / vendorMetrics.totalInquiries;
+          if (conversionRate > 0.5) fitScore += 25;
+          else if (conversionRate > 0.3) fitScore += 15;
+          else if (conversionRate > 0.1) fitScore += 5;
+        }
+        
+        if (vendorMetrics.holdExpiryRate < 10) fitScore += 15;
+        else if (vendorMetrics.holdExpiryRate < 25) fitScore += 5;
+        
+        // Create forked inquiry for this referral vendor
+        const forkedInquiry = await storage.createInquiry({
+          vendorId: vendor.id,
+          clientId: inquiry.clientId,
+          clientEmail: inquiry.clientEmail,
+          clientName: inquiry.clientName,
+          clientPhone: inquiry.clientPhone,
+          eventDate: inquiry.eventDate,
+          eventType: inquiry.eventType,
+          eventLocation: inquiry.eventLocation,
+          serviceType: inquiry.serviceType,
+          partySize: inquiry.partySize,
+          message: referralMessage 
+            ? `[Referred by ${referrerName}] ${referralMessage}\n\nOriginal message: ${inquiry.message || ''}`
+            : `[Referred by ${referrerName}] ${inquiry.message || ''}`,
+          budget: inquiry.budget,
+          status: 'pending',
+          referralSourceInquiryId: inquiry.id,
+          referralSourceVendorId: userId,
+          referralSentAt: now,
+          metadata: {
+            ...inquiry.metadata as any,
+            source: 'referral',
+            referredBy: userId,
+          },
+        });
+        
+        referralSummaries.push({
+          vendorId: vendor.id,
+          vendorName: vendor.name,
+          businessName: vendor.businessName,
+          inquiryId: forkedInquiry.id,
+          fitScore,
+        });
+        
+        // Emit CDI event for referral inquiry created
+        await storage.createCdiEvent({
+          userId: vendor.id,
+          eventType: 'referral_inquiry_created',
+          bookingId: null,
+          eventData: {
+            inquiryId: forkedInquiry.id,
+            sourceInquiryId: inquiry.id,
+            referredBy: userId,
+            timestamp: now.toISOString(),
+          },
+          magnitude: 3, // Positive - receiving referral is good
+        });
+        
+        // Create audit log for forked inquiry
+        await storage.createAuditLog({
+          action: 'referral_inquiry_created',
+          entityType: 'inquiry',
+          entityId: forkedInquiry.id,
+          performedBy: userId,
+          actorRole: actorRole as any,
+          changes: {
+            sourceInquiryId: inquiry.id,
+            referralVendorId: vendor.id,
+            referrerVendorId: userId,
+            createdAt: now.toISOString(),
+          },
+        });
+      }
+      
+      // Update original inquiry to declined
+      await storage.updateInquiry(inquiry.id, { 
+        status: 'declined',
+        declinedReason: declineReason,
+        statusReason: 'declined_by_vendor',
+        lastActionAt: now,
+      });
+      
+      // Create audit log for decline with diff
+      await storage.createAuditLog({
+        action: 'inquiry_declined_with_referrals',
+        entityType: 'inquiry',
+        entityId: inquiry.id,
+        performedBy: userId,
+        actorRole: actorRole as any,
+        diff: {
+          status: { from: previousStatus, to: 'declined' },
+        },
+        changes: { 
+          declinedAt: now.toISOString(),
+          reason: declineReason,
+          referralCount: referralVendors.length,
+          referralVendorIds: referralVendorIds,
+        },
+      });
+      
+      // Emit CDI event for decline
+      await storage.createCdiEvent({
+        userId: userId,
+        eventType: 'declined',
+        bookingId: null,
+        eventData: {
+          inquiryId: inquiry.id,
+          reason: declineReason,
+          referralsSent: referralVendors.length,
+          timestamp: now.toISOString(),
+        },
+        magnitude: -1, // Slight negative for declining
+      });
+      
+      // Emit CDI event for referrals sent
+      await storage.createCdiEvent({
+        userId: userId,
+        eventType: 'referrals_sent',
+        bookingId: null,
+        eventData: {
+          sourceInquiryId: inquiry.id,
+          referralVendorIds: referralVendorIds,
+          referralCount: referralVendors.length,
+          timestamp: now.toISOString(),
+        },
+        magnitude: 5, // Positive - sending referrals is valuable collaboration
+      });
+      
+      // Send notification emails if requested
+      if (notifyClient) {
+        try {
+          const { sendReferralNotificationEmail } = await import('./emailService');
+          await sendReferralNotificationEmail({
+            toEmail: inquiry.clientEmail,
+            clientName: inquiry.clientName,
+            referrerName: referrerName,
+            declineReason: declineReason,
+            referralMessage: referralMessage,
+            referralVendors: referralVendors.map(v => ({
+              name: v.businessName || v.name,
+            })),
+          }).catch((err: any) => console.error('[Referral Email] Error:', err));
+        } catch (emailErr: any) {
+          console.error('[Referral Email] Failed to send:', emailErr);
+          // Don't fail the whole operation for email errors
+        }
+      }
+      
+      // Sort referral summaries by fit score (best first)
+      referralSummaries.sort((a, b) => b.fitScore - a.fitScore);
+      
+      res.json({ 
+        success: true,
+        declinedInquiryId: inquiry.id,
+        referralsCreated: referralSummaries.length,
+        referrals: referralSummaries.map(({ fitScore, ...r }) => r), // Remove fitScore from response (invisible)
+      });
+    } catch (error: any) {
+      console.error("[Inquiry] Error declining with referrals:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Hold inquiry - place a tentative hold on a date
   app.post("/api/inquiries/:id/hold", isAuthenticated, async (req: any, res) => {
     try {
