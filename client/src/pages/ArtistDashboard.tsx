@@ -323,6 +323,34 @@ export default function ArtistDashboard() {
         setInquiries(inquiriesData || []);
       }
       setInquiriesLoading(false);
+      
+      // Fetch coaching nudges (invisible CDI - Stanley Tang approach)
+      setNudgesLoading(true);
+      try {
+        const nudgesRes = await fetch('/api/vendor/coaching-nudges', { credentials: 'include' });
+        if (nudgesRes.ok) {
+          const nudgesData = await nudgesRes.json();
+          setCoachingNudges(nudgesData || []);
+        }
+      } catch (nudgeErr) {
+        console.error("Error fetching nudges:", nudgeErr);
+      } finally {
+        setNudgesLoading(false);
+      }
+      
+      // Fetch trust badges
+      setBadgesLoading(true);
+      try {
+        const badgesRes = await fetch('/api/vendor/badges', { credentials: 'include' });
+        if (badgesRes.ok) {
+          const badgesData = await badgesRes.json();
+          setTrustBadges(badgesData || []);
+        }
+      } catch (badgeErr) {
+        console.error("Error fetching badges:", badgeErr);
+      } finally {
+        setBadgesLoading(false);
+      }
     } catch (err) {
       console.error("Error fetching bookings:", err);
     }
@@ -370,6 +398,62 @@ export default function ArtistDashboard() {
       });
     }
     setSubmittingFeedback(null);
+  };
+  
+  // Toggle badge display on profile
+  const handleToggleBadge = async (badgeId: string, display: boolean) => {
+    setTogglingBadge(badgeId);
+    try {
+      const res = await fetch(`/api/vendor/badges/${badgeId}/display`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ display }),
+      });
+      
+      if (res.ok) {
+        setTrustBadges(prev => prev.map(b => 
+          b.id === badgeId ? { ...b, displayOnProfile: display } : b
+        ));
+        toast({
+          title: display ? "Badge Added to Profile" : "Badge Removed from Profile",
+          description: display 
+            ? "This badge is now visible on your public profile." 
+            : "This badge is no longer shown on your public profile.",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to update badge display",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to update badge display",
+        variant: "destructive",
+      });
+    }
+    setTogglingBadge(null);
+  };
+  
+  // Get icon component for nudges and badges
+  const getNudgeIcon = (iconName: string) => {
+    const iconProps = { size: 14, className: "flex-shrink-0" };
+    switch (iconName) {
+      case 'clock': return <Clock {...iconProps} />;
+      case 'zap': return <AlertCircle {...iconProps} className="text-yellow-600" />;
+      case 'calendar': return <Calendar {...iconProps} />;
+      case 'calendar-check': return <Calendar {...iconProps} />;
+      case 'target': return <DollarSign {...iconProps} />;
+      case 'message-circle': return <MessageCircle {...iconProps} />;
+      case 'image': return <ImageIcon {...iconProps} />;
+      case 'check-circle': return <Check {...iconProps} />;
+      case 'shield-check': return <ShieldAlert {...iconProps} />;
+      case 'trending-up': return <DollarSign {...iconProps} />;
+      default: return <Info {...iconProps} />;
+    }
   };
   
   // Inquiry action handlers
@@ -1034,6 +1118,29 @@ export default function ArtistDashboard() {
   const [dayOfReminders, setDayOfReminders] = useState("");
   const [savingReminders, setSavingReminders] = useState(false);
   const [remindersSaved, setRemindersSaved] = useState(false);
+  
+  // Coaching Nudges state (invisible CDI - Stanley Tang approach)
+  const [coachingNudges, setCoachingNudges] = useState<Array<{
+    id: string;
+    type: string;
+    message: string;
+    action: string;
+    priority: 'tip' | 'suggestion' | 'opportunity';
+    icon: string;
+  }>>([]);
+  const [nudgesLoading, setNudgesLoading] = useState(false);
+  
+  // Trust Badges state
+  const [trustBadges, setTrustBadges] = useState<Array<{
+    id: string;
+    name: string;
+    description: string;
+    earned: boolean;
+    icon: string;
+    displayOnProfile: boolean;
+  }>>([]);
+  const [badgesLoading, setBadgesLoading] = useState(false);
+  const [togglingBadge, setTogglingBadge] = useState<string | null>(null);
   
   const filteredClients = clients.filter(c => 
     c.name?.toLowerCase().includes(clientSearch.toLowerCase()) ||
@@ -3125,6 +3232,110 @@ export default function ArtistDashboard() {
                 )}
               </div>
               
+              {/* Coaching Nudges - Private tips from invisible CDI */}
+              {coachingNudges.length > 0 && (
+                <div className="card-frame rounded-md px-4 py-3" data-testid="section-coaching-nudges">
+                  <h3 className="font-header text-sm ink-main mb-3 flex items-center gap-2">
+                    <Info size={14} className="text-purple-600" />
+                    Tips for You
+                  </h3>
+                  <div className="space-y-2">
+                    {coachingNudges.map(nudge => (
+                      <div 
+                        key={nudge.id}
+                        className={`rounded-md p-3 text-xs ${
+                          nudge.priority === 'opportunity' 
+                            ? 'bg-green-50 border border-green-200' 
+                            : nudge.priority === 'suggestion' 
+                              ? 'bg-blue-50 border border-blue-200'
+                              : 'bg-gray-50 border border-gray-200'
+                        }`}
+                        data-testid={`nudge-card-${nudge.id}`}
+                      >
+                        <div className="flex items-start gap-2">
+                          <div className={`mt-0.5 ${
+                            nudge.priority === 'opportunity' 
+                              ? 'text-green-600' 
+                              : nudge.priority === 'suggestion' 
+                                ? 'text-blue-600'
+                                : 'text-gray-600'
+                          }`}>
+                            {getNudgeIcon(nudge.icon)}
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium ink-main mb-1">{nudge.message}</p>
+                            <p className="text-[0.65rem] ink-soft leading-relaxed">{nudge.action}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Trust Badges */}
+              {trustBadges.filter(b => b.earned).length > 0 && (
+                <div className="card-frame rounded-md px-4 py-3" data-testid="section-trust-badges">
+                  <h3 className="font-header text-sm ink-main mb-3 flex items-center gap-2">
+                    <ShieldAlert size={14} className="text-amber-600" />
+                    Your Earned Badges
+                  </h3>
+                  <div className="space-y-2">
+                    {trustBadges.filter(b => b.earned).map(badge => (
+                      <div 
+                        key={badge.id}
+                        className="flex items-center justify-between p-2 rounded-md bg-amber-50/50 border border-amber-100"
+                        data-testid={`badge-card-${badge.id}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center text-amber-700">
+                            {getNudgeIcon(badge.icon)}
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium ink-main">{badge.name}</p>
+                            <p className="text-[0.6rem] ink-soft">{badge.description}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleToggleBadge(badge.id, !badge.displayOnProfile)}
+                          disabled={togglingBadge === badge.id}
+                          className={`text-[0.6rem] px-2 py-1 rounded transition-colors ${
+                            badge.displayOnProfile
+                              ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                          data-testid={`button-toggle-badge-${badge.id}`}
+                        >
+                          {togglingBadge === badge.id ? (
+                            <Loader2 size={10} className="animate-spin" />
+                          ) : badge.displayOnProfile ? (
+                            <span className="flex items-center gap-1"><Eye size={10} /> On Profile</span>
+                          ) : (
+                            <span className="flex items-center gap-1"><Plus size={10} /> Show</span>
+                          )}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  {trustBadges.filter(b => !b.earned).length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <p className="text-[0.6rem] ink-soft mb-2">Badges to earn:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {trustBadges.filter(b => !b.earned).map(badge => (
+                          <span 
+                            key={badge.id}
+                            className="text-[0.55rem] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500"
+                            title={badge.description}
+                          >
+                            {badge.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Availability Calendar */}
               {user && <AvailabilityCalendar userId={user.id} refreshKey={calendarRefreshKey} />}
 

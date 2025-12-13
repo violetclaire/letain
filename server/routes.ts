@@ -1055,6 +1055,220 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========== COACHING NUDGES (Private CDI-powered tips) ==========
+  
+  // Get coaching nudges for the vendor - plain language tips based on their behavior
+  app.get("/api/vendor/coaching-nudges", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const nudges: Array<{
+        id: string;
+        type: 'response_time' | 'conversion' | 'availability' | 'handoff' | 'weekend';
+        message: string;
+        action: string;
+        priority: 'tip' | 'suggestion' | 'opportunity';
+        icon: string;
+      }> = [];
+      
+      // Get vendor's recent metrics (last 30 days)
+      const metrics = await storage.getVendorMetrics(userId, 30);
+      const profile = await storage.getArtistProfile(userId);
+      
+      // Generate contextual nudges based on behavior patterns
+      
+      // 1. Response time nudge
+      if (metrics.avgTimeToFirstResponseMinutes && metrics.avgTimeToFirstResponseMinutes > 240) {
+        nudges.push({
+          id: 'response_time',
+          type: 'response_time',
+          message: 'Faster replies = more bookings',
+          action: 'Responding within 2 hours on weekdays can increase your confirm rate by up to 18%.',
+          priority: 'suggestion',
+          icon: 'clock'
+        });
+      } else if (metrics.avgTimeToFirstResponseMinutes && metrics.avgTimeToFirstResponseMinutes < 60) {
+        nudges.push({
+          id: 'fast_responder',
+          type: 'response_time',
+          message: 'You\'re a fast responder!',
+          action: 'Your quick replies are helping you book more clients. Keep it up!',
+          priority: 'tip',
+          icon: 'zap'
+        });
+      }
+      
+      // 2. Weekend opportunity nudge
+      const dayOfWeek = new Date().getDay();
+      if (dayOfWeek === 5 || dayOfWeek === 6) {
+        nudges.push({
+          id: 'weekend_tip',
+          type: 'weekend',
+          message: 'Weekend inquiries are hot leads',
+          action: 'Brides browsing on weekends are often ready to decide. Quick replies this weekend could land you a booking.',
+          priority: 'opportunity',
+          icon: 'calendar'
+        });
+      }
+      
+      // 3. Conversion rate nudge
+      const totalInquiries = metrics.totalInquiries || 0;
+      const confirmRate = totalInquiries > 0 
+        ? (metrics.confirmSuccessCount / totalInquiries) * 100 
+        : 0;
+      
+      if (totalInquiries >= 5 && confirmRate < 30) {
+        nudges.push({
+          id: 'conversion_tip',
+          type: 'conversion',
+          message: 'Turn more inquiries into bookings',
+          action: 'Try using the "Hold" feature to give clients time to decide while securing their date.',
+          priority: 'suggestion',
+          icon: 'target'
+        });
+      }
+      
+      // 4. Hold expiry nudge
+      if (metrics.holdExpiryRate > 0.3) {
+        nudges.push({
+          id: 'hold_follow_up',
+          type: 'handoff',
+          message: 'Follow up before holds expire',
+          action: 'Some holds are expiring without converting. A friendly check-in 24 hours before expiry often seals the deal.',
+          priority: 'suggestion',
+          icon: 'message-circle'
+        });
+      }
+      
+      // 5. Calendar connection nudge
+      if (!profile?.calendarConnected) {
+        nudges.push({
+          id: 'calendar_connect',
+          type: 'availability',
+          message: 'Connect your calendar',
+          action: 'Syncing your calendar shows clients real availability and prevents double-bookings.',
+          priority: 'tip',
+          icon: 'calendar-check'
+        });
+      }
+      
+      // 6. Profile completion nudge
+      if (!profile?.portfolioUrls || (profile.portfolioUrls as string[]).length < 3) {
+        nudges.push({
+          id: 'portfolio_tip',
+          type: 'availability',
+          message: 'Add more portfolio photos',
+          action: 'Vendors with 5+ portfolio images get 40% more inquiries on average.',
+          priority: 'opportunity',
+          icon: 'image'
+        });
+      }
+      
+      // Sort by priority (opportunities first, then suggestions, then tips)
+      const priorityOrder = { opportunity: 0, suggestion: 1, tip: 2 };
+      nudges.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+      
+      // Limit to top 3 most relevant nudges
+      res.json(nudges.slice(0, 3));
+    } catch (error: any) {
+      console.error("Error generating coaching nudges:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ========== TRUST BADGES ==========
+  
+  // Get vendor's earned trust badges
+  app.get("/api/vendor/badges", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const metrics = await storage.getVendorMetrics(userId, 30);
+      const profile = await storage.getArtistProfile(userId);
+      
+      const badges: Array<{
+        id: string;
+        name: string;
+        description: string;
+        earned: boolean;
+        icon: string;
+        displayOnProfile: boolean;
+      }> = [];
+      
+      // Fast Responder badge: avg response under 2 hours
+      const fastResponder = metrics.avgTimeToFirstResponseMinutes !== null && 
+                           metrics.avgTimeToFirstResponseMinutes < 120;
+      badges.push({
+        id: 'fast_responder',
+        name: 'Fast Responder',
+        description: 'Typically responds within 2 hours',
+        earned: fastResponder,
+        icon: 'zap',
+        displayOnProfile: profile?.responsiveBadge || false
+      });
+      
+      // Great Handoffs badge: high terminal state rate
+      const greatHandoffs = metrics.terminalStateUnder24hPercent >= 70;
+      badges.push({
+        id: 'great_handoffs',
+        name: 'Great Handoffs',
+        description: 'Moves inquiries to decisions quickly',
+        earned: greatHandoffs,
+        icon: 'check-circle',
+        displayOnProfile: false
+      });
+      
+      // Reliable badge: low hold expiry rate
+      const reliable = metrics.holdExpiryRate < 0.1 && metrics.totalInquiries >= 5;
+      badges.push({
+        id: 'reliable',
+        name: 'Reliable',
+        description: 'Follows through on holds',
+        earned: reliable,
+        icon: 'shield-check',
+        displayOnProfile: false
+      });
+      
+      // High Booker badge: good confirm rate
+      const confirmRate = metrics.totalInquiries > 0 
+        ? (metrics.confirmSuccessCount / metrics.totalInquiries) * 100 
+        : 0;
+      const highBooker = confirmRate >= 50 && metrics.totalInquiries >= 5;
+      badges.push({
+        id: 'high_booker',
+        name: 'High Booker',
+        description: 'Excellent conversion rate',
+        earned: highBooker,
+        icon: 'trending-up',
+        displayOnProfile: false
+      });
+      
+      res.json(badges);
+    } catch (error: any) {
+      console.error("Error getting badges:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Toggle badge display on profile
+  app.patch("/api/vendor/badges/:badgeId/display", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const { badgeId } = req.params;
+      const { display } = req.body;
+      
+      // For now, only support the responsive badge toggle
+      if (badgeId === 'fast_responder') {
+        await storage.updateArtistProfile(userId, {
+          responsiveBadge: display
+        });
+      }
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error toggling badge display:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ========== ARTIST SERVICES (Menu) ==========
   app.get("/api/artist-services/:artistId", async (req, res) => {
     try {
