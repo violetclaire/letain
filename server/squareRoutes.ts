@@ -25,7 +25,8 @@ const oauthStates = new Map<string, { userId: string; expires: number }>();
 
 function cleanupExpiredStates() {
   const now = Date.now();
-  for (const [state, data] of oauthStates.entries()) {
+  const entries = Array.from(oauthStates.entries());
+  for (const [state, data] of entries) {
     if (data.expires < now) {
       oauthStates.delete(state);
     }
@@ -44,7 +45,7 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
       res.json({ 
         configured: true, 
         applicationId,
-        environment: isProduction ? 'production' : 'sandbox'
+        environment: 'production'
       });
     } catch (error: any) {
       console.error("Error getting Square config:", error);
