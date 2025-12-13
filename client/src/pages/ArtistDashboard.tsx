@@ -2665,8 +2665,8 @@ export default function ArtistDashboard() {
                     </div>
                   </div>
 
-                  {/* IQS Lead Quality Warnings Panel */}
-                  {showIqsPanel && (
+                  {/* IQS Lead Quality Warnings Panel - HIDDEN FOR NOW */}
+                  {false && showIqsPanel && (
                     <div className="card-frame rounded-md px-5 py-4">
                       <div className="flex items-center justify-between mb-3">
                         <h2 className="font-header text-md ink-main flex items-center gap-2">
@@ -3254,8 +3254,8 @@ export default function ArtistDashboard() {
                 )}
               </div>
               
-              {/* Coaching Nudges - Private tips from invisible CDI */}
-              {coachingNudges.length > 0 && (
+              {/* Coaching Nudges - Private tips from invisible CDI - HIDDEN FOR NOW */}
+              {false && coachingNudges.length > 0 && (
                 <div className="card-frame rounded-md px-4 py-3" data-testid="section-coaching-nudges">
                   <h3 className="font-header text-sm ink-main mb-3 flex items-center gap-2">
                     <Info size={14} className="text-purple-600" />
@@ -3295,8 +3295,8 @@ export default function ArtistDashboard() {
                 </div>
               )}
               
-              {/* Trust Badges */}
-              {trustBadges.filter(b => b.earned).length > 0 && (
+              {/* Trust Badges - HIDDEN FOR NOW */}
+              {false && trustBadges.filter(b => b.earned).length > 0 && (
                 <div className="card-frame rounded-md px-4 py-3" data-testid="section-trust-badges">
                   <h3 className="font-header text-sm ink-main mb-3 flex items-center gap-2">
                     <ShieldAlert size={14} className="text-amber-600" />
