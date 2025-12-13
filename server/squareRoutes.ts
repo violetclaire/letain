@@ -282,6 +282,13 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
       const platformFee = Math.round(amountInCents * (PLATFORM_FEE_PERCENT / 100));
       const idempotencyKey = crypto.randomUUID();
 
+      const metadata: Record<string, string> = {
+        vendorId: userId,
+        platformFee: platformFee.toString(),
+      };
+      if (bookingId) metadata.bookingId = bookingId;
+      if (clientEmail) metadata.clientEmail = clientEmail;
+
       const orderResponse = await square.orders.create({
         order: {
           locationId,
@@ -294,12 +301,7 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
             },
             note: clientName ? `Payment for ${clientName}` : undefined,
           }],
-          metadata: {
-            bookingId: bookingId || '',
-            vendorId: userId,
-            clientEmail: clientEmail || '',
-            platformFee: platformFee.toString(),
-          },
+          metadata,
         },
         idempotencyKey,
       });
