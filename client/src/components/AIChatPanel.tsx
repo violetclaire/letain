@@ -613,6 +613,43 @@ export default function AIChatPanel({ userId, userName, onAvailabilityUpdate, on
       )}
 
       <div className="border-t border-[#c5ccd8] p-3 bg-[#fbfcff]">
+        {/* Pinned Smart Action Buttons - Proposal, Contract, Payment */}
+        <div className="flex gap-1.5 mb-2 pb-2 border-b border-gray-100">
+          <button
+            onClick={() => {
+              setInput("I'd like to send a proposal to the client");
+              toast({ title: "Proposal Mode", description: "Describe the package and I'll help create a proposal." });
+            }}
+            className="flex-1 py-1.5 px-2 text-[0.6rem] font-medium bg-purple-50 text-purple-700 border border-purple-200 rounded hover:bg-purple-100 transition-colors flex items-center justify-center gap-1"
+            data-testid="button-smart-proposal"
+          >
+            <FileText size={10} />
+            Proposal
+          </button>
+          <button
+            onClick={() => {
+              setInput("I need to send a contract to the client");
+              toast({ title: "Contract Mode", description: "I'll help you prepare and send a contract." });
+            }}
+            className="flex-1 py-1.5 px-2 text-[0.6rem] font-medium bg-blue-50 text-blue-700 border border-blue-200 rounded hover:bg-blue-100 transition-colors flex items-center justify-center gap-1"
+            data-testid="button-smart-contract"
+          >
+            <FileText size={10} />
+            Contract
+          </button>
+          <button
+            onClick={() => {
+              setInput("I want to send a payment request to the client");
+              toast({ title: "Payment Mode", description: "I'll help you create and send an invoice." });
+            }}
+            className="flex-1 py-1.5 px-2 text-[0.6rem] font-medium bg-green-50 text-green-700 border border-green-200 rounded hover:bg-green-100 transition-colors flex items-center justify-center gap-1"
+            data-testid="button-smart-payment"
+          >
+            <DollarSign size={10} />
+            Payment
+          </button>
+        </div>
+        
         <div className="flex gap-2 items-end">
           <div className="relative">
             <label

@@ -36,6 +36,7 @@ export default function ArtistDashboard() {
   const [selectedContact, setSelectedContact] = useState<string>("Client");
   const [loading, setLoading] = useState(true);
   const [sendingInvite, setSendingInvite] = useState(false);
+  const [showManageSection, setShowManageSection] = useState(false);
   
   // Create Booking Modal state
   const [showCreateBooking, setShowCreateBooking] = useState(false);
@@ -2050,6 +2051,76 @@ export default function ArtistDashboard() {
             </div>
           </header>
 
+          {/* MY SCHEDULE LINK - Hero Section */}
+          <section className="mb-6" data-testid="section-schedule-link-hero">
+            <div className="card-frame rounded-md px-5 py-4 bg-gradient-to-r from-[#FAF7F2] to-[#F5F0EA] border-2 border-[#6B4A55]/30">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h2 className="font-header text-lg ink-main flex items-center gap-2">
+                    <Globe size={18} className="text-[#6B4A55]" />
+                    My Schedule Link
+                  </h2>
+                  <p className="text-xs ink-soft mt-1">Share this link so clients can book with you directly</p>
+                  <p className="text-xs font-mono bg-white px-2 py-1 rounded mt-2 border border-[#e5e8f2] inline-block" data-testid="text-schedule-url">
+                    {window.location.origin}/vendor/{user?.id}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => {
+                      const url = `${window.location.origin}/vendor/${user?.id}`;
+                      navigator.clipboard.writeText(url);
+                      toast({
+                        title: "Link Copied!",
+                        description: "Your schedule link has been copied to clipboard.",
+                      });
+                    }}
+                    className="px-4 py-2 bg-[#6B4A55] text-white text-sm rounded-lg hover:bg-[#8a6270] transition-colors flex items-center gap-2 shadow-sm"
+                    data-testid="button-copy-schedule-link"
+                  >
+                    <Paperclip size={14} />
+                    Copy Link
+                  </button>
+                  <Link
+                    href={`/vendor/${user?.id}`}
+                    className="px-4 py-2 bg-white text-[#6B4A55] text-sm rounded-lg border border-[#6B4A55] hover:bg-[#FAF7F2] transition-colors flex items-center gap-2"
+                    data-testid="button-view-as-client"
+                  >
+                    <Eye size={14} />
+                    View as Client
+                  </Link>
+                  <button
+                    onClick={() => {
+                      const url = `${window.location.origin}/vendor/${user?.id}`;
+                      navigator.clipboard.writeText(url);
+                      toast({
+                        title: "Ready for Instagram!",
+                        description: "Link copied. Paste it in your Instagram bio.",
+                      });
+                    }}
+                    className="px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all flex items-center gap-2 shadow-sm"
+                    data-testid="button-share-instagram"
+                  >
+                    <Instagram size={14} />
+                    Instagram Bio
+                  </button>
+                  <button
+                    onClick={() => {
+                      const url = `${window.location.origin}/vendor/${user?.id}`;
+                      const smsBody = encodeURIComponent(`Book with me: ${url}`);
+                      window.open(`sms:?&body=${smsBody}`, '_blank');
+                    }}
+                    className="px-3 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2 shadow-sm"
+                    data-testid="button-text-link"
+                  >
+                    <MessageCircle size={14} />
+                    Text Link
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* GRID LAYOUT */}
           <section className="grid md:grid-cols-3 gap-4 md:gap-6 items-start">
             
@@ -2140,218 +2211,152 @@ export default function ArtistDashboard() {
                         ) : inquiries.length === 0 ? (
                           <p className="text-xs ink-soft italic">No inquiries yet. Prospective clients will appear here.</p>
                         ) : (
-                          <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
-                            {inquiries.map(inquiry => (
+                          <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1 custom-scrollbar">
+                            {inquiries.map(inquiry => {
+                              // Compute status info for inline display
+                              const isHold = inquiry.status === 'hold' && (inquiry.hold?.expiresAt || inquiry.holdExpiresAt);
+                              const hasNextAction = inquiry.nextAction && inquiry.nextActionDueAt;
+                              const actionInfo = formatNextAction(inquiry.nextAction);
+                              const slaCountdown = getSlaCountdown(isHold ? (inquiry.hold?.expiresAt || inquiry.holdExpiresAt) : inquiry.nextActionDueAt);
+                              const isActionable = inquiry.status === 'pending' || inquiry.status === 'hold';
+                              
+                              // Countdown colors
+                              const countdownColor = isHold 
+                                ? 'text-orange-600 bg-orange-50' 
+                                : slaCountdown?.isOverdue 
+                                  ? 'text-red-600 bg-red-50' 
+                                  : slaCountdown?.isUrgent 
+                                    ? 'text-yellow-700 bg-yellow-50' 
+                                    : 'text-blue-600 bg-blue-50';
+                              
+                              return (
                               <div 
                                 key={inquiry.id} 
                                 className="border border-[#e5e8f2] bg-[#fbfcff] rounded-md text-xs overflow-hidden"
                                 data-testid={`inquiry-card-${inquiry.id}`}
                               >
-                                <button
-                                  onClick={() => setExpandedInquiry(expandedInquiry === inquiry.id ? null : inquiry.id)}
-                                  className="w-full p-3 flex justify-between items-center hover:bg-gray-50 transition-colors text-left"
-                                  data-testid={`button-expand-inquiry-${inquiry.id}`}
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <h3 className="font-header text-xs ink-main">{inquiry.clientName}</h3>
-                                    {inquiry.status === 'pending' && (
-                                      <span className="bg-[#6B4A55]/10 text-[#6B4A55] text-[0.5rem] px-1.5 py-0.5 rounded-full font-semibold uppercase">New</span>
+                                {/* One-Tap Card Header - Always visible with inline actions */}
+                                <div className="p-2.5">
+                                  {/* Row 1: Client name, date, service + status badge */}
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                      <h3 className="font-header text-xs ink-main truncate">{inquiry.clientName}</h3>
+                                      {inquiry.status === 'pending' && (
+                                        <span className="bg-[#6B4A55]/10 text-[#6B4A55] text-[0.5rem] px-1.5 py-0.5 rounded-full font-semibold uppercase flex-shrink-0">New</span>
+                                      )}
+                                      {inquiry.status === 'hold' && (
+                                        <span className="bg-orange-100 text-orange-700 text-[0.5rem] px-1.5 py-0.5 rounded-full font-semibold uppercase flex-shrink-0">Hold</span>
+                                      )}
+                                    </div>
+                                    <button
+                                      onClick={() => setExpandedInquiry(expandedInquiry === inquiry.id ? null : inquiry.id)}
+                                      className="p-1 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
+                                      data-testid={`button-expand-inquiry-${inquiry.id}`}
+                                    >
+                                      <ChevronDown size={12} className={`ink-soft transition-transform ${expandedInquiry === inquiry.id ? 'rotate-180' : ''}`} />
+                                    </button>
+                                  </div>
+                                  
+                                  {/* Row 2: Date, service, owner & countdown inline */}
+                                  <div className="flex items-center gap-2 text-[0.6rem] ink-soft mb-2 flex-wrap">
+                                    <span className="flex items-center gap-1">
+                                      <Calendar size={9} />
+                                      {new Date(inquiry.eventDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                    </span>
+                                    <span className="text-gray-300">•</span>
+                                    <span className="truncate max-w-[80px]">{inquiry.serviceType}</span>
+                                    {(isHold || hasNextAction) && slaCountdown && (
+                                      <>
+                                        <span className="text-gray-300">•</span>
+                                        <span className={`px-1.5 py-0.5 rounded text-[0.55rem] font-medium ${countdownColor}`}>
+                                          {isHold ? '⏸ ' : actionInfo?.owner === 'You' ? '👤 ' : '📩 '}
+                                          {slaCountdown.text}
+                                        </span>
+                                      </>
+                                    )}
+                                    {inquiry.breachFlags && inquiry.breachFlags.length > 0 && (
+                                      <span className="px-1.5 py-0.5 rounded bg-red-100 text-red-600 text-[0.5rem] font-bold uppercase flex items-center gap-0.5">
+                                        <AlertCircle size={8} />
+                                        SLA!
+                                      </span>
                                     )}
                                   </div>
-                                  <ChevronDown size={14} className={`ink-soft transition-transform ${expandedInquiry === inquiry.id ? 'rotate-180' : ''}`} />
-                                </button>
+                                  
+                                  {/* Row 3: One-Tap Action Buttons - Always visible for actionable inquiries */}
+                                  {isActionable && (
+                                    <div className="flex gap-1.5">
+                                      {/* Confirm - Primary */}
+                                      <button 
+                                        onClick={(e) => { e.stopPropagation(); handleConfirmInquiry(inquiry.id); }}
+                                        disabled={confirmingInquiry === inquiry.id}
+                                        className="flex-1 py-1.5 rounded bg-green-600 text-white text-[0.6rem] font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+                                        data-testid={`button-confirm-inquiry-${inquiry.id}`}
+                                      >
+                                        {confirmingInquiry === inquiry.id ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
+                                        Confirm
+                                      </button>
+                                      
+                                      {/* Hold - Only if not already on hold */}
+                                      {inquiry.status !== 'hold' && (
+                                        <button 
+                                          onClick={(e) => { e.stopPropagation(); handleHoldInquiry(inquiry.id, 24); }}
+                                          disabled={holdingInquiry === inquiry.id}
+                                          className="flex-1 py-1.5 rounded bg-orange-500 text-white text-[0.6rem] font-medium hover:bg-orange-600 transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+                                          data-testid={`button-hold-inquiry-${inquiry.id}`}
+                                        >
+                                          {holdingInquiry === inquiry.id ? <Loader2 size={10} className="animate-spin" /> : <Clock size={10} />}
+                                          Hold
+                                        </button>
+                                      )}
+                                      
+                                      {/* Propose */}
+                                      <button 
+                                        onClick={(e) => { e.stopPropagation(); setProposeInquiryId(inquiry.id); setShowProposeModal(true); }}
+                                        className="flex-1 py-1.5 rounded bg-[#9A9472] text-white text-[0.6rem] font-medium hover:bg-[#8a8462] transition-colors flex items-center justify-center gap-1"
+                                        data-testid={`button-propose-dates-${inquiry.id}`}
+                                      >
+                                        <Calendar size={10} />
+                                        Propose
+                                      </button>
+                                      
+                                      {/* Decline - Icon only */}
+                                      <button 
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setDeclineReferralInquiry({
+                                            id: inquiry.id,
+                                            clientName: inquiry.clientName,
+                                            clientEmail: inquiry.clientEmail,
+                                            eventDate: inquiry.eventDate,
+                                            eventType: inquiry.eventType,
+                                            serviceType: inquiry.serviceType,
+                                          });
+                                          setShowDeclineReferralModal(true);
+                                        }}
+                                        className="py-1.5 px-2 rounded border border-gray-200 text-gray-400 hover:border-[#A8929C] hover:text-[#A8929C] transition-colors"
+                                        title="Decline & Refer"
+                                        data-testid={`button-decline-inquiry-${inquiry.id}`}
+                                      >
+                                        <UserPlus size={10} />
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
                                 
+                                {/* Expanded Details - Additional info on tap */}
                                 {expandedInquiry === inquiry.id && (
-                                  <div className="px-3 pb-3 border-t border-[#e5e8f2]">
-                                    <div className="pt-3 space-y-2">
+                                  <div className="px-2.5 pb-2.5 border-t border-[#e5e8f2]">
+                                    <div className="pt-2.5 space-y-2">
                                       <p className="text-[0.65rem] ink-soft">{inquiry.clientEmail}</p>
+                                      {inquiry.clientPhone && (
+                                        <p className="text-[0.65rem] ink-soft">{inquiry.clientPhone}</p>
+                                      )}
                                       <div className="flex flex-wrap gap-2 text-[0.65rem] ink-soft">
-                                        <span className="flex items-center gap-1">
-                                          <Calendar size={10} />
-                                          {new Date(inquiry.eventDate).toLocaleDateString()}
-                                        </span>
-                                        <span>• {inquiry.serviceType}</span>
-                                        {inquiry.partySize && <span>• Party of {inquiry.partySize}</span>}
+                                        {inquiry.partySize && <span>Party of {inquiry.partySize}</span>}
+                                        {inquiry.budget && <span>• Budget: ${inquiry.budget}</span>}
                                       </div>
                                       {inquiry.message && (
                                         <p className="text-[0.65rem] ink-soft italic bg-[#FAF9F7] p-2 rounded">"{inquiry.message}"</p>
-                                      )}
-                                      
-                                      {/* SLA Countdown Banner - shows owner, action, and single countdown */}
-                                      {(() => {
-                                        const isHold = inquiry.status === 'hold' && (inquiry.hold?.expiresAt || inquiry.holdExpiresAt);
-                                        const hasNextAction = inquiry.nextAction && inquiry.nextActionDueAt;
-                                        const actionInfo = formatNextAction(inquiry.nextAction);
-                                        const slaCountdown = getSlaCountdown(isHold ? (inquiry.hold?.expiresAt || inquiry.holdExpiresAt) : inquiry.nextActionDueAt);
-                                        
-                                        if (!isHold && !hasNextAction) return null;
-                                        
-                                        const bgColor = isHold 
-                                          ? 'bg-orange-50 border-orange-200' 
-                                          : slaCountdown?.isOverdue 
-                                            ? 'bg-red-50 border-red-200' 
-                                            : slaCountdown?.isUrgent 
-                                              ? 'bg-yellow-50 border-yellow-200' 
-                                              : 'bg-blue-50 border-blue-200';
-                                        const textColor = isHold 
-                                          ? 'text-orange-700' 
-                                          : slaCountdown?.isOverdue 
-                                            ? 'text-red-700' 
-                                            : slaCountdown?.isUrgent 
-                                              ? 'text-yellow-700' 
-                                              : 'text-blue-700';
-                                        const iconColor = isHold 
-                                          ? 'text-orange-600' 
-                                          : slaCountdown?.isOverdue 
-                                            ? 'text-red-600' 
-                                            : slaCountdown?.isUrgent 
-                                              ? 'text-yellow-600' 
-                                              : 'text-blue-600';
-                                        
-                                        return (
-                                          <div className={`${bgColor} border rounded-md p-2 mt-2`} data-testid={`sla-banner-${inquiry.id}`}>
-                                            <div className="flex items-center justify-between">
-                                              <div className="flex items-center gap-2">
-                                                <Clock size={12} className={iconColor} />
-                                                <div className="flex flex-col">
-                                                  <span className={`text-[0.65rem] ${textColor} font-medium`}>
-                                                    {isHold ? 'On Hold' : actionInfo?.label}
-                                                  </span>
-                                                  <span className={`text-[0.55rem] ${textColor} opacity-75`}>
-                                                    {isHold 
-                                                      ? (inquiry.hold?.reason ? `- ${inquiry.hold.reason}` : 'Your turn to decide')
-                                                      : `Owner: ${actionInfo?.owner}`
-                                                    }
-                                                  </span>
-                                                </div>
-                                              </div>
-                                              <div className="flex items-center gap-2">
-                                                <span className={`text-[0.65rem] ${textColor} font-semibold`}>
-                                                  {slaCountdown?.text}
-                                                </span>
-                                                {/* Quick action button - only show for vendor-actionable states with explicit nextAction */}
-                                                {(() => {
-                                                  // Determine if we should show a CTA button
-                                                  const showConfirmCta = isHold || inquiry.nextAction === 'vendor_confirm';
-                                                  const showRespondCta = inquiry.nextAction === 'vendor_first_response';
-                                                  
-                                                  // Only show button when we have explicit vendor action
-                                                  if (!showConfirmCta && !showRespondCta) return null;
-                                                  
-                                                  const buttonLabel = showConfirmCta ? 'Confirm' : 'Respond';
-                                                  const buttonColor = showConfirmCta 
-                                                    ? 'bg-green-600 hover:bg-green-700' 
-                                                    : 'bg-blue-600 hover:bg-blue-700';
-                                                  
-                                                  return (
-                                                    <button
-                                                      onClick={() => {
-                                                        if (showConfirmCta) {
-                                                          handleConfirmInquiry(inquiry.id);
-                                                        } else if (showRespondCta) {
-                                                          // Trigger respond flow - expand inquiry if not already
-                                                          if (expandedInquiry !== inquiry.id) {
-                                                            setExpandedInquiry(inquiry.id);
-                                                          }
-                                                        }
-                                                      }}
-                                                      disabled={confirmingInquiry === inquiry.id}
-                                                      className={`px-2 py-1 text-[0.55rem] rounded ${buttonColor} text-white transition-colors disabled:opacity-50`}
-                                                      data-testid={`button-sla-action-${inquiry.id}`}
-                                                    >
-                                                      {confirmingInquiry === inquiry.id ? (
-                                                        <Loader2 size={8} className="animate-spin" />
-                                                      ) : (
-                                                        buttonLabel
-                                                      )}
-                                                    </button>
-                                                  );
-                                                })()}
-                                              </div>
-                                            </div>
-                                            {/* Breach flags warning */}
-                                            {inquiry.breachFlags && inquiry.breachFlags.length > 0 && (
-                                              <div className="mt-1 flex items-center gap-1">
-                                                <AlertCircle size={10} className="text-red-500" />
-                                                <span className="text-[0.5rem] text-red-600 font-medium uppercase tracking-wide">
-                                                  SLA breach: {inquiry.breachFlags.join(', ').replace(/_/g, ' ')}
-                                                </span>
-                                              </div>
-                                            )}
-                                          </div>
-                                        );
-                                      })()}
-                                      
-                                      {(inquiry.status === 'pending' || inquiry.status === 'hold') && (
-                                        <div className="flex gap-1 mt-3 flex-wrap">
-                                          {/* Confirm Button - Primary Action */}
-                                          <button 
-                                            onClick={() => handleConfirmInquiry(inquiry.id)}
-                                            disabled={confirmingInquiry === inquiry.id}
-                                            className="flex-1 min-w-[70px] py-1.5 rounded-md bg-green-600 text-white border border-green-600 hover:bg-green-700 transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
-                                            title="Confirm booking"
-                                            data-testid={`button-confirm-inquiry-${inquiry.id}`}
-                                          >
-                                            {confirmingInquiry === inquiry.id ? (
-                                              <Loader2 size={10} className="animate-spin" />
-                                            ) : (
-                                              <Check size={10} />
-                                            )}
-                                            <span>Confirm</span>
-                                          </button>
-                                          
-                                          {/* Hold Button - Only show if not already on hold */}
-                                          {inquiry.status !== 'hold' && (
-                                            <button 
-                                              onClick={() => handleHoldInquiry(inquiry.id, 24)}
-                                              disabled={holdingInquiry === inquiry.id}
-                                              className="flex-1 min-w-[60px] py-1.5 rounded-md bg-orange-500 text-white border border-orange-500 hover:bg-orange-600 transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
-                                              title="Hold for 24h"
-                                              data-testid={`button-hold-inquiry-${inquiry.id}`}
-                                            >
-                                              {holdingInquiry === inquiry.id ? (
-                                                <Loader2 size={10} className="animate-spin" />
-                                              ) : (
-                                                <Clock size={10} />
-                                              )}
-                                              <span>Hold</span>
-                                            </button>
-                                          )}
-                                          
-                                          {/* Propose Alternative */}
-                                          <button 
-                                            onClick={() => {
-                                              setProposeInquiryId(inquiry.id);
-                                              setShowProposeModal(true);
-                                            }}
-                                            className="flex-1 min-w-[60px] py-1.5 rounded-md bg-[#9A9472] text-white border border-[#9A9472] hover:bg-[#8a8462] transition-colors flex items-center justify-center gap-1"
-                                            title="Propose alternative dates"
-                                            data-testid={`button-propose-dates-${inquiry.id}`}
-                                          >
-                                            <Calendar size={10} />
-                                            <span>Propose</span>
-                                          </button>
-                                          
-                                          {/* Decline with Referrals */}
-                                          <button 
-                                            onClick={() => {
-                                              setDeclineReferralInquiry({
-                                                id: inquiry.id,
-                                                clientName: inquiry.clientName,
-                                                clientEmail: inquiry.clientEmail,
-                                                eventDate: inquiry.eventDate,
-                                                eventType: inquiry.eventType,
-                                                serviceType: inquiry.serviceType,
-                                              });
-                                              setShowDeclineReferralModal(true);
-                                            }}
-                                            className="py-1.5 px-2 rounded-md border border-gray-200 text-gray-500 hover:border-[#A8929C] hover:text-[#A8929C] transition-colors flex items-center justify-center"
-                                            title="Decline & Refer"
-                                            data-testid={`button-decline-inquiry-${inquiry.id}`}
-                                          >
-                                            <UserPlus size={10} />
-                                          </button>
-                                        </div>
                                       )}
                                       
                                       {/* Timeline Toggle Button */}
@@ -2441,8 +2446,9 @@ export default function ArtistDashboard() {
                                     </div>
                                   </div>
                                 )}
-                                </div>
-                            ))}
+                              </div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
@@ -2484,61 +2490,130 @@ export default function ArtistDashboard() {
                         </Link>
                       </div>
 
-                      {/* Portfolio Gallery */}
-                      <div className="card-frame rounded-md px-5 py-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <h2 className="font-header text-md ink-main flex items-center gap-2">
-                            <ImageIcon size={16} /> My Portfolio
-                          </h2>
-                          <label className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-black text-white rounded hover:bg-gray-800 transition-colors cursor-pointer">
-                            {uploadingPortfolio ? (
-                              <Loader2 size={14} className="animate-spin" />
-                            ) : (
-                              <Plus size={14} />
-                            )}
-                            <span>{uploadingPortfolio ? 'Uploading...' : 'Add Photo'}</span>
-                            <input
-                              ref={portfolioInputRef}
-                              type="file"
-                              accept="image/*"
-                              multiple
-                              onChange={handlePortfolioUpload}
-                              className="hidden"
-                              disabled={uploadingPortfolio}
-                              data-testid="input-portfolio-upload"
-                            />
-                          </label>
-                        </div>
+                      {/* Manage Section - Collapsible */}
+                      <div className="card-frame rounded-md overflow-hidden" data-testid="section-manage-collapsible">
+                        <button
+                          onClick={() => setShowManageSection(!showManageSection)}
+                          className="w-full px-5 py-3 flex items-center justify-between bg-[#FAF7F2] hover:bg-[#F5F0EA] transition-colors"
+                          data-testid="button-toggle-manage"
+                        >
+                          <span className="flex items-center gap-2 font-header text-md ink-main">
+                            <Settings size={16} className="text-[#6B4A55]" />
+                            Manage
+                            <span className="text-[0.65rem] font-normal ink-soft">(Portfolio, Contracts, Payments)</span>
+                          </span>
+                          {showManageSection ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        </button>
                         
-                        {portfolioUrls.length === 0 ? (
-                          <div className="bg-[#fbfcff] border border-dashed border-[#c5ccd8] rounded-md p-6 flex flex-col items-center justify-center text-center">
-                            <ImageIcon size={24} className="text-gray-400 mb-2" />
-                            <p className="text-xs ink-soft">No portfolio photos yet</p>
-                            <p className="text-[0.65rem] ink-soft mt-1">Upload photos to showcase your work</p>
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-3 gap-2 max-h-[200px] overflow-y-auto">
-                            {portfolioUrls.map((url, index) => (
-                              <div key={index} className="relative group aspect-square">
-                                <img
-                                  src={url}
-                                  alt={`Portfolio ${index + 1}`}
-                                  className="w-full h-full object-cover rounded-md border border-[#c5ccd8]"
-                                  data-testid={`img-portfolio-${index}`}
-                                />
-                                <button
-                                  onClick={() => handleDeletePortfolioPhoto(url)}
-                                  className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                  title="Remove photo"
-                                  data-testid={`button-delete-portfolio-${index}`}
-                                >
-                                  <X size={12} />
-                                </button>
+                        {showManageSection && (
+                          <div className="border-t border-[#e5e8f2] bg-white">
+                            {/* Portfolio Gallery */}
+                            <div className="px-5 py-4 border-b border-[#e5e8f2]">
+                              <div className="flex items-center justify-between mb-3">
+                                <h3 className="font-header text-sm ink-main flex items-center gap-2">
+                                  <ImageIcon size={14} /> My Portfolio
+                                </h3>
+                                <label className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-black text-white rounded hover:bg-gray-800 transition-colors cursor-pointer">
+                                  {uploadingPortfolio ? (
+                                    <Loader2 size={14} className="animate-spin" />
+                                  ) : (
+                                    <Plus size={14} />
+                                  )}
+                                  <span>{uploadingPortfolio ? 'Uploading...' : 'Add Photo'}</span>
+                                  <input
+                                    ref={portfolioInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={handlePortfolioUpload}
+                                    className="hidden"
+                                    disabled={uploadingPortfolio}
+                                    data-testid="input-portfolio-upload"
+                                  />
+                                </label>
                               </div>
-                            ))}
+                              
+                              {portfolioUrls.length === 0 ? (
+                                <div className="bg-[#fbfcff] border border-dashed border-[#c5ccd8] rounded-md p-4 flex flex-col items-center justify-center text-center">
+                                  <ImageIcon size={20} className="text-gray-400 mb-2" />
+                                  <p className="text-xs ink-soft">No portfolio photos yet</p>
+                                </div>
+                              ) : (
+                                <div className="grid grid-cols-4 gap-2 max-h-[120px] overflow-y-auto">
+                                  {portfolioUrls.map((url, index) => (
+                                    <div key={index} className="relative group aspect-square">
+                                      <img
+                                        src={url}
+                                        alt={`Portfolio ${index + 1}`}
+                                        className="w-full h-full object-cover rounded-md border border-[#c5ccd8]"
+                                        data-testid={`img-portfolio-${index}`}
+                                      />
+                                      <button
+                                        onClick={() => handleDeletePortfolioPhoto(url)}
+                                        className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                        title="Remove photo"
+                                        data-testid={`button-delete-portfolio-${index}`}
+                                      >
+                                        <X size={10} />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Contracts & Payments - Compact Row */}
+                            <div className="px-5 py-4 grid grid-cols-2 gap-4">
+                              {/* Contracts */}
+                              <div>
+                                <h3 className="font-header text-sm ink-main mb-2 flex items-center gap-2">
+                                  <FileText size={14} /> Contracts
+                                </h3>
+                                <Link 
+                                  href="/artist/contracts"
+                                  className="bg-[#fbfcff] border border-dashed border-[#c5ccd8] rounded-md p-3 flex items-center justify-center gap-2 text-center cursor-pointer hover:bg-white hover:border-black transition-colors group"
+                                  data-testid="link-create-contract"
+                                >
+                                  <Plus size={14} className="group-hover:text-black" />
+                                  <span className="text-xs font-medium ink-main">New Contract</span>
+                                </Link>
+                              </div>
+
+                              {/* Payments */}
+                              <div>
+                                <h3 className="font-header text-sm ink-main mb-2 flex items-center gap-2">
+                                  <DollarSign size={14} /> Payments
+                                </h3>
+                                <div className="flex gap-2">
+                                  <button 
+                                    className="flex-1 flex items-center justify-center gap-1.5 p-2.5 border border-[#c5ccd8] rounded bg-white hover:border-black transition-colors text-xs"
+                                    onClick={() => setShowInvoiceModal(true)}
+                                    data-testid="button-send-invoice"
+                                  >
+                                    <Send size={12} />
+                                    Invoice
+                                  </button>
+                                  
+                                  <button 
+                                    onClick={handleStripeConnect}
+                                    disabled={stripeLoading}
+                                    className="flex-1 flex items-center justify-center gap-1.5 p-2.5 border border-[#c5ccd8] rounded bg-white hover:border-black transition-colors disabled:opacity-50 text-xs"
+                                    data-testid="button-stripe-connect"
+                                  >
+                                    <CreditCard size={12} />
+                                    {stripeLoading ? '...' : 'Setup'}
+                                  </button>
+                                </div>
+                                {stripeStatus?.connected && stripeStatus.chargesEnabled && (
+                                  <div className="flex items-center gap-1 mt-2 text-[0.6rem] text-green-600">
+                                    <Check size={10} />
+                                    Stripe ready
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         )}
-                        <p className="text-[0.6rem] ink-soft mt-2">Tip: You can also say "add to my portfolio" in the AI chat when sharing photos!</p>
                       </div>
                     </div>
 
@@ -2603,75 +2678,6 @@ export default function ArtistDashboard() {
                             <p className="text-[0.6rem] ink-soft mt-1">{client.date}</p>
                           </div>
                         ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Contracts & Payments */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                    <div className="card-frame rounded-md px-5 py-4">
-                      <h2 className="font-header text-md ink-main mb-3 flex items-center gap-2">
-                        <FileText size={14} /> Contracts
-                      </h2>
-                      <Link 
-                        href="/artist/contracts"
-                        className="bg-[#fbfcff] border border-dashed border-[#c5ccd8] rounded-md p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-white hover:border-black transition-colors group h-[120px]"
-                        data-testid="link-create-contract"
-                      >
-                        <div className="bg-gray-100 p-2 rounded-full mb-2 group-hover:bg-black group-hover:text-white transition-colors">
-                          <Plus size={16} />
-                        </div>
-                        <span className="text-xs font-medium ink-main">Create New Contract</span>
-                        <span className="text-[0.65rem] ink-soft mt-1">Standard or Custom</span>
-                      </Link>
-                    </div>
-
-                    <div className="card-frame rounded-md px-5 py-4">
-                      <h2 className="font-header text-md ink-main mb-3 flex items-center gap-2">
-                        <DollarSign size={14} /> Payments
-                      </h2>
-                      
-                      <div className="space-y-3">
-                        {/* Stripe Status Banner */}
-                        {stripeStatus?.connected && stripeStatus.chargesEnabled ? (
-                          <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded text-xs">
-                            <Check size={12} className="text-green-600" />
-                            <span className="text-green-800">Stripe Connected - Ready to accept payments</span>
-                          </div>
-                        ) : stripeStatus?.connected ? (
-                          <div className="flex items-center gap-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
-                            <AlertCircle size={12} className="text-yellow-600" />
-                            <span className="text-yellow-800">Stripe setup incomplete</span>
-                          </div>
-                        ) : null}
-
-                        <div className="grid grid-cols-2 gap-2">
-                          <button 
-                            className="flex flex-col items-center justify-center gap-1 p-2 border border-[#c5ccd8] rounded bg-white hover:border-black transition-colors"
-                            onClick={() => setShowInvoiceModal(true)}
-                            data-testid="button-send-invoice"
-                          >
-                            <Send size={14} />
-                            <span className="text-[0.65rem] font-medium">Send Invoice</span>
-                          </button>
-                          
-                          <button 
-                            onClick={handleStripeConnect}
-                            disabled={stripeLoading}
-                            className="flex flex-col items-center justify-center gap-1 p-2 border border-[#c5ccd8] rounded bg-white hover:border-black transition-colors disabled:opacity-50"
-                            data-testid="button-stripe-connect"
-                            title="Optional: Connect for advanced features"
-                          >
-                            <CreditCard size={14} />
-                            <span className="text-[0.65rem] font-medium">
-                              {stripeLoading ? 'Loading...' : 'Advanced'}
-                            </span>
-                          </button>
-                        </div>
-                        
-                        <p className="text-[0.6rem] text-center ink-soft">
-                          Accept Apple Pay, Link, Klarna, PayPal & cards
-                        </p>
                       </div>
                     </div>
                   </div>
@@ -3078,6 +3084,24 @@ export default function ArtistDashboard() {
                           ) : (
                             'Send Appointment Details'
                           )}
+                        </button>
+                        {/* Add Planner to Thread - Magic link for coordination */}
+                        <button 
+                          onClick={() => {
+                            if (selectedBooking?.id) {
+                              const plannerLink = `${window.location.origin}/planner-view/${selectedBooking.id}`;
+                              navigator.clipboard.writeText(plannerLink);
+                              toast({
+                                title: "Planner Link Copied!",
+                                description: "Share this magic link with the wedding planner. No account needed to view.",
+                              });
+                            }
+                          }}
+                          className="text-[0.65rem] uppercase tracking-wide text-purple-600 flex items-center gap-1 hover:underline"
+                          data-testid="button-add-planner-thread"
+                        >
+                          <UserPlus size={10} />
+                          Add Planner to Thread
                         </button>
                       </div>
                     </div>
