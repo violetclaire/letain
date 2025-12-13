@@ -10,7 +10,7 @@ function createSquareClient(accessToken?: string): SquareClient {
 
   return new SquareClient({
     token,
-    environment: 'production',
+    baseUrl: 'https://connect.squareup.com',
   });
 }
 
