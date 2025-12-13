@@ -6545,6 +6545,208 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // Hold inquiry - place a tentative hold on a date
+  app.post("/api/inquiries/:id/hold", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const inquiry = await storage.getInquiry(req.params.id);
+      
+      if (!inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+      
+      if (inquiry.vendorId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const { reason, expiresInHours = 24 } = req.body;
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + expiresInHours * 60 * 60 * 1000);
+      
+      await storage.updateInquiry(inquiry.id, { 
+        status: 'hold',
+        holdPlacedAt: now,
+        holdExpiresAt: expiresAt,
+        holdOwnerId: userId,
+        holdReason: reason || 'Tentatively reserved',
+        lastActionAt: now,
+      } as any);
+      
+      // Create audit log
+      await storage.createAuditLog({
+        action: 'inquiry_hold',
+        entityType: 'inquiry',
+        entityId: inquiry.id,
+        performedBy: userId,
+        changes: { 
+          status: 'hold', 
+          holdExpiresAt: expiresAt.toISOString(),
+          reason 
+        },
+      });
+      
+      // TODO: Send "tentative hold" notification to client
+      
+      res.json({ success: true, expiresAt: expiresAt.toISOString() });
+    } catch (error: any) {
+      console.error("[Inquiry] Error placing hold:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Confirm inquiry - convert to booking and lock date
+  app.post("/api/inquiries/:id/confirm", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const inquiry = await storage.getInquiry(req.params.id);
+      
+      if (!inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+      
+      if (inquiry.vendorId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const { notes, amount } = req.body;
+      const now = new Date();
+      
+      // Create booking from inquiry
+      const booking = await storage.createBooking({
+        clientId: inquiry.clientId,
+        artistId: userId,
+        eventDate: inquiry.eventDate,
+        location: inquiry.eventLocation || '',
+        serviceType: inquiry.serviceType,
+        notes: notes || inquiry.message || '',
+        amount: amount || null,
+        status: 'confirmed',
+      });
+      
+      // Update inquiry as converted
+      await storage.updateInquiry(inquiry.id, { 
+        status: 'converted',
+        convertedToBookingId: booking.id,
+        lastActionAt: now,
+      } as any);
+      
+      // Lock the date on calendar (create availability record)
+      await storage.createAvailability({
+        userId,
+        date: inquiry.eventDate,
+        isAvailable: false,
+        notes: `Booked: ${inquiry.clientName}`,
+      });
+      
+      // Create audit log
+      await storage.createAuditLog({
+        action: 'inquiry_confirmed',
+        entityType: 'inquiry',
+        entityId: inquiry.id,
+        performedBy: userId,
+        changes: { 
+          status: 'converted', 
+          bookingId: booking.id,
+          confirmedAt: now.toISOString(),
+        },
+      });
+      
+      // TODO: Send confirmation email to client
+      
+      res.json({ success: true, bookingId: booking.id });
+    } catch (error: any) {
+      console.error("[Inquiry] Error confirming inquiry:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Propose alternative dates
+  app.post("/api/inquiries/:id/propose", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const inquiry = await storage.getInquiry(req.params.id);
+      
+      if (!inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+      
+      if (inquiry.vendorId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const { proposedDates, message } = req.body;
+      const now = new Date();
+      
+      if (!proposedDates || !Array.isArray(proposedDates) || proposedDates.length === 0) {
+        return res.status(400).json({ error: "Please provide at least one alternative date" });
+      }
+      
+      await storage.updateInquiry(inquiry.id, { 
+        status: 'responded',
+        proposedDates,
+        lastActionAt: now,
+        firstResponseAt: inquiry.firstResponseAt || now,
+      } as any);
+      
+      // Create audit log
+      await storage.createAuditLog({
+        action: 'inquiry_propose_dates',
+        entityType: 'inquiry',
+        entityId: inquiry.id,
+        performedBy: userId,
+        changes: { 
+          proposedDates,
+          message,
+        },
+      });
+      
+      // TODO: Send proposal email to client with alternative dates
+      
+      res.json({ success: true, proposedDates });
+    } catch (error: any) {
+      console.error("[Inquiry] Error proposing dates:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get inquiry timeline/audit trail
+  app.get("/api/inquiries/:id/timeline", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const inquiry = await storage.getInquiry(req.params.id);
+      
+      if (!inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+      
+      if (inquiry.vendorId !== userId && inquiry.clientId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      // Get audit logs for this inquiry
+      const logs = await db.select()
+        .from(auditLogs)
+        .where(sql`resource_type = 'inquiry' AND resource_id = ${inquiry.id}`)
+        .orderBy(desc(auditLogs.createdAt));
+      
+      // Build timeline with SLA info
+      const timeline = {
+        receivedAt: inquiry.createdAt,
+        firstResponseAt: inquiry.firstResponseAt,
+        lastActionAt: inquiry.lastActionAt,
+        nextSlaDue: inquiry.nextSlaDue,
+        slaBreached: inquiry.slaBreached,
+        holdExpiresAt: inquiry.holdExpiresAt,
+        events: logs,
+      };
+      
+      res.json(timeline);
+    } catch (error: any) {
+      console.error("[Inquiry] Error getting timeline:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ========== SCHEDULED EMAILS ==========
   // Create a scheduled email (for invoice scheduling)
   app.post("/api/scheduled-emails", isAuthenticated, async (req: any, res) => {

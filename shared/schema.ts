@@ -403,13 +403,25 @@ export const inquiries = pgTable("inquiries", {
   partySize: integer("party_size"), // Number of people needing services
   message: text("message"), // Client's initial message/notes
   budget: text("budget"), // Budget range if provided
-  status: text("status").notNull().default("pending"), // 'pending', 'responded', 'chatting', 'converted', 'declined', 'expired'
+  status: text("status").notNull().default("pending"), // 'pending', 'hold', 'responded', 'chatting', 'converted', 'declined', 'expired'
   responseMode: text("response_mode").default("auto"), // 'auto' or 'manual' - how vendor responds
   infoSheetSentAt: timestamp("info_sheet_sent_at"), // When info sheet was sent
   chatInviteSentAt: timestamp("chat_invite_sent_at"), // When chat invite was sent
   convertedToBookingId: varchar("converted_to_booking_id").references(() => bookings.id), // If converted
   convertedToContractId: varchar("converted_to_contract_id").references(() => contracts.id), // If converted to contract
   declinedReason: text("declined_reason"), // Why vendor declined
+  // Hold state fields
+  holdPlacedAt: timestamp("hold_placed_at"), // When hold was placed
+  holdExpiresAt: timestamp("hold_expires_at"), // When hold expires (auto-release)
+  holdOwnerId: varchar("hold_owner_id").references(() => users.id), // Who placed the hold
+  holdReason: text("hold_reason"), // Why they're holding this date
+  // SLA tracking fields
+  firstResponseAt: timestamp("first_response_at"), // When vendor first responded
+  lastActionAt: timestamp("last_action_at"), // Last meaningful action taken
+  nextSlaDue: timestamp("next_sla_due"), // Next SLA deadline
+  slaBreached: boolean("sla_breached").default(false), // Has SLA been breached?
+  // Alternative date proposals
+  proposedDates: jsonb("proposed_dates").$type<string[]>(), // Alternative dates proposed by vendor
   metadata: jsonb("metadata").$type<{
     source?: string; // 'browse_page', 'direct_link', 'referral'
     referredBy?: string;
