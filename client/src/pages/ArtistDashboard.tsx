@@ -114,11 +114,23 @@ export default function ArtistDashboard() {
     budget?: number;
     status: string;
     createdAt: string;
+    // New hold struct (source of truth)
+    hold?: {
+      placedAt: string | null;
+      expiresAt: string | null;
+      ownerId: string | null;
+      reason: string | null;
+    };
+    // Legacy hold fields (backward compatibility)
     holdPlacedAt?: string;
     holdExpiresAt?: string;
     holdReason?: string;
+    // Ownership tracking
+    ownerId?: string;
+    ownerName?: string;
     firstResponseAt?: string;
     proposedDates?: string[];
+    escalationState?: string;
   }>>([]);
   const [inquiriesLoading, setInquiriesLoading] = useState(false);
   const [respondingInquiry, setRespondingInquiry] = useState<string | null>(null);
@@ -139,10 +151,13 @@ export default function ArtistDashboard() {
     nextSlaDue?: string;
     slaBreached?: boolean;
     holdExpiresAt?: string;
+    ownerId?: string;
+    ownerName?: string;
     events: Array<{
       id: string;
       action: string;
       performedBy?: string;
+      actorRole?: string;
       changes?: any;
       createdAt: string;
     }>;
@@ -614,7 +629,19 @@ export default function ArtistDashboard() {
 
   const formatTimelineAction = (action: string) => {
     const actionMap: Record<string, string> = {
+      // Standardized vocabulary (Stanley Tang schema sprint)
       'inquiry_created': 'Inquiry received',
+      'first_response': 'First response sent',
+      'hold_placed': 'Date held',
+      'hold_expired': 'Hold expired',
+      'proposal_sent': 'Alternative dates proposed',
+      'proposal_viewed': 'Proposal viewed',
+      'confirm_clicked': 'Confirmed by vendor',
+      'booking_created': 'Booking created',
+      'declined': 'Inquiry declined',
+      'auto_escalated': 'Auto-escalated',
+      'reminder_sent': 'Reminder sent',
+      // Legacy mappings (backward compatibility)
       'inquiry_responded': 'Info sheet sent',
       'inquiry_hold': 'Hold placed',
       'inquiry_confirmed': 'Booking confirmed',
@@ -623,6 +650,18 @@ export default function ArtistDashboard() {
       'chat_invite_sent': 'Chat invite sent',
     };
     return actionMap[action] || action.replace(/_/g, ' ');
+  };
+  
+  const formatActorRole = (role?: string) => {
+    if (!role) return '';
+    const roleMap: Record<string, string> = {
+      'artist': 'Vendor',
+      'planner': 'Planner',
+      'client': 'Client',
+      'system': 'System',
+      'admin': 'Admin',
+    };
+    return roleMap[role] || role;
   };
 
   const getInquiryStatusColor = (status: string) => {
@@ -1983,14 +2022,19 @@ export default function ArtistDashboard() {
                                         <p className="text-[0.65rem] ink-soft italic bg-[#FAF9F7] p-2 rounded">"{inquiry.message}"</p>
                                       )}
                                       
-                                      {/* Hold status with countdown */}
-                                      {inquiry.status === 'hold' && inquiry.holdExpiresAt && (
+                                      {/* Hold status with countdown - uses hold struct as source of truth, fallback to legacy */}
+                                      {inquiry.status === 'hold' && (inquiry.hold?.expiresAt || inquiry.holdExpiresAt) && (
                                         <div className="bg-orange-50 border border-orange-200 rounded-md p-2 mt-2 flex items-center justify-between">
                                           <div className="flex items-center gap-2">
                                             <Clock size={12} className="text-orange-600" />
                                             <span className="text-[0.65rem] text-orange-700 font-medium">On Hold</span>
+                                            {inquiry.hold?.reason && (
+                                              <span className="text-[0.6rem] text-orange-600 italic">- {inquiry.hold.reason}</span>
+                                            )}
                                           </div>
-                                          <span className="text-[0.65rem] text-orange-600 font-semibold">{getHoldCountdown(inquiry.holdExpiresAt)}</span>
+                                          <span className="text-[0.65rem] text-orange-600 font-semibold">
+                                            {getHoldCountdown(inquiry.hold?.expiresAt || inquiry.holdExpiresAt!)}
+                                          </span>
                                         </div>
                                       )}
                                       
@@ -2128,6 +2172,9 @@ export default function ArtistDashboard() {
                                                       <div className="w-1.5 h-1.5 rounded-full bg-gray-300 mt-1 flex-shrink-0" />
                                                       <div className="flex-1">
                                                         <span className="text-gray-700">{formatTimelineAction(event.action)}</span>
+                                                        {event.actorRole && (
+                                                          <span className="text-gray-500 ml-1">by {formatActorRole(event.actorRole)}</span>
+                                                        )}
                                                         <span className="text-gray-400 ml-1">
                                                           {new Date(event.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                                                         </span>

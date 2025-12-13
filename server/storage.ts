@@ -360,8 +360,18 @@ export interface IStorage {
   createCdiPattern(pattern: InsertCdiPatternLibrary): Promise<CdiPatternLibrary>;
   updateCdiPatternStrength(id: string, strengthDelta: number): Promise<CdiPatternLibrary | undefined>;
   
-  // Audit Logs
-  createAuditLog(log: { action: string; entityType: string; entityId: string; performedBy: string; changes?: Record<string, any> }): Promise<AuditLog>;
+  // Audit Logs - standardized action vocabulary:
+  // inquiry_created, first_response, hold_placed, hold_expired, proposal_sent, proposal_viewed,
+  // confirm_clicked, booking_created, declined, auto_escalated, reminder_sent
+  createAuditLog(log: { 
+    action: string; 
+    entityType: string; 
+    entityId: string; 
+    performedBy: string; 
+    actorRole?: 'artist' | 'planner' | 'client' | 'system' | 'admin';
+    changes?: Record<string, any>;
+    diff?: Record<string, { from: any; to: any }>;
+  }): Promise<AuditLog>;
   
   // AI Chat Messages
   getAiChatMessages(userId: string, limit?: number): Promise<AiChatMessage[]>;
@@ -1713,14 +1723,29 @@ export class DatabaseStorage implements IStorage {
     return updated || undefined;
   }
 
-  // Audit Logs
-  async createAuditLog(log: { action: string; entityType: string; entityId: string; performedBy: string; changes?: Record<string, any> }): Promise<AuditLog> {
+  // Audit Logs - standardized action vocabulary:
+  // inquiry_created, first_response, hold_placed, hold_expired, proposal_sent, proposal_viewed,
+  // confirm_clicked, booking_created, declined, auto_escalated, reminder_sent
+  async createAuditLog(log: { 
+    action: string; 
+    entityType: string; 
+    entityId: string; 
+    performedBy: string; 
+    actorRole?: 'artist' | 'planner' | 'client' | 'system' | 'admin';
+    changes?: Record<string, any>;
+    diff?: Record<string, { from: any; to: any }>;
+  }): Promise<AuditLog> {
     const [newLog] = await db.insert(auditLogs).values({
       userId: log.performedBy !== 'system' ? log.performedBy : null,
+      actorRole: log.actorRole || (log.performedBy === 'system' ? 'system' : null),
       action: log.action,
+      actionVersion: 1,
       resourceType: log.entityType,
       resourceId: log.entityId,
-      metadata: log.changes || {},
+      metadata: {
+        ...log.changes,
+        diff: log.diff,
+      },
     } as any).returning();
     return newLog;
   }

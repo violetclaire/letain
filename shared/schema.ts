@@ -388,6 +388,14 @@ export const chatInvites = pgTable("chat_invites", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Hold struct type for inquiries
+export type InquiryHoldStruct = {
+  placedAt: string | null;
+  expiresAt: string | null;
+  ownerId: string | null;
+  reason: string | null;
+};
+
 // Inquiries - client inquiries to vendors before booking
 export const inquiries = pgTable("inquiries", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -403,14 +411,18 @@ export const inquiries = pgTable("inquiries", {
   partySize: integer("party_size"), // Number of people needing services
   message: text("message"), // Client's initial message/notes
   budget: text("budget"), // Budget range if provided
-  status: text("status").notNull().default("pending"), // 'pending', 'hold', 'responded', 'chatting', 'converted', 'declined', 'expired'
+  status: text("status").notNull().default("pending"), // 'pending', 'hold', 'responded', 'chatting', 'converted', 'declined', 'expired', 'completed'
   responseMode: text("response_mode").default("auto"), // 'auto' or 'manual' - how vendor responds
   infoSheetSentAt: timestamp("info_sheet_sent_at"), // When info sheet was sent
   chatInviteSentAt: timestamp("chat_invite_sent_at"), // When chat invite was sent
   convertedToBookingId: varchar("converted_to_booking_id").references(() => bookings.id), // If converted
   convertedToContractId: varchar("converted_to_contract_id").references(() => contracts.id), // If converted to contract
   declinedReason: text("declined_reason"), // Why vendor declined
-  // Hold state fields
+  // Ownership - who's currently responsible for next action
+  ownerId: varchar("owner_id").references(() => users.id), // Current responsible user
+  // Hold state as consolidated struct (source of truth)
+  hold: jsonb("hold").$type<InquiryHoldStruct>(), // Consolidated hold state
+  // Legacy hold fields (kept for backward compatibility during migration)
   holdPlacedAt: timestamp("hold_placed_at"), // When hold was placed
   holdExpiresAt: timestamp("hold_expires_at"), // When hold expires (auto-release)
   holdOwnerId: varchar("hold_owner_id").references(() => users.id), // Who placed the hold
@@ -418,9 +430,12 @@ export const inquiries = pgTable("inquiries", {
   // SLA tracking fields
   firstResponseAt: timestamp("first_response_at"), // When vendor first responded
   lastActionAt: timestamp("last_action_at"), // Last meaningful action taken
-  nextSlaDue: timestamp("next_sla_due"), // Next SLA deadline
-  slaBreached: boolean("sla_breached").default(false), // Has SLA been breached?
-  // Alternative date proposals
+  nextSlaDue: timestamp("next_sla_due"), // Next SLA deadline (computed on state changes)
+  // Escalation state machine
+  escalationState: text("escalation_state").default("none"), // 'none', 'warned', 'reassigned', 'expired'
+  breachFlags: jsonb("breach_flags").$type<string[]>(), // Array of SLA breaches set by worker
+  // Proposals
+  proposalId: varchar("proposal_id"), // Link to active proposal if sent
   proposedDates: jsonb("proposed_dates").$type<string[]>(), // Alternative dates proposed by vendor
   metadata: jsonb("metadata").$type<{
     source?: string; // 'browse_page', 'direct_link', 'referral'
@@ -438,6 +453,7 @@ export const inquiryNotifications = pgTable("inquiry_notifications", {
   inquiryId: varchar("inquiry_id").notNull().references(() => inquiries.id),
   type: text("type").notNull(), // 'inquiry_receipt', 'info_sheet', 'chat_invite', 'vendor_alert', 'reminder', 'follow_up'
   channel: text("channel").notNull(), // 'email', 'sms'
+  actorSystem: text("actor_system"), // 'resend', 'twilio', 'cron_worker' - for traceability
   recipientEmail: text("recipient_email"),
   recipientPhone: text("recipient_phone"),
   subject: text("subject"),
@@ -780,14 +796,26 @@ export const cdiPatternLibrary = pgTable("cdi_pattern_library", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Standardized action vocabulary for analytics
+// inquiry_created, first_response, hold_placed, hold_expired, proposal_sent, proposal_viewed,
+// confirm_clicked, booking_created, declined, auto_escalated, reminder_sent
+
 // Audit logs for compliance
 export const auditLogs = pgTable("audit_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id),
-  action: text("action").notNull(),
+  actorRole: text("actor_role"), // 'artist', 'planner', 'client', 'system', 'admin'
+  action: text("action").notNull(), // Use standardized vocabulary above
+  actionVersion: integer("action_version").default(1), // Future-proof schema changes
   resourceType: text("resource_type").notNull(),
   resourceId: varchar("resource_id"),
-  metadata: jsonb("metadata").$type<Record<string, any>>(),
+  metadata: jsonb("metadata").$type<{
+    diff?: Record<string, { from: any; to: any }>; // Changed fields
+    reason?: string;
+    previousStatus?: string;
+    newStatus?: string;
+    [key: string]: any;
+  }>(),
   ipAddress: text("ip_address"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

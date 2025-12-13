@@ -6276,7 +6276,22 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       }
       
       const inquiries = await storage.getInquiriesByVendor(userId);
-      res.json(inquiries);
+      
+      // Enrich with owner names for responsibility display
+      const enrichedInquiries = await Promise.all(inquiries.map(async (inq) => {
+        let ownerName: string | null = null;
+        if (inq.ownerId) {
+          const owner = await storage.getUser(inq.ownerId);
+          if (owner) {
+            ownerName = owner.firstName 
+              ? `${owner.firstName}${owner.lastName ? ' ' + owner.lastName : ''}`
+              : owner.email || 'Unknown';
+          }
+        }
+        return { ...inq, ownerName };
+      }));
+      
+      res.json(enrichedInquiries);
     } catch (error: any) {
       console.error("[Inquiry] Error fetching vendor inquiries:", error);
       res.status(500).json({ error: error.message });
@@ -6549,6 +6564,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   app.post("/api/inquiries/:id/hold", isAuthenticated, async (req: any, res) => {
     try {
       const userId = getAuthUserId(req);
+      const user = await storage.getUser(userId);
       const inquiry = await storage.getInquiry(req.params.id);
       
       if (!inquiry) {
@@ -6559,29 +6575,57 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(403).json({ error: "Access denied" });
       }
       
+      // Enforce valid state transitions
+      const validFromStates = ['pending', 'responded'];
+      if (!validFromStates.includes(inquiry.status)) {
+        return res.status(400).json({ error: `Cannot hold from status: ${inquiry.status}` });
+      }
+      
       const { reason, expiresInHours = 24 } = req.body;
       const now = new Date();
       const expiresAt = new Date(now.getTime() + expiresInHours * 60 * 60 * 1000);
+      const holdReason = reason || 'Tentatively reserved';
+      
+      // Build hold struct (new schema) while maintaining legacy fields
+      const holdStruct = {
+        placedAt: now.toISOString(),
+        expiresAt: expiresAt.toISOString(),
+        ownerId: userId,
+        reason: holdReason,
+      };
+      
+      const previousStatus = inquiry.status;
       
       await storage.updateInquiry(inquiry.id, { 
         status: 'hold',
+        ownerId: userId, // Current responsible user
+        hold: holdStruct as any, // New consolidated hold struct
+        // Legacy fields for backward compatibility
         holdPlacedAt: now,
         holdExpiresAt: expiresAt,
         holdOwnerId: userId,
-        holdReason: reason || 'Tentatively reserved',
+        holdReason: holdReason,
         lastActionAt: now,
+        firstResponseAt: inquiry.firstResponseAt || now,
       } as any);
       
-      // Create audit log
+      // Determine actor role
+      const actorRole = user?.role === 'artist' ? 'artist' : user?.role === 'planner' ? 'planner' : 'artist';
+      
+      // Create audit log with standardized action and diff
       await storage.createAuditLog({
-        action: 'inquiry_hold',
+        action: 'hold_placed', // Standardized vocabulary
         entityType: 'inquiry',
         entityId: inquiry.id,
         performedBy: userId,
+        actorRole: actorRole as any,
+        diff: {
+          status: { from: previousStatus, to: 'hold' },
+          hold: { from: null, to: holdStruct },
+        },
         changes: { 
-          status: 'hold', 
-          holdExpiresAt: expiresAt.toISOString(),
-          reason 
+          expiresInHours,
+          reason: holdReason,
         },
       });
       
@@ -6598,6 +6642,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   app.post("/api/inquiries/:id/confirm", isAuthenticated, async (req: any, res) => {
     try {
       const userId = getAuthUserId(req);
+      const user = await storage.getUser(userId);
       const inquiry = await storage.getInquiry(req.params.id);
       
       if (!inquiry) {
@@ -6608,8 +6653,15 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(403).json({ error: "Access denied" });
       }
       
+      // Enforce valid state transitions
+      const validFromStates = ['pending', 'responded', 'hold', 'chatting'];
+      if (!validFromStates.includes(inquiry.status)) {
+        return res.status(400).json({ error: `Cannot confirm from status: ${inquiry.status}` });
+      }
+      
       const { notes, amount } = req.body;
       const now = new Date();
+      const previousStatus = inquiry.status;
       
       // Create booking from inquiry
       const booking = await storage.createBooking({
@@ -6623,10 +6675,17 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         status: 'confirmed',
       });
       
-      // Update inquiry as converted
+      // Update inquiry as converted, clear hold if any
       await storage.updateInquiry(inquiry.id, { 
         status: 'converted',
         convertedToBookingId: booking.id,
+        ownerId: userId,
+        hold: null as any, // Clear hold struct
+        holdPlacedAt: null,
+        holdExpiresAt: null,
+        holdOwnerId: null,
+        holdReason: null,
+        escalationState: 'none',
         lastActionAt: now,
       } as any);
       
@@ -6638,16 +6697,35 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         notes: `Booked: ${inquiry.clientName}`,
       });
       
-      // Create audit log
+      // Determine actor role
+      const actorRole = user?.role === 'artist' ? 'artist' : user?.role === 'planner' ? 'planner' : 'artist';
+      
+      // Create audit log with standardized actions - two events: confirm_clicked + booking_created
       await storage.createAuditLog({
-        action: 'inquiry_confirmed',
+        action: 'confirm_clicked', // Standardized vocabulary
         entityType: 'inquiry',
         entityId: inquiry.id,
         performedBy: userId,
+        actorRole: actorRole as any,
+        diff: {
+          status: { from: previousStatus, to: 'converted' },
+          convertedToBookingId: { from: null, to: booking.id },
+        },
         changes: { 
-          status: 'converted', 
-          bookingId: booking.id,
           confirmedAt: now.toISOString(),
+        },
+      });
+      
+      await storage.createAuditLog({
+        action: 'booking_created', // Standardized vocabulary
+        entityType: 'booking',
+        entityId: booking.id,
+        performedBy: userId,
+        actorRole: actorRole as any,
+        changes: { 
+          fromInquiryId: inquiry.id,
+          clientName: inquiry.clientName,
+          eventDate: inquiry.eventDate.toISOString(),
         },
       });
       
@@ -6664,6 +6742,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   app.post("/api/inquiries/:id/propose", isAuthenticated, async (req: any, res) => {
     try {
       const userId = getAuthUserId(req);
+      const user = await storage.getUser(userId);
       const inquiry = await storage.getInquiry(req.params.id);
       
       if (!inquiry) {
@@ -6674,6 +6753,12 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(403).json({ error: "Access denied" });
       }
       
+      // Enforce valid state transitions
+      const validFromStates = ['pending', 'responded', 'hold'];
+      if (!validFromStates.includes(inquiry.status)) {
+        return res.status(400).json({ error: `Cannot propose dates from status: ${inquiry.status}` });
+      }
+      
       const { proposedDates, message } = req.body;
       const now = new Date();
       
@@ -6681,22 +6766,51 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(400).json({ error: "Please provide at least one alternative date" });
       }
       
+      const previousStatus = inquiry.status;
+      const previousProposedDates = inquiry.proposedDates;
+      const isFirstResponse = !inquiry.firstResponseAt;
+      
       await storage.updateInquiry(inquiry.id, { 
         status: 'responded',
+        ownerId: inquiry.clientId, // Ball now in client's court
         proposedDates,
         lastActionAt: now,
         firstResponseAt: inquiry.firstResponseAt || now,
       } as any);
       
-      // Create audit log
+      // Determine actor role
+      const actorRole = user?.role === 'artist' ? 'artist' : user?.role === 'planner' ? 'planner' : 'artist';
+      
+      // Log first_response if applicable
+      if (isFirstResponse) {
+        await storage.createAuditLog({
+          action: 'first_response', // Standardized vocabulary
+          entityType: 'inquiry',
+          entityId: inquiry.id,
+          performedBy: userId,
+          actorRole: actorRole as any,
+          changes: { 
+            responseType: 'proposal',
+            firstResponseAt: now.toISOString(),
+          },
+        });
+      }
+      
+      // Create audit log with standardized action
       await storage.createAuditLog({
-        action: 'inquiry_propose_dates',
+        action: 'proposal_sent', // Standardized vocabulary
         entityType: 'inquiry',
         entityId: inquiry.id,
         performedBy: userId,
+        actorRole: actorRole as any,
+        diff: {
+          status: { from: previousStatus, to: 'responded' },
+          proposedDates: { from: previousProposedDates || [], to: proposedDates },
+          ownerId: { from: inquiry.ownerId, to: inquiry.clientId },
+        },
         changes: { 
-          proposedDates,
           message,
+          dateCount: proposedDates.length,
         },
       });
       
@@ -6729,15 +6843,38 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         .where(sql`resource_type = 'inquiry' AND resource_id = ${inquiry.id}`)
         .orderBy(desc(auditLogs.createdAt));
       
+      // Format events for UI with actorRole properly exposed
+      const formattedEvents = logs.map(log => ({
+        id: log.id,
+        action: log.action,
+        performedBy: log.userId,
+        actorRole: log.actorRole || (log.metadata as any)?.actorRole || null,
+        changes: log.metadata,
+        createdAt: log.createdAt,
+      }));
+      
+      // Get owner name for responsibility display
+      let ownerName: string | null = null;
+      if (inquiry.ownerId) {
+        const owner = await storage.getUser(inquiry.ownerId);
+        if (owner) {
+          ownerName = owner.firstName 
+            ? `${owner.firstName}${owner.lastName ? ' ' + owner.lastName : ''}`
+            : owner.email || 'Unknown';
+        }
+      }
+      
       // Build timeline with SLA info
       const timeline = {
         receivedAt: inquiry.createdAt,
         firstResponseAt: inquiry.firstResponseAt,
         lastActionAt: inquiry.lastActionAt,
         nextSlaDue: inquiry.nextSlaDue,
-        slaBreached: inquiry.slaBreached,
-        holdExpiresAt: inquiry.holdExpiresAt,
-        events: logs,
+        slaBreached: (inquiry as any).slaBreached,
+        holdExpiresAt: inquiry.hold?.expiresAt || inquiry.holdExpiresAt,
+        ownerId: inquiry.ownerId,
+        ownerName,
+        events: formattedEvents,
       };
       
       res.json(timeline);
