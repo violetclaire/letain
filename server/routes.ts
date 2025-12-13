@@ -882,6 +882,179 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========== VENDOR ONBOARDING ==========
+  
+  // Get onboarding status and preferences
+  app.get("/api/vendor/onboarding", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const profile = await storage.getArtistProfile(userId);
+      
+      if (!profile) {
+        return res.json({
+          onboardingCompleted: false,
+          calendarConnected: false,
+          defaultHoldHours: 72,
+          slaTargets: {
+            firstResponseHours: 24,
+            terminalStateHours: 48,
+            holdWindowHours: 72
+          },
+          onboardingPreferences: null
+        });
+      }
+      
+      res.json({
+        onboardingCompleted: profile.onboardingCompleted || false,
+        calendarConnected: profile.calendarConnected || false,
+        googleCalendarId: profile.googleCalendarId || null,
+        defaultHoldHours: profile.defaultHoldHours || 72,
+        slaTargets: profile.slaTargets || {
+          firstResponseHours: 24,
+          terminalStateHours: 48,
+          holdWindowHours: 72
+        },
+        onboardingPreferences: profile.onboardingPreferences || null
+      });
+    } catch (error: any) {
+      console.error("Error getting onboarding status:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Update onboarding preferences
+  app.patch("/api/vendor/onboarding", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const { defaultHoldHours, slaTargets, onboardingPreferences, calendarConnected, googleCalendarId } = req.body;
+      
+      let profile = await storage.getArtistProfile(userId);
+      
+      const updateData: any = {};
+      if (defaultHoldHours !== undefined) updateData.defaultHoldHours = defaultHoldHours;
+      if (slaTargets !== undefined) updateData.slaTargets = slaTargets;
+      if (onboardingPreferences !== undefined) updateData.onboardingPreferences = onboardingPreferences;
+      if (calendarConnected !== undefined) updateData.calendarConnected = calendarConnected;
+      if (googleCalendarId !== undefined) updateData.googleCalendarId = googleCalendarId;
+      
+      if (!profile) {
+        // Create a new profile with onboarding data
+        profile = await storage.createArtistProfile({
+          userId,
+          ...updateData
+        });
+      } else {
+        profile = await storage.updateArtistProfile(userId, updateData);
+      }
+      
+      res.json(profile);
+    } catch (error: any) {
+      console.error("Error updating onboarding:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Complete onboarding
+  app.post("/api/vendor/onboarding/complete", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      
+      let profile = await storage.getArtistProfile(userId);
+      
+      if (!profile) {
+        profile = await storage.createArtistProfile({
+          userId,
+          onboardingCompleted: true
+        });
+      } else {
+        profile = await storage.updateArtistProfile(userId, {
+          onboardingCompleted: true
+        });
+      }
+      
+      res.json({ success: true, profile });
+    } catch (error: any) {
+      console.error("Error completing onboarding:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Seed test inquiries for new vendors
+  app.post("/api/vendor/onboarding/seed-test-inquiries", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'artist') {
+        return res.status(403).json({ error: "Only vendors can seed test inquiries" });
+      }
+      
+      // Create 3 test inquiries with different scenarios
+      const testInquiries = [
+        {
+          vendorId: userId,
+          clientEmail: "test-bride@beauvette.test",
+          clientName: "Test Client - Emily (Confirm Practice)",
+          clientPhone: null,
+          eventDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 days from now
+          eventType: "wedding",
+          eventLocation: "The Grand Ballroom, NYC",
+          serviceType: "beauty",
+          partySize: 8,
+          message: "Hi! I'm getting married in 2 months and need a hair and makeup team for my bridal party of 8. I love your work! Are you available?",
+          budget: "$2,000 - $3,000",
+          status: "pending",
+          metadata: { isTestInquiry: true, testScenario: "confirm" }
+        },
+        {
+          vendorId: userId,
+          clientEmail: "test-client2@beauvette.test",
+          clientName: "Test Client - Sarah (Hold Practice)",
+          clientPhone: null,
+          eventDate: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), // 45 days from now
+          eventType: "engagement",
+          eventLocation: "Central Park, NYC",
+          serviceType: "beauty",
+          partySize: 2,
+          message: "Looking for engagement photo hair and makeup. Your style is exactly what I want! What are your rates?",
+          budget: "$500 - $800",
+          status: "pending",
+          metadata: { isTestInquiry: true, testScenario: "hold" }
+        },
+        {
+          vendorId: userId,
+          clientEmail: "test-client3@beauvette.test",
+          clientName: "Test Client - Amanda (Propose Practice)",
+          clientPhone: null,
+          eventDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+          eventType: "bridal_shower",
+          eventLocation: "Private Residence, Brooklyn",
+          serviceType: "beauty",
+          partySize: 5,
+          message: "Planning my bridal shower and would love your services for me and 4 guests. Can you do on-site?",
+          budget: "$800 - $1,200",
+          status: "pending",
+          metadata: { isTestInquiry: true, testScenario: "propose" }
+        }
+      ];
+      
+      const createdInquiries = [];
+      for (const inquiry of testInquiries) {
+        const created = await storage.createInquiry(inquiry);
+        createdInquiries.push(created);
+      }
+      
+      res.json({ 
+        success: true, 
+        message: "3 test inquiries created for practice",
+        inquiries: createdInquiries 
+      });
+    } catch (error: any) {
+      console.error("Error seeding test inquiries:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ========== ARTIST SERVICES (Menu) ==========
   app.get("/api/artist-services/:artistId", async (req, res) => {
     try {

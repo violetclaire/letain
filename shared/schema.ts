@@ -30,6 +30,31 @@ export type NotificationPreferences = {
   };
 };
 
+// Vendor SLA targets type
+export type VendorSlaTargets = {
+  firstResponseHours: number; // Target hours for first response (default: 24)
+  terminalStateHours: number; // Target hours to reach terminal state (default: 48)
+  holdWindowHours: number; // Default hold window for this vendor (default: 72)
+};
+
+// Vendor onboarding preferences type
+export type VendorOnboardingPreferences = {
+  calendarConnected: boolean;
+  defaultHoldHours: number;
+  slaTargets: VendorSlaTargets;
+  notificationChannels: {
+    email: boolean;
+    sms: boolean;
+    inApp: boolean;
+  };
+  notificationTypes: {
+    newInquiries: boolean;
+    holdExpiring: boolean;
+    slaWarnings: boolean;
+    bookingConfirmations: boolean;
+  };
+};
+
 // Users - represents all personas (clients, artists, planners, admins)
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -139,6 +164,13 @@ export const artistProfiles = pgTable("artist_profiles", {
   totalChatsAnswered: integer("total_chats_answered").default(0),
   responseRate: integer("response_rate").default(0),
   lastChatResponseAt: timestamp("last_chat_response_at"),
+  // Vendor onboarding preferences
+  onboardingCompleted: boolean("onboarding_completed").default(false),
+  calendarConnected: boolean("calendar_connected").default(false),
+  googleCalendarId: text("google_calendar_id"), // Connected Google Calendar ID
+  defaultHoldHours: integer("default_hold_hours").default(72), // Default: 72 hours
+  slaTargets: jsonb("sla_targets").$type<VendorSlaTargets>(),
+  onboardingPreferences: jsonb("onboarding_preferences").$type<VendorOnboardingPreferences>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
