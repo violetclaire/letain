@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { AlertTriangle, TrendingUp, Activity, Users, FileText, CreditCard, HeadphonesIcon, RefreshCw, LogOut, Brain, Sparkles, MessageSquare, Shield, CheckCircle, XCircle, AlertCircle, Upload, ShieldAlert, Settings, Zap } from "lucide-react";
+import { AlertTriangle, TrendingUp, Activity, Users, FileText, CreditCard, HeadphonesIcon, RefreshCw, LogOut, Brain, Sparkles, MessageSquare, Shield, CheckCircle, XCircle, AlertCircle, Upload, ShieldAlert, Settings, Zap, BarChart3, Clock, Target, CheckCheck } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -164,6 +164,17 @@ interface IqsLearningRun {
   } | null;
 }
 
+interface VendorMetrics {
+  vendorId: string;
+  vendorName: string;
+  avgTimeToFirstResponseMinutes: number | null;
+  terminalStateUnder24hPercent: number;
+  holdExpiryRate: number;
+  confirmSuccessCount: number;
+  confirmFailedCount: number;
+  totalInquiries: number;
+}
+
 export default function AdminDashboard() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const { toast } = useToast();
@@ -181,7 +192,7 @@ export default function AdminDashboard() {
   const [loadingData, setLoadingData] = useState(true);
   const [analyzingAi, setAnalyzingAi] = useState(false);
   const [activeTab, setActiveTab] = useState<'legacy' | 'dimensions'>('dimensions');
-  const [mainView, setMainView] = useState<'cdi' | 'safety' | 'labor' | 'iqs'>('cdi');
+  const [mainView, setMainView] = useState<'cdi' | 'safety' | 'labor' | 'iqs' | 'metrics'>('cdi');
   const [pendingVendors, setPendingVendors] = useState<PendingVendor[]>([]);
   const [profileReports, setProfileReports] = useState<ProfileReport[]>([]);
   const [invisibleLaborPivots, setInvisibleLaborPivots] = useState<InvisibleLaborPivot[]>([]);
@@ -190,6 +201,7 @@ export default function AdminDashboard() {
   const [iqsPatterns, setIqsPatterns] = useState<IqsPattern[]>([]);
   const [iqsLearningRuns, setIqsLearningRuns] = useState<IqsLearningRun[]>([]);
   const [triggeringLearning, setTriggeringLearning] = useState(false);
+  const [vendorMetrics, setVendorMetrics] = useState<VendorMetrics[]>([]);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -225,7 +237,7 @@ export default function AdminDashboard() {
   const fetchAdminData = async () => {
     setLoadingData(true);
     try {
-      const [usersRes, casesRes, bookingsRes, cdiRes, compositeRes, vendorsRes, reportsRes, pivotsRes, iqsPatternsRes, iqsLearningRes] = await Promise.all([
+      const [usersRes, casesRes, bookingsRes, cdiRes, compositeRes, vendorsRes, reportsRes, pivotsRes, iqsPatternsRes, iqsLearningRes, vendorMetricsRes] = await Promise.all([
         fetch("/api/admin/users", { credentials: "include" }),
         fetch("/api/admin/support-cases", { credentials: "include" }),
         fetch("/api/admin/bookings", { credentials: "include" }),
@@ -236,6 +248,7 @@ export default function AdminDashboard() {
         fetch("/api/admin/invisible-labor/pivots?limit=50", { credentials: "include" }),
         fetch("/api/iqs/patterns", { credentials: "include" }),
         fetch("/api/admin/iqs/learning-runs", { credentials: "include" }),
+        fetch("/api/admin/vendor-metrics?limit=10&sinceDays=14", { credentials: "include" }),
       ]);
       
       if (usersRes.ok) setUsers(await usersRes.json());
@@ -248,6 +261,7 @@ export default function AdminDashboard() {
       if (pivotsRes.ok) setInvisibleLaborPivots(await pivotsRes.json());
       if (iqsPatternsRes.ok) setIqsPatterns(await iqsPatternsRes.json());
       if (iqsLearningRes.ok) setIqsLearningRuns(await iqsLearningRes.json());
+      if (vendorMetricsRes.ok) setVendorMetrics(await vendorMetricsRes.json());
     } catch (error) {
       console.error("Error fetching admin data:", error);
     }
@@ -629,6 +643,23 @@ export default function AdminDashboard() {
                 {iqsPatterns.filter(p => !p.isActive).length > 0 && (
                   <span className="bg-gray-400 text-white text-[0.6rem] px-1.5 py-0.5 rounded-full">
                     {iqsPatterns.filter(p => !p.isActive).length} off
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setMainView('metrics')}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${
+                  mainView === 'metrics' 
+                    ? 'bg-gradient-to-r from-[#3D5A3B] to-[#5D7A5B] text-white' 
+                    : 'bg-white text-[#262329] hover:bg-gray-100'
+                }`}
+                data-testid="tab-metrics"
+              >
+                <BarChart3 size={14} />
+                Vendor Metrics
+                {vendorMetrics.length > 0 && (
+                  <span className="bg-green-500 text-white text-[0.6rem] px-1.5 py-0.5 rounded-full">
+                    {vendorMetrics.length}
                   </span>
                 )}
               </button>
@@ -1143,6 +1174,170 @@ export default function AdminDashboard() {
                     price haggling, timeline pressure, and communication issues. Vendors can provide feedback on each warning,
                     and the system learns from this feedback to improve its accuracy over time.
                   </p>
+                </div>
+              </div>
+            )}
+
+            {/* VENDOR METRICS VIEW */}
+            {mainView === 'metrics' && (
+              <div className="space-y-6">
+                {/* Stats Overview */}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-4 mb-6">
+                  <div className="card-frame rounded-md px-5 py-4 text-center bg-gradient-to-br from-green-50 to-green-100">
+                    <div className="font-header mb-1 text-4xl text-green-600">{vendorMetrics.length}</div>
+                    <div className="text-[0.65rem] uppercase tracking-widest ink-soft">Vendors Tracked</div>
+                  </div>
+                  <div className="card-frame rounded-md px-5 py-4 text-center bg-gradient-to-br from-blue-50 to-blue-100">
+                    <div className="font-header mb-1 text-4xl text-blue-600">
+                      {vendorMetrics.length > 0 
+                        ? Math.round(vendorMetrics.filter(v => v.avgTimeToFirstResponseMinutes !== null).reduce((sum, v) => sum + (v.avgTimeToFirstResponseMinutes || 0), 0) / Math.max(vendorMetrics.filter(v => v.avgTimeToFirstResponseMinutes !== null).length, 1))
+                        : 0}m
+                    </div>
+                    <div className="text-[0.65rem] uppercase tracking-widest ink-soft">Avg First Response</div>
+                  </div>
+                  <div className="card-frame rounded-md px-5 py-4 text-center bg-gradient-to-br from-purple-50 to-purple-100">
+                    <div className="font-header mb-1 text-4xl text-purple-600">
+                      {vendorMetrics.length > 0 
+                        ? Math.round(vendorMetrics.reduce((sum, v) => sum + v.terminalStateUnder24hPercent, 0) / vendorMetrics.length)
+                        : 0}%
+                    </div>
+                    <div className="text-[0.65rem] uppercase tracking-widest ink-soft">Resolved &lt;24h</div>
+                  </div>
+                  <div className="card-frame rounded-md px-5 py-4 text-center bg-gradient-to-br from-orange-50 to-orange-100">
+                    <div className="font-header mb-1 text-4xl text-orange-600">
+                      {vendorMetrics.reduce((sum, v) => sum + v.confirmSuccessCount, 0)}
+                    </div>
+                    <div className="text-[0.65rem] uppercase tracking-widest ink-soft">Confirmed Bookings</div>
+                  </div>
+                </div>
+
+                {/* Vendor Metrics Table */}
+                <div className="card-frame rounded-md p-6">
+                  <h2 className="font-header text-xl ink-main mb-4 flex items-center gap-2">
+                    <BarChart3 size={20} className="text-green-600" />
+                    Proving Ground Metrics (Last 14 Days)
+                  </h2>
+                  
+                  {vendorMetrics.length === 0 ? (
+                    <div className="text-center py-8 text-sm ink-soft">
+                      <BarChart3 size={32} className="mx-auto mb-2 text-gray-400" />
+                      <p>No vendor metrics available yet</p>
+                      <p className="text-xs mt-1">Metrics are calculated from inquiry activity</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-200">
+                            <th className="text-left py-3 px-2 font-medium text-gray-600">Vendor</th>
+                            <th className="text-center py-3 px-2 font-medium text-gray-600">
+                              <div className="flex items-center justify-center gap-1">
+                                <Clock size={14} />
+                                <span>First Response</span>
+                              </div>
+                            </th>
+                            <th className="text-center py-3 px-2 font-medium text-gray-600">
+                              <div className="flex items-center justify-center gap-1">
+                                <Target size={14} />
+                                <span>&lt;24h Rate</span>
+                              </div>
+                            </th>
+                            <th className="text-center py-3 px-2 font-medium text-gray-600">Hold Expiry</th>
+                            <th className="text-center py-3 px-2 font-medium text-gray-600">
+                              <div className="flex items-center justify-center gap-1">
+                                <CheckCheck size={14} />
+                                <span>Confirmed</span>
+                              </div>
+                            </th>
+                            <th className="text-center py-3 px-2 font-medium text-gray-600">Failed</th>
+                            <th className="text-center py-3 px-2 font-medium text-gray-600">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {vendorMetrics.map((vm) => (
+                            <tr key={vm.vendorId} className="border-b border-gray-100 hover:bg-gray-50" data-testid={`metrics-row-${vm.vendorId}`}>
+                              <td className="py-3 px-2">
+                                <div className="font-medium text-gray-900">{vm.vendorName}</div>
+                                <div className="text-xs text-gray-500">{vm.totalInquiries} inquiries</div>
+                              </td>
+                              <td className="text-center py-3 px-2">
+                                {vm.avgTimeToFirstResponseMinutes !== null ? (
+                                  <span className={`font-medium ${vm.avgTimeToFirstResponseMinutes <= 60 ? 'text-green-600' : vm.avgTimeToFirstResponseMinutes <= 240 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                    {vm.avgTimeToFirstResponseMinutes < 60 
+                                      ? `${vm.avgTimeToFirstResponseMinutes}m` 
+                                      : `${Math.round(vm.avgTimeToFirstResponseMinutes / 60)}h`}
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-400">-</span>
+                                )}
+                              </td>
+                              <td className="text-center py-3 px-2">
+                                <div className="flex items-center justify-center gap-2">
+                                  <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                    <div 
+                                      className={`h-full ${vm.terminalStateUnder24hPercent >= 80 ? 'bg-green-500' : vm.terminalStateUnder24hPercent >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                                      style={{ width: `${vm.terminalStateUnder24hPercent}%` }}
+                                    />
+                                  </div>
+                                  <span className={`text-sm font-medium ${vm.terminalStateUnder24hPercent >= 80 ? 'text-green-600' : vm.terminalStateUnder24hPercent >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                    {vm.terminalStateUnder24hPercent}%
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="text-center py-3 px-2">
+                                <span className={`font-medium ${vm.holdExpiryRate <= 10 ? 'text-green-600' : vm.holdExpiryRate <= 30 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                  {vm.holdExpiryRate}%
+                                </span>
+                              </td>
+                              <td className="text-center py-3 px-2">
+                                <span className="text-green-600 font-bold">{vm.confirmSuccessCount}</span>
+                              </td>
+                              <td className="text-center py-3 px-2">
+                                <span className={`font-medium ${vm.confirmFailedCount === 0 ? 'text-gray-400' : 'text-red-600'}`}>
+                                  {vm.confirmFailedCount}
+                                </span>
+                              </td>
+                              <td className="text-center py-3 px-2">
+                                <span className="text-gray-600">{vm.totalInquiries}</span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {/* Metrics Legend */}
+                <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6">
+                  <h3 className="font-header text-lg mb-3 flex items-center gap-2">
+                    <Brain size={18} />
+                    Metrics Explained
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+                    <div>
+                      <div className="font-medium flex items-center gap-1 mb-1">
+                        <Clock size={14} className="text-blue-600" /> Time to First Response
+                      </div>
+                      <p className="text-xs text-gray-600">Average time from inquiry creation to vendor's first action (propose, hold, or confirm).</p>
+                    </div>
+                    <div>
+                      <div className="font-medium flex items-center gap-1 mb-1">
+                        <Target size={14} className="text-purple-600" /> Terminal State &lt;24h
+                      </div>
+                      <p className="text-xs text-gray-600">Percentage of inquiries reaching a final state (confirmed, declined, expired) within 24 hours.</p>
+                    </div>
+                    <div>
+                      <div className="font-medium mb-1">Hold Expiry Rate</div>
+                      <p className="text-xs text-gray-600">Percentage of holds that expired without being converted to bookings.</p>
+                    </div>
+                    <div>
+                      <div className="font-medium flex items-center gap-1 mb-1">
+                        <CheckCheck size={14} className="text-green-600" /> Confirm Success vs Failed
+                      </div>
+                      <p className="text-xs text-gray-600">Successful confirmations vs those that failed (e.g., incomplete data, payment issues).</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
