@@ -413,7 +413,7 @@ export async function sendInvoiceEmail({
             <a href="${paymentLink}" class="button">Pay Now</a>
           </p>
           
-          <p class="secure">Secure payment powered by Stripe. Accept Apple Pay, cards, Klarna & more.</p>
+          <p class="secure">Secure payment powered by Square. Accept Apple Pay, cards & more.</p>
           
           <p style="color: #888; font-size: 13px; margin-top: 24px;">Or copy this link: <a href="${paymentLink}" style="color: #E8B4B8;">${paymentLink}</a></p>
         </div>

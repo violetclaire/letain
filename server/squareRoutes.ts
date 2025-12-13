@@ -1,8 +1,21 @@
 import { Express, Request, Response } from "express";
-import { getSquare, getSquareApplicationId, isSquareConfigured } from "./squareClient";
+import { getSquare, getMerchantSquare, getSquareApplicationId, getSquareApplicationSecret, isSquareConfigured, isSquareOAuthConfigured } from "./squareClient";
 import { storage } from "./storage";
 import { getAuthUserId } from "./routes";
 import crypto from "crypto";
+
+async function getMerchantAccessToken(userId: string): Promise<string | null> {
+  const user = await storage.getUser(userId);
+  if (!user) return null;
+  
+  if (user.role === 'artist') {
+    const profile = await storage.getArtistProfile(userId);
+    return profile?.squareAccessToken || null;
+  } else if (user.role === 'planner') {
+    return (user as any).squareAccessToken || null;
+  }
+  return null;
+}
 
 const PLATFORM_FEE_PERCENT = 1;
 const isProduction = process.env.REPLIT_DEPLOYMENT === '1';
@@ -118,11 +131,13 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
 
       const square = getSquare();
       const applicationId = getSquareApplicationId();
-      const applicationSecret = process.env.SQUARE_APPLICATION_SECRET || process.env.SQUARE_ACCESS_TOKEN;
       
-      if (!applicationSecret) {
+      let applicationSecret: string;
+      try {
+        applicationSecret = getSquareApplicationSecret();
+      } catch (e) {
         console.error("Square OAuth: Missing SQUARE_APPLICATION_SECRET");
-        return res.redirect(`/artist?square=error&message=Server configuration error`);
+        return res.redirect(`/artist?square=error&message=Server configuration error - contact support`);
       }
 
       const response = await square.oAuth.obtainToken({
@@ -238,7 +253,12 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
         return res.status(500).json({ error: "Square location not configured. Please add SQUARE_LOCATION_ID to secrets." });
       }
 
-      const square = getSquare();
+      const merchantToken = await getMerchantAccessToken(userId);
+      if (!merchantToken) {
+        return res.status(400).json({ error: "Please connect your Square account first" });
+      }
+
+      const square = getMerchantSquare(merchantToken);
       const baseUrl = `https://${req.get('host')}`;
       
       const platformFee = Math.round(amountInCents * (PLATFORM_FEE_PERCENT / 100));
@@ -343,7 +363,12 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
         return res.status(500).json({ error: "Square location not configured. Please add SQUARE_LOCATION_ID to secrets." });
       }
 
-      const square = getSquare();
+      const merchantToken = await getMerchantAccessToken(userId);
+      if (!merchantToken) {
+        return res.status(400).json({ error: "Please connect your Square account first" });
+      }
+
+      const square = getMerchantSquare(merchantToken);
       const platformFee = Math.round(amountInCents * (PLATFORM_FEE_PERCENT / 100));
 
       const orderResponse = await square.orders.create({

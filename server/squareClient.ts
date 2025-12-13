@@ -2,26 +2,33 @@ import { SquareClient } from 'square';
 
 const isProduction = process.env.REPLIT_DEPLOYMENT === '1';
 
-function createSquareClient(): SquareClient {
-  const accessToken = process.env.SQUARE_ACCESS_TOKEN;
+function createSquareClient(accessToken?: string): SquareClient {
+  const token = accessToken || process.env.SQUARE_ACCESS_TOKEN;
   
-  if (!accessToken) {
+  if (!token) {
     throw new Error('Square API not configured. Please add SQUARE_ACCESS_TOKEN to your secrets.');
   }
 
   return new SquareClient({
-    token: accessToken,
+    token,
     environment: isProduction ? 'production' : 'sandbox',
   });
 }
 
-let squareClient: SquareClient | null = null;
+let platformSquareClient: SquareClient | null = null;
 
 export function getSquare(): SquareClient {
-  if (!squareClient) {
-    squareClient = createSquareClient();
+  if (!platformSquareClient) {
+    platformSquareClient = createSquareClient();
   }
-  return squareClient;
+  return platformSquareClient;
+}
+
+export function getMerchantSquare(merchantAccessToken: string): SquareClient {
+  if (!merchantAccessToken) {
+    throw new Error('Merchant access token is required');
+  }
+  return createSquareClient(merchantAccessToken);
 }
 
 export function getSquareApplicationId(): string {
@@ -32,6 +39,18 @@ export function getSquareApplicationId(): string {
   return appId;
 }
 
+export function getSquareApplicationSecret(): string {
+  const secret = process.env.SQUARE_APPLICATION_SECRET;
+  if (!secret) {
+    throw new Error('Square Application Secret not configured. Please add SQUARE_APPLICATION_SECRET to your secrets.');
+  }
+  return secret;
+}
+
 export function isSquareConfigured(): boolean {
   return !!(process.env.SQUARE_ACCESS_TOKEN && process.env.SQUARE_APPLICATION_ID);
+}
+
+export function isSquareOAuthConfigured(): boolean {
+  return !!(process.env.SQUARE_APPLICATION_ID && process.env.SQUARE_APPLICATION_SECRET);
 }

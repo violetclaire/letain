@@ -164,7 +164,7 @@ export interface IStorage {
   createUser(user: { email: string; password: string; firstName?: string | null; lastName?: string | null }): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateUserRole(id: string, role: string): Promise<User | undefined>;
-  updateUser(id: string, data: Partial<{ email: string; firstName: string; lastName: string; phone: string; profileImageUrl: string; stripeAccountId: string; cdiConsentGiven: boolean; cdiConsentDate: Date; cdiOptOut: boolean }>): Promise<User | undefined>;
+  updateUser(id: string, data: Partial<{ email: string; firstName: string; lastName: string; phone: string; profileImageUrl: string; squareMerchantId: string; squareAccessToken: string; squareRefreshToken: string; squareTokenExpiresAt: Date; cdiConsentGiven: boolean; cdiConsentDate: Date; cdiOptOut: boolean }>): Promise<User | undefined>;
   deleteUser(id: string): Promise<void>;
   
   // Intakes
@@ -552,7 +552,7 @@ export class DatabaseStorage implements IStorage {
     return updated || undefined;
   }
 
-  async updateUser(id: string, data: Partial<{ email: string; firstName: string; lastName: string; phone: string; profileImageUrl: string; stripeAccountId: string; cdiConsentGiven: boolean; cdiConsentDate: Date; cdiOptOut: boolean }>): Promise<User | undefined> {
+  async updateUser(id: string, data: Partial<{ email: string; firstName: string; lastName: string; phone: string; profileImageUrl: string; squareMerchantId: string; squareAccessToken: string; squareRefreshToken: string; squareTokenExpiresAt: Date; cdiConsentGiven: boolean; cdiConsentDate: Date; cdiOptOut: boolean }>): Promise<User | undefined> {
     const [updated] = await db
       .update(users)
       .set({ ...data, updatedAt: new Date() })

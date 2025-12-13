@@ -2463,7 +2463,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         eventTime,
         eventLocation: booking.location || undefined,
         serviceType: booking.serviceType || undefined,
-        paymentLink: booking.stripePaymentLinkUrl || undefined,
+        paymentLink: booking.squarePaymentLinkUrl || undefined,
         chatLink,
         personalMessage
       });
