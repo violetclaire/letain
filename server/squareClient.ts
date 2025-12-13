@@ -1,7 +1,6 @@
 import { SquareClient } from 'square';
 
-const isProduction = process.env.REPLIT_DEPLOYMENT === '1';
-
+// Always use production environment since we're using production Square credentials
 function createSquareClient(accessToken?: string): SquareClient {
   const token = accessToken || process.env.SQUARE_ACCESS_TOKEN;
   
@@ -11,7 +10,7 @@ function createSquareClient(accessToken?: string): SquareClient {
 
   return new SquareClient({
     token,
-    environment: isProduction ? 'production' : 'sandbox',
+    environment: 'production',
   });
 }
 

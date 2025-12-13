@@ -18,10 +18,8 @@ async function getMerchantAccessToken(userId: string): Promise<string | null> {
 }
 
 const PLATFORM_FEE_PERCENT = 1;
-const isProduction = process.env.REPLIT_DEPLOYMENT === '1';
-const SQUARE_OAUTH_BASE = isProduction 
-  ? 'https://connect.squareup.com' 
-  : 'https://connect.squareupsandbox.com';
+// Always use production Square URLs since we're using production credentials
+const SQUARE_OAUTH_BASE = 'https://connect.squareup.com';
 
 const oauthStates = new Map<string, { userId: string; expires: number }>();
 
