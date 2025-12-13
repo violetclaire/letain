@@ -103,21 +103,28 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
       const { code, state, error: oauthError } = req.query;
       const baseUrl = `https://${req.get('host')}`;
       
+      console.log(`[Square OAuth] Callback received - code: ${code ? 'YES' : 'NO'}, state: ${state ? 'YES' : 'NO'}, error: ${oauthError || 'none'}`);
+      
       if (oauthError) {
+        console.log(`[Square OAuth] Error from Square: ${oauthError}`);
         return res.redirect(`/artist?square=error&message=${encodeURIComponent(String(oauthError))}`);
       }
       
       if (!code) {
+        console.log('[Square OAuth] No authorization code received');
         return res.redirect(`/artist?square=error&message=No authorization code received`);
       }
 
       if (!state || typeof state !== 'string') {
+        console.log('[Square OAuth] Invalid state parameter');
         return res.redirect(`/artist?square=error&message=Invalid state parameter`);
       }
 
+      console.log(`[Square OAuth] Looking up state. Active states: ${oauthStates.size}`);
       const stateData = oauthStates.get(state);
       if (!stateData) {
-        return res.redirect(`/artist?square=error&message=Invalid or expired state`);
+        console.log('[Square OAuth] State not found in memory - may have expired or app restarted');
+        return res.redirect(`/artist?square=error&message=Session expired - please try connecting again`);
       }
 
       if (stateData.expires < Date.now()) {
@@ -148,6 +155,13 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
       });
 
       const tokenResponse = response as any;
+      console.log(`[Square OAuth] Token response received:`, JSON.stringify({
+        hasAccessToken: !!tokenResponse.accessToken,
+        hasMerchantId: !!tokenResponse.merchantId,
+        hasRefreshToken: !!tokenResponse.refreshToken,
+        expiresAt: tokenResponse.expiresAt,
+      }));
+      
       if (!tokenResponse.accessToken || !tokenResponse.merchantId) {
         console.error("Square OAuth: Failed to obtain tokens", tokenResponse);
         return res.redirect(`/artist?square=error&message=Failed to obtain access token`);
@@ -158,26 +172,31 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
 
       const user = await storage.getUser(userId);
       if (!user) {
+        console.log(`[Square OAuth] User ${userId} not found`);
         return res.redirect(`/artist?square=error&message=User not found`);
       }
 
+      console.log(`[Square OAuth] Saving tokens for user ${userId} (role: ${user.role}), merchant: ${merchantId}`);
+
       if (user.role === 'artist') {
-        await storage.updateArtistProfile(userId, {
+        const result = await storage.updateArtistProfile(userId, {
           squareMerchantId: merchantId,
           squareAccessToken: accessToken,
           squareRefreshToken: refreshToken || null,
           squareTokenExpiresAt: expiresAtDate,
         });
+        console.log(`[Square OAuth] Artist profile update result:`, result ? 'SUCCESS' : 'FAILED');
       } else if (user.role === 'planner') {
-        await storage.updateUser(userId, {
+        const result = await storage.updateUser(userId, {
           squareMerchantId: merchantId,
           squareAccessToken: accessToken,
           squareRefreshToken: refreshToken || null,
           squareTokenExpiresAt: expiresAtDate,
         } as any);
+        console.log(`[Square OAuth] Planner update result:`, result ? 'SUCCESS' : 'FAILED');
       }
 
-      console.log(`[Square] OAuth complete for user ${userId}, merchant ${merchantId}`);
+      console.log(`[Square OAuth] OAuth complete for user ${userId}, merchant ${merchantId}`);
       
       const redirectPath = user.role === 'artist' ? '/artist' : '/planner';
       res.redirect(`${redirectPath}?square=success&merchantId=${merchantId}`);
