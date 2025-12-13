@@ -173,6 +173,7 @@ export interface IStorage {
   
   // Artist Profiles
   getArtistProfile(userId: string): Promise<ArtistProfile | undefined>;
+  getArtistProfileByInstagram(instagramHandle: string): Promise<ArtistProfile | undefined>;
   createArtistProfile(profile: InsertArtistProfile): Promise<ArtistProfile>;
   updateArtistProfile(userId: string, profile: Partial<ArtistProfile>): Promise<ArtistProfile | undefined>;
   searchArtists(location?: string, eventDate?: Date, service?: string): Promise<Array<User & { profile: ArtistProfile }>>;
@@ -679,6 +680,13 @@ export class DatabaseStorage implements IStorage {
   // Artist Profiles
   async getArtistProfile(userId: string): Promise<ArtistProfile | undefined> {
     const [profile] = await db.select().from(artistProfiles).where(eq(artistProfiles.userId, userId));
+    return profile || undefined;
+  }
+  
+  async getArtistProfileByInstagram(instagramHandle: string): Promise<ArtistProfile | undefined> {
+    const cleanHandle = instagramHandle.replace('@', '').toLowerCase();
+    const [profile] = await db.select().from(artistProfiles)
+      .where(sql`LOWER(${artistProfiles.instagramHandle}) = ${cleanHandle}`);
     return profile || undefined;
   }
 

@@ -1127,8 +1127,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // 4. Hold expiry nudge
-      if (metrics.holdExpiryRate > 0.3) {
+      // 4. Hold expiry nudge (holdExpiryRate is 0-100 scale)
+      if (metrics.holdExpiryRate > 30) {
         nudges.push({
           id: 'hold_follow_up',
           type: 'handoff',
@@ -1178,10 +1178,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ========== TRUST BADGES ==========
   
   // Get vendor's earned trust badges
+  // BADGE SAFEGUARDS: Badges require sustained regression (60+ days below threshold) before removal
+  // This prevents penalizing vendors publicly for temporary dips
   app.get("/api/vendor/badges", isAuthenticated, async (req: any, res) => {
     try {
       const userId = getAuthUserId(req);
-      const metrics = await storage.getVendorMetrics(userId, 30);
+      
+      // Get metrics over different time windows for badge safeguards
+      const metrics30 = await storage.getVendorMetrics(userId, 30);  // Recent performance
+      const metrics90 = await storage.getVendorMetrics(userId, 90);  // Extended history for safeguards
       const profile = await storage.getArtistProfile(userId);
       
       const badges: Array<{
@@ -1193,50 +1198,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
         displayOnProfile: boolean;
       }> = [];
       
+      // BADGE SAFEGUARD LOGIC:
+      // To EARN a badge: meet threshold in last 30 days OR 90 days
+      // To LOSE a badge: must be below threshold in BOTH 30-day AND 90-day windows
+      // This prevents temporary dips from removing earned badges (sustained regression required)
+      
       // Fast Responder badge: avg response under 2 hours
-      const fastResponder = metrics.avgTimeToFirstResponseMinutes !== null && 
-                           metrics.avgTimeToFirstResponseMinutes < 120;
+      const fastResponder30 = metrics30.avgTimeToFirstResponseMinutes !== null && 
+                              metrics30.avgTimeToFirstResponseMinutes < 120;
+      const fastResponder90 = metrics90.avgTimeToFirstResponseMinutes !== null && 
+                              metrics90.avgTimeToFirstResponseMinutes < 120;
+      // Safeguard: Keep badge if EITHER window meets threshold (sustained regression required to lose)
+      const fastResponderEarned = fastResponder30 || fastResponder90;
       badges.push({
         id: 'fast_responder',
         name: 'Fast Responder',
         description: 'Typically responds within 2 hours',
-        earned: fastResponder,
+        earned: fastResponderEarned,
         icon: 'zap',
         displayOnProfile: profile?.responsiveBadge || false
       });
       
       // Great Handoffs badge: high terminal state rate
-      const greatHandoffs = metrics.terminalStateUnder24hPercent >= 70;
+      const greatHandoffs30 = metrics30.terminalStateUnder24hPercent >= 70;
+      const greatHandoffs90 = metrics90.terminalStateUnder24hPercent >= 70;
+      // Safeguard: Keep badge if EITHER window meets threshold
+      const greatHandoffsEarned = greatHandoffs30 || greatHandoffs90;
       badges.push({
         id: 'great_handoffs',
         name: 'Great Handoffs',
         description: 'Moves inquiries to decisions quickly',
-        earned: greatHandoffs,
+        earned: greatHandoffsEarned,
         icon: 'check-circle',
         displayOnProfile: false
       });
       
-      // Reliable badge: low hold expiry rate
-      const reliable = metrics.holdExpiryRate < 0.1 && metrics.totalInquiries >= 5;
+      // Reliable badge: low hold expiry rate (holdExpiryRate is 0-100 percent)
+      const reliable30 = metrics30.holdExpiryRate < 10 && metrics30.totalInquiries >= 3;
+      const reliable90 = metrics90.holdExpiryRate < 10 && metrics90.totalInquiries >= 5;
+      // Safeguard: Keep badge if EITHER window meets threshold
+      const reliableEarned = reliable30 || reliable90;
       badges.push({
         id: 'reliable',
         name: 'Reliable',
         description: 'Follows through on holds',
-        earned: reliable,
+        earned: reliableEarned,
         icon: 'shield-check',
         displayOnProfile: false
       });
       
       // High Booker badge: good confirm rate
-      const confirmRate = metrics.totalInquiries > 0 
-        ? (metrics.confirmSuccessCount / metrics.totalInquiries) * 100 
+      const confirmRate30 = metrics30.totalInquiries > 0 
+        ? (metrics30.confirmSuccessCount / metrics30.totalInquiries) * 100 
         : 0;
-      const highBooker = confirmRate >= 50 && metrics.totalInquiries >= 5;
+      const confirmRate90 = metrics90.totalInquiries > 0 
+        ? (metrics90.confirmSuccessCount / metrics90.totalInquiries) * 100 
+        : 0;
+      const highBooker30 = confirmRate30 >= 50 && metrics30.totalInquiries >= 3;
+      const highBooker90 = confirmRate90 >= 50 && metrics90.totalInquiries >= 5;
+      // Safeguard: Keep badge if EITHER window meets threshold
+      const highBookerEarned = highBooker30 || highBooker90;
       badges.push({
         id: 'high_booker',
         name: 'High Booker',
         description: 'Excellent conversion rate',
-        earned: highBooker,
+        earned: highBookerEarned,
         icon: 'trending-up',
         displayOnProfile: false
       });
@@ -3402,12 +3428,182 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
 
   // ========== ARTIST NETWORK (Your Network / Rolodex) ==========
   
-  // Get artist's network contacts
+  // Get artist's network contacts - CDI-powered ranking (invisible to vendor)
+  // Sorts contacts by CDI/fit/availability so best referrals appear first
   app.get("/api/artist-network", isAuthenticated, async (req: any, res) => {
     try {
-      // For now, return empty array - will be populated as artists add contacts
-      res.json([]);
+      const userId = getAuthUserId(req);
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // Get vendor's profile for their referral artists
+      const myProfile = await storage.getArtistProfile(userId);
+      
+      // Build network from multiple sources
+      const networkContacts: Array<{
+        id: string;
+        name: string;
+        businessName?: string;
+        email: string;
+        phone?: string;
+        instagram?: string;
+        specialty: string;
+        isFavorite: boolean;
+        timesWorkedTogether: number;
+        lastWorkedDate?: string;
+        notes?: string;
+        profileImageUrl?: string;
+        isOnPlatform: boolean;
+        _fitScore: number; // CDI-powered ranking (invisible)
+      }> = [];
+      
+      // 1. Get artists I've invited (from invitations table)
+      const invitations = await storage.getInvitationsByInviter(userId);
+      const artistInvites = invitations.filter(inv => inv.role === 'artist');
+      
+      for (const invite of artistInvites) {
+        let fitScore = 50; // Base score
+        let isOnPlatform = false;
+        let profileData: any = null;
+        let vendorMetrics: any = null;
+        
+        // Check if they've joined the platform
+        if (invite.acceptedUserId) {
+          isOnPlatform = true;
+          const vendorUser = await storage.getUser(invite.acceptedUserId);
+          profileData = await storage.getArtistProfile(invite.acceptedUserId);
+          
+          // Get their CDI metrics for ranking (invisible to current user)
+          vendorMetrics = await storage.getVendorMetrics(invite.acceptedUserId, 30);
+          
+          // CDI-powered fit score calculation
+          // Fast responders rank higher
+          if (vendorMetrics.avgTimeToFirstResponseMinutes !== null) {
+            if (vendorMetrics.avgTimeToFirstResponseMinutes < 60) fitScore += 30;
+            else if (vendorMetrics.avgTimeToFirstResponseMinutes < 120) fitScore += 20;
+            else if (vendorMetrics.avgTimeToFirstResponseMinutes < 240) fitScore += 10;
+          }
+          
+          // High converters rank higher
+          if (vendorMetrics.totalInquiries > 0) {
+            const conversionRate = vendorMetrics.confirmSuccessCount / vendorMetrics.totalInquiries;
+            if (conversionRate > 0.5) fitScore += 25;
+            else if (conversionRate > 0.3) fitScore += 15;
+            else if (conversionRate > 0.1) fitScore += 5;
+          }
+          
+          // Reliable vendors rank higher (low hold expiry)
+          if (vendorMetrics.holdExpiryRate < 10) fitScore += 15;
+          else if (vendorMetrics.holdExpiryRate < 25) fitScore += 5;
+          
+          // Experience bonus
+          if (vendorMetrics.totalInquiries >= 10) fitScore += 10;
+          
+          networkContacts.push({
+            id: invite.id,
+            name: vendorUser?.firstName 
+              ? `${vendorUser.firstName}${vendorUser.lastName ? ' ' + vendorUser.lastName : ''}`
+              : invite.firstName || 'Unknown',
+            businessName: profileData?.businessName || undefined,
+            email: invite.email,
+            phone: vendorUser?.phone || undefined,
+            instagram: profileData?.instagramHandle || undefined,
+            specialty: profileData?.specialties?.[0] || 'Beauty Artist',
+            isFavorite: false, // Can be toggled by user
+            timesWorkedTogether: 0, // Would come from booking history
+            profileImageUrl: vendorUser?.profileImageUrl || undefined,
+            isOnPlatform: true,
+            _fitScore: fitScore,
+          });
+        } else {
+          // Not yet on platform - lower ranking
+          networkContacts.push({
+            id: invite.id,
+            name: invite.firstName 
+              ? `${invite.firstName}${invite.lastName ? ' ' + invite.lastName : ''}`
+              : invite.email.split('@')[0],
+            email: invite.email,
+            specialty: 'Pending', // Don't know their specialty yet
+            isFavorite: false,
+            timesWorkedTogether: 0,
+            isOnPlatform: false,
+            _fitScore: 20, // Lower score for pending invites
+          });
+        }
+      }
+      
+      // 2. Add referral artists from profile (if they're on platform, look them up)
+      if (myProfile?.referralArtists && Array.isArray(myProfile.referralArtists)) {
+        for (const refHandle of myProfile.referralArtists as string[]) {
+          if (!refHandle || refHandle.trim() === '') continue;
+          
+          // Check if already in network (avoid duplicates)
+          const alreadyAdded = networkContacts.some(c => 
+            c.instagram?.toLowerCase() === refHandle.toLowerCase() ||
+            c.email?.toLowerCase() === refHandle.toLowerCase()
+          );
+          if (alreadyAdded) continue;
+          
+          // Try to find this artist on platform by Instagram handle or name
+          const cleanHandle = refHandle.replace('@', '').trim();
+          const matchingProfile = await storage.getArtistProfileByInstagram(cleanHandle);
+          
+          if (matchingProfile) {
+            const vendorUser = await storage.getUser(matchingProfile.userId);
+            const vendorMetrics = await storage.getVendorMetrics(matchingProfile.userId, 30);
+            
+            // CDI-powered fit score
+            let fitScore = 60; // Referrals get base bonus
+            if (vendorMetrics.avgTimeToFirstResponseMinutes !== null && 
+                vendorMetrics.avgTimeToFirstResponseMinutes < 120) fitScore += 20;
+            if (vendorMetrics.totalInquiries > 0 && 
+                (vendorMetrics.confirmSuccessCount / vendorMetrics.totalInquiries) > 0.3) fitScore += 20;
+            
+            networkContacts.push({
+              id: matchingProfile.userId,
+              name: vendorUser?.firstName 
+                ? `${vendorUser.firstName}${vendorUser.lastName ? ' ' + vendorUser.lastName : ''}`
+                : cleanHandle,
+              businessName: matchingProfile.businessName || undefined,
+              email: vendorUser?.email || '',
+              phone: vendorUser?.phone || undefined,
+              instagram: matchingProfile.instagramHandle || cleanHandle,
+              specialty: matchingProfile.specialties?.[0] || 'Beauty Artist',
+              isFavorite: true, // Referral artists are favorites
+              timesWorkedTogether: 0,
+              profileImageUrl: vendorUser?.profileImageUrl || undefined,
+              isOnPlatform: true,
+              _fitScore: fitScore,
+            });
+          } else {
+            // Not on platform yet
+            networkContacts.push({
+              id: `ref-${cleanHandle}`,
+              name: cleanHandle,
+              email: '',
+              instagram: cleanHandle,
+              specialty: 'Referral',
+              isFavorite: true,
+              timesWorkedTogether: 0,
+              isOnPlatform: false,
+              _fitScore: 40, // Referrals rank higher than random invites
+            });
+          }
+        }
+      }
+      
+      // Sort by CDI-powered fit score (highest first)
+      networkContacts.sort((a, b) => b._fitScore - a._fitScore);
+      
+      // Remove internal fit score before sending (vendors don't see scores)
+      const result = networkContacts.map(({ _fitScore, ...contact }) => contact);
+      
+      res.json(result);
     } catch (error: any) {
+      console.error("[Artist Network] Error:", error);
       res.status(400).json({ error: error.message });
     }
   });
@@ -6683,6 +6879,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
   
   // Get inquiries for a vendor
+  // CDI-powered lead routing: prioritizes hot inquiries based on vendor metrics (invisible to vendor)
   app.get("/api/vendor/inquiries", isAuthenticated, async (req: any, res) => {
     try {
       const userId = getAuthUserId(req);
@@ -6694,7 +6891,64 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       
       const inquiries = await storage.getInquiriesByVendor(userId);
       
-      // Enrich with owner names for responsibility display
+      // Get vendor metrics for CDI-powered routing (invisible to vendor)
+      const metrics = await storage.getVendorMetrics(userId, 30);
+      const isFastResponder = metrics.avgTimeToFirstResponseMinutes !== null && 
+                              metrics.avgTimeToFirstResponseMinutes < 120;
+      const isHighConverter = metrics.totalInquiries > 0 && 
+                              (metrics.confirmSuccessCount / metrics.totalInquiries) > 0.3;
+      
+      // Calculate lead priority score for each inquiry (CDI-powered, invisible)
+      const calculateLeadPriority = (inq: any): number => {
+        let priority = 0;
+        
+        // 1. Status urgency (new/pending inquiries first)
+        if (inq.status === 'new' || inq.status === 'pending') priority += 50;
+        else if (inq.status === 'responded') priority += 30;
+        else if (inq.status === 'hold') priority += 40; // Holds need attention
+        
+        // 2. Event date urgency (closer dates = hotter leads)
+        if (inq.eventDate) {
+          const daysUntilEvent = Math.ceil(
+            (new Date(inq.eventDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+          );
+          if (daysUntilEvent <= 14) priority += 30; // Very urgent
+          else if (daysUntilEvent <= 30) priority += 20;
+          else if (daysUntilEvent <= 60) priority += 10;
+        }
+        
+        // 3. Lead quality signals
+        if (inq.budget && inq.budget > 0) priority += 15; // Budget provided = serious lead
+        if (inq.clientPhone) priority += 10; // Phone provided = ready to talk
+        if (inq.message && inq.message.length > 50) priority += 5; // Detailed message
+        if (inq.partySize && inq.partySize > 5) priority += 10; // Larger party = bigger booking
+        
+        // 4. SLA urgency (breach flags)
+        if (inq.breachFlags && inq.breachFlags.length > 0) priority += 25;
+        if (inq.nextActionDueAt) {
+          const hoursUntilDue = (new Date(inq.nextActionDueAt).getTime() - Date.now()) / (1000 * 60 * 60);
+          if (hoursUntilDue < 2) priority += 20; // SLA due soon
+          else if (hoursUntilDue < 6) priority += 10;
+        }
+        
+        // 5. CDI-powered boost for vendors who can handle hot leads
+        // Fast responders get hot leads surfaced higher
+        if (isFastResponder && priority > 60) priority += 10;
+        // High converters get quality leads surfaced higher
+        if (isHighConverter && inq.budget && inq.budget > 0) priority += 10;
+        
+        // 6. Hold expiry urgency
+        const holdExpiresAt = inq.hold?.expiresAt || inq.holdExpiresAt;
+        if (holdExpiresAt) {
+          const hoursUntilExpiry = (new Date(holdExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60);
+          if (hoursUntilExpiry > 0 && hoursUntilExpiry < 12) priority += 25; // Expiring soon
+          else if (hoursUntilExpiry > 0 && hoursUntilExpiry < 24) priority += 15;
+        }
+        
+        return priority;
+      };
+      
+      // Enrich with owner names and sort by CDI-powered priority
       const enrichedInquiries = await Promise.all(inquiries.map(async (inq) => {
         let ownerName: string | null = null;
         if (inq.ownerId) {
@@ -6705,10 +6959,21 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
               : owner.email || 'Unknown';
           }
         }
-        return { ...inq, ownerName };
+        const leadPriority = calculateLeadPriority(inq);
+        return { ...inq, ownerName, _priority: leadPriority };
       }));
       
-      res.json(enrichedInquiries);
+      // Sort by priority (highest first), then by createdAt (newest first)
+      enrichedInquiries.sort((a, b) => {
+        const priorityDiff = (b._priority || 0) - (a._priority || 0);
+        if (priorityDiff !== 0) return priorityDiff;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+      
+      // Remove internal priority field before sending (vendors don't see scores)
+      const result = enrichedInquiries.map(({ _priority, ...inq }) => inq);
+      
+      res.json(result);
     } catch (error: any) {
       console.error("[Inquiry] Error fetching vendor inquiries:", error);
       res.status(500).json({ error: error.message });
