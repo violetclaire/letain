@@ -616,7 +616,16 @@ export default function AIChatPanel({ userId, userName, onAvailabilityUpdate, on
         {/* Pinned Smart Action Buttons - Proposal, Contract, Payment */}
         <div className="flex gap-1.5 mb-2 pb-2 border-b border-gray-100">
           <button
-            onClick={() => {
+            onClick={async () => {
+              // Log to audit
+              try {
+                await fetch('/api/audit/smart-action', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  credentials: 'include',
+                  body: JSON.stringify({ actionType: 'proposal', source: 'chat_smart_button' })
+                });
+              } catch (err) { console.error('Audit log failed:', err); }
               setInput("I'd like to send a proposal to the client");
               toast({ title: "Proposal Mode", description: "Describe the package and I'll help create a proposal." });
             }}
@@ -627,7 +636,16 @@ export default function AIChatPanel({ userId, userName, onAvailabilityUpdate, on
             Proposal
           </button>
           <button
-            onClick={() => {
+            onClick={async () => {
+              // Log to audit
+              try {
+                await fetch('/api/audit/smart-action', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  credentials: 'include',
+                  body: JSON.stringify({ actionType: 'contract', source: 'chat_smart_button' })
+                });
+              } catch (err) { console.error('Audit log failed:', err); }
               setInput("I need to send a contract to the client");
               toast({ title: "Contract Mode", description: "I'll help you prepare and send a contract." });
             }}
@@ -638,7 +656,16 @@ export default function AIChatPanel({ userId, userName, onAvailabilityUpdate, on
             Contract
           </button>
           <button
-            onClick={() => {
+            onClick={async () => {
+              // Log to audit
+              try {
+                await fetch('/api/audit/smart-action', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  credentials: 'include',
+                  body: JSON.stringify({ actionType: 'payment', source: 'chat_smart_button' })
+                });
+              } catch (err) { console.error('Audit log failed:', err); }
               setInput("I want to send a payment request to the client");
               toast({ title: "Payment Mode", description: "I'll help you create and send an invoice." });
             }}

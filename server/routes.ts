@@ -8827,6 +8827,46 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // ============================================================
+  // AUDIT LOGGING - Smart Button Actions from AI Chat
+  // ============================================================
+  const smartActionSchema = z.object({
+    actionType: z.enum(['proposal', 'contract', 'payment']),
+    source: z.string().optional().default('chat_smart_button'),
+  });
+
+  app.post("/api/audit/smart-action", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      
+      const parseResult = smartActionSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: parseResult.error.errors[0].message });
+      }
+      
+      const { actionType, source } = parseResult.data;
+      
+      await storage.createAuditLog({
+        id: randomUUID(),
+        action: `smart_button_${actionType}_clicked`,
+        entityType: 'chat',
+        entityId: null,
+        performedBy: userId,
+        changes: { 
+          actionType, 
+          source,
+          timestamp: new Date().toISOString()
+        },
+        createdAt: new Date(),
+      });
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("[Audit] Smart action log error:", error);
+      res.status(500).json({ error: "Failed to log action" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
