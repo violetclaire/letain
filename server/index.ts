@@ -3,9 +3,6 @@ import helmet from "helmet";
 import { registerRoutes } from "./routes";
 import { startCronJobs } from "./cronJobs";
 import { serveStatic } from "./static";
-import { runMigrations } from 'stripe-replit-sync';
-import { getStripeSync } from './stripeClient';
-import { WebhookHandlers } from './webhookHandlers';
 import { startScheduledEmailJob } from './scheduledEmailJob';
 
 const app = express();
@@ -35,7 +32,7 @@ app.use(helmet({
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "blob:", "https:"],
       connectSrc: ["'self'", "https:", "wss:"],
-      frameSrc: ["'self'", "https://js.stripe.com"],
+      frameSrc: ["'self'"],
     },
   },
   crossOriginEmbedderPolicy: false, // Allow embedding external resources
@@ -47,38 +44,7 @@ declare module "http" {
   }
 }
 
-// Register Stripe webhook route BEFORE express.json()
-// This is critical - webhook needs raw Buffer, not parsed JSON
-app.post(
-  '/api/stripe/webhook/:uuid',
-  express.raw({ type: 'application/json' }),
-  async (req, res) => {
-    const signature = req.headers['stripe-signature'];
-
-    if (!signature) {
-      return res.status(400).json({ error: 'Missing stripe-signature' });
-    }
-
-    try {
-      const sig = Array.isArray(signature) ? signature[0] : signature;
-
-      if (!Buffer.isBuffer(req.body)) {
-        console.error('STRIPE WEBHOOK ERROR: req.body is not a Buffer');
-        return res.status(500).json({ error: 'Webhook processing error' });
-      }
-
-      const { uuid } = req.params;
-      await WebhookHandlers.processWebhook(req.body as Buffer, sig, uuid);
-
-      res.status(200).json({ received: true });
-    } catch (error: any) {
-      console.error('Webhook error:', error.message);
-      res.status(400).json({ error: 'Webhook processing error' });
-    }
-  }
-);
-
-// Now apply JSON middleware for all other routes - increased limit for photo uploads
+// Apply JSON middleware for all other routes - increased limit for photo uploads
 app.use(
   express.json({
     limit: '50mb',
@@ -89,48 +55,6 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
-
-// Initialize Stripe schema and sync (deferred to after server starts)
-async function initStripe() {
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) {
-    console.log('[Stripe] Skipping - no DATABASE_URL');
-    return;
-  }
-
-  try {
-    console.log('[Stripe] Initializing schema...');
-    await runMigrations({ databaseUrl });
-    console.log('[Stripe] Schema ready');
-
-    const stripeSync = await getStripeSync();
-
-    // Set up managed webhook
-    const domains = process.env.REPLIT_DOMAINS?.split(',') || [];
-    if (domains.length > 0) {
-      console.log('[Stripe] Setting up managed webhook...');
-      const webhookBaseUrl = `https://${domains[0]}`;
-      const { webhook, uuid } = await stripeSync.findOrCreateManagedWebhook(
-        `${webhookBaseUrl}/api/stripe/webhook`,
-        {
-          enabled_events: ['*'],
-          description: 'Beauvette payment webhook',
-        }
-      );
-      console.log(`[Stripe] Webhook configured: ${webhook.url}`);
-    }
-
-    // Sync existing Stripe data in background
-    console.log('[Stripe] Syncing data...');
-    stripeSync.syncBackfill()
-      .then(() => console.log('[Stripe] Data synced'))
-      .catch((err: any) => console.error('[Stripe] Sync error:', err));
-
-  } catch (error: any) {
-    console.error('[Stripe] Init error:', error.message);
-    // Don't throw - allow app to continue without Stripe
-  }
-}
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -204,9 +128,6 @@ app.use((req, res, next) => {
       },
       () => {
         log(`serving on port ${port}`);
-        // Initialize Stripe in background after server starts (don't block startup)
-        // This allows health checks to succeed while Stripe initializes
-        initStripe().catch((err: any) => console.error('[Stripe] Background init error:', err));
         // Start scheduled email job
         startScheduledEmailJob();
         // Start cron jobs (hold-expirer, SLA enforcer)

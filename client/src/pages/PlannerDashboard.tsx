@@ -47,12 +47,12 @@ export default function PlannerDashboard() {
   const [newTodoText, setNewTodoText] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const [stripeStatus, setStripeStatus] = useState<{
+  const [squareStatus, setSquareStatus] = useState<{
     connected: boolean;
-    chargesEnabled: boolean;
-    payoutsEnabled: boolean;
+    paymentsEnabled: boolean;
+    merchantId?: string;
   } | null>(null);
-  const [stripeLoading, setStripeLoading] = useState(false);
+  const [squareLoading, setSquareLoading] = useState(false);
   const [paymentLinkAmount, setPaymentLinkAmount] = useState("");
   const [paymentLinkDescription, setPaymentLinkDescription] = useState("");
   const [paymentLinkClient, setPaymentLinkClient] = useState("");
@@ -115,10 +115,10 @@ export default function PlannerDashboard() {
         }
       }
       
-      const stripeRes = await fetch('/api/stripe/connect/status', { credentials: 'include' });
-      if (stripeRes.ok) {
-        const stripeData = await stripeRes.json();
-        setStripeStatus(stripeData);
+      const squareRes = await fetch('/api/square/connect/status', { credentials: 'include' });
+      if (squareRes.ok) {
+        const squareData = await squareRes.json();
+        setSquareStatus(squareData);
       }
     } catch (err) {
       console.error("Error fetching bookings:", err);
@@ -128,11 +128,10 @@ export default function PlannerDashboard() {
     setLoading(false);
   };
 
-  const handleStripeConnect = async () => {
-    setStripeLoading(true);
+  const handleSquareConnect = async () => {
+    setSquareLoading(true);
     try {
-      const res = await fetch('/api/stripe/connect/onboard', {
-        method: 'POST',
+      const res = await fetch('/api/square/connect/authorize', {
         credentials: 'include',
       });
       
@@ -143,34 +142,18 @@ export default function PlannerDashboard() {
         const err = await res.json();
         toast({
           title: "Error",
-          description: err.error || "Failed to start Stripe setup",
+          description: err.error || "Failed to start Square setup",
           variant: "destructive",
         });
       }
     } catch (err) {
       toast({
         title: "Error",
-        description: "Failed to connect to Stripe",
+        description: "Failed to connect to Square",
         variant: "destructive",
       });
     }
-    setStripeLoading(false);
-  };
-
-  const handleStripeDashboard = async () => {
-    try {
-      const res = await fetch('/api/stripe/connect/dashboard', { credentials: 'include' });
-      if (res.ok) {
-        const data = await res.json();
-        window.open(data.url, '_blank');
-      }
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to open Stripe dashboard",
-        variant: "destructive",
-      });
-    }
+    setSquareLoading(false);
   };
 
   const handleCreatePaymentLink = async () => {
@@ -178,12 +161,12 @@ export default function PlannerDashboard() {
     setGeneratingLink(true);
     
     try {
-      const res = await fetch('/api/stripe/payment-link', {
+      const res = await fetch('/api/square/create-payment-link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          amount: parseFloat(paymentLinkAmount),
+          amount: Math.round(parseFloat(paymentLinkAmount) * 100),
           description: paymentLinkDescription,
           clientName: paymentLinkClient || 'Client',
         }),
@@ -191,7 +174,7 @@ export default function PlannerDashboard() {
       
       if (res.ok) {
         const data = await res.json();
-        setGeneratedPaymentLink(data.url);
+        setGeneratedPaymentLink(data.paymentLink);
         toast({
           title: "Payment Link Created",
           description: "Copy and send this link to your client",
@@ -611,29 +594,23 @@ export default function PlannerDashboard() {
                     <Wallet size={14} /> Payment Hub
                   </h3>
                   
-                  {/* Stripe Connect Status */}
-                  {!stripeStatus?.connected ? (
+                  {/* Square Connect Status */}
+                  {!squareStatus?.connected ? (
                     <div className="bg-[#fbfcff] border border-dashed border-[#c5ccd8] rounded-md p-3 mb-3">
-                      <p className="text-xs ink-soft mb-2">Connect your Stripe account to receive payments and pay vendors</p>
+                      <p className="text-xs ink-soft mb-2">Connect your Square account to receive payments and pay vendors</p>
                       <button
-                        onClick={handleStripeConnect}
-                        disabled={stripeLoading}
-                        className="w-full flex items-center justify-center gap-2 py-2 bg-[#635BFF] text-white rounded text-xs font-medium hover:bg-[#5851db] transition-colors disabled:opacity-50"
+                        onClick={handleSquareConnect}
+                        disabled={squareLoading}
+                        className="w-full flex items-center justify-center gap-2 py-2 bg-black text-white rounded text-xs font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
                       >
-                        {stripeLoading ? <Loader2 size={14} className="animate-spin" /> : <CreditCard size={14} />}
-                        {stripeLoading ? 'Connecting...' : 'Connect Stripe'}
+                        {squareLoading ? <Loader2 size={14} className="animate-spin" /> : <CreditCard size={14} />}
+                        {squareLoading ? 'Connecting...' : 'Connect Square'}
                       </button>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 mb-3 p-2 bg-green-50 border border-green-200 rounded">
                       <Check size={12} className="text-green-600" />
-                      <span className="text-xs text-green-700 flex-1">Stripe Connected</span>
-                      <button
-                        onClick={handleStripeDashboard}
-                        className="text-xs text-blue-600 hover:underline flex items-center gap-1"
-                      >
-                        Dashboard <ArrowUpRight size={10} />
-                      </button>
+                      <span className="text-xs text-green-700 flex-1">Square Connected</span>
                     </div>
                   )}
 
@@ -669,7 +646,7 @@ export default function PlannerDashboard() {
                       />
                       <button 
                         onClick={handleCreatePaymentLink}
-                        disabled={!stripeStatus?.connected || !paymentLinkAmount || !paymentLinkDescription || generatingLink}
+                        disabled={!squareStatus?.connected || !paymentLinkAmount || !paymentLinkDescription || generatingLink}
                         className="w-full flex items-center justify-center gap-2 py-2 bg-[#3D5A3B] text-white rounded text-xs font-medium hover:bg-[#3D5A3B]/90 transition-colors disabled:opacity-50"
                       >
                         {generatingLink ? <Loader2 size={12} className="animate-spin" /> : <LinkIcon size={12} />}

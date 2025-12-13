@@ -7,7 +7,7 @@ import { z } from "zod";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import * as googleCalendar from "./googleCalendarService";
-import { registerStripeRoutes } from "./stripeRoutes";
+import { registerSquareRoutes } from "./squareRoutes";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import { GoogleGenAI, Modality } from "@google/genai";
@@ -159,8 +159,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Load CDI modules
   await loadCDI();
 
-  // Register Stripe payment routes
-  registerStripeRoutes(app, isAuthenticated);
+  // Register Square payment routes
+  registerSquareRoutes(app, isAuthenticated);
 
   // ========== AUTH ROUTES ==========
   // This endpoint returns null if not authenticated (doesn't require isAuthenticated)

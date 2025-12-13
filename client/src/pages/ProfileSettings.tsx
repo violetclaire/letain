@@ -774,7 +774,7 @@ export default function ProfileSettings() {
               placeholder="@your-venmo-username"
               data-testid="input-venmo-handle"
             />
-            <p className="text-xs text-black/40 mt-1">Alternative payment option for clients without Stripe</p>
+            <p className="text-xs text-black/40 mt-1">Alternative payment option for clients</p>
           </div>
 
           <button

@@ -66,13 +66,13 @@ export default function ArtistDashboard() {
   const [invoiceScheduleTime, setInvoiceScheduleTime] = useState("09:00");
   const [schedulingInvoice, setSchedulingInvoice] = useState(false);
   
-  // Stripe Connect state
-  const [stripeStatus, setStripeStatus] = useState<{
+  // Square Connect state
+  const [squareStatus, setSquareStatus] = useState<{
     connected: boolean;
-    chargesEnabled: boolean;
-    payoutsEnabled: boolean;
+    paymentsEnabled: boolean;
+    merchantId?: string;
   } | null>(null);
-  const [stripeLoading, setStripeLoading] = useState(false);
+  const [squareLoading, setSquareLoading] = useState(false);
   
   // Portfolio state
   const [portfolioUrls, setPortfolioUrls] = useState<string[]>([]);
@@ -301,11 +301,11 @@ export default function ArtistDashboard() {
         }
       }
       
-      // Fetch Stripe Connect status
-      const stripeRes = await fetch('/api/stripe/connect/status', { credentials: 'include' });
-      if (stripeRes.ok) {
-        const stripeData = await stripeRes.json();
-        setStripeStatus(stripeData);
+      // Fetch Square Connect status
+      const squareRes = await fetch('/api/square/connect/status', { credentials: 'include' });
+      if (squareRes.ok) {
+        const squareData = await squareRes.json();
+        setSquareStatus(squareData);
       }
       
       // Fetch artist profile for portfolio
@@ -832,30 +832,29 @@ export default function ArtistDashboard() {
     }
   };
 
-  const handleStripeConnect = async () => {
-    setStripeLoading(true);
+  const handleSquareConnect = async () => {
+    setSquareLoading(true);
     try {
-      const res = await fetch('/api/stripe/connect/onboard', {
-        method: 'POST',
+      const res = await fetch('/api/square/connect/authorize', {
         credentials: 'include',
       });
       
       if (res.ok) {
         const data = await res.json();
-        // Redirect to Stripe onboarding
+        // Redirect to Square OAuth
         window.location.href = data.url;
       } else {
         try {
           const err = await res.json();
           toast({
-            title: "Stripe Setup Error",
-            description: err.error || "Failed to start Stripe setup. Please try again.",
+            title: "Square Setup Error",
+            description: err.error || "Failed to start Square setup. Please try again.",
             variant: "destructive",
           });
         } catch {
           toast({
             title: "Error",
-            description: "Failed to connect to Stripe. Please refresh and try again.",
+            description: "Failed to connect to Square. Please refresh and try again.",
             variant: "destructive",
           });
         }
@@ -863,27 +862,11 @@ export default function ArtistDashboard() {
     } catch (err) {
       toast({
         title: "Error",
-        description: "Failed to connect to Stripe",
+        description: "Failed to connect to Square",
         variant: "destructive",
       });
     }
-    setStripeLoading(false);
-  };
-
-  const handleStripeDashboard = async () => {
-    try {
-      const res = await fetch('/api/stripe/connect/dashboard', { credentials: 'include' });
-      if (res.ok) {
-        const data = await res.json();
-        window.open(data.url, '_blank');
-      }
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to open Stripe dashboard",
-        variant: "destructive",
-      });
-    }
+    setSquareLoading(false);
   };
 
   const handlePortfolioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1470,7 +1453,7 @@ export default function ArtistDashboard() {
     try {
       const selectedBooking = clients.find(c => c.id === invoiceBookingId);
       
-      const res = await fetch('/api/stripe/create-invoice-link', {
+      const res = await fetch('/api/square/create-payment-link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -2595,19 +2578,19 @@ export default function ArtistDashboard() {
                                   </button>
                                   
                                   <button 
-                                    onClick={handleStripeConnect}
-                                    disabled={stripeLoading}
+                                    onClick={handleSquareConnect}
+                                    disabled={squareLoading}
                                     className="flex-1 flex items-center justify-center gap-1.5 p-2.5 border border-[#c5ccd8] rounded bg-white hover:border-black transition-colors disabled:opacity-50 text-xs"
-                                    data-testid="button-stripe-connect"
+                                    data-testid="button-square-connect"
                                   >
                                     <CreditCard size={12} />
-                                    {stripeLoading ? '...' : 'Setup'}
+                                    {squareLoading ? '...' : 'Setup'}
                                   </button>
                                 </div>
-                                {stripeStatus?.connected && stripeStatus.chargesEnabled && (
+                                {squareStatus?.connected && squareStatus.paymentsEnabled && (
                                   <div className="flex items-center gap-1 mt-2 text-[0.6rem] text-green-600">
                                     <Check size={10} />
-                                    Stripe ready
+                                    Square ready
                                   </div>
                                 )}
                               </div>
@@ -3860,7 +3843,7 @@ export default function ArtistDashboard() {
             {!invoiceLink ? (
               <>
                 <p className="text-xs ink-soft mb-4">
-                  Generate a payment link to send to your client. Beauvette takes 1%, Stripe fees are separate.
+                  Generate a payment link to send to your client. Beauvette takes 1%, Square processing fees are separate.
                 </p>
                 
                 <div className="space-y-4">
@@ -3905,7 +3888,7 @@ export default function ArtistDashboard() {
                         <span className="text-forest">${(parseFloat(invoiceAmount) * 0.99).toFixed(2)}</span>
                       </div>
                       <p className="text-[0.65rem] ink-soft mt-2">
-                        * Stripe processing fees (~2.9% + $0.30) are separate
+                        * Square processing fees (~2.6% + $0.10) are separate
                       </p>
                     </div>
                   )}

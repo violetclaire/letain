@@ -66,8 +66,13 @@ export const users = pgTable("users", {
   role: text("role"), // 'client', 'artist', 'planner', 'admin'
   phone: text("phone"),
   intakeCompleted: boolean("intake_completed").default(false),
-  // Stripe Connect (for planners - artists use artistProfiles)
+  // Stripe Connect (for planners - artists use artistProfiles) - DEPRECATED
   stripeAccountId: varchar("stripe_account_id"),
+  // Square Connect (for planners - artists use artistProfiles)
+  squareMerchantId: varchar("square_merchant_id"),
+  squareAccessToken: text("square_access_token"),
+  squareRefreshToken: text("square_refresh_token"),
+  squareTokenExpiresAt: timestamp("square_token_expires_at"),
   // Alternative payment methods
   venmoHandle: varchar("venmo_handle"),
   // CDI Privacy & Consent
@@ -147,7 +152,11 @@ export const artistProfiles = pgTable("artist_profiles", {
   tiktokHandle: text("tiktok_handle"),
   pinterestHandle: text("pinterest_handle"),
   websiteUrl: text("website_url"),
-  stripeAccountId: text("stripe_account_id"),
+  stripeAccountId: text("stripe_account_id"), // DEPRECATED
+  squareMerchantId: text("square_merchant_id"),
+  squareAccessToken: text("square_access_token"),
+  squareRefreshToken: text("square_refresh_token"),
+  squareTokenExpiresAt: timestamp("square_token_expires_at"),
   servicesMenuUrl: text("services_menu_url"),
   logoUrl: text("logo_url"), // Business logo for branded emails/communications
   // Info sheet content - auto-sent to clients on inquiry
@@ -231,8 +240,11 @@ export const bookings = pgTable("bookings", {
   amount: integer("amount"),
   notes: text("notes"),
   inspirationPhotos: jsonb("inspiration_photos").$type<string[]>(),
-  stripePaymentLinkId: text("stripe_payment_link_id"),
-  stripePaymentLinkUrl: text("stripe_payment_link_url"),
+  stripePaymentLinkId: text("stripe_payment_link_id"), // DEPRECATED
+  stripePaymentLinkUrl: text("stripe_payment_link_url"), // DEPRECATED
+  squareInvoiceId: text("square_invoice_id"),
+  squarePaymentLinkUrl: text("square_payment_link_url"),
+  squareOrderId: text("square_order_id"),
   paymentStatus: text("payment_status").default("pending"),
   dayOfReminders: text("day_of_reminders"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -337,8 +349,10 @@ export const payments = pgTable("payments", {
   contractId: varchar("contract_id").notNull().references(() => contracts.id),
   amount: integer("amount").notNull(), // in cents
   status: text("status").notNull(), // 'pending', 'paid', 'failed', 'refunded'
-  stripeInvoiceId: text("stripe_invoice_id"),
-  stripePaymentIntentId: text("stripe_payment_intent_id"),
+  stripeInvoiceId: text("stripe_invoice_id"), // DEPRECATED
+  stripePaymentIntentId: text("stripe_payment_intent_id"), // DEPRECATED
+  squareInvoiceId: text("square_invoice_id"),
+  squarePaymentId: text("square_payment_id"),
   dueDate: timestamp("due_date").notNull(),
   paidAt: timestamp("paid_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

@@ -470,7 +470,7 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
           </div>
           
           <p className="text-xs text-gray-500 mt-3 text-center">
-            Secure payment powered by Stripe
+            Secure payment powered by Square
           </p>
         </div>
 
