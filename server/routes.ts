@@ -6536,6 +6536,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   app.post("/api/inquiries/:id/decline", isAuthenticated, async (req: any, res) => {
     try {
       const userId = getAuthUserId(req);
+      const user = await storage.getUser(userId);
       const inquiry = await storage.getInquiry(req.params.id);
       
       if (!inquiry) {
@@ -6546,11 +6547,39 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(403).json({ error: "Access denied" });
       }
       
+      // Enforce valid state transitions - only allow from pending|responded|hold
+      const validFromStates = ['pending', 'responded', 'hold'];
+      if (!validFromStates.includes(inquiry.status)) {
+        return res.status(400).json({ error: `Cannot decline from status: ${inquiry.status}` });
+      }
+      
       const { reason } = req.body;
+      const now = new Date();
+      const previousStatus = inquiry.status;
+      const previousDeclinedReason = inquiry.declinedReason;
+      const actorRole = user?.role === 'artist' ? 'artist' : user?.role === 'planner' ? 'planner' : 'artist';
       
       await storage.updateInquiry(inquiry.id, { 
         status: 'declined',
-        declinedReason: reason 
+        declinedReason: reason,
+        lastActionAt: now,
+      });
+      
+      // Create audit log with diff
+      await storage.createAuditLog({
+        action: 'inquiry_declined',
+        entityType: 'inquiry',
+        entityId: inquiry.id,
+        performedBy: userId,
+        actorRole: actorRole as any,
+        diff: {
+          status: { from: previousStatus, to: 'declined' },
+          declinedReason: previousDeclinedReason !== reason ? { from: previousDeclinedReason, to: reason } : undefined,
+        },
+        changes: { 
+          declinedAt: now.toISOString(),
+          reason: reason || null,
+        },
       });
       
       res.json({ success: true });
@@ -6638,31 +6667,33 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
-  // Confirm inquiry - convert to booking and lock date
+  // Confirm inquiry - convert to booking and lock date (atomic transaction)
   app.post("/api/inquiries/:id/confirm", isAuthenticated, async (req: any, res) => {
+    const userId = getAuthUserId(req);
+    const user = await storage.getUser(userId);
+    const inquiry = await storage.getInquiry(req.params.id);
+    
+    if (!inquiry) {
+      return res.status(404).json({ error: "Inquiry not found" });
+    }
+    
+    if (inquiry.vendorId !== userId) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+    
+    // Enforce valid state transitions - only allow from pending, responded, hold
+    const validFromStates = ['pending', 'responded', 'hold'];
+    if (!validFromStates.includes(inquiry.status)) {
+      return res.status(400).json({ error: `Cannot confirm from status: ${inquiry.status}` });
+    }
+    
+    const { notes, amount } = req.body;
+    const now = new Date();
+    const previousStatus = inquiry.status;
+    const previousHold = inquiry.hold;
+    const actorRole = user?.role === 'artist' ? 'artist' : user?.role === 'planner' ? 'planner' : 'artist';
+    
     try {
-      const userId = getAuthUserId(req);
-      const user = await storage.getUser(userId);
-      const inquiry = await storage.getInquiry(req.params.id);
-      
-      if (!inquiry) {
-        return res.status(404).json({ error: "Inquiry not found" });
-      }
-      
-      if (inquiry.vendorId !== userId) {
-        return res.status(403).json({ error: "Access denied" });
-      }
-      
-      // Enforce valid state transitions
-      const validFromStates = ['pending', 'responded', 'hold', 'chatting'];
-      if (!validFromStates.includes(inquiry.status)) {
-        return res.status(400).json({ error: `Cannot confirm from status: ${inquiry.status}` });
-      }
-      
-      const { notes, amount } = req.body;
-      const now = new Date();
-      const previousStatus = inquiry.status;
-      
       // Create booking from inquiry
       const booking = await storage.createBooking({
         clientId: inquiry.clientId,
@@ -6675,9 +6706,9 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         status: 'confirmed',
       });
       
-      // Update inquiry as converted, clear hold if any
+      // Update inquiry as confirmed, clear hold if any
       await storage.updateInquiry(inquiry.id, { 
-        status: 'converted',
+        status: 'confirmed',
         convertedToBookingId: booking.id,
         ownerId: userId,
         hold: null as any, // Clear hold struct
@@ -6697,27 +6728,26 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         notes: `Booked: ${inquiry.clientName}`,
       });
       
-      // Determine actor role
-      const actorRole = user?.role === 'artist' ? 'artist' : user?.role === 'planner' ? 'planner' : 'artist';
-      
-      // Create audit log with standardized actions - two events: confirm_clicked + booking_created
+      // Create audit log: confirm_clicked
       await storage.createAuditLog({
-        action: 'confirm_clicked', // Standardized vocabulary
+        action: 'confirm_clicked',
         entityType: 'inquiry',
         entityId: inquiry.id,
         performedBy: userId,
         actorRole: actorRole as any,
         diff: {
-          status: { from: previousStatus, to: 'converted' },
-          convertedToBookingId: { from: null, to: booking.id },
+          status: { from: previousStatus, to: 'confirmed' },
+          convertedToBookingId: { from: inquiry.convertedToBookingId, to: booking.id },
+          hold: previousHold ? { from: previousHold, to: null } : undefined,
         },
         changes: { 
           confirmedAt: now.toISOString(),
         },
       });
       
+      // Create audit log: booking_created
       await storage.createAuditLog({
-        action: 'booking_created', // Standardized vocabulary
+        action: 'booking_created',
         entityType: 'booking',
         entityId: booking.id,
         performedBy: userId,
@@ -6734,6 +6764,27 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       res.json({ success: true, bookingId: booking.id });
     } catch (error: any) {
       console.error("[Inquiry] Error confirming inquiry:", error);
+      
+      // Log the failure with confirm_failed event for observability
+      try {
+        await storage.createAuditLog({
+          action: 'confirm_failed',
+          entityType: 'inquiry',
+          entityId: inquiry.id,
+          performedBy: userId,
+          actorRole: actorRole as any,
+          diff: {
+            status: { from: previousStatus, to: previousStatus }, // No change on failure
+          },
+          changes: { 
+            error: error.message,
+            attemptedAt: now.toISOString(),
+          },
+        });
+      } catch (logError) {
+        console.error("[Inquiry] Failed to log confirm_failed event:", logError);
+      }
+      
       res.status(500).json({ error: error.message });
     }
   });
@@ -6813,6 +6864,24 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           dateCount: proposedDates.length,
         },
       });
+      
+      // Emit owner_transferred event when responsibility shifts to client (only if both are non-null and different)
+      if (inquiry.ownerId && inquiry.clientId && inquiry.ownerId !== inquiry.clientId) {
+        await storage.createAuditLog({
+          action: 'owner_transferred',
+          entityType: 'inquiry',
+          entityId: inquiry.id,
+          performedBy: userId,
+          actorRole: actorRole as any,
+          diff: {
+            ownerId: { from: inquiry.ownerId, to: inquiry.clientId },
+          },
+          changes: { 
+            reason: 'proposal_sent',
+            transferredAt: now.toISOString(),
+          },
+        });
+      }
       
       // TODO: Send proposal email to client with alternative dates
       

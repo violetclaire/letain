@@ -670,7 +670,7 @@ export default function ArtistDashboard() {
       case 'hold': return 'bg-orange-100 text-orange-800';
       case 'responded': return 'bg-blue-100 text-blue-800';
       case 'chatting': return 'bg-purple-100 text-purple-800';
-      case 'converted': return 'bg-green-100 text-green-800';
+      case 'confirmed': return 'bg-green-100 text-green-800';
       case 'declined': return 'bg-gray-100 text-gray-600';
       case 'expired': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';

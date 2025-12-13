@@ -411,13 +411,17 @@ export const inquiries = pgTable("inquiries", {
   partySize: integer("party_size"), // Number of people needing services
   message: text("message"), // Client's initial message/notes
   budget: text("budget"), // Budget range if provided
-  status: text("status").notNull().default("pending"), // 'pending', 'hold', 'responded', 'chatting', 'converted', 'declined', 'expired', 'completed'
+  status: text("status").notNull().default("pending"), // 'pending', 'hold', 'responded', 'chatting', 'confirmed', 'declined', 'expired', 'completed'
   responseMode: text("response_mode").default("auto"), // 'auto' or 'manual' - how vendor responds
   infoSheetSentAt: timestamp("info_sheet_sent_at"), // When info sheet was sent
   chatInviteSentAt: timestamp("chat_invite_sent_at"), // When chat invite was sent
-  convertedToBookingId: varchar("converted_to_booking_id").references(() => bookings.id), // If converted
-  convertedToContractId: varchar("converted_to_contract_id").references(() => contracts.id), // If converted to contract
+  convertedToBookingId: varchar("converted_to_booking_id").references(() => bookings.id), // If confirmed
+  convertedToContractId: varchar("converted_to_contract_id").references(() => contracts.id), // If confirmed to contract
   declinedReason: text("declined_reason"), // Why vendor declined
+  // Status metadata for UI "who/what/when" display
+  statusReason: text("status_reason"), // Reason for current status (declined, expired, etc.)
+  nextAction: text("next_action"), // 'vendor_respond', 'client_decide', 'send_contract', 'collect_deposit', etc.
+  nextActionDueAt: timestamp("next_action_due_at"), // When next action is expected
   // Ownership - who's currently responsible for next action
   ownerId: varchar("owner_id").references(() => users.id), // Current responsible user
   // Hold state as consolidated struct (source of truth)
