@@ -236,6 +236,29 @@ export const bookings = pgTable("bookings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Booking Checklists - day-of readiness tracking for vendors
+// Each item completion writes to audit log and feeds CDI signals silently
+export type BookingChecklistItem = {
+  id: string;
+  label: string;
+  completed: boolean;
+  completedAt?: string;
+  completedBy?: string;
+  notes?: string;
+};
+
+export const bookingChecklists = pgTable("booking_checklists", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  bookingId: varchar("booking_id").notNull().references(() => bookings.id),
+  vendorId: varchar("vendor_id").notNull().references(() => users.id),
+  checklistType: text("checklist_type").notNull().default("day_of_readiness"), // 'day_of_readiness', 'pre_event', 'post_event'
+  items: jsonb("items").$type<BookingChecklistItem[]>().notNull().default([]),
+  allCompleted: boolean("all_completed").default(false),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Messages - communication between parties
 export const messages = pgTable("messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -469,6 +492,10 @@ export const inquiries = pgTable("inquiries", {
   convertedToBookingId: varchar("converted_to_booking_id").references(() => bookings.id), // Legacy: If confirmed (use bookingId)
   convertedToContractId: varchar("converted_to_contract_id").references(() => contracts.id), // If confirmed to contract
   declinedReason: text("declined_reason"), // Why vendor declined
+  // Referral tracking - when inquiry was created via decline+referral flow
+  referralSourceInquiryId: varchar("referral_source_inquiry_id"), // Original inquiry that was declined
+  referralSourceVendorId: varchar("referral_source_vendor_id").references(() => users.id), // Vendor who referred this lead
+  referralSentAt: timestamp("referral_sent_at"), // When the referral was sent
   // Status metadata for UI "who/what/when" display
   statusReason: text("status_reason"), // Reason for current status (declined, expired, etc.)
   nextAction: text("next_action"), // 'vendor_respond', 'client_decide', 'send_contract', 'collect_deposit', etc.
@@ -994,6 +1021,12 @@ export const insertClientContactSchema = createInsertSchema(clientContacts).omit
 });
 
 export const insertBookingSchema = createInsertSchema(bookings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertBookingChecklistSchema = createInsertSchema(bookingChecklists).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -1556,6 +1589,9 @@ export type ClientContact = typeof clientContacts.$inferSelect;
 
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
 export type Booking = typeof bookings.$inferSelect;
+
+export type InsertBookingChecklist = z.infer<typeof insertBookingChecklistSchema>;
+export type BookingChecklist = typeof bookingChecklists.$inferSelect;
 
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messages.$inferSelect;
