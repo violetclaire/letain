@@ -6693,9 +6693,13 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     const previousHold = inquiry.hold;
     const actorRole = user?.role === 'artist' ? 'artist' : user?.role === 'planner' ? 'planner' : 'artist';
     
+    // Best-effort pseudo-transaction: booking first, then inquiry patch
+    // If booking fails, hold stays intact. If inquiry patch fails, booking exists but inquiry unchanged.
+    let booking: any = null;
+    
     try {
-      // Create booking from inquiry
-      const booking = await storage.createBooking({
+      // Step 1: Create booking first (this is the critical write)
+      booking = await storage.createBooking({
         clientId: inquiry.clientId,
         artistId: userId,
         eventDate: inquiry.eventDate,
@@ -6705,11 +6709,40 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         amount: amount || null,
         status: 'confirmed',
       });
+    } catch (bookingError: any) {
+      // Booking failed - hold stays intact, emit confirm_failed
+      console.error("[Inquiry] Booking creation failed:", bookingError);
       
-      // Update inquiry as confirmed, clear hold if any
+      try {
+        await storage.createAuditLog({
+          action: 'confirm_failed',
+          entityType: 'inquiry',
+          entityId: inquiry.id,
+          performedBy: userId,
+          actorRole: actorRole as any,
+          diff: {
+            status: { from: previousStatus, to: previousStatus }, // No change
+          },
+          changes: { 
+            error: bookingError.message,
+            failedAt: 'booking_creation',
+            attemptedAt: now.toISOString(),
+            holdIntact: true,
+          },
+        });
+      } catch (logError) {
+        console.error("[Inquiry] Failed to log confirm_failed event:", logError);
+      }
+      
+      return res.status(500).json({ error: "Failed to create booking" });
+    }
+    
+    try {
+      // Step 2: Patch inquiry with bookingId and status=confirmed
       await storage.updateInquiry(inquiry.id, { 
         status: 'confirmed',
-        convertedToBookingId: booking.id,
+        bookingId: booking.id, // New field for calendar locking
+        convertedToBookingId: booking.id, // Legacy field
         ownerId: userId,
         hold: null as any, // Clear hold struct
         holdPlacedAt: null,
@@ -6720,7 +6753,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         lastActionAt: now,
       } as any);
       
-      // Lock the date on calendar (create availability record)
+      // Step 3: Lock the date on calendar (availability record)
       await storage.createAvailability({
         userId,
         date: inquiry.eventDate,
@@ -6728,7 +6761,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         notes: `Booked: ${inquiry.clientName}`,
       });
       
-      // Create audit log: confirm_clicked
+      // Step 4: Audit logs (non-critical, best-effort)
       await storage.createAuditLog({
         action: 'confirm_clicked',
         entityType: 'inquiry',
@@ -6737,7 +6770,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         actorRole: actorRole as any,
         diff: {
           status: { from: previousStatus, to: 'confirmed' },
-          convertedToBookingId: { from: inquiry.convertedToBookingId, to: booking.id },
+          bookingId: { from: null, to: booking.id },
           hold: previousHold ? { from: previousHold, to: null } : undefined,
         },
         changes: { 
@@ -6745,7 +6778,6 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         },
       });
       
-      // Create audit log: booking_created
       await storage.createAuditLog({
         action: 'booking_created',
         entityType: 'booking',
@@ -6763,9 +6795,10 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       
       res.json({ success: true, bookingId: booking.id });
     } catch (error: any) {
-      console.error("[Inquiry] Error confirming inquiry:", error);
+      // Inquiry patch failed after booking was created
+      // Log this partial state for manual recovery
+      console.error("[Inquiry] Error patching inquiry after booking created:", error);
       
-      // Log the failure with confirm_failed event for observability
       try {
         await storage.createAuditLog({
           action: 'confirm_failed',
@@ -6774,10 +6807,12 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           performedBy: userId,
           actorRole: actorRole as any,
           diff: {
-            status: { from: previousStatus, to: previousStatus }, // No change on failure
+            status: { from: previousStatus, to: previousStatus },
           },
           changes: { 
             error: error.message,
+            failedAt: 'inquiry_patch',
+            bookingCreatedId: booking.id, // Track orphaned booking for cleanup
             attemptedAt: now.toISOString(),
           },
         });
@@ -6785,7 +6820,12 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         console.error("[Inquiry] Failed to log confirm_failed event:", logError);
       }
       
-      res.status(500).json({ error: error.message });
+      // Return success with warning since booking exists
+      res.status(207).json({ 
+        success: true, 
+        bookingId: booking.id,
+        warning: "Booking created but inquiry status update failed. Please retry or contact support.",
+      });
     }
   });
 

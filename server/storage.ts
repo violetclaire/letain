@@ -151,7 +151,7 @@ import {
   type InsertProposal,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, lte, desc, or, sql } from "drizzle-orm";
+import { eq, and, gte, lte, desc, or, sql, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // Users (including Replit Auth)
@@ -437,6 +437,8 @@ export interface IStorage {
   getInquiriesByVendor(vendorId: string): Promise<Inquiry[]>;
   getInquiriesByClient(clientEmail: string): Promise<Inquiry[]>;
   updateInquiry(id: string, data: Partial<InsertInquiry>): Promise<Inquiry | undefined>;
+  getExpiredHolds(now: Date): Promise<Inquiry[]>;
+  getActiveInquiries(): Promise<Inquiry[]>;
   
   // Inquiry Notifications
   createInquiryNotification(data: InsertInquiryNotification): Promise<InquiryNotification>;
@@ -2170,6 +2172,31 @@ export class DatabaseStorage implements IStorage {
       .where(eq(inquiries.id, id))
       .returning();
     return updated || undefined;
+  }
+  
+  async getExpiredHolds(now: Date): Promise<Inquiry[]> {
+    return await db
+      .select()
+      .from(inquiries)
+      .where(
+        and(
+          eq(inquiries.status, 'hold'),
+          or(
+            sql`${inquiries.holdExpiresAt} <= ${now}`,
+            sql`(${inquiries.hold}->>'expiresAt')::timestamp <= ${now}`
+          )
+        )
+      );
+  }
+  
+  async getActiveInquiries(): Promise<Inquiry[]> {
+    return await db
+      .select()
+      .from(inquiries)
+      .where(
+        inArray(inquiries.status, ['pending', 'responded', 'hold', 'confirmed'])
+      )
+      .orderBy(desc(inquiries.updatedAt));
   }
   
   // Inquiry Notifications

@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import { registerRoutes } from "./routes";
+import { startCronJobs } from "./cronJobs";
 import { serveStatic } from "./static";
 import { runMigrations } from 'stripe-replit-sync';
 import { getStripeSync } from './stripeClient';
@@ -208,6 +209,8 @@ app.use((req, res, next) => {
         initStripe().catch((err: any) => console.error('[Stripe] Background init error:', err));
         // Start scheduled email job
         startScheduledEmailJob();
+        // Start cron jobs (hold-expirer, SLA enforcer)
+        startCronJobs();
       },
     );
   } catch (error) {

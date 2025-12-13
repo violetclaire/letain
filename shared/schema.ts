@@ -396,6 +396,24 @@ export type InquiryHoldStruct = {
   reason: string | null;
 };
 
+// StatusReason enum values for inquiry state machine
+export const InquiryStatusReasons = {
+  DECLINED_BY_VENDOR: 'declined_by_vendor',
+  DECLINED_BY_CLIENT: 'declined_by_client',
+  HOLD_EXPIRED: 'hold_expired',
+  AUTO_DECLINED_SLA: 'auto_declined_sla',
+} as const;
+export type InquiryStatusReason = typeof InquiryStatusReasons[keyof typeof InquiryStatusReasons];
+
+// NextAction enum values for inquiry workflow
+export const InquiryNextActions = {
+  VENDOR_FIRST_RESPONSE: 'vendor_first_response',
+  VENDOR_CONFIRM: 'vendor_confirm',
+  CLIENT_PAYMENT: 'client_payment',
+  CLIENT_REPLY: 'client_reply',
+} as const;
+export type InquiryNextAction = typeof InquiryNextActions[keyof typeof InquiryNextActions];
+
 // Inquiries - client inquiries to vendors before booking
 export const inquiries = pgTable("inquiries", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -415,7 +433,8 @@ export const inquiries = pgTable("inquiries", {
   responseMode: text("response_mode").default("auto"), // 'auto' or 'manual' - how vendor responds
   infoSheetSentAt: timestamp("info_sheet_sent_at"), // When info sheet was sent
   chatInviteSentAt: timestamp("chat_invite_sent_at"), // When chat invite was sent
-  convertedToBookingId: varchar("converted_to_booking_id").references(() => bookings.id), // If confirmed
+  bookingId: varchar("booking_id").references(() => bookings.id), // Calendar locking sourced from Booking presence
+  convertedToBookingId: varchar("converted_to_booking_id").references(() => bookings.id), // Legacy: If confirmed (use bookingId)
   convertedToContractId: varchar("converted_to_contract_id").references(() => contracts.id), // If confirmed to contract
   declinedReason: text("declined_reason"), // Why vendor declined
   // Status metadata for UI "who/what/when" display
