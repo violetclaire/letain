@@ -219,7 +219,7 @@ Best wishes for your special day!`;
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" data-testid="modal-decline-referral">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5 text-[#A8929C]" />
+            <UserPlus className="h-5 w-5 text-[#5A1F2B]" />
             Decline & Refer
           </DialogTitle>
           <DialogDescription>
@@ -229,7 +229,7 @@ Best wishes for your special day!`;
 
         {inquiry && (
           <div className="space-y-4">
-            <div className="bg-[#FAF8F5] rounded-lg p-3 border border-[#A8929C]/20">
+            <div className="bg-[#FAF8F5] rounded-lg p-3 border border-[#5A1F2B]/20">
               <p className="text-sm font-medium">{inquiry.clientName}</p>
               <p className="text-xs text-gray-600">
                 {inquiry.serviceType} • {new Date(inquiry.eventDate).toLocaleDateString()}
@@ -256,7 +256,7 @@ Best wishes for your special day!`;
               <Label>Recommend colleagues (select up to 3)</Label>
               {loading ? (
                 <div className="flex items-center justify-center py-6">
-                  <Loader2 className="h-6 w-6 animate-spin text-[#A8929C]" />
+                  <Loader2 className="h-6 w-6 animate-spin text-[#5A1F2B]" />
                 </div>
               ) : networkContacts.length === 0 ? (
                 <div className="text-center py-6 text-gray-500 text-sm">
@@ -268,7 +268,7 @@ Best wishes for your special day!`;
                 <div className="space-y-2">
                   {topReferrals.length > 0 && (
                     <div className="space-y-1">
-                      <p className="text-xs text-[#A8929C] font-medium flex items-center gap-1">
+                      <p className="text-xs text-[#5A1F2B] font-medium flex items-center gap-1">
                         <Star className="h-3 w-3" /> Top recommendations
                       </p>
                       {topReferrals.map((contact) => (
@@ -364,7 +364,7 @@ Best wishes for your special day!`;
           <Button
             onClick={handleSubmit}
             disabled={submitting || !declineReason || selectedVendors.length === 0}
-            className="bg-[#A8929C] hover:bg-[#9A8490]"
+            className="bg-[#5A1F2B] hover:bg-[#7A3F4B]"
             data-testid="button-submit-decline-referral"
           >
             {submitting ? (
@@ -400,16 +400,16 @@ function VendorCard({
     <div
       className={`flex items-center gap-3 p-2 rounded-lg border cursor-pointer transition-colors ${
         selected
-          ? "bg-[#A8929C]/10 border-[#A8929C]"
-          : "bg-white border-gray-200 hover:border-[#A8929C]/50"
-      } ${isTop ? "ring-1 ring-[#A8929C]/20" : ""}`}
+          ? "bg-[#5A1F2B]/10 border-[#5A1F2B]"
+          : "bg-white border-gray-200 hover:border-[#5A1F2B]/50"
+      } ${isTop ? "ring-1 ring-[#5A1F2B]/20" : ""}`}
       onClick={onToggle}
       data-testid={`vendor-card-${contact.id}`}
     >
       <Checkbox checked={selected} className="pointer-events-none" />
       <Avatar className="h-8 w-8">
         <AvatarImage src={contact.profileImageUrl} />
-        <AvatarFallback className="bg-[#A8929C]/20 text-[#A8929C] text-xs">
+        <AvatarFallback className="bg-[#5A1F2B]/20 text-[#5A1F2B] text-xs">
           {(contact.name || "V")[0].toUpperCase()}
         </AvatarFallback>
       </Avatar>
@@ -420,7 +420,7 @@ function VendorCard({
         <p className="text-xs text-gray-500 truncate">{contact.specialty}</p>
       </div>
       {isTop && (
-        <Badge variant="secondary" className="text-xs bg-[#A8929C]/10 text-[#A8929C]">
+        <Badge variant="secondary" className="text-xs bg-[#5A1F2B]/10 text-[#5A1F2B]">
           Top fit
         </Badge>
       )}

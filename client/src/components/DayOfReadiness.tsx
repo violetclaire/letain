@@ -148,7 +148,7 @@ export default function DayOfReadiness({
     return (
       <Card className={className} data-testid={`readiness-loading-${booking.id}`}>
         <CardContent className="py-6 flex items-center justify-center">
-          <Loader2 className="h-5 w-5 animate-spin text-[#A8929C]" />
+          <Loader2 className="h-5 w-5 animate-spin text-[#5A1F2B]" />
         </CardContent>
       </Card>
     );
@@ -166,7 +166,7 @@ export default function DayOfReadiness({
   }
 
   return (
-    <Card className={`${className} ${isEventToday ? "ring-2 ring-[#A8929C]" : ""}`} data-testid={`readiness-card-${booking.id}`}>
+    <Card className={`${className} ${isEventToday ? "ring-2 ring-[#5A1F2B]" : ""}`} data-testid={`readiness-card-${booking.id}`}>
       <Collapsible open={expanded} onOpenChange={setExpanded}>
         <CardHeader className="pb-2">
           <CollapsibleTrigger asChild>
@@ -177,7 +177,7 @@ export default function DayOfReadiness({
                 ) : isEventToday ? (
                   <AlertCircle className="h-5 w-5 text-amber-500" />
                 ) : (
-                  <Clock className="h-5 w-5 text-[#A8929C]" />
+                  <Clock className="h-5 w-5 text-[#5A1F2B]" />
                 )}
                 <CardTitle className="text-base">Day-of Readiness</CardTitle>
               </div>
@@ -278,7 +278,7 @@ export default function DayOfReadiness({
                     {item.label}
                   </label>
                   {updating === item.id && (
-                    <Loader2 className="h-4 w-4 animate-spin text-[#A8929C]" />
+                    <Loader2 className="h-4 w-4 animate-spin text-[#5A1F2B]" />
                   )}
                   {item.completed && !updating && (
                     <CheckCircle2 className="h-4 w-4 text-green-600" />

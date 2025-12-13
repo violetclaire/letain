@@ -923,7 +923,7 @@ export default function ProfileSettings() {
         {user?.role === "artist" && (
           <>
           {/* Share Your Profile Link */}
-          <div className="card-frame rounded-lg p-6 mb-6 bg-gradient-to-r from-[#A8929C]/10 to-[#9A9472]/10 border-2 border-[#A8929C]/30">
+          <div className="card-frame rounded-lg p-6 mb-6 bg-gradient-to-r from-[#5A1F2B]/10 to-[#9A9472]/10 border-2 border-[#5A1F2B]/30">
             <h2 className="font-header text-lg ink-main mb-2 flex items-center gap-2">
               <Link2 size={18} /> Share Your Beauvette Profile
             </h2>

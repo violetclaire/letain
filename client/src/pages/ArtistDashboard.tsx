@@ -2316,7 +2316,7 @@ export default function ArtistDashboard() {
                                           });
                                           setShowDeclineReferralModal(true);
                                         }}
-                                        className="py-1.5 px-2 rounded border border-gray-200 text-gray-400 hover:border-[#A8929C] hover:text-[#A8929C] transition-colors"
+                                        className="py-1.5 px-2 rounded border border-gray-200 text-gray-400 hover:border-[#5A1F2B] hover:text-[#5A1F2B] transition-colors"
                                         title="Decline & Refer"
                                         data-testid={`button-decline-inquiry-${inquiry.id}`}
                                       >

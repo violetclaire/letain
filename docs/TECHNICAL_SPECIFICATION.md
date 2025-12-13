@@ -384,7 +384,7 @@ Based on "Plum Check" by Claremont (from Lily Allen's NYC apartment):
 | Color | Hex Code | Usage |
 |-------|----------|-------|
 | Ivory/Cream | `#F7F4EF`, `#FAF8F5` | Backgrounds |
-| Dusty Plum | `#A8929C` | Accents, headers |
+| Dusty Plum | `#5A1F2B` | Accents, headers |
 | Sage Green | `#9A9472` | Secondary actions |
 | Brown/Taupe | `#6B5A50` | Text, borders |
 | Pink | `#C9A961` | Highlights |

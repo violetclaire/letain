@@ -12,7 +12,7 @@ Preferred communication style: Simple, everyday language.
 
 ### UI/UX Decisions
 
-The platform uses a design language inspired by Marie Antoinette aesthetics. The color palette is based on "Plum Check" by Claremont (from Lily Allen's NYC apartment), featuring: Ivory/Cream (#F7F4EF, #FAF8F5), Dusty Plum/Lavender (#A8929C), Sage/Olive Green (#9A9472), and Brown/Taupe (#6B5A50). Typography combines Playfair Display (serif for headers) and Inter (sans-serif for body text). The landing page features an elevator-style split panel animation with a plum check pattern.
+The platform uses a design language inspired by Marie Antoinette aesthetics. The color palette is based on "Plum Check" by Claremont (from Lily Allen's NYC apartment), featuring: Ivory/Cream (#F7F4EF, #FAF8F5), Dusty Plum (#5A1F2B), Sage/Olive Green (#9A9472), and Brown/Taupe (#6B5A50). Typography combines Playfair Display (serif for headers) and Inter (sans-serif for body text). The landing page features an elevator-style split panel animation with a plum check pattern.
 
 ### Technical Implementations
 
