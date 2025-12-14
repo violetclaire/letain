@@ -42,12 +42,9 @@ export default function Landing() {
             >
               <div className="bg-[#FFFEF9] p-1 border border-[#2C2C2C]">
                 <div className="border border-[#2C2C2C] px-16 py-10">
-                  <h1 className="font-script text-5xl text-[#2C2C2C] mb-4">
+                  <h1 className="font-script text-5xl text-[#2C2C2C]">
                     Beauvette
                   </h1>
-                  <p className="text-[0.6rem] uppercase tracking-[0.2em] text-[#666] font-normal max-w-[260px] leading-relaxed border-t border-[#2C2C2C]/30 pt-4 mt-2 mx-auto">
-                    We answer the question: are you available for my date?
-                  </p>
                 </div>
               </div>
             </motion.div>
