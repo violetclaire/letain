@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -10,6 +11,13 @@ export default function Waitlist() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const { toast } = useToast();
+  const [location] = useLocation();
+  
+  const getSource = () => {
+    if (location.includes('/search')) return 'search';
+    if (location.includes('/browse')) return 'browse';
+    return 'waitlist';
+  };
 
   const joinWaitlist = useMutation({
     mutationFn: async (data: { email: string; source: string }) => {
@@ -43,7 +51,7 @@ export default function Waitlist() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
-    joinWaitlist.mutate({ email, source: "browse" });
+    joinWaitlist.mutate({ email, source: getSource() });
   };
 
   return (
