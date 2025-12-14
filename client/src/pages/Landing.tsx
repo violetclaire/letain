@@ -93,7 +93,7 @@ export default function Landing() {
                   className="w-full px-8 py-4 text-base font-medium bg-[#5A1F2B] text-[#FCF9F4] hover:bg-[#4a1923] transition-colors tracking-wide mb-4"
                   data-testid="button-artist-cta"
                 >
-                  Set up your availability calendar — link it in your bio
+                  Set up your availability calendar, link it in your bio
                 </button>
                 <p className="text-sm text-[#5A1F2B]/70 leading-relaxed mb-3">
                   Think of Beauvette as your personal secretary. It's trained on your responsiveness and communication style. It handles availability, sends pricing when appropriate, and reduces coordination while you remain fully in control.
