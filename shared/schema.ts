@@ -58,6 +58,7 @@ export type VendorOnboardingPreferences = {
 // Users - represents all personas (clients, artists, planners, admins)
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: varchar("username", { length: 50 }).unique(), // custom vanity URL like /themakeupdolls
   email: text("email").unique(),
   password: text("password"), // hashed password for email/password login
   firstName: varchar("first_name"),
