@@ -1,16 +1,18 @@
 import { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Edit2, Check, X, Calendar } from "lucide-react";
+import { ChevronLeft, ChevronRight, Edit2, Check, X, Calendar, Clock } from "lucide-react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, isBefore, startOfDay } from "date-fns";
 
 interface VintageCalendarProps {
   bookedDates: Date[];
-  onDatesChange: (dates: Date[]) => void;
+  pendingDates?: Date[];
+  onDatesChange: (bookedDates: Date[], pendingDates: Date[]) => void;
   minYear?: number;
   maxYear?: number;
 }
 
 export default function VintageCalendar({
   bookedDates,
+  pendingDates = [],
   onDatesChange,
   minYear = 2026,
   maxYear = 2027
@@ -46,30 +48,50 @@ export default function VintageCalendar({
 
   const handleDateClick = (date: Date) => {
     const isBooked = bookedDates.some(d => isSameDay(d, date));
+    const isPending = pendingDates.some(d => isSameDay(d, date));
+    
     if (isBooked) {
-      onDatesChange(bookedDates.filter(d => !isSameDay(d, date)));
+      // Booked -> Empty
+      const newBookedDates = bookedDates.filter(d => !isSameDay(d, date));
+      onDatesChange(newBookedDates, pendingDates);
+    } else if (isPending) {
+      // Pending -> Booked
+      const newPendingDates = pendingDates.filter(d => !isSameDay(d, date));
+      const newBookedDates = [...bookedDates, date].sort((a, b) => a.getTime() - b.getTime());
+      onDatesChange(newBookedDates, newPendingDates);
     } else {
-      onDatesChange([...bookedDates, date].sort((a, b) => a.getTime() - b.getTime()));
+      // Empty -> Pending
+      const newPendingDates = [...pendingDates, date].sort((a, b) => a.getTime() - b.getTime());
+      onDatesChange(bookedDates, newPendingDates);
     }
   };
 
   const formatBookedCount = () => {
-    if (bookedDates.length === 0) return "No dates booked";
-    if (bookedDates.length === 1) return "1 date booked";
-    return `${bookedDates.length} dates booked`;
+    const total = bookedDates.length + pendingDates.length;
+    if (total === 0) return "No dates marked";
+    const parts = [];
+    if (bookedDates.length > 0) parts.push(`${bookedDates.length} booked`);
+    if (pendingDates.length > 0) parts.push(`${pendingDates.length} pending`);
+    return parts.join(", ");
   };
 
   const monthsWithBookings = useMemo(() => {
-    const months: { [key: string]: number } = {};
+    const months: { [key: string]: { booked: number; pending: number } } = {};
     bookedDates.forEach(date => {
       const key = format(date, "yyyy-MM");
-      months[key] = (months[key] || 0) + 1;
+      if (!months[key]) months[key] = { booked: 0, pending: 0 };
+      months[key].booked++;
+    });
+    pendingDates.forEach(date => {
+      const key = format(date, "yyyy-MM");
+      if (!months[key]) months[key] = { booked: 0, pending: 0 };
+      months[key].pending++;
     });
     return months;
-  }, [bookedDates]);
+  }, [bookedDates, pendingDates]);
 
   const currentMonthKey = format(currentMonth, "yyyy-MM");
-  const currentMonthBookings = monthsWithBookings[currentMonthKey] || 0;
+  const currentMonthStats = monthsWithBookings[currentMonthKey] || { booked: 0, pending: 0 };
 
   return (
     <div 
@@ -104,9 +126,14 @@ export default function VintageCalendar({
             <span className="text-lg ml-2 ink-soft">
               {format(currentMonth, "yyyy")}
             </span>
-            {currentMonthBookings > 0 && (
-              <div className="text-xs mt-1 text-pink">
-                {currentMonthBookings} booked this month
+            {(currentMonthStats.booked > 0 || currentMonthStats.pending > 0) && (
+              <div className="text-xs mt-1 flex items-center justify-center gap-2">
+                {currentMonthStats.booked > 0 && (
+                  <span className="text-pink">{currentMonthStats.booked} booked</span>
+                )}
+                {currentMonthStats.pending > 0 && (
+                  <span className="text-gold">{currentMonthStats.pending} pending</span>
+                )}
               </div>
             )}
           </div>
@@ -138,6 +165,7 @@ export default function VintageCalendar({
           ))}
           {days.map(day => {
             const isBooked = bookedDates.some(d => isSameDay(d, day));
+            const isPending = pendingDates.some(d => isSameDay(d, day));
             const isCurrentDay = isToday(day);
             const isPast = isBefore(startOfDay(day), startOfDay(new Date()));
             
@@ -152,9 +180,11 @@ export default function VintageCalendar({
                   ${isPast ? 'opacity-40' : 'hover:scale-105'}
                   ${isBooked 
                     ? 'bg-pink text-white font-medium shadow-md' 
-                    : isCurrentDay 
-                      ? 'ring-2 ring-gold ink-main bg-powder-blue/30' 
-                      : 'ink-main hover:bg-powder-blue/50'
+                    : isPending
+                      ? 'bg-gold/80 text-white font-medium shadow-md'
+                      : isCurrentDay 
+                        ? 'ring-2 ring-gold ink-main bg-powder-blue/30' 
+                        : 'ink-main hover:bg-powder-blue/50'
                   }
                 `}
                 data-testid={`calendar-day-${format(day, "yyyy-MM-dd")}`}
@@ -165,66 +195,71 @@ export default function VintageCalendar({
                     <X size={10} className="text-white" />
                   </span>
                 )}
+                {isPending && (
+                  <span className="absolute -top-0.5 -right-0.5 w-3 h-3">
+                    <Clock size={10} className="text-white" />
+                  </span>
+                )}
               </button>
             );
           })}
         </div>
       </div>
 
-      {bookedDates.length > 0 && (
+      {(bookedDates.length > 0 || pendingDates.length > 0) && (
         <div className="px-4 py-3 border-t border-[#c5ccd8] bg-powder-blue/20">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium ink-main">
-              {isEditMode ? "Tap dates above to remove" : "Booked dates:"}
+              {isEditMode ? "Tap dates above to change" : "Marked dates:"}
             </span>
             <button
               onClick={() => setIsEditMode(!isEditMode)}
               className={`p-1.5 rounded-full transition-colors ${isEditMode ? 'bg-pink text-white' : 'bg-powder-blue/50 text-forest hover:bg-powder-blue'}`}
-              title={isEditMode ? "Done editing" : "Edit booked dates"}
+              title={isEditMode ? "Done editing" : "Edit dates"}
               data-testid="button-edit-dates"
             >
               {isEditMode ? <Check size={14} /> : <Edit2 size={14} />}
             </button>
           </div>
           
-          {isEditMode ? (
-            <div className="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto">
-              {bookedDates.slice(0, 12).map((date) => (
-                <span
-                  key={date.toISOString()}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs cursor-pointer transition-colors hover:opacity-80 bg-pink text-white"
-                  onClick={() => handleDateClick(date)}
-                >
-                  {format(date, "M/d")}
-                  <X size={10} />
-                </span>
-              ))}
-              {bookedDates.length > 12 && (
-                <span className="text-xs py-1 ink-soft">+{bookedDates.length - 12} more</span>
-              )}
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto">
-              {bookedDates.slice(0, 8).map((date) => (
-                <span
-                  key={date.toISOString()}
-                  className="px-2 py-1 rounded-full text-xs bg-pink/20 text-pink"
-                >
-                  {format(date, "MMM d")}
-                </span>
-              ))}
-              {bookedDates.length > 8 && (
-                <span className="text-xs py-1 ink-soft">+{bookedDates.length - 8} more</span>
-              )}
-            </div>
-          )}
+          <div className="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto">
+            {bookedDates.slice(0, 6).map((date) => (
+              <span
+                key={`booked-${date.toISOString()}`}
+                className={`px-2 py-1 rounded-full text-xs ${isEditMode ? 'cursor-pointer hover:opacity-80' : ''} bg-pink/20 text-pink`}
+                onClick={isEditMode ? () => handleDateClick(date) : undefined}
+              >
+                {format(date, "MMM d")}
+              </span>
+            ))}
+            {pendingDates.slice(0, 6).map((date) => (
+              <span
+                key={`pending-${date.toISOString()}`}
+                className={`px-2 py-1 rounded-full text-xs ${isEditMode ? 'cursor-pointer hover:opacity-80' : ''} bg-gold/20 text-gold flex items-center gap-1`}
+                onClick={isEditMode ? () => handleDateClick(date) : undefined}
+              >
+                <Clock size={10} />
+                {format(date, "MMM d")}
+              </span>
+            ))}
+            {(bookedDates.length + pendingDates.length) > 12 && (
+              <span className="text-xs py-1 ink-soft">+{(bookedDates.length + pendingDates.length) - 12} more</span>
+            )}
+          </div>
         </div>
       )}
 
       <div className="px-4 py-2 text-center border-t border-[#c5ccd8] bg-cream">
-        <span className="text-xs italic ink-soft">
-          Tap any date to mark as booked
-        </span>
+        <div className="flex items-center justify-center gap-4 text-xs">
+          <span className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded-full bg-gold/80"></span>
+            <span className="ink-soft">Pending</span>
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded-full bg-pink"></span>
+            <span className="ink-soft">Confirmed</span>
+          </span>
+        </div>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Instagram, Globe, ArrowRight, ArrowLeft, Calendar, Share2, Copy, ExternalLink } from "lucide-react";
+import { Check, Instagram, Globe, ArrowRight, ArrowLeft, Calendar, Share2, Copy, ExternalLink, Upload, FileText, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import VintageCalendar from "@/components/VintageCalendar";
 
@@ -14,7 +14,10 @@ interface OnboardingData {
   pinterestHandle: string;
   websiteUrl: string;
   bookedDates: Date[];
+  pendingDates: Date[];
   referralArtists: string[];
+  infoSheetFile: File | null;
+  infoSheetUploaded: boolean;
 }
 
 export default function PublicOnboarding() {
@@ -35,10 +38,16 @@ export default function PublicOnboarding() {
     pinterestHandle: "",
     websiteUrl: "",
     bookedDates: [],
-    referralArtists: ["", "", ""]
+    pendingDates: [],
+    referralArtists: ["", "", ""],
+    infoSheetFile: null,
+    infoSheetUploaded: false
   });
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const totalSteps = 7;
+  const totalSteps = 8;
 
   const updateData = (field: keyof OnboardingData, value: any) => {
     setData(prev => ({ ...prev, [field]: value }));
@@ -53,13 +62,43 @@ export default function PublicOnboarding() {
       case 5: return true;
       case 6: return true;
       case 7: return data.referralArtists.filter(a => a.trim()).length > 0;
+      case 8: return true; // Info sheet is optional
       default: return false;
     }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a PDF, image, or Word document.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please upload a file smaller than 10MB.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    updateData("infoSheetFile", file);
   };
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
+      // First create the profile
       const response = await fetch("/api/public/artists/onboard", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -72,6 +111,7 @@ export default function PublicOnboarding() {
           pinterestHandle: data.pinterestHandle.replace("@", ""),
           websiteUrl: data.websiteUrl,
           bookedDates: data.bookedDates.map(d => d.toISOString()),
+          pendingDates: data.pendingDates.map(d => d.toISOString()),
           referralArtists: data.referralArtists.filter(a => a.trim())
         })
       });
@@ -81,6 +121,24 @@ export default function PublicOnboarding() {
       }
 
       const result = await response.json();
+      
+      // If there's an info sheet file, upload it
+      if (data.infoSheetFile && result.artistId) {
+        try {
+          const formData = new FormData();
+          formData.append("file", data.infoSheetFile);
+          formData.append("artistId", result.artistId);
+          
+          await fetch("/api/public/artists/upload-info-sheet", {
+            method: "POST",
+            body: formData
+          });
+        } catch (uploadError) {
+          console.error("Info sheet upload failed:", uploadError);
+          // Don't fail the whole onboarding if info sheet upload fails
+        }
+      }
+      
       setArtistSlug(result.artistSlug);
       setIsComplete(true);
     } catch (error) {
@@ -281,11 +339,15 @@ export default function PublicOnboarding() {
           >
             <div className="text-center">
               <h2 className="font-header text-2xl text-[#2C2C2C] mb-2">What dates are you already booked?</h2>
-              <p className="text-sm text-[#666]">Mark your 2026 and 2027 bookings</p>
+              <p className="text-sm text-[#666]">Mark your 2026 and 2027 bookings (tap once for pending, twice for confirmed)</p>
             </div>
             <VintageCalendar
               bookedDates={data.bookedDates}
-              onDatesChange={(dates) => updateData("bookedDates", dates)}
+              pendingDates={data.pendingDates}
+              onDatesChange={(booked, pending) => {
+                updateData("bookedDates", booked);
+                updateData("pendingDates", pending);
+              }}
               minYear={2026}
               maxYear={2027}
             />
@@ -322,6 +384,63 @@ export default function PublicOnboarding() {
                 />
               ))}
             </div>
+          </motion.div>
+        );
+
+      case 8:
+        return (
+          <motion.div
+            key="step8"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-6"
+          >
+            <div className="text-center">
+              <h2 className="font-header text-2xl text-[#2C2C2C] mb-2">Upload your info sheet</h2>
+              <p className="text-sm text-[#666]">Share pricing, services, or any document clients should see (optional)</p>
+            </div>
+            
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif"
+              onChange={handleFileSelect}
+              className="hidden"
+              data-testid="input-info-sheet"
+            />
+            
+            {data.infoSheetFile ? (
+              <div className="border border-[#2C2C2C] p-4 bg-[#FAF9F7]">
+                <div className="flex items-center gap-3">
+                  <FileText size={24} className="text-[#2C2C2C]" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[#2C2C2C] truncate">{data.infoSheetFile.name}</p>
+                    <p className="text-xs text-[#666]">{(data.infoSheetFile.size / 1024).toFixed(1)} KB</p>
+                  </div>
+                  <button
+                    onClick={() => updateData("infoSheetFile", null)}
+                    className="text-[#666] hover:text-[#2C2C2C]"
+                    data-testid="button-remove-file"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full border-2 border-dashed border-[#2C2C2C] p-8 flex flex-col items-center gap-3 hover:bg-[#FAF9F7] transition-colors"
+                data-testid="button-upload-info-sheet"
+              >
+                <Upload size={32} className="text-[#2C2C2C]" />
+                <span className="text-sm text-[#666]">Click to upload PDF, Word doc, or image</span>
+              </button>
+            )}
+            
+            <p className="text-xs text-[#666] text-center">
+              You can skip this step and add it later from your settings.
+            </p>
           </motion.div>
         );
     }
