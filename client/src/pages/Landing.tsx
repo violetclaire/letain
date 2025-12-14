@@ -74,14 +74,11 @@ export default function Landing() {
             <h2 className="font-script text-6xl md:text-7xl text-[#5A1F2B] mb-6">
               Are you available?
             </h2>
-            <p className="font-elegant text-xl text-[#5A1F2B]/70 italic mb-2">
-              Wonderful. Let's make it happen.
-            </p>
             <p className="font-elegant text-xl text-[#5A1F2B]/70 italic mb-6">
               If not, who do you trust?
             </p>
-            <p className="font-elegant text-base text-[#5A1F2B]/60 tracking-wide">
-              Beauvette is building a trusted network of beauty artists for life's most important days.
+            <p className="font-elegant text-base text-[#5A1F2B]/60 tracking-wide leading-relaxed">
+              Beauvette is an operational assistant that manages availability and inquiries based on how you work.
             </p>
           </div>
 
@@ -90,13 +87,16 @@ export default function Landing() {
               <div className="border border-[#5A1F2B] p-6 text-center">
                 <button
                   onClick={() => setLocation("/onboarding")}
-                  className="w-full px-8 py-4 text-base font-medium bg-[#5A1F2B] text-[#FCF9F4] hover:bg-[#4a1923] transition-colors tracking-wide mb-3"
+                  className="w-full px-8 py-4 text-base font-medium bg-[#5A1F2B] text-[#FCF9F4] hover:bg-[#4a1923] transition-colors tracking-wide mb-4"
                   data-testid="button-artist-cta"
                 >
-                  I'm an Artist
+                  Set Up Your Availability Assistant
                 </button>
-                <p className="text-xs text-[#5A1F2B]/60 leading-relaxed">
-                  Manage availability, receive inquiries, and book trusted clients.
+                <p className="text-sm text-[#5A1F2B]/70 leading-relaxed mb-3">
+                  A personal operations assistant trained on your responsiveness and communication style. It handles availability, sends pricing when appropriate, and reduces coordination — while you remain in control.
+                </p>
+                <p className="text-xs text-[#5A1F2B]/50 italic">
+                  Built from real-world service coordination, not generic workflows.
                 </p>
               </div>
             </div>
