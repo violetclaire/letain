@@ -73,19 +73,18 @@ export default function Waitlist() {
             <Sparkles className="w-8 h-8 text-white" />
           </div>
           <h1
-            className="text-3xl md:text-4xl font-serif mb-4"
+            className="text-4xl md:text-5xl font-serif mb-4"
             style={{ color: "#5A1F2B", fontFamily: "Playfair Display, serif" }}
             data-testid="text-waitlist-title"
           >
-            Client Discovery Coming Soon
+            Beauvette
           </h1>
           <p
             className="text-lg"
             style={{ color: "#6B5A50", fontFamily: "Inter, sans-serif" }}
             data-testid="text-waitlist-description"
           >
-            We're carefully curating the best beauty artists for your special
-            day. Join the waitlist to be the first to discover them.
+            Coming soon. Join the waitlist.
           </p>
         </div>
 
