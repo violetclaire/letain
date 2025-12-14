@@ -11,7 +11,7 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen overflow-y-auto overflow-x-hidden bg-[#FAF9F7] font-sans">
+    <div className="min-h-screen overflow-y-auto overflow-x-hidden bg-[#FCF9F4] font-sans">
 
       <AnimatePresence>
         {!isOpen && (
@@ -22,14 +22,14 @@ export default function Landing() {
             transition={{ duration: 0.5, delay: 1 }}
           >
             <motion.div
-              className="absolute left-0 top-0 w-1/2 h-full border-r border-[#2C2C2C]/20 overflow-hidden gingham-check"
+              className="absolute left-0 top-0 w-1/2 h-full border-r border-[#5A1F2B]/20 overflow-hidden gingham-check"
               initial={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
             />
 
             <motion.div
-              className="absolute right-0 top-0 w-1/2 h-full border-l border-[#2C2C2C]/20 overflow-hidden gingham-check"
+              className="absolute right-0 top-0 w-1/2 h-full border-l border-[#5A1F2B]/20 overflow-hidden gingham-check"
               initial={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
@@ -40,9 +40,9 @@ export default function Landing() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="bg-[#FFFEF9] p-1 border border-[#2C2C2C]">
-                <div className="border border-[#2C2C2C] px-16 py-10">
-                  <h1 className="font-script text-5xl text-[#2C2C2C]">
+              <div className="bg-[#FCF9F4] p-1 border border-[#5A1F2B]">
+                <div className="border border-[#5A1F2B] px-16 py-10">
+                  <h1 className="font-script text-5xl text-[#5A1F2B]">
                     Beauvette
                   </h1>
                 </div>
@@ -58,11 +58,11 @@ export default function Landing() {
         animate={{ opacity: isOpen ? 1 : 0 }}
         transition={{ delay: 0.8, duration: 0.8 }}
       >
-        <header className="w-full px-6 py-4 flex items-center justify-between border-b border-[#2C2C2C] bg-[#FFFEF9]">
-          <h1 className="font-script text-2xl text-[#2C2C2C]">Beauvette</h1>
+        <header className="w-full px-6 py-4 flex items-center justify-between border-b border-[#5A1F2B]/30 bg-[#FCF9F4]">
+          <h1 className="font-script text-2xl text-[#5A1F2B]">Beauvette</h1>
           <button
             onClick={() => setLocation("/login")}
-            className="text-sm px-4 py-2 text-[#666] hover:text-[#2C2C2C] transition-colors"
+            className="text-sm px-4 py-2 text-[#5A1F2B]/70 hover:text-[#5A1F2B] transition-colors"
             data-testid="button-sign-in"
           >
             Sign in
@@ -71,46 +71,46 @@ export default function Landing() {
 
         <main className="px-4 py-16 max-w-lg mx-auto">
           <div className="text-center mb-12">
-            <h2 className="font-script text-6xl md:text-7xl text-[#2C2C2C] mb-6">
+            <h2 className="font-script text-6xl md:text-7xl text-[#5A1F2B] mb-6">
               Are you available?
             </h2>
-            <p className="font-elegant text-xl text-[#666] italic mb-2">
+            <p className="font-elegant text-xl text-[#5A1F2B]/70 italic mb-2">
               Wonderful. Let's make it happen.
             </p>
-            <p className="font-elegant text-xl text-[#666] italic mb-6">
+            <p className="font-elegant text-xl text-[#5A1F2B]/70 italic mb-6">
               If not, who do you trust?
             </p>
-            <p className="font-elegant text-base text-[#666] tracking-wide">
+            <p className="font-elegant text-base text-[#5A1F2B]/60 tracking-wide">
               Beauvette is building a trusted network of beauty artists for life's most important days.
             </p>
           </div>
 
           <div className="space-y-6">
-            <div className="bg-[#FFFEF9] p-1 border border-[#2C2C2C]">
-              <div className="border border-[#2C2C2C] p-6 text-center">
+            <div className="bg-[#FCF9F4] p-1 border border-[#5A1F2B]">
+              <div className="border border-[#5A1F2B] p-6 text-center">
                 <button
                   onClick={() => setLocation("/onboarding")}
-                  className="w-full px-8 py-4 text-base font-medium bg-[#2C2C2C] text-[#FFFEF9] hover:bg-[#1a1a1a] transition-colors tracking-wide mb-3"
+                  className="w-full px-8 py-4 text-base font-medium bg-[#5A1F2B] text-[#FCF9F4] hover:bg-[#4a1923] transition-colors tracking-wide mb-3"
                   data-testid="button-artist-cta"
                 >
                   I'm an Artist
                 </button>
-                <p className="text-xs text-[#666] leading-relaxed">
+                <p className="text-xs text-[#5A1F2B]/60 leading-relaxed">
                   Manage availability, receive inquiries, and book trusted clients.
                 </p>
               </div>
             </div>
 
-            <div className="bg-[#FFFEF9] p-1 border border-[#2C2C2C]">
-              <div className="border border-[#2C2C2C] p-6 text-center">
+            <div className="bg-[#E8F4F8] p-1 border border-[#B8D4E3]">
+              <div className="border border-[#B8D4E3] p-6 text-center">
                 <button
                   onClick={() => setLocation("/waitlist")}
-                  className="w-full px-8 py-4 text-base font-medium bg-transparent text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#f0efe9] transition-colors tracking-wide mb-3"
+                  className="w-full px-8 py-4 text-base font-medium bg-transparent text-[#5A1F2B] border border-[#5A1F2B]/50 hover:bg-[#FCF9F4] transition-colors tracking-wide mb-3"
                   data-testid="button-client-waitlist"
                 >
                   Join the Client Waitlist
                 </button>
-                <p className="text-xs text-[#666] leading-relaxed">
+                <p className="text-xs text-[#5A1F2B]/60 leading-relaxed">
                   We'll notify you as artists become available in your area.
                 </p>
               </div>
@@ -118,13 +118,13 @@ export default function Landing() {
           </div>
         </main>
 
-        <footer className="w-full px-6 py-6 mt-8 border-t border-[#2C2C2C] text-center bg-[#FFFEF9]">
-          <p className="text-xs text-[#666] mb-4">
+        <footer className="w-full px-6 py-6 mt-8 border-t border-[#5A1F2B]/20 text-center bg-[#FCF9F4]">
+          <p className="text-xs text-[#5A1F2B]/50 mb-4">
             © 2025 Beauvette. For life's most important days.
           </p>
           <button
             onClick={() => setLocation("/login")}
-            className="text-xs text-[#666] hover:text-[#2C2C2C] transition-colors"
+            className="text-xs text-[#5A1F2B]/50 hover:text-[#5A1F2B] transition-colors"
           >
             Already using Beauvette? Sign in
           </button>
