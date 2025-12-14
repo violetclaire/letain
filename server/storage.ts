@@ -161,8 +161,11 @@ import { eq, and, gte, lte, desc, or, sql, inArray } from "drizzle-orm";
 export interface IStorage {
   // Users (including Replit Auth)
   getUser(id: string): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByResetToken(token: string): Promise<User | undefined>;
+  updateUsername(id: string, username: string): Promise<User | undefined>;
+  isUsernameAvailable(username: string): Promise<boolean>;
   createUser(user: { email: string; password: string; firstName?: string | null; lastName?: string | null }): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateUserRole(id: string, role: string): Promise<User | undefined>;
@@ -499,6 +502,11 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username.toLowerCase()));
+    return user || undefined;
+  }
+
   async getUserByEmail(email: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.email, email));
     return user || undefined;
@@ -556,6 +564,21 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return updated || undefined;
+  }
+
+  async updateUsername(id: string, username: string): Promise<User | undefined> {
+    const [updated] = await db
+      .update(users)
+      .set({ username: username.toLowerCase(), updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async isUsernameAvailable(username: string): Promise<boolean> {
+    const normalized = username.toLowerCase();
+    const [existing] = await db.select().from(users).where(eq(users.username, normalized));
+    return !existing;
   }
 
   async updateUser(id: string, data: Partial<{ email: string; firstName: string; lastName: string; phone: string; profileImageUrl: string; squareMerchantId: string; squareAccessToken: string; squareRefreshToken: string; squareTokenExpiresAt: Date; cdiConsentGiven: boolean; cdiConsentDate: Date; cdiOptOut: boolean }>): Promise<User | undefined> {
