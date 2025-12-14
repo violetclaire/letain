@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { CheckCircle, Sparkles } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 
 export default function Waitlist() {
   const [email, setEmail] = useState("");
@@ -66,26 +66,13 @@ export default function Waitlist() {
         className="max-w-md w-full text-center"
       >
         <div className="mb-8">
-          <div
-            className="w-16 h-16 rounded-full mx-auto mb-6 flex items-center justify-center"
-            style={{ backgroundColor: "#5A1F2B" }}
-          >
-            <Sparkles className="w-8 h-8 text-white" />
-          </div>
           <h1
-            className="text-4xl md:text-5xl font-serif mb-4"
+            className="text-4xl md:text-5xl font-serif mb-6"
             style={{ color: "#5A1F2B", fontFamily: "Playfair Display, serif" }}
             data-testid="text-waitlist-title"
           >
             Beauvette
           </h1>
-          <p
-            className="text-lg"
-            style={{ color: "#6B5A50", fontFamily: "Inter, sans-serif" }}
-            data-testid="text-waitlist-description"
-          >
-            Coming soon. Join the waitlist.
-          </p>
         </div>
 
         {!submitted ? (
