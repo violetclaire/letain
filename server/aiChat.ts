@@ -543,7 +543,8 @@ export async function updateAvailabilityFromAI(
 ): Promise<void> {
   for (const dateStr of dates) {
     try {
-      const date = parseLocalDate(dateStr);
+      // Use start-of-day for availability to match storage delete/set logic
+      const date = new Date(dateStr + 'T00:00:00');
       if (isAvailable) {
         await storage.deleteAvailability(userId, date);
       } else {
