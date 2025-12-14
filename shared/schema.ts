@@ -1582,6 +1582,10 @@ export const waitlistSignups = pgTable("waitlist_signups", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: text("email").notNull().unique(),
   source: text("source"),
+  eventDate: timestamp("event_date"),
+  location: text("location"),
+  servicesNeeded: jsonb("services_needed").$type<string[]>(),
+  notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

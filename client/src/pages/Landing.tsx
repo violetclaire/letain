@@ -70,36 +70,50 @@ export default function Landing() {
         </header>
 
         <main className="px-4 py-16 max-w-lg mx-auto">
-          <div className="text-center mb-10">
+          <div className="text-center mb-12">
             <h2 className="font-script text-6xl md:text-7xl text-[#2C2C2C] mb-6">
-              Beauvette
-            </h2>
-            <p className="font-elegant text-2xl text-[#2C2C2C] mb-3">
               Are you available?
-            </p>
+            </h2>
             <p className="font-elegant text-xl text-[#666] italic mb-2">
               Wonderful. Let's make it happen.
             </p>
             <p className="font-elegant text-xl text-[#666] italic mb-6">
               If not, who do you trust?
             </p>
-            <p className="font-elegant text-base text-[#666] tracking-wide mb-2">
-              For life's most important days, the details matter.
-            </p>
             <p className="font-elegant text-base text-[#666] tracking-wide">
-              Create your calendar.
+              Beauvette is building a trusted network of beauty artists for life's most important days.
             </p>
           </div>
 
-          <div className="bg-[#FFFEF9] p-1 border border-[#2C2C2C]">
-            <div className="border border-[#2C2C2C] p-8 text-center">
-              <button
-                onClick={() => setLocation("/onboarding")}
-                className="px-10 py-4 text-base font-medium bg-[#FAF9F7] text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#f0efe9] transition-colors tracking-wide"
-                data-testid="button-create-calendar"
-              >
-                Get started
-              </button>
+          <div className="space-y-6">
+            <div className="bg-[#FFFEF9] p-1 border border-[#2C2C2C]">
+              <div className="border border-[#2C2C2C] p-6 text-center">
+                <button
+                  onClick={() => setLocation("/onboarding")}
+                  className="w-full px-8 py-4 text-base font-medium bg-[#2C2C2C] text-[#FFFEF9] hover:bg-[#1a1a1a] transition-colors tracking-wide mb-3"
+                  data-testid="button-artist-cta"
+                >
+                  I'm an Artist
+                </button>
+                <p className="text-xs text-[#666] leading-relaxed">
+                  Manage availability, receive inquiries, and book trusted clients.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-[#FFFEF9] p-1 border border-[#2C2C2C]">
+              <div className="border border-[#2C2C2C] p-6 text-center">
+                <button
+                  onClick={() => setLocation("/waitlist")}
+                  className="w-full px-8 py-4 text-base font-medium bg-transparent text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#f0efe9] transition-colors tracking-wide mb-3"
+                  data-testid="button-client-waitlist"
+                >
+                  Join the Client Waitlist
+                </button>
+                <p className="text-xs text-[#666] leading-relaxed">
+                  We'll notify you as artists become available in your area.
+                </p>
+              </div>
             </div>
           </div>
         </main>

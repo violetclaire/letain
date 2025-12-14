@@ -8986,7 +8986,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // ============================================================
   app.post("/api/waitlist", async (req, res) => {
     try {
-      const { email, source } = req.body;
+      const { email, eventDate, location, servicesNeeded, notes, source } = req.body;
       
       if (!email || typeof email !== 'string') {
         return res.status(400).json({ message: "Email is required" });
@@ -8997,16 +8997,17 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(400).json({ message: "Please enter a valid email address" });
       }
       
-      const signup = await storage.createWaitlistSignup({
+      const signup = await storage.upsertWaitlistSignup({
         email: email.toLowerCase().trim(),
-        source: source || 'browse',
+        source: source || 'waitlist',
+        eventDate: eventDate ? new Date(eventDate) : undefined,
+        location: location || undefined,
+        servicesNeeded: servicesNeeded || undefined,
+        notes: notes || undefined,
       });
       
       res.json({ success: true, message: "Added to waitlist" });
     } catch (error: any) {
-      if (error.message?.includes('unique') || error.code === '23505') {
-        return res.json({ success: true, message: "You're already on the waitlist!" });
-      }
       console.error("[Waitlist] Error:", error);
       res.status(500).json({ message: "Something went wrong" });
     }
