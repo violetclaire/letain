@@ -8981,6 +8981,37 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // ============================================================
+  // WAITLIST - Client discovery waitlist signups
+  // ============================================================
+  app.post("/api/waitlist", async (req, res) => {
+    try {
+      const { email, source } = req.body;
+      
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ message: "Please enter a valid email address" });
+      }
+      
+      const signup = await storage.createWaitlistSignup({
+        email: email.toLowerCase().trim(),
+        source: source || 'browse',
+      });
+      
+      res.json({ success: true, message: "Added to waitlist" });
+    } catch (error: any) {
+      if (error.message?.includes('unique') || error.code === '23505') {
+        return res.json({ success: true, message: "You're already on the waitlist!" });
+      }
+      console.error("[Waitlist] Error:", error);
+      res.status(500).json({ message: "Something went wrong" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

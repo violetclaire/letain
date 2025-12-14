@@ -1577,6 +1577,16 @@ export const insertProposalSchema = createInsertSchema(proposals).omit({
   respondedAt: true,
 });
 
+// Waitlist signups for client discovery launch
+export const waitlistSignups = pgTable("waitlist_signups", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull().unique(),
+  source: text("source"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertWaitlistSignupSchema = createInsertSchema(waitlistSignups).omit({ id: true, createdAt: true });
+
 // Types for Replit Auth
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -1739,3 +1749,6 @@ export type AnalyticsEvent = typeof analyticsEvents.$inferSelect;
 // Proposal Types
 export type InsertProposal = z.infer<typeof insertProposalSchema>;
 export type Proposal = typeof proposals.$inferSelect;
+
+export type InsertWaitlistSignup = z.infer<typeof insertWaitlistSignupSchema>;
+export type WaitlistSignup = typeof waitlistSignups.$inferSelect;

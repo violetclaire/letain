@@ -152,6 +152,8 @@ import {
   proposals,
   type Proposal,
   type InsertProposal,
+  waitlistSignups,
+  type WaitlistSignup,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc, or, sql, inArray } from "drizzle-orm";
@@ -427,6 +429,9 @@ export interface IStorage {
   createIqsLearningRun(run: InsertIqsLearningRun): Promise<IqsLearningRun>;
   completeIqsLearningRun(id: string, results: Partial<InsertIqsLearningRun>): Promise<IqsLearningRun | undefined>;
   getIqsLearningRuns(limit?: number): Promise<IqsLearningRun[]>;
+  
+  // Waitlist
+  createWaitlistSignup(data: { email: string; source?: string }): Promise<WaitlistSignup>;
   
   // Communication Logs
   createCommunicationLog(log: InsertCommunicationLog): Promise<CommunicationLog>;
@@ -2610,6 +2615,17 @@ export class DatabaseStorage implements IStorage {
     }
     
     return results;
+  }
+  
+  async createWaitlistSignup(data: { email: string; source?: string }): Promise<WaitlistSignup> {
+    const [signup] = await db
+      .insert(waitlistSignups)
+      .values({
+        email: data.email,
+        source: data.source || null,
+      })
+      .returning();
+    return signup;
   }
 }
 
