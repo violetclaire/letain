@@ -393,6 +393,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========== USERNAME MANAGEMENT ==========
+  app.get("/api/users/check-username/:username", async (req, res) => {
+    try {
+      const { username } = req.params;
+      
+      // Validate username format: 3-30 chars, alphanumeric and underscores only
+      const usernameRegex = /^[a-zA-Z0-9_]{3,30}$/;
+      if (!usernameRegex.test(username)) {
+        return res.status(400).json({ 
+          available: false, 
+          error: "Username must be 3-30 characters, using only letters, numbers, and underscores" 
+        });
+      }
+      
+      // Check for reserved words
+      const reservedWords = ['admin', 'artist', 'client', 'planner', 'api', 'login', 'signup', 'register', 'settings', 'profile', 'beauvette', 'support', 'help', 'browse', 'search', 'waitlist', 'onboarding'];
+      if (reservedWords.includes(username.toLowerCase())) {
+        return res.status(400).json({ available: false, error: "This username is reserved" });
+      }
+      
+      const isAvailable = await storage.isUsernameAvailable(username);
+      res.json({ available: isAvailable });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/users/:id/username", isAuthenticated, async (req: any, res) => {
+    try {
+      const requesterId = getAuthUserId(req);
+      const targetId = req.params.id;
+      const { username } = req.body;
+      
+      if (!requesterId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // Users can only update their own username unless they're admin
+      const requester = await storage.getUser(requesterId);
+      if (requesterId !== targetId && requester?.role !== 'admin') {
+        return res.status(403).json({ error: "You can only update your own username" });
+      }
+      
+      // Validate username format
+      const usernameRegex = /^[a-zA-Z0-9_]{3,30}$/;
+      if (!usernameRegex.test(username)) {
+        return res.status(400).json({ 
+          error: "Username must be 3-30 characters, using only letters, numbers, and underscores" 
+        });
+      }
+      
+      // Check for reserved words
+      const reservedWords = ['admin', 'artist', 'client', 'planner', 'api', 'login', 'signup', 'register', 'settings', 'profile', 'beauvette', 'support', 'help', 'browse', 'search', 'waitlist', 'onboarding'];
+      if (reservedWords.includes(username.toLowerCase())) {
+        return res.status(400).json({ error: "This username is reserved" });
+      }
+      
+      // Check availability
+      const isAvailable = await storage.isUsernameAvailable(username);
+      if (!isAvailable) {
+        // Check if it's the user's current username
+        const targetUser = await storage.getUser(targetId);
+        if (targetUser?.username?.toLowerCase() !== username.toLowerCase()) {
+          return res.status(400).json({ error: "This username is already taken" });
+        }
+      }
+      
+      const user = await storage.updateUsername(targetId, username);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json(user);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   // ========== USER ROLE UPDATE ==========
   app.patch("/api/users/:id/role", isAuthenticated, async (req: any, res) => {
     try {
