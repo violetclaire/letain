@@ -23,6 +23,14 @@ export default function ProfileSettings() {
     phone: "",
     venmoHandle: "",
   });
+  
+  const [usernameData, setUsernameData] = useState({
+    username: "",
+    isChecking: false,
+    isAvailable: null as boolean | null,
+    error: "",
+    isSaving: false,
+  });
 
   const [businessData, setBusinessData] = useState({
     businessName: "",
@@ -71,6 +79,52 @@ export default function ProfileSettings() {
     types: { newBookings: true, newMessages: true, paymentReminders: true, scheduleUpdates: true, marketingUpdates: false }
   };
   const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences>(defaultNotificationPrefs);
+
+  const checkUsernameAvailability = async (username: string) => {
+    if (!username || username.length < 3) {
+      setUsernameData(prev => ({ ...prev, isAvailable: null, error: "" }));
+      return;
+    }
+    
+    setUsernameData(prev => ({ ...prev, isChecking: true, error: "" }));
+    try {
+      const res = await fetch(`/api/users/check-username/${encodeURIComponent(username)}`, {
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUsernameData(prev => ({ ...prev, isAvailable: data.available, isChecking: false }));
+      } else {
+        setUsernameData(prev => ({ ...prev, isAvailable: false, error: data.error || "Invalid username", isChecking: false }));
+      }
+    } catch (err) {
+      setUsernameData(prev => ({ ...prev, isChecking: false, error: "Could not check username" }));
+    }
+  };
+
+  const saveUsername = async () => {
+    if (!user?.id || !usernameData.username) return;
+    
+    setUsernameData(prev => ({ ...prev, isSaving: true, error: "" }));
+    try {
+      const res = await fetch(`/api/users/${user.id}/username`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ username: usernameData.username }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        queryClient.invalidateQueries({ queryKey: ["user"] });
+        toast({ title: "Username Saved!", description: `Your profile link is now beauvette.com/${usernameData.username.toLowerCase()}` });
+        setUsernameData(prev => ({ ...prev, isSaving: false, isAvailable: null }));
+      } else {
+        setUsernameData(prev => ({ ...prev, isSaving: false, error: data.error || "Failed to save username" }));
+      }
+    } catch (err) {
+      setUsernameData(prev => ({ ...prev, isSaving: false, error: "Could not save username" }));
+    }
+  };
 
   const movePortfolioPhoto = (index: number, direction: 'up' | 'down') => {
     const newUrls = [...portfolioUrls];
@@ -232,6 +286,9 @@ export default function ProfileSettings() {
       });
       if (user.notificationPreferences) {
         setNotificationPrefs(user.notificationPreferences);
+      }
+      if (user.username) {
+        setUsernameData(prev => ({ ...prev, username: user.username || "" }));
       }
     }
   }, [user]);
@@ -922,46 +979,94 @@ export default function ProfileSettings() {
 
         {user?.role === "artist" && (
           <>
-          {/* Share Your Profile Link */}
+          {/* Custom Username / Profile Link */}
           <div className="card-frame rounded-lg p-6 mb-6 bg-gradient-to-r from-[#5A1F2B]/10 to-[#B8D4E3]/30 border-2 border-[#5A1F2B]/30">
             <h2 className="font-header text-lg ink-main mb-2 flex items-center gap-2">
-              <Link2 size={18} /> Share Your Beauvette Profile
+              <Link2 size={18} /> Your Beauvette Link
             </h2>
             <p className="text-sm text-black/60 mb-4">
-              Post this link on your social media to direct clients to your Beauvette page.
+              Choose a custom username for your profile link. This is what you'll share on social media.
             </p>
-            <div className="flex items-center gap-2 mb-3">
-              <input
-                type="text"
-                readOnly
-                value={`${window.location.origin}/artist/${user?.id}`}
-                className="flex-1 border border-black/20 bg-white rounded px-3 py-2 text-sm focus:outline-none"
-                data-testid="input-profile-link"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(`${window.location.origin}/artist/${user?.id}`);
-                  setLinkCopied(true);
-                  toast({ title: "Link Copied!", description: "Your profile link has been copied to clipboard." });
-                  setTimeout(() => setLinkCopied(false), 2000);
-                }}
-                className={`px-4 py-2 rounded flex items-center gap-2 transition-colors ${
-                  linkCopied 
-                    ? 'bg-green-600 text-white' 
-                    : 'bg-black text-white hover:bg-gray-800'
-                }`}
-                data-testid="button-copy-profile-link"
-              >
-                {linkCopied ? <Check size={16} /> : <Copy size={16} />}
-                {linkCopied ? "Copied!" : "Copy"}
-              </button>
+            
+            {/* Username Input */}
+            <div className="mb-4">
+              <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">Username</label>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 flex items-center border border-black/20 bg-white rounded overflow-hidden">
+                  <span className="px-3 py-2 bg-gray-100 text-sm text-black/50 border-r border-black/10">beauvette.com/</span>
+                  <input
+                    type="text"
+                    value={usernameData.username}
+                    onChange={(e) => {
+                      const value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+                      setUsernameData(prev => ({ ...prev, username: value, isAvailable: null, error: "" }));
+                    }}
+                    onBlur={() => {
+                      if (usernameData.username && usernameData.username !== user?.username) {
+                        checkUsernameAvailability(usernameData.username);
+                      }
+                    }}
+                    className="flex-1 px-3 py-2 text-sm focus:outline-none"
+                    placeholder="themakeupdolls"
+                    data-testid="input-username"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={saveUsername}
+                  disabled={usernameData.isSaving || usernameData.isChecking || usernameData.isAvailable === false || !usernameData.username || usernameData.username.length < 3}
+                  className="px-4 py-2 rounded bg-[#5A1F2B] text-white hover:bg-[#4a1923] transition-colors disabled:opacity-50 flex items-center gap-2"
+                  data-testid="button-save-username"
+                >
+                  {usernameData.isSaving ? "Saving..." : "Save"}
+                </button>
+              </div>
+              <div className="mt-2 text-xs">
+                {usernameData.isChecking && <span className="text-gray-500">Checking availability...</span>}
+                {usernameData.isAvailable === true && !usernameData.isChecking && <span className="text-green-600">✓ Username is available!</span>}
+                {usernameData.isAvailable === false && !usernameData.isChecking && <span className="text-red-500">✗ {usernameData.error || "Username is taken"}</span>}
+                {usernameData.error && usernameData.isAvailable === null && <span className="text-red-500">{usernameData.error}</span>}
+              </div>
+              <p className="text-xs text-black/40 mt-1">3-30 characters. Letters, numbers, and underscores only.</p>
+            </div>
+
+            {/* Current Link Display */}
+            <div className="border-t border-black/10 pt-4 mt-4">
+              <label className="block text-xs uppercase tracking-wide text-black/60 mb-2">Your Current Profile Link</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={user?.username ? `${window.location.origin}/${user.username}` : `${window.location.origin}/artist/${user?.id}`}
+                  className="flex-1 border border-black/20 bg-gray-50 rounded px-3 py-2 text-sm focus:outline-none"
+                  data-testid="input-profile-link"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const link = user?.username ? `${window.location.origin}/${user.username}` : `${window.location.origin}/artist/${user?.id}`;
+                    navigator.clipboard.writeText(link);
+                    setLinkCopied(true);
+                    toast({ title: "Link Copied!", description: "Your profile link has been copied to clipboard." });
+                    setTimeout(() => setLinkCopied(false), 2000);
+                  }}
+                  className={`px-4 py-2 rounded flex items-center gap-2 transition-colors ${
+                    linkCopied 
+                      ? 'bg-green-600 text-white' 
+                      : 'bg-black text-white hover:bg-gray-800'
+                  }`}
+                  data-testid="button-copy-profile-link"
+                >
+                  {linkCopied ? <Check size={16} /> : <Copy size={16} />}
+                  {linkCopied ? "Copied!" : "Copy"}
+                </button>
+              </div>
             </div>
             <a
-              href={`/artist/${user?.id}`}
+              href={user?.username ? `/${user.username}` : `/artist/${user?.id}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm text-[#6B5A50] hover:underline"
+              className="inline-flex items-center gap-1 text-sm text-[#5A8BA3] hover:underline mt-3"
               data-testid="link-view-profile"
             >
               <ExternalLink size={14} /> View your public profile

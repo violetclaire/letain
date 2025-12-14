@@ -8518,10 +8518,22 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
   
-  // Get public artist profile
+  // Get public artist profile (supports both artistSlug and username)
   app.get("/api/public/artists/:artistSlug", async (req, res) => {
     try {
-      const profile = await storage.getArtistProfileBySlug(req.params.artistSlug);
+      const slug = req.params.artistSlug;
+      
+      // First try to find by artist slug
+      let profile = await storage.getArtistProfileBySlug(slug);
+      
+      // If not found by slug, try to find by username
+      if (!profile) {
+        const userByUsername = await storage.getUserByUsername(slug);
+        if (userByUsername && userByUsername.role === 'artist') {
+          profile = await storage.getArtistProfile(userByUsername.id);
+        }
+      }
+      
       if (!profile) {
         return res.status(404).json({ error: "Artist not found" });
       }
@@ -8566,7 +8578,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
   
-  // Public inquiry submission
+  // Public inquiry submission (supports both artistSlug and username)
   app.post("/api/public/inquiries", async (req, res) => {
     try {
       const { artistSlug, clientName, clientEmail, eventDate, message } = req.body;
@@ -8575,7 +8587,17 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(400).json({ error: "Artist, name, email, and event date are required" });
       }
       
-      const profile = await storage.getArtistProfileBySlug(artistSlug);
+      // First try to find by artist slug
+      let profile = await storage.getArtistProfileBySlug(artistSlug);
+      
+      // If not found by slug, try to find by username
+      if (!profile) {
+        const userByUsername = await storage.getUserByUsername(artistSlug);
+        if (userByUsername && userByUsername.role === 'artist') {
+          profile = await storage.getArtistProfile(userByUsername.id);
+        }
+      }
+      
       if (!profile) {
         return res.status(404).json({ error: "Artist not found" });
       }
