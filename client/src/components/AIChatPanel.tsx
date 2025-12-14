@@ -116,11 +116,17 @@ export default function AIChatPanel({ userId, userName, onAvailabilityUpdate, on
     loadHistory();
   }, []);
 
+  // Scroll to bottom when messages change or loading finishes
   useEffect(() => {
     if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      // Use requestAnimationFrame to ensure DOM has updated
+      requestAnimationFrame(() => {
+        if (chatContainerRef.current) {
+          chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+        }
+      });
     }
-  }, [messages]);
+  }, [messages, loadingHistory]);
 
   const compressImage = (file: File, maxSize: number = 800): Promise<string> => {
     return new Promise((resolve, reject) => {

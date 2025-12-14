@@ -122,7 +122,7 @@
     opacity: 0.4;
   }
 
-  /* Plum Check pattern for elevator doors */
+  /* Plum Check pattern for elevator doors - Original olive/sage */
   .gingham-pattern {
     background-color: #F4F2EC;
     background-image:
@@ -130,15 +130,15 @@
       linear-gradient(-45deg, rgba(90, 31, 43, 0.35) 25%, transparent 25%),
       linear-gradient(45deg, transparent 75%, rgba(90, 31, 43, 0.35) 75%),
       linear-gradient(-45deg, transparent 75%, rgba(90, 31, 43, 0.35) 75%),
-      linear-gradient(45deg, #B8D4E3 25%, transparent 25%),
-      linear-gradient(-45deg, #B8D4E3 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, #B8D4E3 75%),
-      linear-gradient(-45deg, transparent 75%, #B8D4E3 75%);
+      linear-gradient(45deg, #9A9472 25%, transparent 25%),
+      linear-gradient(-45deg, #9A9472 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #9A9472 75%),
+      linear-gradient(-45deg, transparent 75%, #9A9472 75%);
     background-size: 16px 16px;
     background-position: 0 0, 8px 0, 8px -8px, 0px 8px, 0 0, 8px 0, 8px -8px, 0px 8px;
   }
   
-  /* Plum Check pattern */
+  /* Plum Check pattern - Original olive/sage */
   .gingham-check {
     background-color: #F4F2EC;
     background-image:
@@ -153,8 +153,8 @@
         90deg,
         transparent,
         transparent 16px,
-        rgba(184, 212, 227, 0.4) 16px,
-        rgba(184, 212, 227, 0.4) 32px
+        rgba(154, 148, 114, 0.4) 16px,
+        rgba(154, 148, 114, 0.4) 32px
       );
   }
 
