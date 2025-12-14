@@ -7,6 +7,7 @@ import VintageCalendar from "@/components/VintageCalendar";
 
 interface OnboardingData {
   name: string;
+  email: string;
   businessName: string;
   instagramHandle: string;
   tiktokHandle: string;
@@ -27,6 +28,7 @@ export default function PublicOnboarding() {
   
   const [data, setData] = useState<OnboardingData>({
     name: "",
+    email: "",
     businessName: "",
     instagramHandle: "",
     tiktokHandle: "",
@@ -36,7 +38,7 @@ export default function PublicOnboarding() {
     referralArtists: ["", "", ""]
   });
 
-  const totalSteps = 6;
+  const totalSteps = 7;
 
   const updateData = (field: keyof OnboardingData, value: any) => {
     setData(prev => ({ ...prev, [field]: value }));
@@ -45,11 +47,12 @@ export default function PublicOnboarding() {
   const canProceed = () => {
     switch (step) {
       case 1: return data.name.trim().length > 0;
-      case 2: return data.businessName.trim().length > 0;
-      case 3: return data.instagramHandle.trim().length > 0;
-      case 4: return true;
+      case 2: return data.email.trim().length > 0 && data.email.includes('@');
+      case 3: return data.businessName.trim().length > 0;
+      case 4: return data.instagramHandle.trim().length > 0;
       case 5: return true;
-      case 6: return data.referralArtists.filter(a => a.trim()).length > 0;
+      case 6: return true;
+      case 7: return data.referralArtists.filter(a => a.trim()).length > 0;
       default: return false;
     }
   };
@@ -62,6 +65,7 @@ export default function PublicOnboarding() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: data.name,
+          email: data.email.trim().toLowerCase(),
           businessName: data.businessName,
           instagramHandle: data.instagramHandle.replace("@", ""),
           tiktokHandle: data.tiktokHandle.replace("@", ""),
@@ -153,6 +157,31 @@ export default function PublicOnboarding() {
             className="space-y-6"
           >
             <div className="text-center">
+              <h2 className="font-header text-2xl text-[#2C2C2C] mb-2">What's your email?</h2>
+              <p className="text-sm text-[#666]">We'll send you your calendar link and booking notifications</p>
+            </div>
+            <input
+              type="email"
+              value={data.email}
+              onChange={(e) => updateData("email", e.target.value)}
+              placeholder="your@email.com"
+              className="w-full px-4 py-3 text-lg border border-[#2C2C2C] bg-[#FAF9F7] text-[#2C2C2C] focus:outline-none focus:ring-1 focus:ring-[#2C2C2C]"
+              autoFocus
+              data-testid="input-email"
+            />
+          </motion.div>
+        );
+
+      case 3:
+        return (
+          <motion.div
+            key="step3"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-6"
+          >
+            <div className="text-center">
               <h2 className="font-header text-2xl text-[#2C2C2C] mb-2">What's your business name?</h2>
               <p className="text-sm text-[#666]">Your brand or company name</p>
             </div>
@@ -168,10 +197,10 @@ export default function PublicOnboarding() {
           </motion.div>
         );
 
-      case 3:
+      case 4:
         return (
           <motion.div
-            key="step3"
+            key="step4"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
@@ -196,10 +225,10 @@ export default function PublicOnboarding() {
           </motion.div>
         );
 
-      case 4:
+      case 5:
         return (
           <motion.div
-            key="step4"
+            key="step5"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
@@ -241,10 +270,10 @@ export default function PublicOnboarding() {
           </motion.div>
         );
 
-      case 5:
+      case 6:
         return (
           <motion.div
-            key="step5"
+            key="step6"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
@@ -263,10 +292,10 @@ export default function PublicOnboarding() {
           </motion.div>
         );
 
-      case 6:
+      case 7:
         return (
           <motion.div
-            key="step6"
+            key="step7"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}

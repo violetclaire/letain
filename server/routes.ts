@@ -8442,7 +8442,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // Public artist onboarding
   app.post("/api/public/artists/onboard", async (req, res) => {
     try {
-      const { name, businessName, instagramHandle, tiktokHandle, pinterestHandle, 
+      const { name, email, businessName, instagramHandle, tiktokHandle, pinterestHandle, 
               websiteUrl, bookedDates, referralArtists } = req.body;
       
       if (!name || !businessName || !instagramHandle) {
@@ -8458,12 +8458,16 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(400).json({ error: "An artist with this Instagram handle already exists" });
       }
       
-      // Create user and profile using the public artist method (no email required)
+      // Create user and profile using the public artist method
       const user = await storage.createPublicArtistUser({
         firstName: name.split(' ')[0],
         lastName: name.split(' ').slice(1).join(' ') || null,
+        email: email || null,
         role: 'artist',
       });
+      
+      // Generate edit token for settings access
+      const editToken = randomUUID();
       
       // Create artist profile
       const profile = await storage.createArtistProfile({
@@ -8476,6 +8480,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         artistSlug,
         referralArtists: referralArtists || [],
         verificationStatus: 'approved',
+        editToken,
       });
       
       // Save availability (booked dates)
@@ -8496,6 +8501,28 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         metadata: { artistSlug, bookedDatesCount: bookedDates?.length || 0 }
       });
       
+      // Send welcome email if email provided
+      if (email) {
+        try {
+          const { sendArtistWelcomeEmail } = await import('./emailService');
+          const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+            ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+            : 'https://beauvette.app';
+          const calendarUrl = `${baseUrl}/${artistSlug}`;
+          const settingsUrl = `${baseUrl}/${artistSlug}/settings?token=${editToken}`;
+          await sendArtistWelcomeEmail({
+            toEmail: email,
+            artistName: name,
+            businessName,
+            calendarUrl,
+            settingsUrl
+          });
+          console.log(`[Public Onboarding] Welcome email sent to ${email}`);
+        } catch (emailError) {
+          console.error("[Public Onboarding] Failed to send welcome email:", emailError);
+        }
+      }
+      
       res.json({ artistSlug, userId: user.id });
     } catch (error: any) {
       console.error("[Public Onboarding] Error:", error);
@@ -8514,6 +8541,121 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       res.json({ success: true });
     } catch (error: any) {
       console.error("[Confirm Share] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Get artist settings by edit token (no login required)
+  app.get("/api/public/artists/settings", async (req, res) => {
+    try {
+      const token = req.query.token as string;
+      if (!token) {
+        return res.status(400).json({ error: "Edit token is required" });
+      }
+      
+      const profile = await storage.getArtistProfileByEditToken(token);
+      if (!profile) {
+        return res.status(404).json({ error: "Invalid or expired token" });
+      }
+      
+      const user = await storage.getUser(profile.userId);
+      
+      res.json({
+        artistSlug: profile.artistSlug,
+        businessName: profile.businessName,
+        artistName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : profile.businessName,
+        infoSheetType: profile.infoSheetType || 'template',
+        infoSheetContent: profile.infoSheetContent,
+        infoSheetPdfUrl: profile.infoSheetPdfUrl,
+        infoSheetEnabled: profile.infoSheetEnabled ?? true,
+      });
+    } catch (error: any) {
+      console.error("[Artist Settings Get] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Update artist settings by edit token (no login required)
+  app.patch("/api/public/artists/settings", async (req, res) => {
+    try {
+      const token = req.query.token as string;
+      if (!token) {
+        return res.status(400).json({ error: "Edit token is required" });
+      }
+      
+      const profile = await storage.getArtistProfileByEditToken(token);
+      if (!profile) {
+        return res.status(404).json({ error: "Invalid or expired token" });
+      }
+      
+      const { infoSheetType, infoSheetContent, infoSheetPdfUrl, infoSheetEnabled } = req.body;
+      
+      const updateData: any = {};
+      if (infoSheetType !== undefined) updateData.infoSheetType = infoSheetType;
+      if (infoSheetContent !== undefined) updateData.infoSheetContent = infoSheetContent;
+      if (infoSheetPdfUrl !== undefined) updateData.infoSheetPdfUrl = infoSheetPdfUrl;
+      if (infoSheetEnabled !== undefined) updateData.infoSheetEnabled = infoSheetEnabled;
+      
+      const updatedProfile = await storage.updateArtistProfile(profile.id, updateData);
+      
+      res.json({
+        success: true,
+        infoSheetType: updatedProfile?.infoSheetType,
+        infoSheetPdfUrl: updatedProfile?.infoSheetPdfUrl,
+        infoSheetEnabled: updatedProfile?.infoSheetEnabled,
+      });
+    } catch (error: any) {
+      console.error("[Artist Settings Update] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Upload info sheet file by edit token (no login required)
+  app.post("/api/public/artists/settings/upload", async (req, res) => {
+    try {
+      const token = req.query.token as string;
+      if (!token) {
+        return res.status(400).json({ error: "Edit token is required" });
+      }
+      
+      const profile = await storage.getArtistProfileByEditToken(token);
+      if (!profile) {
+        return res.status(404).json({ error: "Invalid or expired token" });
+      }
+      
+      const { fileName, fileData, mimeType } = req.body;
+      if (!fileName || !fileData || !mimeType) {
+        return res.status(400).json({ error: "fileName, fileData, and mimeType are required" });
+      }
+      
+      // Validate file type
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(mimeType)) {
+        return res.status(400).json({ error: "Only PDF and image files are allowed" });
+      }
+      
+      const objectService = new ObjectStorageService();
+      const timestamp = Date.now();
+      const extension = mimeType.split('/')[1] || 'pdf';
+      const safeName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const objectPath = `public/info-sheets/${profile.artistSlug}/${timestamp}-${safeName}`;
+      
+      // Decode base64 and upload
+      const fileBuffer = Buffer.from(fileData, 'base64');
+      const publicUrl = await objectService.uploadBuffer(objectPath, fileBuffer, mimeType);
+      
+      // Update profile with new info sheet URL
+      await storage.updateArtistProfile(profile.id, {
+        infoSheetPdfUrl: publicUrl,
+        infoSheetType: 'pdf',
+      });
+      
+      res.json({
+        success: true,
+        url: publicUrl,
+      });
+    } catch (error: any) {
+      console.error("[Artist Info Sheet Upload] Error:", error);
       res.status(500).json({ error: error.message });
     }
   });

@@ -184,6 +184,7 @@ export const artistProfiles = pgTable("artist_profiles", {
   defaultHoldHours: integer("default_hold_hours").default(72), // Default: 72 hours
   slaTargets: jsonb("sla_targets").$type<VendorSlaTargets>(),
   onboardingPreferences: jsonb("onboarding_preferences").$type<VendorOnboardingPreferences>(),
+  editToken: varchar("edit_token").unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

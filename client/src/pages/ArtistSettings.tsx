@@ -1,0 +1,292 @@
+import { useState, useRef } from "react";
+import { useRoute, useLocation } from "wouter";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { motion } from "framer-motion";
+import { Upload, FileText, Check, ArrowLeft, Image, ExternalLink, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+
+interface ArtistSettingsData {
+  artistSlug: string;
+  businessName: string;
+  artistName: string;
+  infoSheetType: 'template' | 'custom' | 'pdf';
+  infoSheetContent?: string;
+  infoSheetPdfUrl?: string;
+  infoSheetEnabled: boolean;
+}
+
+export default function ArtistSettings() {
+  const [, params] = useRoute("/:artistSlug/settings");
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const artistSlug = params?.artistSlug || "";
+  const searchParams = new URLSearchParams(window.location.search);
+  const token = searchParams.get("token") || "";
+
+  const [uploading, setUploading] = useState(false);
+
+  const { data: settings, isLoading, error } = useQuery<ArtistSettingsData>({
+    queryKey: ["/api/public/artists/settings", token],
+    queryFn: async () => {
+      const res = await fetch(`/api/public/artists/settings?token=${token}`);
+      if (!res.ok) throw new Error("Invalid or expired settings link");
+      return res.json();
+    },
+    enabled: !!token
+  });
+
+  const updateSettings = useMutation({
+    mutationFn: async (data: Partial<ArtistSettingsData>) => {
+      const res = await fetch(`/api/public/artists/settings?token=${token}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      if (!res.ok) throw new Error("Failed to update settings");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/public/artists/settings", token] });
+      toast({
+        title: "Settings saved",
+        description: "Your info sheet settings have been updated."
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save settings. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast({
+        title: "File too large",
+        description: "Please select a file smaller than 10MB.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a PDF or image file (JPG, PNG, WebP).",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const base64 = btoa(
+        new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+      );
+      
+      const res = await fetch(`/api/public/artists/settings/upload?token=${token}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileData: base64,
+          mimeType: file.type
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error("Upload failed");
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["/api/public/artists/settings", token] });
+      
+      toast({
+        title: "File uploaded",
+        description: "Your info sheet has been uploaded successfully."
+      });
+    } catch (err) {
+      toast({
+        title: "Upload failed",
+        description: "There was an error uploading your file. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  if (!token) {
+    return (
+      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-serif text-[#6B4A55] mb-4">Invalid Link</h1>
+          <p className="text-gray-600">This settings link is missing or invalid. Please use the link from your welcome email.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center">
+        <div className="animate-pulse text-[#6B4A55]">Loading...</div>
+      </div>
+    );
+  }
+
+  if (error || !settings) {
+    return (
+      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-serif text-[#6B4A55] mb-4">Link Expired or Invalid</h1>
+          <p className="text-gray-600">This settings link may have expired or is invalid. Please contact support if you need access.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#FAF8F5]">
+      <header className="bg-white border-b border-gray-200">
+        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-4">
+          <button
+            onClick={() => setLocation(`/${artistSlug}`)}
+            className="text-[#6B4A55] hover:text-[#5A1F2B] transition-colors"
+            data-testid="button-back"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-xl font-serif text-[#6B4A55]">{settings.businessName}</h1>
+            <p className="text-sm text-gray-500">Settings</p>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-2xl mx-auto px-4 py-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-8"
+        >
+          <section className="bg-white rounded-xl p-6 shadow-sm">
+            <h2 className="text-lg font-serif text-[#6B4A55] mb-4">Pricing & Info Sheet</h2>
+            <p className="text-gray-600 text-sm mb-6">
+              Upload your pricing guide or info sheet. This will be automatically sent to clients when they inquire about your services.
+            </p>
+
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="info-sheet-enabled" className="text-[#6B4A55] font-medium">
+                    Auto-send to clients
+                  </Label>
+                  <p className="text-sm text-gray-500">Send your info sheet when clients submit an inquiry</p>
+                </div>
+                <Switch
+                  id="info-sheet-enabled"
+                  checked={settings.infoSheetEnabled}
+                  onCheckedChange={(checked) => updateSettings.mutate({ infoSheetEnabled: checked })}
+                  data-testid="switch-info-sheet-enabled"
+                />
+              </div>
+
+              {settings.infoSheetPdfUrl && (
+                <div className="bg-[#FAF8F5] rounded-lg p-4">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 bg-[#6B4A55] rounded-lg flex items-center justify-center flex-shrink-0">
+                      {settings.infoSheetPdfUrl.match(/\.(jpg|jpeg|png|webp)$/i) ? (
+                        <Image className="w-6 h-6 text-white" />
+                      ) : (
+                        <FileText className="w-6 h-6 text-white" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[#6B4A55] truncate">Current Info Sheet</p>
+                      <p className="text-xs text-gray-500">
+                        {settings.infoSheetPdfUrl.match(/\.(jpg|jpeg|png|webp)$/i) ? 'Image' : 'PDF'} uploaded
+                      </p>
+                      <a
+                        href={settings.infoSheetPdfUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-sm text-[#6B4A55] hover:underline mt-2"
+                        data-testid="link-view-info-sheet"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        View current file
+                      </a>
+                    </div>
+                    <div className="flex items-center text-green-600">
+                      <Check className="w-5 h-5" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-[#6B4A55] transition-colors">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileSelect}
+                  accept=".pdf,.jpg,.jpeg,.png,.webp"
+                  className="hidden"
+                  data-testid="input-file-upload"
+                />
+                
+                {uploading ? (
+                  <div className="space-y-3">
+                    <Loader2 className="w-10 h-10 mx-auto text-[#6B4A55] animate-spin" />
+                    <p className="text-gray-600">Uploading...</p>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="w-10 h-10 mx-auto text-gray-400 mb-3" />
+                    <p className="text-gray-600 mb-2">
+                      {settings.infoSheetPdfUrl ? 'Upload a new file to replace' : 'Drag and drop or click to upload'}
+                    </p>
+                    <p className="text-xs text-gray-400 mb-4">PDF, JPG, PNG, or WebP (max 10MB)</p>
+                    <Button
+                      onClick={() => fileInputRef.current?.click()}
+                      variant="outline"
+                      className="border-[#6B4A55] text-[#6B4A55] hover:bg-[#6B4A55] hover:text-white"
+                      data-testid="button-upload-file"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {settings.infoSheetPdfUrl ? 'Replace File' : 'Choose File'}
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </section>
+
+          <section className="bg-white rounded-xl p-6 shadow-sm">
+            <h2 className="text-lg font-serif text-[#6B4A55] mb-4">Your Calendar Link</h2>
+            <div className="bg-[#FAF8F5] rounded-lg p-4">
+              <p className="text-sm text-gray-600 mb-2">Share this link with potential clients:</p>
+              <code className="block text-[#6B4A55] font-mono text-sm bg-white px-3 py-2 rounded border break-all">
+                beauvette.app/{settings.artistSlug}
+              </code>
+            </div>
+          </section>
+        </motion.div>
+      </main>
+    </div>
+  );
+}

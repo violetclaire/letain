@@ -1507,3 +1507,114 @@ export async function sendWaitlistConfirmationEmail({
     return { success: false, error: err.message };
   }
 }
+
+export async function sendArtistWelcomeEmail({
+  toEmail,
+  artistName,
+  businessName,
+  calendarUrl,
+  settingsUrl
+}: {
+  toEmail: string;
+  artistName: string;
+  businessName: string;
+  calendarUrl: string;
+  settingsUrl?: string;
+}) {
+  const { client } = await getResendClient();
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Georgia', serif; background-color: #f5f1e8; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { 
+          background-color: #FAF7F2;
+          background-image:
+            repeating-linear-gradient(0deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px),
+            repeating-linear-gradient(90deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px);
+          padding: 28px; 
+          text-align: center;
+          border-bottom: 1px solid rgba(107, 74, 85, 0.2);
+        }
+        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55; }
+        .header p { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin: 8px 0 0 0; color: #6B4A55; opacity: 0.8; }
+        .content { padding: 32px; }
+        .greeting { font-size: 20px; color: #6B4A55; margin-bottom: 16px; }
+        .link-box { background: #f5f1e8; padding: 16px; border-radius: 6px; margin: 24px 0; text-align: center; word-break: break-all; }
+        .link-box a { color: #6B4A55; font-weight: 600; text-decoration: none; font-size: 16px; }
+        .button { display: inline-block; background: #6B4A55; color: white !important; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-size: 14px; letter-spacing: 1px; margin: 16px 0; }
+        .tips { background: #faf8f5; padding: 20px; border-radius: 6px; margin: 24px 0; }
+        .tips h3 { color: #6B4A55; margin: 0 0 12px 0; font-size: 16px; }
+        .tips ul { margin: 0; padding-left: 20px; color: #666; }
+        .tips li { margin: 8px 0; }
+        .footer { text-align: center; padding: 20px; color: #888; font-size: 12px; border-top: 1px solid #eee; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Beauvette</h1>
+          <p>For Life's Most Important Days</p>
+        </div>
+        <div class="content">
+          <p class="greeting">Welcome to Beauvette, ${escapeHtml(artistName)}!</p>
+          
+          <p>Your calendar for <strong>${escapeHtml(businessName)}</strong> is now live and ready to receive inquiries.</p>
+          
+          <div class="link-box">
+            <p style="margin: 0 0 8px 0; color: #666; font-size: 14px;">Your calendar link:</p>
+            <a href="${calendarUrl}">${calendarUrl}</a>
+          </div>
+          
+          <p style="text-align: center;">
+            <a href="${calendarUrl}" class="button">View My Calendar</a>
+          </p>
+          
+          <div class="tips">
+            <h3>Next Steps:</h3>
+            <ul>
+              <li>Add your calendar link to your Instagram bio</li>
+              <li>Share it in your stories when clients ask about availability</li>
+              <li>Upload your pricing/info sheet so clients get all the details</li>
+            </ul>
+          </div>
+          
+          ${settingsUrl ? `
+          <div class="link-box" style="margin-top: 24px;">
+            <p style="margin: 0 0 8px 0; color: #666; font-size: 14px;">Manage your settings & upload your info sheet:</p>
+            <a href="${settingsUrl}" class="button" style="display: inline-block; margin: 8px 0 0 0;">My Settings</a>
+          </div>
+          ` : ''}
+          
+          <p>We're excited to have you on Beauvette!</p>
+          
+          <p>With love,<br>The Beauvette Team</p>
+        </div>
+        <div class="footer">
+          <a href="https://beauvette.app" style="color: #6B4A55;">Beauvette</a> - For Life's Most Important Days
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const senderEmail = 'Beauvette <violet@beauvette.com>';
+  
+  try {
+    console.log("Sending artist welcome email to:", toEmail);
+    const result = await client.emails.send({
+      from: senderEmail,
+      to: toEmail.trim(),
+      subject: `Welcome to Beauvette, ${artistName}! Your calendar is live`,
+      html: htmlContent
+    });
+    console.log("Artist welcome email sent:", JSON.stringify(result));
+    return { success: true, result };
+  } catch (err: any) {
+    console.error("Failed to send artist welcome email:", err.message);
+    return { success: false, error: err.message };
+  }
+}

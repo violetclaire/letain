@@ -44,6 +44,7 @@ import PaymentSuccess from "@/pages/PaymentSuccess";
 import PublicOnboarding from "@/pages/PublicOnboarding";
 import PublicArtistCalendar from "@/pages/PublicArtistCalendar";
 import PublicAnalytics from "@/pages/PublicAnalytics";
+import ArtistSettings from "@/pages/ArtistSettings";
 import Proposals from "@/pages/Proposals";
 import VendorOnboarding from "@/pages/VendorOnboarding";
 import Waitlist from "@/pages/Waitlist";
@@ -126,6 +127,7 @@ function Router() {
       {/* Public Routes */}
       <Route path="/onboarding" component={PublicOnboarding} />
       <Route path="/analytics" component={PublicAnalytics} />
+      <Route path="/:artistSlug/settings" component={ArtistSettings} />
       <Route path="/:artistSlug">
         {(params) => <PublicArtistCalendar />}
       </Route>

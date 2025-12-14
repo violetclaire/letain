@@ -531,12 +531,13 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createPublicArtistUser(userData: { firstName?: string | null; lastName?: string | null; role: string }): Promise<User> {
+  async createPublicArtistUser(userData: { firstName?: string | null; lastName?: string | null; email?: string | null; role: string }): Promise<User> {
     const [user] = await db
       .insert(users)
       .values({
         firstName: userData.firstName || null,
         lastName: userData.lastName || null,
+        email: userData.email || null,
         role: userData.role,
       })
       .returning();
@@ -2417,6 +2418,15 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(artistProfiles)
       .where(eq(artistProfiles.artistSlug, slug));
+    return profile || undefined;
+  }
+  
+  // Artist Profile by Edit Token
+  async getArtistProfileByEditToken(token: string): Promise<ArtistProfile | undefined> {
+    const [profile] = await db
+      .select()
+      .from(artistProfiles)
+      .where(eq(artistProfiles.editToken, token));
     return profile || undefined;
   }
   
