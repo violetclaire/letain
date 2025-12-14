@@ -86,36 +86,40 @@ export default function Landing() {
           </div>
 
           <div className="space-y-6">
-            <div className="bg-[#FCF9F4] p-1 border border-[#5A1F2B]">
-              <div className="border border-[#5A1F2B] p-6 text-center">
-                <button
-                  onClick={() => setLocation("/onboarding")}
-                  className="w-full px-8 py-4 text-base font-medium bg-[#5A1F2B] text-[#FCF9F4] hover:bg-[#4a1923] transition-colors tracking-wide mb-4"
-                  data-testid="button-artist-cta"
-                >
-                  Set up your availability calendar, link it in your bio
-                </button>
-                <p className="text-sm text-[#5A1F2B]/70 leading-relaxed mb-3">
-                  Think of Beauvette as your personal secretary. It's trained on your responsiveness and communication style. It handles availability, sends pricing when appropriate, and reduces coordination while you remain fully in control.
-                </p>
-                <p className="text-sm text-[#5A1F2B]/80 font-medium">
-                  Welcome to Beauvette, the first platform built for artists and their clients.
-                </p>
+            <div className="border border-[#5A1F2B] p-1">
+              <div className="border border-[#FCF9F4] p-1">
+                <div className="border border-[#5A1F2B] p-6 text-center bg-[#FCF9F4]">
+                  <button
+                    onClick={() => setLocation("/onboarding")}
+                    className="w-full px-8 py-4 text-base font-medium bg-[#5A1F2B] text-[#FCF9F4] hover:bg-[#4a1923] transition-colors tracking-wide mb-4"
+                    data-testid="button-artist-cta"
+                  >
+                    Set up your availability calendar, link it in your bio
+                  </button>
+                  <p className="text-sm text-[#5A1F2B]/70 leading-relaxed mb-3">
+                    Think of Beauvette as your personal secretary. It's trained on your responsiveness and communication style. It handles availability, sends pricing when appropriate, and reduces coordination while you remain fully in control.
+                  </p>
+                  <p className="text-sm text-[#5A1F2B]/80 font-medium">
+                    Welcome to Beauvette, the first platform built for artists and their clients.
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="bg-[#E8F4F8] p-1 border border-[#B8D4E3]">
-              <div className="border border-[#B8D4E3] p-6 text-center">
-                <button
-                  onClick={() => setLocation("/waitlist")}
-                  className="w-full px-8 py-4 text-base font-medium bg-transparent text-[#5A1F2B] border border-[#5A1F2B]/50 hover:bg-[#FCF9F4] transition-colors tracking-wide mb-3"
-                  data-testid="button-client-waitlist"
-                >
-                  Join the Client Waitlist
-                </button>
-                <p className="text-xs text-[#5A1F2B]/60 leading-relaxed">
-                  We'll notify you as artists become available in your area.
-                </p>
+            <div className="border border-[#5A1F2B] p-1">
+              <div className="border border-[#FCF9F4] p-1">
+                <div className="border border-[#5A1F2B] p-6 text-center bg-[#FCF9F4]">
+                  <button
+                    onClick={() => setLocation("/waitlist")}
+                    className="w-full px-8 py-4 text-base font-medium bg-transparent text-[#5A1F2B] border border-[#5A1F2B]/50 hover:bg-[#FCF9F4] transition-colors tracking-wide mb-3"
+                    data-testid="button-client-waitlist"
+                  >
+                    Join the Client Waitlist
+                  </button>
+                  <p className="text-xs text-[#5A1F2B]/60 leading-relaxed">
+                    We'll notify you as artists become available in your area.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
