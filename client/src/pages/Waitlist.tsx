@@ -77,10 +77,7 @@ export default function Waitlist() {
   };
 
   return (
-    <div
-      className="min-h-screen py-12 px-4"
-      style={{ backgroundColor: "#FAF9F7" }}
-    >
+    <div className="min-h-screen py-12 px-4 bg-[#FCF9F4]">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -89,15 +86,13 @@ export default function Waitlist() {
       >
         <div className="text-center mb-8">
           <h1
-            className="font-script text-4xl md:text-5xl mb-4"
-            style={{ color: "#2C2C2C" }}
+            className="font-script text-4xl md:text-5xl mb-4 text-[#5A1F2B]"
             data-testid="text-waitlist-title"
           >
             Join the Client Waitlist
           </h1>
           <p
-            className="text-base leading-relaxed"
-            style={{ color: "#666" }}
+            className="text-base leading-relaxed text-[#5A1F2B]/60"
             data-testid="text-waitlist-description"
           >
             Client access opens as verified artists come online. Share your event details and we'll reach out when matching begins.
@@ -105,98 +100,104 @@ export default function Waitlist() {
         </div>
 
         {!submitted ? (
-          <div className="bg-[#FFFEF9] p-1 border border-[#2C2C2C]">
-            <div className="border border-[#2C2C2C] p-6">
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium text-[#2C2C2C]">
-                    Email *
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="your@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="h-11 border-[#2C2C2C]/30 focus:border-[#2C2C2C] bg-white"
-                    data-testid="input-waitlist-email"
-                  />
-                </div>
+          <div className="bg-[#E8F4F8] p-1 border border-[#B8D4E3]">
+            <div className="border border-[#5A1F2B] p-1">
+              <div className="border border-[#E8F4F8] p-1">
+                <div className="border border-[#5A1F2B] p-6 bg-[#E8F4F8]">
+                  <form onSubmit={handleSubmit} className="space-y-5">
+                    <div className="space-y-2">
+                      <Label htmlFor="email" className="text-sm font-medium text-[#5A1F2B]">
+                        Email *
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="your@email.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        className="h-11 border-[#5A1F2B]/30 focus:border-[#5A1F2B] bg-white text-[#5A1F2B]"
+                        data-testid="input-waitlist-email"
+                      />
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="eventDate" className="text-sm font-medium text-[#2C2C2C]">
-                    Event Date
-                  </Label>
-                  <Input
-                    id="eventDate"
-                    type="date"
-                    value={eventDate}
-                    onChange={(e) => setEventDate(e.target.value)}
-                    className="h-11 border-[#2C2C2C]/30 focus:border-[#2C2C2C] bg-white"
-                    data-testid="input-waitlist-date"
-                  />
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="eventDate" className="text-sm font-medium text-[#5A1F2B]">
+                        Event Date
+                      </Label>
+                      <Input
+                        id="eventDate"
+                        type="date"
+                        value={eventDate}
+                        onChange={(e) => setEventDate(e.target.value)}
+                        className="h-11 border-[#5A1F2B]/30 focus:border-[#5A1F2B] bg-white text-[#5A1F2B]"
+                        data-testid="input-waitlist-date"
+                      />
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="location" className="text-sm font-medium text-[#2C2C2C]">
-                    Location (City, State)
-                  </Label>
-                  <Input
-                    id="location"
-                    type="text"
-                    placeholder="e.g., Austin, TX"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className="h-11 border-[#2C2C2C]/30 focus:border-[#2C2C2C] bg-white"
-                    data-testid="input-waitlist-location"
-                  />
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="location" className="text-sm font-medium text-[#5A1F2B]">
+                        Location (City, State)
+                      </Label>
+                      <Input
+                        id="location"
+                        type="text"
+                        placeholder="e.g., Austin, TX"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        className="h-11 border-[#5A1F2B]/30 focus:border-[#5A1F2B] bg-white text-[#5A1F2B]"
+                        data-testid="input-waitlist-location"
+                      />
+                    </div>
 
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium text-[#2C2C2C]">
-                    Services Needed
-                  </Label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {SERVICE_OPTIONS.map((service) => (
-                      <label
-                        key={service.id}
-                        className="flex items-center space-x-2 cursor-pointer"
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium text-[#5A1F2B]">
+                        Services Needed
+                      </Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {SERVICE_OPTIONS.map((service) => (
+                          <label
+                            key={service.id}
+                            className="flex items-center space-x-2 cursor-pointer"
+                          >
+                            <Checkbox
+                              checked={servicesNeeded.includes(service.id)}
+                              onCheckedChange={() => handleServiceToggle(service.id)}
+                              data-testid={`checkbox-service-${service.id}`}
+                            />
+                            <span className="text-sm text-[#5A1F2B]">{service.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="notes" className="text-sm font-medium text-[#5A1F2B]">
+                        Notes (optional)
+                      </Label>
+                      <Textarea
+                        id="notes"
+                        placeholder="Any additional details about your event..."
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        className="min-h-[80px] border-[#5A1F2B]/30 focus:border-[#5A1F2B] bg-white resize-none text-[#5A1F2B]"
+                        data-testid="input-waitlist-notes"
+                      />
+                    </div>
+
+                    <div className="w-full bg-[#5A1F2B] p-1">
+                      <Button
+                        type="submit"
+                        disabled={joinWaitlist.isPending || !email}
+                        className="w-full h-12 text-base font-medium bg-[#5A1F2B] text-[#FCF9F4] border border-[#FCF9F4]/40 hover:bg-[#4a1923]"
+                        data-testid="button-join-waitlist"
                       >
-                        <Checkbox
-                          checked={servicesNeeded.includes(service.id)}
-                          onCheckedChange={() => handleServiceToggle(service.id)}
-                          data-testid={`checkbox-service-${service.id}`}
-                        />
-                        <span className="text-sm text-[#2C2C2C]">{service.label}</span>
-                      </label>
-                    ))}
-                  </div>
+                        {joinWaitlist.isPending ? "Joining..." : "Join Waitlist"}
+                      </Button>
+                    </div>
+                  </form>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="notes" className="text-sm font-medium text-[#2C2C2C]">
-                    Notes (optional)
-                  </Label>
-                  <Textarea
-                    id="notes"
-                    placeholder="Any additional details about your event..."
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    className="min-h-[80px] border-[#2C2C2C]/30 focus:border-[#2C2C2C] bg-white resize-none"
-                    data-testid="input-waitlist-notes"
-                  />
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={joinWaitlist.isPending || !email}
-                  className="w-full h-12 text-base font-medium bg-[#2C2C2C] text-white hover:bg-[#1a1a1a]"
-                  data-testid="button-join-waitlist"
-                >
-                  {joinWaitlist.isPending ? "Joining..." : "Join Waitlist"}
-                </Button>
-              </form>
+              </div>
             </div>
           </div>
         ) : (
@@ -204,23 +205,23 @@ export default function Waitlist() {
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.4 }}
-            className="bg-[#FFFEF9] p-1 border border-[#2C2C2C]"
+            className="border border-[#5A1F2B] p-1"
           >
-            <div className="border border-[#2C2C2C] p-8 text-center">
-              <CheckCircle
-                className="w-12 h-12 mx-auto mb-4"
-                style={{ color: "#2C2C2C" }}
-              />
-              <h2
-                className="font-script text-2xl mb-3"
-                style={{ color: "#2C2C2C" }}
-                data-testid="text-waitlist-success"
-              >
-                You're on the list!
-              </h2>
-              <p className="text-sm" style={{ color: "#666" }}>
-                We'll email you as soon as artists are available in your area.
-              </p>
+            <div className="border border-[#FCF9F4] p-1">
+              <div className="border border-[#5A1F2B] p-8 text-center bg-[#FCF9F4]">
+                <CheckCircle
+                  className="w-12 h-12 mx-auto mb-4 text-[#5A1F2B]"
+                />
+                <h2
+                  className="font-script text-2xl mb-3 text-[#5A1F2B]"
+                  data-testid="text-waitlist-success"
+                >
+                  You're on the list!
+                </h2>
+                <p className="text-sm text-[#5A1F2B]/60">
+                  We'll email you as soon as artists are available in your area.
+                </p>
+              </div>
             </div>
           </motion.div>
         )}

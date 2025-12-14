@@ -63,109 +63,115 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-powder-blue flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#FCF9F4] flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
       >
-        <div className="bg-cream p-8 rounded-sm shadow-lg border border-black/20">
-          <div className="text-center mb-8">
-            <h1 className="font-script text-4xl text-black mb-2">Welcome Back</h1>
-            <p className="text-sm text-black/60">Sign in to your Beauvette account</p>
-          </div>
+        <div className="border border-[#5A1F2B] p-1">
+          <div className="border border-[#FCF9F4] p-1">
+            <div className="border border-[#5A1F2B] p-8 bg-[#FCF9F4]">
+              <div className="text-center mb-8">
+                <h1 className="font-script text-4xl text-[#5A1F2B] mb-2">Welcome Back</h1>
+                <p className="text-sm text-[#5A1F2B]/60">Sign in to your Beauvette account</p>
+              </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-wide text-black/60">
-                Email Address
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                required
-                className="w-full border border-black/20 bg-white rounded px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/30"
-                data-testid="input-login-email"
-              />
-            </div>
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-wide text-[#5A1F2B]/60">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    required
+                    className="w-full border border-[#5A1F2B]/30 bg-white rounded px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#5A1F2B]/30 text-[#5A1F2B]"
+                    data-testid="input-login-email"
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-wide text-black/60">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  required
-                  className="w-full border border-black/20 bg-white rounded px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/30 pr-12"
-                  data-testid="input-login-password"
-                />
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-wide text-[#5A1F2B]/60">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Enter your password"
+                      required
+                      className="w-full border border-[#5A1F2B]/30 bg-white rounded px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#5A1F2B]/30 pr-12 text-[#5A1F2B]"
+                      data-testid="input-login-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5A1F2B]/40 hover:text-[#5A1F2B]/70"
+                      data-testid="button-toggle-password"
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded" data-testid="text-login-error">
+                    {error}
+                  </div>
+                )}
+
+                <div className="w-full bg-[#5A1F2B] p-1">
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full bg-[#5A1F2B] text-[#FCF9F4] text-sm uppercase tracking-widest py-3 border border-[#FCF9F4]/40 hover:bg-[#4a1923] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                    data-testid="button-login-submit"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Signing in...
+                      </>
+                    ) : (
+                      "Sign In"
+                    )}
+                  </button>
+                </div>
+              </form>
+
+              <div className="mt-6 text-center space-y-3">
                 <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-black/40 hover:text-black/70"
-                  data-testid="button-toggle-password"
+                  onClick={() => setLocation("/forgot-password")}
+                  className="text-sm text-[#5A1F2B]/50 underline hover:text-[#5A1F2B] transition-colors"
+                  data-testid="link-forgot-password"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  Forgot your password?
                 </button>
+                <p className="text-sm text-[#5A1F2B]/60">
+                  Don't have an account?{" "}
+                  <button
+                    onClick={() => setLocation("/signup")}
+                    className="underline hover:text-[#5A1F2B] transition-colors"
+                    data-testid="link-to-signup"
+                  >
+                    Create one
+                  </button>
+                </p>
               </div>
-            </div>
 
-            {error && (
-              <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded" data-testid="text-login-error">
-                {error}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-black text-white text-sm uppercase tracking-widest py-3 rounded hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-              data-testid="button-login-submit"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                "Sign In"
-              )}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center space-y-3">
-            <button
-              onClick={() => setLocation("/forgot-password")}
-              className="text-sm text-black/50 underline hover:text-black transition-colors"
-              data-testid="link-forgot-password"
-            >
-              Forgot your password?
-            </button>
-            <p className="text-sm text-black/60">
-              Don't have an account?{" "}
               <button
-                onClick={() => setLocation("/signup")}
-                className="underline hover:text-black transition-colors"
-                data-testid="link-to-signup"
+                onClick={() => setLocation("/")}
+                className="mt-4 w-full text-center text-xs text-[#5A1F2B]/40 hover:text-[#5A1F2B]/60 transition-colors"
+                data-testid="button-back-home"
               >
-                Create one
+                Back to Home
               </button>
-            </p>
+            </div>
           </div>
-
-          <button
-            onClick={() => setLocation("/")}
-            className="mt-4 w-full text-center text-xs text-black/40 hover:text-black/60 transition-colors"
-            data-testid="button-back-home"
-          >
-            Back to Home
-          </button>
         </div>
       </motion.div>
     </div>

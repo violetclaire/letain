@@ -68,9 +68,7 @@ export default function Signup() {
 
       await refetch();
       
-      // If a role was pre-selected, redirect to the appropriate intake form
       if (selectedRole) {
-        // First update the user's role
         const userData = await fetch("/api/auth/user", { credentials: "include" }).then(r => r.json());
         if (userData?.id) {
           await fetch(`/api/users/${userData.id}/role`, {
@@ -105,169 +103,175 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen bg-powder-blue flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#FCF9F4] flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
       >
-        <div className="bg-cream p-8 rounded-sm shadow-lg border border-black/20">
-          <div className="text-center mb-8">
-            <h1 className="font-script text-4xl text-black mb-2">Create Account</h1>
-            <p className="text-sm text-black/60">Join Beauvette today</p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <label className="text-xs uppercase tracking-wide text-black/60">
-                  First Name
-                </label>
-                <input
-                  type="text"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  placeholder=""
-                  required
-                  className="w-full border border-black/20 bg-white rounded px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black/30"
-                  data-testid="input-signup-firstname"
-                />
+        <div className="border border-[#5A1F2B] p-1">
+          <div className="border border-[#FCF9F4] p-1">
+            <div className="border border-[#5A1F2B] p-8 bg-[#FCF9F4]">
+              <div className="text-center mb-8">
+                <h1 className="font-script text-4xl text-[#5A1F2B] mb-2">Create Account</h1>
+                <p className="text-sm text-[#5A1F2B]/60">Join Beauvette today</p>
               </div>
-              <div className="space-y-2">
-                <label className="text-xs uppercase tracking-wide text-black/60">
-                  Last Name
-                </label>
-                <input
-                  type="text"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  placeholder=""
-                  required
-                  className="w-full border border-black/20 bg-white rounded px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black/30"
-                  data-testid="input-signup-lastname"
-                />
-              </div>
-            </div>
 
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-wide text-black/60">
-                Email Address
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                required
-                className="w-full border border-black/20 bg-white rounded px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/30"
-                data-testid="input-signup-email"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-wide text-black/60">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Create a strong password"
-                  required
-                  className="w-full border border-black/20 bg-white rounded px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/30 pr-12"
-                  data-testid="input-signup-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-black/40 hover:text-black/70"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-              <div className="mt-2 space-y-1">
-                {passwordRequirements.map((req) => (
-                  <div
-                    key={req.label}
-                    className={`flex items-center gap-2 text-xs ${
-                      req.met ? "text-green-600" : "text-black/40"
-                    }`}
-                  >
-                    <Check size={12} className={req.met ? "opacity-100" : "opacity-30"} />
-                    {req.label}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase tracking-wide text-[#5A1F2B]/60">
+                      First Name
+                    </label>
+                    <input
+                      type="text"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      placeholder=""
+                      required
+                      className="w-full border border-[#5A1F2B]/30 bg-white rounded px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#5A1F2B]/30 text-[#5A1F2B]"
+                      data-testid="input-signup-firstname"
+                    />
                   </div>
-                ))}
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase tracking-wide text-[#5A1F2B]/60">
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      placeholder=""
+                      required
+                      className="w-full border border-[#5A1F2B]/30 bg-white rounded px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#5A1F2B]/30 text-[#5A1F2B]"
+                      data-testid="input-signup-lastname"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-wide text-[#5A1F2B]/60">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    required
+                    className="w-full border border-[#5A1F2B]/30 bg-white rounded px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#5A1F2B]/30 text-[#5A1F2B]"
+                    data-testid="input-signup-email"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-wide text-[#5A1F2B]/60">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Create a strong password"
+                      required
+                      className="w-full border border-[#5A1F2B]/30 bg-white rounded px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#5A1F2B]/30 pr-12 text-[#5A1F2B]"
+                      data-testid="input-signup-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5A1F2B]/40 hover:text-[#5A1F2B]/70"
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                  <div className="mt-2 space-y-1">
+                    {passwordRequirements.map((req) => (
+                      <div
+                        key={req.label}
+                        className={`flex items-center gap-2 text-xs ${
+                          req.met ? "text-green-600" : "text-[#5A1F2B]/40"
+                        }`}
+                      >
+                        <Check size={12} className={req.met ? "opacity-100" : "opacity-30"} />
+                        {req.label}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-wide text-[#5A1F2B]/60">
+                    Confirm Password
+                  </label>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm your password"
+                    required
+                    className={`w-full border bg-white rounded px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#5A1F2B]/30 text-[#5A1F2B] ${
+                      confirmPassword.length > 0
+                        ? passwordsMatch
+                          ? "border-green-500"
+                          : "border-red-400"
+                        : "border-[#5A1F2B]/30"
+                    }`}
+                    data-testid="input-signup-confirm-password"
+                  />
+                  {confirmPassword.length > 0 && !passwordsMatch && (
+                    <p className="text-xs text-red-500">Passwords do not match</p>
+                  )}
+                </div>
+
+                {error && (
+                  <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded" data-testid="text-signup-error">
+                    {error}
+                  </div>
+                )}
+
+                <div className="w-full bg-[#5A1F2B] p-1">
+                  <button
+                    type="submit"
+                    disabled={isLoading || !allRequirementsMet || !passwordsMatch}
+                    className="w-full bg-[#5A1F2B] text-[#FCF9F4] text-sm uppercase tracking-widest py-3 border border-[#FCF9F4]/40 hover:bg-[#4a1923] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    data-testid="button-signup-submit"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Creating account...
+                      </>
+                    ) : (
+                      "Create Account"
+                    )}
+                  </button>
+                </div>
+              </form>
+
+              <div className="mt-6 text-center">
+                <p className="text-sm text-[#5A1F2B]/60">
+                  Already have an account?{" "}
+                  <button
+                    onClick={() => setLocation("/login")}
+                    className="underline hover:text-[#5A1F2B] transition-colors"
+                    data-testid="link-to-login"
+                  >
+                    Sign in
+                  </button>
+                </p>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-wide text-black/60">
-                Confirm Password
-              </label>
-              <input
-                type={showPassword ? "text" : "password"}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm your password"
-                required
-                className={`w-full border bg-white rounded px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/30 ${
-                  confirmPassword.length > 0
-                    ? passwordsMatch
-                      ? "border-green-500"
-                      : "border-red-400"
-                    : "border-black/20"
-                }`}
-                data-testid="input-signup-confirm-password"
-              />
-              {confirmPassword.length > 0 && !passwordsMatch && (
-                <p className="text-xs text-red-500">Passwords do not match</p>
-              )}
-            </div>
-
-            {error && (
-              <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded" data-testid="text-signup-error">
-                {error}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={isLoading || !allRequirementsMet || !passwordsMatch}
-              className="w-full bg-black text-white text-sm uppercase tracking-widest py-3 rounded hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              data-testid="button-signup-submit"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Creating account...
-                </>
-              ) : (
-                "Create Account"
-              )}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-sm text-black/60">
-              Already have an account?{" "}
               <button
-                onClick={() => setLocation("/login")}
-                className="underline hover:text-black transition-colors"
-                data-testid="link-to-login"
+                onClick={() => setLocation("/")}
+                className="mt-4 w-full text-center text-xs text-[#5A1F2B]/40 hover:text-[#5A1F2B]/60 transition-colors"
+                data-testid="button-back-home"
               >
-                Sign in
+                Back to Home
               </button>
-            </p>
+            </div>
           </div>
-
-          <button
-            onClick={() => setLocation("/")}
-            className="mt-4 w-full text-center text-xs text-black/40 hover:text-black/60 transition-colors"
-            data-testid="button-back-home"
-          >
-            Back to Home
-          </button>
         </div>
       </motion.div>
     </div>
