@@ -108,19 +108,21 @@ export default function Landing() {
               </div>
             </div>
 
-            <div className="border border-[#5A1F2B] p-1">
-              <div className="border border-[#FCF9F4] p-1">
-                <div className="border border-[#5A1F2B] p-6 text-center bg-[#FCF9F4]">
-                  <button
-                    onClick={() => setLocation("/waitlist")}
-                    className="w-full px-8 py-4 text-base font-medium bg-transparent text-[#5A1F2B] border border-[#5A1F2B]/50 hover:bg-[#FCF9F4] transition-colors tracking-wide mb-3"
-                    data-testid="button-client-waitlist"
-                  >
-                    Join the Client Waitlist
-                  </button>
-                  <p className="text-xs text-[#5A1F2B]/60 leading-relaxed">
-                    We'll notify you as artists become available in your area.
-                  </p>
+            <div className="bg-[#E8F4F8] p-1 border border-[#B8D4E3]">
+              <div className="border border-[#5A1F2B] p-1">
+                <div className="border border-[#E8F4F8] p-1">
+                  <div className="border border-[#5A1F2B] p-6 text-center bg-[#E8F4F8]">
+                    <button
+                      onClick={() => setLocation("/waitlist")}
+                      className="w-full px-8 py-4 text-base font-medium bg-transparent text-[#5A1F2B] border border-[#5A1F2B]/50 hover:bg-[#FCF9F4] transition-colors tracking-wide mb-3"
+                      data-testid="button-client-waitlist"
+                    >
+                      Join the Client Waitlist
+                    </button>
+                    <p className="text-xs text-[#5A1F2B]/60 leading-relaxed">
+                      We'll notify you as artists become available in your area.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
