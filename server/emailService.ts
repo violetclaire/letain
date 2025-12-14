@@ -1410,3 +1410,100 @@ export async function sendPasswordResetEmail({
     return { success: false, error: err.message };
   }
 }
+
+export async function sendWaitlistConfirmationEmail({
+  toEmail,
+  eventDate,
+  location,
+  servicesNeeded
+}: {
+  toEmail: string;
+  eventDate?: Date;
+  location?: string;
+  servicesNeeded?: string[];
+}) {
+  const { client } = await getResendClient();
+  
+  const eventDateStr = eventDate 
+    ? new Date(eventDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+    : null;
+  
+  const servicesStr = servicesNeeded && servicesNeeded.length > 0 
+    ? servicesNeeded.join(', ')
+    : null;
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Georgia', serif; background-color: #f5f1e8; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { 
+          background-color: #FAF7F2;
+          background-image:
+            repeating-linear-gradient(0deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px),
+            repeating-linear-gradient(90deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px);
+          padding: 28px; 
+          text-align: center;
+          border-bottom: 1px solid rgba(107, 74, 85, 0.2);
+        }
+        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55; }
+        .header p { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin: 8px 0 0 0; color: #6B4A55; opacity: 0.8; }
+        .content { padding: 32px; color: #333; line-height: 1.6; }
+        .details { background: #f5f1e8; padding: 16px; border-radius: 6px; margin: 20px 0; }
+        .details p { margin: 4px 0; font-size: 14px; }
+        .footer { text-align: center; padding: 20px; color: #888; font-size: 12px; border-top: 1px solid #eee; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Beauvette</h1>
+          <p>For Life's Most Important Days</p>
+        </div>
+        <div class="content">
+          <p>You're on the list!</p>
+          
+          <p>Thank you for joining the Beauvette waitlist. We're building something special for brides and beauty enthusiasts, and we can't wait to share it with you.</p>
+          
+          ${eventDateStr || location || servicesStr ? `
+          <div class="details">
+            <p><strong>Your Event Details:</strong></p>
+            ${eventDateStr ? `<p>📅 Event Date: ${eventDateStr}</p>` : ''}
+            ${location ? `<p>📍 Location: ${escapeHtml(location)}</p>` : ''}
+            ${servicesStr ? `<p>💄 Services: ${escapeHtml(servicesStr)}</p>` : ''}
+          </div>
+          ` : ''}
+          
+          <p>We'll reach out as soon as we're ready to help you find the perfect beauty artists for your special day.</p>
+          
+          <p>In the meantime, save this email so you can easily find us when the time comes.</p>
+          
+          <p>With love,<br>The Beauvette Team</p>
+        </div>
+        <div class="footer">
+          <a href="https://beauvette.com" style="color: #6B4A55;">Beauvette</a> - For Life's Most Important Days
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const senderEmail = 'Beauvette <violet@beauvette.com>';
+  
+  try {
+    console.log("Sending waitlist confirmation email to:", toEmail);
+    const result = await client.emails.send({
+      from: senderEmail,
+      to: toEmail.trim(),
+      subject: "You're on the Beauvette Waitlist! ✨",
+      html: htmlContent
+    });
+    console.log("Waitlist confirmation email sent:", JSON.stringify(result));
+    return { success: true, result };
+  } catch (err: any) {
+    console.error("Failed to send waitlist confirmation email:", err.message);
+    return { success: false, error: err.message };
+  }
+}

@@ -436,6 +436,7 @@ export interface IStorage {
   // Waitlist
   createWaitlistSignup(data: { email: string; source?: string; eventDate?: Date; location?: string; servicesNeeded?: string[]; notes?: string }): Promise<WaitlistSignup>;
   upsertWaitlistSignup(data: { email: string; source?: string; eventDate?: Date; location?: string; servicesNeeded?: string[]; notes?: string }): Promise<WaitlistSignup>;
+  getAllWaitlistSignups(): Promise<WaitlistSignup[]>;
   
   // Communication Logs
   createCommunicationLog(log: InsertCommunicationLog): Promise<CommunicationLog>;
@@ -2679,6 +2680,10 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return signup;
+  }
+  
+  async getAllWaitlistSignups(): Promise<WaitlistSignup[]> {
+    return await db.select().from(waitlistSignups).orderBy(desc(waitlistSignups.createdAt));
   }
 }
 

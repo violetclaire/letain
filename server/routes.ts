@@ -9096,19 +9096,55 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(400).json({ message: "Please enter a valid email address" });
       }
       
+      const parsedEventDate = eventDate ? new Date(eventDate) : undefined;
+      
       const signup = await storage.upsertWaitlistSignup({
         email: email.toLowerCase().trim(),
         source: source || 'waitlist',
-        eventDate: eventDate ? new Date(eventDate) : undefined,
+        eventDate: parsedEventDate,
         location: location || undefined,
         servicesNeeded: servicesNeeded || undefined,
         notes: notes || undefined,
       });
       
+      // Send confirmation email
+      try {
+        const { sendWaitlistConfirmationEmail } = await import('./emailService');
+        await sendWaitlistConfirmationEmail({
+          toEmail: email.toLowerCase().trim(),
+          eventDate: parsedEventDate,
+          location: location || undefined,
+          servicesNeeded: servicesNeeded || undefined,
+        });
+      } catch (emailErr) {
+        console.error("[Waitlist] Failed to send confirmation email:", emailErr);
+      }
+      
       res.json({ success: true, message: "Added to waitlist" });
     } catch (error: any) {
       console.error("[Waitlist] Error:", error);
       res.status(500).json({ message: "Something went wrong" });
+    }
+  });
+  
+  // Admin view of waitlist signups
+  app.get("/api/admin/waitlist", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      const signups = await storage.getAllWaitlistSignups();
+      res.json(signups);
+    } catch (error: any) {
+      console.error("[Admin Waitlist] Error:", error);
+      res.status(500).json({ error: error.message });
     }
   });
 
