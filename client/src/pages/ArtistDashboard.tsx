@@ -3359,7 +3359,15 @@ export default function ArtistDashboard() {
               )}
 
               {/* Availability Calendar */}
-              {user && <AvailabilityCalendar userId={user.id} refreshKey={calendarRefreshKey} />}
+              {user && <AvailabilityCalendar 
+                userId={user.id} 
+                refreshKey={calendarRefreshKey} 
+                onCreateBooking={(date) => {
+                  const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                  setBookingForm(prev => ({ ...prev, eventDate: dateStr }));
+                  setShowCreateBooking(true);
+                }}
+              />}
 
             </div>
           </section>

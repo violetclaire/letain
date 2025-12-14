@@ -28,6 +28,7 @@ interface AvailabilityCalendarProps {
   userId: string;
   onDateSelect?: (date: Date, status: string) => void;
   onRequestBooking?: (date: Date) => void;
+  onCreateBooking?: (date: Date) => void;
   viewOnly?: boolean;
   refreshKey?: number;
 }
@@ -57,7 +58,7 @@ interface InquiryHold {
 
 type DateStatus = 'booked' | 'pending' | 'blocked' | 'available' | 'hold';
 
-export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBooking, viewOnly = false, refreshKey = 0 }: AvailabilityCalendarProps) {
+export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBooking, onCreateBooking, viewOnly = false, refreshKey = 0 }: AvailabilityCalendarProps) {
   const { toast } = useToast();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [availability, setAvailability] = useState<Record<string, boolean>>({});
@@ -334,6 +335,8 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
           const handleClick = () => {
             if (canBook) {
               onRequestBooking(date);
+            } else if (!viewOnly && onCreateBooking && status === 'available' && !past) {
+              onCreateBooking(date);
             } else if (canInteract) {
               toggleDateBlock(date);
             }
