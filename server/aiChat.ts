@@ -526,6 +526,16 @@ User message: ${message}`;
   }
 }
 
+// Helper to parse date strings as local time to avoid timezone issues
+function parseLocalDate(dateStr: string): Date {
+  if (!dateStr) return new Date();
+  if (dateStr.includes('T')) {
+    return new Date(dateStr);
+  }
+  // Add noon time to avoid timezone day-shift issues
+  return new Date(dateStr + 'T12:00:00');
+}
+
 export async function updateAvailabilityFromAI(
   userId: string,
   dates: string[],
@@ -533,7 +543,7 @@ export async function updateAvailabilityFromAI(
 ): Promise<void> {
   for (const dateStr of dates) {
     try {
-      const date = new Date(dateStr);
+      const date = parseLocalDate(dateStr);
       if (isAvailable) {
         await storage.deleteAvailability(userId, date);
       } else {
@@ -564,7 +574,7 @@ export async function createBookingFromAI(
   }
 ): Promise<{ success: boolean; bookingId?: string; error?: string }> {
   try {
-    let eventDate = new Date(booking.date);
+    let eventDate = parseLocalDate(booking.date);
 
     if (booking.time) {
       const [hours, minutes] = booking.time.split(":").map(Number);
