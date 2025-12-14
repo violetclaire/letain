@@ -89,13 +89,15 @@ export default function Landing() {
             <div className="border border-[#5A1F2B] p-1">
               <div className="border border-[#FCF9F4] p-1">
                 <div className="border border-[#5A1F2B] p-6 text-center bg-[#FCF9F4]">
-                  <button
-                    onClick={() => setLocation("/onboarding")}
-                    className="w-full px-8 py-4 text-base font-medium bg-[#5A1F2B] text-[#FCF9F4] hover:bg-[#4a1923] transition-colors tracking-wide mb-4"
-                    data-testid="button-artist-cta"
-                  >
-                    Set up your availability calendar, link it in your bio
-                  </button>
+                  <div className="w-full bg-[#5A1F2B] p-1 mb-4">
+                    <button
+                      onClick={() => setLocation("/onboarding")}
+                      className="w-full px-6 py-3 text-base font-medium bg-[#5A1F2B] text-[#FCF9F4] border border-[#FCF9F4]/40 hover:bg-[#4a1923] transition-colors tracking-wide"
+                      data-testid="button-artist-cta"
+                    >
+                      Set up your availability calendar, link it in your bio
+                    </button>
+                  </div>
                   <p className="text-sm text-[#5A1F2B]/70 leading-relaxed mb-3">
                     Think of Beauvette as your personal secretary. It's trained on your responsiveness and communication style. It handles availability, sends pricing when appropriate, and reduces coordination while you remain fully in control.
                   </p>
