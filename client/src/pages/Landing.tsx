@@ -71,9 +71,12 @@ export default function Landing() {
 
         <main className="px-4 py-16 max-w-lg mx-auto">
           <div className="text-center mb-12">
-            <h2 className="font-script text-6xl md:text-7xl text-[#5A1F2B] mb-6">
-              Are you available?
+            <h2 className="font-script text-5xl md:text-6xl text-[#5A1F2B] mb-4">
+              Beauvette
             </h2>
+            <p className="font-elegant text-3xl md:text-4xl text-[#5A1F2B] mb-2">
+              Are you available?
+            </p>
             <p className="font-elegant text-xl text-[#5A1F2B]/70 italic mb-6">
               If not, who do you trust?
             </p>
@@ -92,11 +95,8 @@ export default function Landing() {
                 >
                   Set Up Your Availability Assistant
                 </button>
-                <p className="text-sm text-[#5A1F2B]/70 leading-relaxed mb-3">
-                  A personal operations assistant trained on your responsiveness and communication style. It handles availability, sends pricing when appropriate, and reduces coordination — while you remain in control.
-                </p>
-                <p className="text-xs text-[#5A1F2B]/50 italic">
-                  Built from real-world service coordination, not generic workflows.
+                <p className="text-sm text-[#5A1F2B]/70 leading-relaxed">
+                  A personal operations assistant trained on your responsiveness and communication style. It handles availability, sends pricing when appropriate, and reduces coordination while you remain in control.
                 </p>
               </div>
             </div>
