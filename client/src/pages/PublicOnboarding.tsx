@@ -382,32 +382,18 @@ export default function PublicOnboarding() {
                   </div>
                   <h2 className="font-header text-2xl text-[#2C2C2C] mb-4">You're all set</h2>
                   <p className="text-[#666] leading-relaxed">
-                    Respond to inquiries in under 10 minutes to earn the 
-                    <span className="font-medium text-[#2C2C2C]"> Quick Responder </span>
-                    badge and rank on our leaderboard.
+                    Your calendar is ready to receive inquiries. Share your link to start booking clients.
                   </p>
                 </div>
 
-                <p className="text-center text-lg font-header text-[#2C2C2C] mb-8">
-                  See you at the top.
-                </p>
-
-                <div className="flex gap-3">
+                <div className="flex justify-center">
                   <button
                     onClick={() => setLocation(`/${artistSlug}`)}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#FAF9F7] text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#f0efe9] transition-colors"
+                    className="flex items-center justify-center gap-2 px-6 py-3 bg-[#FAF9F7] text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#f0efe9] transition-colors"
                     data-testid="button-view-calendar"
                   >
                     <Calendar size={18} />
                     View My Calendar
-                  </button>
-                  <button
-                    onClick={() => setLocation("/analytics")}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border border-[#2C2C2C] text-[#2C2C2C] hover:bg-[#FAF9F7] transition-colors"
-                    data-testid="button-view-leaderboard"
-                  >
-                    <ExternalLink size={18} />
-                    Leaderboard
                   </button>
                 </div>
               </>
