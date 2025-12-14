@@ -8536,7 +8536,49 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         }
       }
       
-      res.json({ artistSlug, userId: user.id, artistId: user.id });
+      // Check referral artists - see which ones are not on platform yet
+      const referralResults: Array<{ handle: string; isOnPlatform: boolean; inviteLink?: string }> = [];
+      if (referralArtists && referralArtists.length > 0) {
+        const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+          ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+          : 'https://beauvette.app';
+        
+        for (const refHandle of referralArtists) {
+          if (!refHandle || refHandle.trim() === '') continue;
+          const cleanHandle = refHandle.replace('@', '').toLowerCase().replace(/[^a-z0-9]/g, '');
+          
+          // Check if artist exists on platform
+          const existingProfile = await storage.getArtistProfileBySlug(cleanHandle);
+          
+          if (existingProfile) {
+            referralResults.push({ handle: refHandle, isOnPlatform: true });
+          } else {
+            // Generate invite token and persist it
+            const inviteToken = randomUUID();
+            
+            // Store the invitation in the database
+            try {
+              await storage.createInvitation({
+                token: inviteToken,
+                email: cleanHandle + '@referral.beauvette.app', // Placeholder email since we only have handle
+                firstName: cleanHandle,
+                role: 'artist',
+                invitedBy: user.id,
+                status: 'pending',
+                expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+              });
+            } catch (inviteError) {
+              console.error(`[Public Onboarding] Failed to create invitation for ${cleanHandle}:`, inviteError);
+            }
+            
+            const inviteLink = `${baseUrl}/onboarding?ref=${artistSlug}&invite=${inviteToken}`;
+            referralResults.push({ handle: refHandle, isOnPlatform: false, inviteLink });
+          }
+        }
+        console.log(`[Public Onboarding] Referral check: ${referralResults.filter(r => r.isOnPlatform).length} on platform, ${referralResults.filter(r => !r.isOnPlatform).length} not on platform`);
+      }
+      
+      res.json({ artistSlug, userId: user.id, artistId: user.id, referralResults });
     } catch (error: any) {
       console.error("[Public Onboarding] Error:", error);
       res.status(500).json({ error: error.message });

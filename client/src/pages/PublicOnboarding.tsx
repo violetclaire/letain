@@ -28,6 +28,7 @@ export default function PublicOnboarding() {
   const [isComplete, setIsComplete] = useState(false);
   const [hasShared, setHasShared] = useState(false);
   const [artistSlug, setArtistSlug] = useState("");
+  const [referralResults, setReferralResults] = useState<Array<{ handle: string; isOnPlatform: boolean; inviteLink?: string }>>([]);
   
   const [data, setData] = useState<OnboardingData>({
     name: "",
@@ -140,6 +141,9 @@ export default function PublicOnboarding() {
       }
       
       setArtistSlug(result.artistSlug);
+      if (result.referralResults) {
+        setReferralResults(result.referralResults);
+      }
       setIsComplete(true);
     } catch (error) {
       toast({
@@ -533,6 +537,33 @@ export default function PublicOnboarding() {
                     Your calendar is ready to receive inquiries. Share your link to start booking clients.
                   </p>
                 </div>
+
+                {referralResults.length > 0 && referralResults.some(r => !r.isOnPlatform) && (
+                  <div className="mb-6 p-4 border border-[#2C2C2C] bg-[#FAF9F7]">
+                    <h3 className="font-header text-sm text-[#2C2C2C] mb-3">Invite your trusted artists to Beauvette:</h3>
+                    <div className="space-y-3">
+                      {referralResults.filter(r => !r.isOnPlatform).map((referral, idx) => (
+                        <div key={idx} className="flex items-center justify-between gap-2">
+                          <span className="text-sm text-[#666]">@{referral.handle.replace('@', '')}</span>
+                          <button
+                            onClick={() => {
+                              if (referral.inviteLink) {
+                                navigator.clipboard.writeText(referral.inviteLink);
+                                toast({ title: "Link copied!", description: "DM this link to invite them" });
+                              }
+                            }}
+                            className="text-xs px-3 py-1 border border-[#2C2C2C] text-[#2C2C2C] hover:bg-[#f0efe9] transition-colors flex items-center gap-1"
+                            data-testid={`button-copy-invite-${idx}`}
+                          >
+                            <Copy size={12} />
+                            Copy Invite
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-[#666] mt-3">DM these links to invite them to create their calendar!</p>
+                  </div>
+                )}
 
                 <div className="flex justify-center">
                   <button
