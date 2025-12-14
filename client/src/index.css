@@ -44,7 +44,7 @@
   --cream: #FAF9F5;        /* Lighter cream */
   --black: #4A3F42;        /* Warm dark text */
   --pink: #B8A5B0;         /* Soft lilac */
-  --gold: #A9A17A;         /* Olive-camel with hint of olive */
+  --gold: #B8D4E3;         /* Powder blue accent */
   --forest: #6E5A54;       /* Plum brown reddish */
 
   /* Mapped to shadcn/ui variables where appropriate */
@@ -130,10 +130,10 @@
       linear-gradient(-45deg, rgba(90, 31, 43, 0.35) 25%, transparent 25%),
       linear-gradient(45deg, transparent 75%, rgba(90, 31, 43, 0.35) 75%),
       linear-gradient(-45deg, transparent 75%, rgba(90, 31, 43, 0.35) 75%),
-      linear-gradient(45deg, #A9A17A 25%, transparent 25%),
-      linear-gradient(-45deg, #A9A17A 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, #A9A17A 75%),
-      linear-gradient(-45deg, transparent 75%, #A9A17A 75%);
+      linear-gradient(45deg, #B8D4E3 25%, transparent 25%),
+      linear-gradient(-45deg, #B8D4E3 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #B8D4E3 75%),
+      linear-gradient(-45deg, transparent 75%, #B8D4E3 75%);
     background-size: 16px 16px;
     background-position: 0 0, 8px 0, 8px -8px, 0px 8px, 0 0, 8px 0, 8px -8px, 0px 8px;
   }
@@ -153,8 +153,8 @@
         90deg,
         transparent,
         transparent 16px,
-        rgba(169, 161, 122, 0.4) 16px,
-        rgba(169, 161, 122, 0.4) 32px
+        rgba(184, 212, 227, 0.4) 16px,
+        rgba(184, 212, 227, 0.4) 32px
       );
   }
 

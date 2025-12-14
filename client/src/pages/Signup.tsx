@@ -255,7 +255,7 @@ export default function Signup() {
                   Already have an account?{" "}
                   <button
                     onClick={() => setLocation("/login")}
-                    className="underline hover:text-[#5A1F2B] transition-colors"
+                    className="text-[#5A8BA3] underline hover:text-[#4A7A92] transition-colors"
                     data-testid="link-to-login"
                   >
                     Sign in

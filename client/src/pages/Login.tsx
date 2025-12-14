@@ -146,7 +146,7 @@ export default function Login() {
               <div className="mt-6 text-center space-y-3">
                 <button
                   onClick={() => setLocation("/forgot-password")}
-                  className="text-sm text-[#5A1F2B]/50 underline hover:text-[#5A1F2B] transition-colors"
+                  className="text-sm text-[#5A8BA3] underline hover:text-[#4A7A92] transition-colors"
                   data-testid="link-forgot-password"
                 >
                   Forgot your password?
@@ -155,7 +155,7 @@ export default function Login() {
                   Don't have an account?{" "}
                   <button
                     onClick={() => setLocation("/signup")}
-                    className="underline hover:text-[#5A1F2B] transition-colors"
+                    className="text-[#5A8BA3] underline hover:text-[#4A7A92] transition-colors"
                     data-testid="link-to-signup"
                   >
                     Create one

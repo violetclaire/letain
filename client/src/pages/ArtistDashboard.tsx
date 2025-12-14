@@ -2295,7 +2295,7 @@ export default function ArtistDashboard() {
                                       {/* Propose */}
                                       <button 
                                         onClick={(e) => { e.stopPropagation(); setProposeInquiryId(inquiry.id); setShowProposeModal(true); }}
-                                        className="flex-1 py-1.5 rounded bg-[#9A9472] text-white text-[0.6rem] font-medium hover:bg-[#8a8462] transition-colors flex items-center justify-center gap-1"
+                                        className="flex-1 py-1.5 rounded bg-[#B8D4E3] text-[#5A1F2B] text-[0.6rem] font-medium hover:bg-[#a8c4d3] transition-colors flex items-center justify-center gap-1"
                                         data-testid={`button-propose-dates-${inquiry.id}`}
                                       >
                                         <Calendar size={10} />
@@ -2445,8 +2445,8 @@ export default function ArtistDashboard() {
                           data-testid="link-new-proposal"
                         >
                           <div className="flex items-center gap-3">
-                            <div className="p-2 bg-[#9A9472] rounded-full group-hover:bg-black transition-colors">
-                              <FileText size={16} className="text-white" />
+                            <div className="p-2 bg-[#B8D4E3] rounded-full group-hover:bg-black transition-colors">
+                              <FileText size={16} className="text-[#5A1F2B] group-hover:text-white transition-colors" />
                             </div>
                             <div>
                               <h3 className="font-header text-sm ink-main">New Proposal</h3>
