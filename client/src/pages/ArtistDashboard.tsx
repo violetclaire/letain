@@ -1946,7 +1946,7 @@ export default function ArtistDashboard() {
                   <span className="text-sm font-bold ink-soft">P</span>
                 </a>
               </div>
-              <Link href={`/vendor/${user?.id}`} className="text-xs ink-soft hover:ink-main flex items-center gap-1 transition-colors" data-testid="link-my-profile">
+              <Link href={`/${user?.artistSlug || user?.id}`} className="text-xs ink-soft hover:ink-main flex items-center gap-1 transition-colors" data-testid="link-my-profile">
                 <Eye size={14} /> My Public Profile
               </Link>
               <Link href="/settings" className="text-xs ink-soft hover:ink-main flex items-center gap-1 transition-colors" data-testid="link-settings">
@@ -2005,7 +2005,7 @@ export default function ArtistDashboard() {
               
               {showMobileInfo && (
                 <div className="border-t border-[#e5e8f2] bg-[#fbfcff]">
-                  <Link href={`/vendor/${user?.id}`} className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 border-b border-[#e5e8f2]">
+                  <Link href={`/${user?.artistSlug || user?.id}`} className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 border-b border-[#e5e8f2]">
                     <Eye size={16} className="ink-soft" /> 
                     <span>View My Public Profile</span>
                   </Link>
@@ -2045,13 +2045,13 @@ export default function ArtistDashboard() {
                   </h2>
                   <p className="text-xs ink-soft mt-1">Share this link so clients can book with you directly</p>
                   <p className="text-xs font-mono bg-white px-2 py-1 rounded mt-2 border border-[#e5e8f2] inline-block" data-testid="text-schedule-url">
-                    {window.location.origin}/vendor/{user?.id}
+                    {window.location.origin}/{user?.artistSlug || user?.id}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => {
-                      const url = `${window.location.origin}/vendor/${user?.id}`;
+                      const url = `${window.location.origin}/${user?.artistSlug || user?.id}`;
                       navigator.clipboard.writeText(url);
                       toast({
                         title: "Link Copied!",
@@ -2065,7 +2065,7 @@ export default function ArtistDashboard() {
                     Copy Link
                   </button>
                   <Link
-                    href={`/vendor/${user?.id}`}
+                    href={`/${user?.artistSlug || user?.id}`}
                     className="px-4 py-2 bg-white text-[#6B4A55] text-sm rounded-lg border border-[#6B4A55] hover:bg-[#FAF7F2] transition-colors flex items-center gap-2"
                     data-testid="button-view-as-client"
                   >
@@ -2074,7 +2074,7 @@ export default function ArtistDashboard() {
                   </Link>
                   <button
                     onClick={() => {
-                      const url = `${window.location.origin}/vendor/${user?.id}`;
+                      const url = `${window.location.origin}/${user?.artistSlug || user?.id}`;
                       navigator.clipboard.writeText(url);
                       toast({
                         title: "Ready for Instagram!",
@@ -2089,7 +2089,7 @@ export default function ArtistDashboard() {
                   </button>
                   <button
                     onClick={() => {
-                      const url = `${window.location.origin}/vendor/${user?.id}`;
+                      const url = `${window.location.origin}/${user?.artistSlug || user?.id}`;
                       const smsBody = encodeURIComponent(`Book with me: ${url}`);
                       window.open(`sms:?&body=${smsBody}`, '_blank');
                     }}

@@ -167,17 +167,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // so the client can gracefully detect logged-out state without 401 loops
   app.get('/api/auth/user', async (req: any, res) => {
     try {
+      let user = null;
       // Check for email/password session first
       if (req.session?.userId) {
-        const user = await storage.getUser(req.session.userId);
-        return res.json(user);
+        user = await storage.getUser(req.session.userId);
+      } else if (req.user?.claims?.sub) {
+        // Fall back to Replit OAuth
+        const userId = getAuthUserId(req);
+        user = await storage.getUser(userId);
       }
-      // Fall back to Replit OAuth
-      if (!req.user || !req.user.claims || !req.user.claims.sub) {
+      
+      if (!user) {
         return res.json(null);
       }
-      const userId = getAuthUserId(req);
-      const user = await storage.getUser(userId);
+      
+      // Include artist_slug for artists
+      if (user.role === 'artist') {
+        const artistProfile = await storage.getArtistProfile(user.id);
+        return res.json({ ...user, artistSlug: artistProfile?.artistSlug || null });
+      }
+      
       res.json(user);
     } catch (error: any) {
       console.error("Error fetching user:", error);
