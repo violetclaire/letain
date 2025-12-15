@@ -174,8 +174,12 @@ export default function Landing() {
       </nav>
 
       {/* Hero Section */}
-      <section className="px-6 pt-20 pb-24 md:pt-32 md:pb-36">
-        <div className="max-w-[680px] mx-auto text-center">
+      <section 
+        className="px-6 pt-20 pb-24 md:pt-32 md:pb-36 relative bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: "url('/attached_assets/XjA9B4QkebdhWmwGiKohIZOvTAQ_1765779780557.avif')" }}
+      >
+        <div className="absolute inset-0 bg-[#5A1F2B]/60" />
+        <div className="max-w-[680px] mx-auto text-center relative z-10">
           <h1 className="font-script text-6xl md:text-7xl lg:text-8xl text-[#F7F2EA] mb-6">
             {CONTENT.hero.h1}
           </h1>
