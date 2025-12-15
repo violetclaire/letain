@@ -152,12 +152,12 @@ export default function Landing() {
       </AnimatePresence>
 
       {/* Navigation - Minimal & Refined */}
-      <nav className="fixed top-0 left-0 right-0 z-40 bg-[#F4F2EC]/95 backdrop-blur-md border-b border-[#5A1F2B]/5">
+      <nav className="fixed top-0 left-0 right-0 z-40 bg-[#5A1F2B] backdrop-blur-md border-b border-[#FAF9F6]/10">
         <div className="max-w-7xl mx-auto px-8 lg:px-16">
           <div className="flex items-center justify-between h-20">
             <a 
               href="/" 
-              className="font-script text-2xl tracking-wide text-[#5A1F2B]"
+              className="font-script text-2xl tracking-wide text-[#FAF9F6]"
               data-testid="link-brand"
             >
               {CONTENT.nav.brand}
@@ -167,28 +167,28 @@ export default function Landing() {
             <div className="hidden md:flex items-center gap-12">
               <button 
                 onClick={() => scrollToSection("how-it-works")}
-                className="text-xs uppercase tracking-[0.2em] text-[#1A1A1A]/60 hover:text-[#5A1F2B] transition-colors duration-300"
+                className="text-xs uppercase tracking-[0.2em] text-[#FAF9F6]/70 hover:text-[#FAF9F6] transition-colors duration-300"
                 data-testid="link-how-it-works"
               >
                 How it works
               </button>
               <button 
                 onClick={() => scrollToSection("for-artists")}
-                className="text-xs uppercase tracking-[0.2em] text-[#1A1A1A]/60 hover:text-[#5A1F2B] transition-colors duration-300"
+                className="text-xs uppercase tracking-[0.2em] text-[#FAF9F6]/70 hover:text-[#FAF9F6] transition-colors duration-300"
                 data-testid="link-for-artists"
               >
                 For Artists
               </button>
               <button 
                 onClick={() => scrollToSection("for-clients")}
-                className="text-xs uppercase tracking-[0.2em] text-[#1A1A1A]/60 hover:text-[#5A1F2B] transition-colors duration-300"
+                className="text-xs uppercase tracking-[0.2em] text-[#FAF9F6]/70 hover:text-[#FAF9F6] transition-colors duration-300"
                 data-testid="link-for-clients"
               >
                 For Clients
               </button>
               <button
                 onClick={() => setLocation("/onboarding")}
-                className="px-6 py-3 bg-[#5A1F2B] text-[#FAF9F6] text-xs uppercase tracking-[0.15em] hover:bg-[#4a1923] transition-all duration-300"
+                className="px-6 py-3 bg-[#FAF9F6] text-[#5A1F2B] text-xs uppercase tracking-[0.15em] hover:bg-[#F4F2EC] transition-all duration-300"
                 data-testid="button-nav-cta"
               >
                 {CONTENT.nav.cta}
@@ -198,7 +198,7 @@ export default function Landing() {
             {/* Mobile Menu Button */}
             <button 
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 -mr-2 text-[#1A1A1A]"
+              className="md:hidden p-2 -mr-2 text-[#FAF9F6]"
               aria-label="Toggle menu"
               data-testid="button-mobile-menu"
             >
