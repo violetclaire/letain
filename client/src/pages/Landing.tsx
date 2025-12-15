@@ -263,32 +263,26 @@ export default function Landing() {
           animate="animate"
           variants={staggerContainer}
         >
-          <motion.h1 
-            className="font-script text-7xl md:text-8xl lg:text-9xl text-[#5A1F2B] mb-8"
+          <motion.div 
+            className="bg-[#FAF9F6]/70 backdrop-blur-sm px-12 py-16 md:px-20 md:py-20"
             variants={fadeInUp}
           >
-            {CONTENT.hero.h1}
-          </motion.h1>
-          
-          <motion.div variants={fadeInUp}>
+            <h1 className="font-script text-7xl md:text-8xl lg:text-9xl text-[#5A1F2B] mb-8">
+              {CONTENT.hero.h1}
+            </h1>
+            
             <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-[#5A1F2B] font-light tracking-wide mb-4">
               {CONTENT.hero.h2}
             </h2>
+            
+            <p className="font-serif text-xl md:text-2xl text-[#5A1F2B]/80 italic mb-8">
+              {CONTENT.hero.subhead}
+            </p>
+            
+            <p className="text-sm md:text-base text-[#5A1F2B]/70 mb-0 max-w-lg mx-auto tracking-wide leading-relaxed">
+              {CONTENT.hero.supporting}
+            </p>
           </motion.div>
-          
-          <motion.p 
-            className="font-serif text-xl md:text-2xl text-[#5A1F2B]/80 italic mb-8"
-            variants={fadeInUp}
-          >
-            {CONTENT.hero.subhead}
-          </motion.p>
-          
-          <motion.p 
-            className="text-sm md:text-base text-[#5A1F2B]/70 mb-12 max-w-lg mx-auto tracking-wide leading-relaxed"
-            variants={fadeInUp}
-          >
-            {CONTENT.hero.supporting}
-          </motion.p>
         </motion.div>
 
         {/* CTA Button at Bottom */}
