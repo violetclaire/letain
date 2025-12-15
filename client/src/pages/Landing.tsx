@@ -1,6 +1,28 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Link, Send, MessageCircle } from "lucide-react";
+
+function GinghamPattern() {
+  return (
+    <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="gingham" patternUnits="userSpaceOnUse" width="40" height="40">
+          <rect width="40" height="40" fill="#F7F2EA"/>
+          <rect width="20" height="20" fill="#5A1F2B" opacity="0.3"/>
+          <rect x="20" y="20" width="20" height="20" fill="#5A1F2B" opacity="0.3"/>
+          <rect width="20" height="20" fill="#5A1F2B" opacity="0.3"/>
+          <rect x="20" y="20" width="20" height="20" fill="#5A1F2B" opacity="0.3"/>
+          <rect x="10" y="0" width="20" height="20" fill="#5A1F2B" opacity="0.15"/>
+          <rect x="0" y="10" width="20" height="20" fill="#5A1F2B" opacity="0.15"/>
+          <rect x="30" y="10" width="10" height="20" fill="#5A1F2B" opacity="0.15"/>
+          <rect x="10" y="30" width="20" height="10" fill="#5A1F2B" opacity="0.15"/>
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#gingham)"/>
+    </svg>
+  );
+}
 
 const CONTENT = {
   nav: {
@@ -64,9 +86,15 @@ const CONTENT = {
 export default function Landing() {
   const [, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [introComplete, setIntroComplete] = useState(false);
 
   useEffect(() => {
-    if (mobileMenuOpen) {
+    const timer = setTimeout(() => setIntroComplete(true), 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (mobileMenuOpen || !introComplete) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
@@ -74,7 +102,7 @@ export default function Landing() {
     return () => {
       document.body.style.overflow = "";
     };
-  }, [mobileMenuOpen]);
+  }, [mobileMenuOpen, introComplete]);
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -86,6 +114,42 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-[#5A1F2B] text-[#F7F2EA] font-sans antialiased">
+      {/* Gingham Elevator Doors */}
+      <AnimatePresence>
+        {!introComplete && (
+          <>
+            {/* Left Door */}
+            <motion.div
+              className="fixed inset-y-0 left-0 w-1/2 z-[100]"
+              initial={{ x: 0 }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+            >
+              <GinghamPattern />
+            </motion.div>
+            {/* Right Door */}
+            <motion.div
+              className="fixed inset-y-0 right-0 w-1/2 z-[100]"
+              initial={{ x: 0 }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+            >
+              <GinghamPattern />
+            </motion.div>
+            {/* Center Logo */}
+            <motion.div
+              className="fixed inset-0 z-[101] flex items-center justify-center pointer-events-none"
+              initial={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              <h1 className="font-script text-6xl md:text-8xl text-[#5A1F2B]">Beauvette</h1>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
       {/* Navigation */}
       <nav className="sticky top-0 z-50 bg-[#5A1F2B]/95 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
