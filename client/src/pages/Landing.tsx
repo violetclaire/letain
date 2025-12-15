@@ -264,27 +264,27 @@ export default function Landing() {
           variants={staggerContainer}
         >
           <motion.h1 
-            className="font-script text-7xl md:text-8xl lg:text-9xl text-[#FAF9F6] mb-8"
+            className="font-script text-7xl md:text-8xl lg:text-9xl text-[#5A1F2B] mb-8"
             variants={fadeInUp}
           >
             {CONTENT.hero.h1}
           </motion.h1>
           
           <motion.div variants={fadeInUp}>
-            <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-[#FAF9F6] font-light tracking-wide mb-4">
+            <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-[#5A1F2B] font-light tracking-wide mb-4">
               {CONTENT.hero.h2}
             </h2>
           </motion.div>
           
           <motion.p 
-            className="font-serif text-xl md:text-2xl text-[#FAF9F6]/70 italic mb-8"
+            className="font-serif text-xl md:text-2xl text-[#5A1F2B]/80 italic mb-8"
             variants={fadeInUp}
           >
             {CONTENT.hero.subhead}
           </motion.p>
           
           <motion.p 
-            className="text-sm md:text-base text-[#FAF9F6]/60 mb-12 max-w-lg mx-auto tracking-wide leading-relaxed"
+            className="text-sm md:text-base text-[#5A1F2B]/70 mb-12 max-w-lg mx-auto tracking-wide leading-relaxed"
             variants={fadeInUp}
           >
             {CONTENT.hero.supporting}
@@ -293,7 +293,7 @@ export default function Landing() {
           <motion.div variants={fadeInUp}>
             <button
               onClick={() => setLocation("/onboarding")}
-              className="group relative px-10 py-5 bg-[#FAF9F6] text-[#5A1F2B] text-xs uppercase tracking-[0.2em] font-medium overflow-hidden transition-all duration-500 hover:bg-[#5A1F2B] hover:text-[#FAF9F6] border border-[#FAF9F6]"
+              className="group relative px-10 py-5 bg-[#5A1F2B] text-[#FAF9F6] text-xs uppercase tracking-[0.2em] font-medium overflow-hidden transition-all duration-500 hover:bg-transparent hover:text-[#5A1F2B] border border-[#5A1F2B]"
               data-testid="button-hero-primary"
             >
               {CONTENT.hero.primaryCta}
@@ -308,7 +308,7 @@ export default function Landing() {
           animate={{ opacity: 1 }}
           transition={{ delay: 1.5, duration: 1 }}
         >
-          <div className="w-[1px] h-16 bg-gradient-to-b from-[#FAF9F6]/0 via-[#FAF9F6]/50 to-[#FAF9F6]/0" />
+          <div className="w-[1px] h-16 bg-gradient-to-b from-[#5A1F2B]/0 via-[#5A1F2B]/50 to-[#5A1F2B]/0" />
         </motion.div>
       </section>
 
