@@ -51,7 +51,7 @@ export default function Privacy() {
             <ul className="list-disc list-inside space-y-1 ml-2">
               <li>All data is encrypted in transit using SSL/TLS</li>
               <li>Information is stored on secure, enterprise-grade servers</li>
-              <li>Payment processing is handled by Stripe, a PCI-compliant provider</li>
+              <li>Payment processing is handled by Square, a PCI-compliant provider</li>
               <li>Access to your data is limited to vetted Beauvette team members and artists you choose to work with</li>
             </ul>
           </section>

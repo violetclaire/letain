@@ -471,13 +471,6 @@ export default function Landing() {
               >
                 Privacy
               </button>
-              <button
-                onClick={() => setLocation("/terms")}
-                className="text-xs uppercase tracking-[0.15em] text-[#F4F2EC]/40 hover:text-[#F4F2EC] transition-colors duration-300"
-                data-testid="link-footer-terms"
-              >
-                Terms
-              </button>
             </div>
           </div>
 

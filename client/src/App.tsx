@@ -49,7 +49,6 @@ import Proposals from "@/pages/Proposals";
 import VendorOnboarding from "@/pages/VendorOnboarding";
 import Waitlist from "@/pages/Waitlist";
 import Privacy from "@/pages/Privacy";
-import Terms from "@/pages/Terms";
 
 function InviteRedirectHandler() {
   const [location, setLocation] = useLocation();
@@ -92,7 +91,6 @@ function Router() {
       <Route path="/browse" component={Waitlist} />
       <Route path="/waitlist" component={Waitlist} />
       <Route path="/privacy" component={Privacy} />
-      <Route path="/terms" component={Terms} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/import" component={AdminImport} />
       <Route path="/artist/import" component={VendorImport} />
