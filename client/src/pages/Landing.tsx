@@ -264,27 +264,27 @@ export default function Landing() {
           variants={staggerContainer}
         >
           <motion.h1 
-            className="font-script text-7xl md:text-8xl lg:text-9xl text-[#5A1F2B] mb-8"
+            className="font-script text-7xl md:text-8xl lg:text-9xl text-[#5A1F2B] font-bold mb-8"
             variants={fadeInUp}
           >
             {CONTENT.hero.h1}
           </motion.h1>
           
           <motion.div variants={fadeInUp}>
-            <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-[#5A1F2B] font-light tracking-wide mb-4">
+            <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-[#5A1F2B] font-semibold tracking-wide mb-4">
               {CONTENT.hero.h2}
             </h2>
           </motion.div>
           
           <motion.p 
-            className="font-serif text-xl md:text-2xl text-[#5A1F2B]/80 italic mb-8"
+            className="font-serif text-xl md:text-2xl text-[#5A1F2B] font-medium italic mb-8"
             variants={fadeInUp}
           >
             {CONTENT.hero.subhead}
           </motion.p>
           
           <motion.p 
-            className="text-sm md:text-base text-[#5A1F2B]/70 mb-12 max-w-lg mx-auto tracking-wide leading-relaxed"
+            className="text-sm md:text-base text-[#5A1F2B]/90 font-medium mb-12 max-w-lg mx-auto tracking-wide leading-relaxed"
             variants={fadeInUp}
           >
             {CONTENT.hero.supporting}
