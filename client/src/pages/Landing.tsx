@@ -457,13 +457,13 @@ export default function Landing() {
               >
                 Instagram
               </a>
-              <button
-                onClick={() => setLocation("/contact")}
+              <a
+                href="mailto:violet@beauvette.com"
                 className="text-xs uppercase tracking-[0.15em] text-[#F4F2EC]/40 hover:text-[#F4F2EC] transition-colors duration-300"
                 data-testid="link-footer-contact"
               >
                 Contact
-              </button>
+              </a>
               <button
                 onClick={() => setLocation("/privacy")}
                 className="text-xs uppercase tracking-[0.15em] text-[#F4F2EC]/40 hover:text-[#F4F2EC] transition-colors duration-300"
