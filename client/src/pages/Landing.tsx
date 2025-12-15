@@ -3,27 +3,6 @@ import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Link, Send, MessageCircle } from "lucide-react";
 
-function GinghamPattern() {
-  return (
-    <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <pattern id="gingham" patternUnits="userSpaceOnUse" width="40" height="40">
-          <rect width="40" height="40" fill="#F7F2EA"/>
-          <rect width="20" height="20" fill="#5A1F2B" opacity="0.3"/>
-          <rect x="20" y="20" width="20" height="20" fill="#5A1F2B" opacity="0.3"/>
-          <rect width="20" height="20" fill="#5A1F2B" opacity="0.3"/>
-          <rect x="20" y="20" width="20" height="20" fill="#5A1F2B" opacity="0.3"/>
-          <rect x="10" y="0" width="20" height="20" fill="#5A1F2B" opacity="0.15"/>
-          <rect x="0" y="10" width="20" height="20" fill="#5A1F2B" opacity="0.15"/>
-          <rect x="30" y="10" width="10" height="20" fill="#5A1F2B" opacity="0.15"/>
-          <rect x="10" y="30" width="20" height="10" fill="#5A1F2B" opacity="0.15"/>
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#gingham)"/>
-    </svg>
-  );
-}
-
 const CONTENT = {
   nav: {
     brand: "Beauvette",
@@ -120,24 +99,20 @@ export default function Landing() {
           <>
             {/* Left Door */}
             <motion.div
-              className="fixed inset-y-0 left-0 w-1/2 z-[100]"
+              className="fixed inset-y-0 left-0 w-1/2 z-[100] gingham-pattern"
               initial={{ x: 0 }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-            >
-              <GinghamPattern />
-            </motion.div>
+            />
             {/* Right Door */}
             <motion.div
-              className="fixed inset-y-0 right-0 w-1/2 z-[100]"
+              className="fixed inset-y-0 right-0 w-1/2 z-[100] gingham-pattern"
               initial={{ x: 0 }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-            >
-              <GinghamPattern />
-            </motion.div>
+            />
             {/* Center Logo */}
             <motion.div
               className="fixed inset-0 z-[101] flex items-center justify-center pointer-events-none"
