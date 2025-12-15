@@ -253,7 +253,7 @@ export default function Landing() {
       >
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('/attached_assets/u4728191363_httpss.mj.rungfKnW_VrVm4_httpss.mj.runyg-8Mw3soBQ__1765827904112.png')" }}
+          style={{ backgroundImage: "url('/attached_assets/hero-flatlay.png')" }}
         />
         <div className="absolute inset-0 bg-[#1c1a18]/10" />
         
