@@ -290,8 +290,16 @@ export default function PublicArtistCalendar() {
 
   return (
     <div className="min-h-screen bg-[#FAF9F7] flex flex-col">
-      <header className="px-6 py-4 bg-[#FFFEF9] border-b border-[#2C2C2C]">
-        <h1 className="font-script text-2xl text-[#2C2C2C] text-center">Beauvette</h1>
+      <header className="px-6 py-4 bg-[#FFFEF9] border-b border-[#2C2C2C] flex items-center justify-between">
+        <div className="w-16" />
+        <h1 className="font-script text-2xl text-[#2C2C2C]">Beauvette</h1>
+        <button
+          onClick={() => setLocation("/login")}
+          className="text-sm text-[#2C2C2C] hover:underline"
+          data-testid="button-login"
+        >
+          Log in
+        </button>
       </header>
 
       <div className="flex-1 p-4 max-w-md mx-auto w-full">
