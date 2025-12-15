@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Menu, X, Play, Calendar, Send, Users } from "lucide-react";
+import { Menu, X, Link, Send, MessageCircle } from "lucide-react";
 
 const CONTENT = {
   nav: {
@@ -14,28 +14,25 @@ const CONTENT = {
     subhead: "If not, who do you trust?",
     supporting: "Your operational assistant for availability and inquiries.",
     primaryCta: "Create your availability link",
-    secondaryCta: "Watch how it works",
     proof: "Built for artists and their clients."
-  },
-  video: {
-    overlay: "Imagine less stress.",
-    src: "/assets/beauvette-loop.mp4",
-    poster: "/assets/beauvette-poster.jpg"
   },
   howItWorks: {
     title: "How it works",
     steps: [
       {
-        title: "Set availability once",
-        body: "Click the dates you're booked. Share your link in bio."
+        title: "Share your Beauvette availability link",
+        body: "Artists create a custom Beauvette link and share it on their social media.",
+        subBody: "Clients can view availability and request information in one place."
       },
       {
-        title: "Clients request a date",
-        body: "They tap your link and request their wedding/event date."
+        title: "Requests and pricing are sent clearly",
+        body: "When a client requests a date, they receive your pricing and details without repeated back-and-forth.",
+        subBody: "Everything starts in one structured inquiry."
       },
       {
-        title: "Beauvette handles the rest",
-        body: "If you're available, pricing + details send automatically. If not, it checks your trusted referrals."
+        title: "Continue the conversation if needed",
+        body: "If the client wants to move forward or ask questions, they can chat with you directly inside Beauvette.",
+        subBody: "Bookings, messages, referrals, and client details stay organized in one place."
       }
     ]
   },
@@ -55,10 +52,6 @@ const CONTENT = {
     copy: "Find artists by date. Get answers instantly. No waiting on DMs.",
     cta: "Join the client waitlist"
   },
-  testimonial: {
-    quote: "This saved me hours of back-and-forth.",
-    name: "— Makeup Artist, Santa Barbara"
-  },
   footer: {
     links: ["Instagram", "Contact", "Privacy", "Terms"],
     copyright: "© Beauvette"
@@ -68,7 +61,6 @@ const CONTENT = {
 export default function Landing() {
   const [, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [videoError, setVideoError] = useState(false);
 
   useEffect(() => {
     if (mobileMenuOpen) {
@@ -194,59 +186,17 @@ export default function Landing() {
             {CONTENT.hero.supporting}
           </p>
           
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button
-              onClick={() => setLocation("/onboarding")}
-              className="w-full sm:w-auto px-8 py-4 bg-[#F7F2EA] text-[#5A1F2B] text-base font-medium hover:bg-[#EDE8E0] transition-colors"
-              data-testid="button-hero-primary"
-            >
-              {CONTENT.hero.primaryCta}
-            </button>
-            <button
-              onClick={() => scrollToSection("video")}
-              className="flex items-center gap-2 text-[#F7F2EA] hover:text-[#F7F2EA]/80 transition-colors"
-              data-testid="button-hero-secondary"
-            >
-              <Play size={18} />
-              <span className="text-base">{CONTENT.hero.secondaryCta}</span>
-            </button>
-          </div>
+          <button
+            onClick={() => setLocation("/onboarding")}
+            className="w-full sm:w-auto px-8 py-4 bg-[#F7F2EA] text-[#5A1F2B] text-base font-medium hover:bg-[#EDE8E0] transition-colors"
+            data-testid="button-hero-primary"
+          >
+            {CONTENT.hero.primaryCta}
+          </button>
 
           <p className="mt-12 text-sm text-[#F7F2EA]/50">
             {CONTENT.hero.proof}
           </p>
-        </div>
-      </section>
-
-      {/* Video Section */}
-      <section id="video" className="py-16 md:py-24">
-        <div className="relative w-full aspect-video max-w-5xl mx-auto overflow-hidden">
-          {!videoError ? (
-            <video
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="metadata"
-              poster={CONTENT.video.poster}
-              onError={() => setVideoError(true)}
-              className="w-full h-full object-cover"
-            >
-              <source src={CONTENT.video.src} type="video/mp4" />
-            </video>
-          ) : (
-            <div className="w-full h-full bg-[#4A1823] flex items-center justify-center">
-              <div className="text-center">
-                <Play size={48} className="mx-auto mb-4 text-[#F7F2EA]/40" />
-                <p className="text-[#F7F2EA]/50">Video coming soon</p>
-              </div>
-            </div>
-          )}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <p className="font-serif text-2xl md:text-4xl text-[#F7F2EA] drop-shadow-lg">
-              {CONTENT.video.overlay}
-            </p>
-          </div>
         </div>
       </section>
 
@@ -261,19 +211,19 @@ export default function Landing() {
             {CONTENT.howItWorks.steps.map((step, index) => (
               <div key={index} className="text-center md:text-left">
                 <div className="w-12 h-12 mx-auto md:mx-0 mb-6 rounded-full bg-[#5A1F2B]/10 flex items-center justify-center">
-                  {index === 0 && <Calendar size={20} className="text-[#5A1F2B]" />}
+                  {index === 0 && <Link size={20} className="text-[#5A1F2B]" />}
                   {index === 1 && <Send size={20} className="text-[#5A1F2B]" />}
-                  {index === 2 && <Users size={20} className="text-[#5A1F2B]" />}
+                  {index === 2 && <MessageCircle size={20} className="text-[#5A1F2B]" />}
                 </div>
                 <h3 className="font-serif text-xl md:text-2xl text-[#5A1F2B] mb-3">
                   {step.title}
                 </h3>
-                <p className="text-[#5A1F2B]/70 leading-relaxed">
+                <p className="text-[#5A1F2B]/70 leading-relaxed mb-3">
                   {step.body}
                 </p>
-                {index < 2 && (
-                  <div className="hidden md:block mt-8 border-b border-[#5A1F2B]/10" />
-                )}
+                <p className="text-[#5A1F2B]/60 leading-relaxed text-sm">
+                  {step.subBody}
+                </p>
               </div>
             ))}
           </div>
@@ -331,18 +281,6 @@ export default function Landing() {
           >
             {CONTENT.clients.cta}
           </button>
-        </div>
-      </section>
-
-      {/* Testimonial */}
-      <section className="px-6 py-20 md:py-32 bg-[#5A1F2B]">
-        <div className="max-w-[680px] mx-auto text-center">
-          <blockquote className="font-serif text-2xl md:text-3xl text-[#F7F2EA] italic mb-6">
-            "{CONTENT.testimonial.quote}"
-          </blockquote>
-          <p className="text-[#F7F2EA]/60">
-            {CONTENT.testimonial.name}
-          </p>
         </div>
       </section>
 
