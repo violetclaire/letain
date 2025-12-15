@@ -253,9 +253,9 @@ export default function Landing() {
       >
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('/attached_assets/u4728191363_Overhead_flatlay_photograph_of_a_luxury_hotel_van__1765813303465.png')" }}
+          style={{ backgroundImage: "url('/attached_assets/u4728191363_httpss.mj.rungfKnW_VrVm4_httpss.mj.runyg-8Mw3soBQ__1765827904112.png')" }}
         />
-        <div className="absolute inset-0 bg-[#5A1F2B]/10" />
+        <div className="absolute inset-0 bg-[#1c1a18]/90" />
         
         <motion.div 
           className="relative z-10 max-w-4xl mx-auto px-8 text-center"
