@@ -1478,6 +1478,10 @@ export async function sendWaitlistConfirmationEmail({
           
           <p>We'll reach out as soon as we're ready to help you find the perfect beauty artists for your special day.</p>
           
+          <p>If you have any questions, please email <a href="mailto:violet@beauvette.com" style="color: #6B4A55;">violet@beauvette.com</a>.</p>
+          
+          <p>Already working with a beauty artist you love? Send them this link to join Beauvette: <a href="https://beauvette.com/onboarding" style="color: #6B4A55;">beauvette.com/onboarding</a></p>
+          
           <p>In the meantime, save this email so you can easily find us when the time comes.</p>
           
           <p>With love,<br>The Beauvette Team</p>
