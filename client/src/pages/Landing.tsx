@@ -96,7 +96,7 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <a 
             href="/" 
-            className="font-serif text-2xl tracking-tight text-[#F7F2EA]"
+            className="font-script text-3xl text-[#F7F2EA]"
             data-testid="link-brand"
           >
             {CONTENT.nav.brand}
@@ -127,7 +127,7 @@ export default function Landing() {
             </button>
             <button
               onClick={() => setLocation("/onboarding")}
-              className="px-5 py-2.5 bg-[#F7F2EA] text-[#5A1F2B] text-sm rounded-full hover:bg-[#EDE8E0] transition-colors"
+              className="px-5 py-2.5 bg-[#F7F2EA] text-[#5A1F2B] text-sm hover:bg-[#EDE8E0] transition-colors"
               data-testid="button-nav-cta"
             >
               {CONTENT.nav.cta}
@@ -169,7 +169,7 @@ export default function Landing() {
               </button>
               <button
                 onClick={() => setLocation("/onboarding")}
-                className="mt-4 px-6 py-3 bg-[#F7F2EA] text-[#5A1F2B] rounded-full hover:bg-[#EDE8E0] transition-colors"
+                className="mt-4 px-6 py-3 bg-[#F7F2EA] text-[#5A1F2B] hover:bg-[#EDE8E0] transition-colors"
               >
                 {CONTENT.nav.cta}
               </button>
@@ -181,7 +181,7 @@ export default function Landing() {
       {/* Hero Section */}
       <section className="px-6 pt-20 pb-24 md:pt-32 md:pb-36">
         <div className="max-w-[680px] mx-auto text-center">
-          <h1 className="font-serif text-5xl md:text-6xl lg:text-7xl text-[#F7F2EA] mb-6 tracking-tight">
+          <h1 className="font-script text-6xl md:text-7xl lg:text-8xl text-[#F7F2EA] mb-6">
             {CONTENT.hero.h1}
           </h1>
           <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-[#F7F2EA] mb-4">
@@ -197,7 +197,7 @@ export default function Landing() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
               onClick={() => setLocation("/onboarding")}
-              className="w-full sm:w-auto px-8 py-4 bg-[#F7F2EA] text-[#5A1F2B] rounded-full text-base font-medium hover:bg-[#EDE8E0] transition-colors"
+              className="w-full sm:w-auto px-8 py-4 bg-[#F7F2EA] text-[#5A1F2B] text-base font-medium hover:bg-[#EDE8E0] transition-colors"
               data-testid="button-hero-primary"
             >
               {CONTENT.hero.primaryCta}
@@ -299,7 +299,7 @@ export default function Landing() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
               onClick={() => setLocation("/onboarding")}
-              className="w-full sm:w-auto px-8 py-4 bg-[#F7F2EA] text-[#5A1F2B] rounded-full text-base font-medium hover:bg-[#EDE8E0] transition-colors"
+              className="w-full sm:w-auto px-8 py-4 bg-[#F7F2EA] text-[#5A1F2B] text-base font-medium hover:bg-[#EDE8E0] transition-colors"
               data-testid="button-artists-primary"
             >
               {CONTENT.artists.primaryCta}
@@ -326,7 +326,7 @@ export default function Landing() {
           </p>
           <button
             onClick={() => setLocation("/waitlist")}
-            className="px-8 py-4 border border-[#5A1F2B] text-[#5A1F2B] rounded-full text-base font-medium hover:bg-[#5A1F2B] hover:text-[#F7F2EA] transition-colors"
+            className="px-8 py-4 border border-[#5A1F2B] text-[#5A1F2B] text-base font-medium hover:bg-[#5A1F2B] hover:text-[#F7F2EA] transition-colors"
             data-testid="button-clients-cta"
           >
             {CONTENT.clients.cta}
