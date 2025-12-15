@@ -286,7 +286,7 @@ export default function Landing() {
           
           <button
             onClick={() => setLocation("/onboarding")}
-            className="group relative px-10 py-5 bg-[#FAF9F6] text-[#5A1F2B] text-xs uppercase tracking-[0.2em] font-medium overflow-hidden transition-all duration-500 hover:bg-[#5A1F2B] hover:text-[#FAF9F6] border border-[#FAF9F6]"
+            className="group relative px-6 py-3 bg-[#FAF9F6] text-[#5A1F2B] text-xs uppercase tracking-[0.15em] font-medium overflow-hidden transition-all duration-500 hover:bg-[#5A1F2B] hover:text-[#FAF9F6] border border-[#FAF9F6]"
             data-testid="button-hero-primary"
           >
             {CONTENT.hero.primaryCta}
