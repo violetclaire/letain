@@ -249,9 +249,13 @@ export default function Landing() {
 
       {/* Hero Section - Full Height, Cinematic */}
       <section 
-        className="relative min-h-screen flex items-center justify-center bg-[#5A1F2B]"
+        className="relative min-h-screen flex items-center justify-center"
       >
-        <div className="absolute inset-0 bg-gradient-to-b from-[#5A1F2B] via-[#5A1F2B]/95 to-[#5A1F2B]" />
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('/attached_assets/u4728191363_Overhead_flatlay_photograph_of_a_luxury_hotel_van__1765813303465.png')" }}
+        />
+        <div className="absolute inset-0 bg-[#5A1F2B]/10" />
         
         <motion.div 
           className="relative z-10 max-w-4xl mx-auto px-8 text-center"
