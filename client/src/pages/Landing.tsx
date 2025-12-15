@@ -255,36 +255,36 @@ export default function Landing() {
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: "url('/attached_assets/hero-flatlay.png')" }}
         />
-        <div className="absolute inset-0 bg-[#1c1a18]/90" />
+        <div className="absolute inset-0 bg-[#1c1a18]/10" />
         
         <motion.div 
-          className="relative z-10 max-w-4xl mx-auto px-8 text-center pt-32"
+          className="relative z-10 max-w-4xl mx-auto px-8 text-center pt-48 md:pt-56"
           initial="initial"
           animate="animate"
           variants={staggerContainer}
         >
           <motion.h1 
-            className="font-script text-7xl md:text-8xl lg:text-9xl text-[#FAF9F6] mb-8"
+            className="font-script text-7xl md:text-8xl lg:text-9xl text-[#5A1F2B] mb-8"
             variants={fadeInUp}
           >
             {CONTENT.hero.h1}
           </motion.h1>
           
           <motion.div variants={fadeInUp}>
-            <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-[#FAF9F6] font-light tracking-wide mb-4">
+            <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-[#5A1F2B] font-light tracking-wide mb-4">
               {CONTENT.hero.h2}
             </h2>
           </motion.div>
           
           <motion.p 
-            className="font-serif text-xl md:text-2xl text-[#FAF9F6]/70 italic mb-8"
+            className="font-serif text-xl md:text-2xl text-[#5A1F2B]/80 italic mb-8"
             variants={fadeInUp}
           >
             {CONTENT.hero.subhead}
           </motion.p>
           
           <motion.p 
-            className="text-sm md:text-base text-[#FAF9F6]/60 mb-12 max-w-lg mx-auto tracking-wide leading-relaxed"
+            className="text-sm md:text-base text-[#5A1F2B]/70 mb-12 max-w-lg mx-auto tracking-wide leading-relaxed"
             variants={fadeInUp}
           >
             {CONTENT.hero.supporting}
@@ -300,7 +300,7 @@ export default function Landing() {
         >
           <button
             onClick={() => setLocation("/onboarding")}
-            className="group relative px-10 py-5 bg-[#FAF9F6] text-[#5A1F2B] text-xs uppercase tracking-[0.2em] font-medium overflow-hidden transition-all duration-500 hover:bg-[#5A1F2B] hover:text-[#FAF9F6] border border-[#FAF9F6]"
+            className="group relative px-10 py-5 bg-[#5A1F2B] text-[#FAF9F6] text-xs uppercase tracking-[0.2em] font-medium overflow-hidden transition-all duration-500 hover:bg-transparent hover:text-[#5A1F2B] border border-[#5A1F2B]"
             data-testid="button-hero-primary"
           >
             {CONTENT.hero.primaryCta}
