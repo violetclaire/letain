@@ -1,146 +1,382 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { motion, AnimatePresence } from "framer-motion";
+import { Menu, X, Play, Calendar, Send, Users } from "lucide-react";
+
+const CONTENT = {
+  nav: {
+    brand: "Beauvette",
+    links: ["How it works", "For Artists", "For Clients"],
+    cta: "Get started (Artists)"
+  },
+  hero: {
+    h1: "Beauvette",
+    h2: "Are you available?",
+    subhead: "If not, who do you trust?",
+    supporting: "Your operational assistant for availability and inquiries.",
+    primaryCta: "Create your availability link",
+    secondaryCta: "Watch how it works",
+    proof: "Built for artists and their clients."
+  },
+  video: {
+    overlay: "Imagine less stress.",
+    src: "/assets/beauvette-loop.mp4",
+    poster: "/assets/beauvette-poster.jpg"
+  },
+  howItWorks: {
+    title: "How it works",
+    steps: [
+      {
+        title: "Set availability once",
+        body: "Click the dates you're booked. Share your link in bio."
+      },
+      {
+        title: "Clients request a date",
+        body: "They tap your link and request their wedding/event date."
+      },
+      {
+        title: "Beauvette handles the rest",
+        body: "If you're available, pricing + details send automatically. If not, it checks your trusted referrals."
+      }
+    ]
+  },
+  artists: {
+    title: "For Artists",
+    bullets: [
+      "Availability link for your bio",
+      "Auto-send pricing & details",
+      "Smart referrals when you're booked",
+      "One place for clients, photos, and chat (coming soon)"
+    ],
+    primaryCta: "Get started",
+    secondaryCta: "See an example"
+  },
+  clients: {
+    title: "For Clients",
+    copy: "Find artists by date. Get answers instantly. No waiting on DMs.",
+    cta: "Join the client waitlist"
+  },
+  testimonial: {
+    quote: "This saved me hours of back-and-forth.",
+    name: "— Makeup Artist, Santa Barbara"
+  },
+  footer: {
+    links: ["Instagram", "Contact", "Privacy", "Terms"],
+    copyright: "© Beauvette"
+  }
+};
 
 export default function Landing() {
-  const [isOpen, setIsOpen] = useState(false);
   const [, setLocation] = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [videoError, setVideoError] = useState(false);
 
-  const openElevator = () => {
-    setIsOpen(true);
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileMenuOpen]);
+
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    }
+    setMobileMenuOpen(false);
   };
 
   return (
-    <div className="min-h-screen overflow-y-auto overflow-x-hidden bg-[#FCF9F4] font-sans">
-
-      <AnimatePresence>
-        {!isOpen && (
-          <motion.div 
-            className="fixed inset-0 z-50 flex items-center justify-center cursor-pointer"
-            onClick={openElevator}
-            exit={{ opacity: 0, pointerEvents: "none" }}
-            transition={{ duration: 0.5, delay: 1 }}
+    <div className="min-h-screen bg-[#F7F2EA] text-[#2C2C2C] font-sans antialiased">
+      {/* Navigation */}
+      <nav className="sticky top-0 z-50 bg-[#F7F2EA]/95 backdrop-blur-sm">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+          <a 
+            href="/" 
+            className="font-serif text-2xl tracking-tight text-[#5A1F2B]"
+            data-testid="link-brand"
           >
-            <motion.div
-              className="absolute left-0 top-0 w-1/2 h-full border-r border-[#5A1F2B]/20 overflow-hidden gingham-check"
-              initial={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
-            />
+            {CONTENT.nav.brand}
+          </a>
 
-            <motion.div
-              className="absolute right-0 top-0 w-1/2 h-full border-l border-[#5A1F2B]/20 overflow-hidden gingham-check"
-              initial={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
-            />
-
-            <motion.div 
-              className="relative z-10 flex flex-col items-center justify-center text-center pointer-events-none"
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
+          {/* Desktop Nav */}
+          <div className="hidden md:flex items-center gap-8">
+            <button 
+              onClick={() => scrollToSection("how-it-works")}
+              className="text-sm text-[#2C2C2C]/70 hover:text-[#5A1F2B] transition-colors"
+              data-testid="link-how-it-works"
             >
-              <div className="bg-[#FCF9F4] p-1 border border-[#5A1F2B]">
-                <div className="border border-[#5A1F2B] px-16 py-10">
-                  <h1 className="font-script text-5xl text-[#5A1F2B]">
-                    Beauvette
-                  </h1>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              How it works
+            </button>
+            <button 
+              onClick={() => scrollToSection("for-artists")}
+              className="text-sm text-[#2C2C2C]/70 hover:text-[#5A1F2B] transition-colors"
+              data-testid="link-for-artists"
+            >
+              For Artists
+            </button>
+            <button 
+              onClick={() => scrollToSection("for-clients")}
+              className="text-sm text-[#2C2C2C]/70 hover:text-[#5A1F2B] transition-colors"
+              data-testid="link-for-clients"
+            >
+              For Clients
+            </button>
+            <button
+              onClick={() => setLocation("/onboarding")}
+              className="px-5 py-2.5 bg-[#5A1F2B] text-white text-sm rounded-full hover:bg-[#4a1923] transition-colors"
+              data-testid="button-nav-cta"
+            >
+              {CONTENT.nav.cta}
+            </button>
+          </div>
 
-      <motion.div 
-        className={`min-h-screen transition-opacity duration-1000 ${isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: isOpen ? 1 : 0 }}
-        transition={{ delay: 0.8, duration: 0.8 }}
-      >
-        <header className="w-full px-6 py-4 flex items-center justify-between border-b border-[#5A1F2B]/30 bg-[#FCF9F4]">
-          <h1 className="font-script text-2xl text-[#5A1F2B]">Beauvette</h1>
-          <button
-            onClick={() => setLocation("/login")}
-            className="text-sm px-4 py-2 text-[#5A1F2B]/70 hover:text-[#5A1F2B] transition-colors"
-            data-testid="button-sign-in"
+          {/* Mobile Menu Button */}
+          <button 
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 -mr-2"
+            aria-label="Toggle menu"
+            data-testid="button-mobile-menu"
           >
-            Sign in
+            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
-        </header>
+        </div>
 
-        <main className="px-4 py-16 max-w-lg mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="font-script text-6xl md:text-7xl text-[#5A1F2B] mb-4">
-              Beauvette
-            </h2>
-            <p className="font-elegant text-2xl md:text-3xl text-[#5A1F2B] mb-2">
-              Are you available?
-            </p>
-            <p className="font-elegant text-xl text-[#5A1F2B]/70 italic mb-6">
-              If not, who do you trust?
-            </p>
-            <p className="font-elegant text-base text-[#5A1F2B]/60 tracking-wide leading-relaxed">
-              Beauvette is an operational assistant that manages availability and inquiries based on how you work.
-            </p>
-          </div>
-
-          <div className="space-y-6">
-            <div className="border border-[#5A1F2B] p-1">
-              <div className="border border-[#FCF9F4] p-1">
-                <div className="border border-[#5A1F2B] p-6 text-center bg-[#FCF9F4]">
-                  <div className="w-full bg-[#5A1F2B] p-1 mb-4">
-                    <button
-                      onClick={() => setLocation("/onboarding")}
-                      className="w-full px-6 py-3 text-base font-medium bg-[#5A1F2B] text-[#FCF9F4] border border-[#FCF9F4]/40 hover:bg-[#4a1923] transition-colors tracking-wide"
-                      data-testid="button-artist-cta"
-                    >
-                      Set up your availability calendar, link it in your bio
-                    </button>
-                  </div>
-                  <p className="text-sm text-[#5A1F2B]/70 leading-relaxed mb-3">
-                    Think of Beauvette as your personal secretary. It's trained on your responsiveness and communication style. It handles availability, sends pricing when appropriate, and reduces coordination while you remain fully in control.
-                  </p>
-                  <p className="text-sm text-[#5A1F2B]/80 font-medium">
-                    Welcome to Beauvette, the first platform built for artists and their clients.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-[#E8F4F8] p-1 border border-[#B8D4E3]">
-              <div className="border border-[#5A1F2B] p-1">
-                <div className="border border-[#E8F4F8] p-1">
-                  <div className="border border-[#5A1F2B] p-6 text-center bg-[#E8F4F8]">
-                    <button
-                      onClick={() => setLocation("/waitlist")}
-                      className="w-full px-8 py-4 text-base font-medium bg-transparent text-[#5A1F2B] border border-[#5A1F2B]/50 hover:bg-[#FCF9F4] transition-colors tracking-wide mb-3"
-                      data-testid="button-client-waitlist"
-                    >
-                      Join the Client Waitlist
-                    </button>
-                    <p className="text-xs text-[#5A1F2B]/60 leading-relaxed">
-                      We'll notify you as artists become available in your area.
-                    </p>
-                  </div>
-                </div>
-              </div>
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden fixed inset-0 top-[60px] bg-[#F7F2EA] z-40 px-6 py-8">
+            <div className="flex flex-col gap-6">
+              <button 
+                onClick={() => scrollToSection("how-it-works")}
+                className="text-lg text-left text-[#2C2C2C]/80 hover:text-[#5A1F2B]"
+              >
+                How it works
+              </button>
+              <button 
+                onClick={() => scrollToSection("for-artists")}
+                className="text-lg text-left text-[#2C2C2C]/80 hover:text-[#5A1F2B]"
+              >
+                For Artists
+              </button>
+              <button 
+                onClick={() => scrollToSection("for-clients")}
+                className="text-lg text-left text-[#2C2C2C]/80 hover:text-[#5A1F2B]"
+              >
+                For Clients
+              </button>
+              <button
+                onClick={() => setLocation("/onboarding")}
+                className="mt-4 px-6 py-3 bg-[#5A1F2B] text-white rounded-full hover:bg-[#4a1923] transition-colors"
+              >
+                {CONTENT.nav.cta}
+              </button>
             </div>
           </div>
-        </main>
+        )}
+      </nav>
 
-        <footer className="w-full px-6 py-6 mt-8 border-t border-[#5A1F2B]/20 text-center bg-[#FCF9F4]">
-          <p className="text-xs text-[#5A1F2B]/50 mb-4">
-            © 2025 Beauvette. For life's most important days.
+      {/* Hero Section */}
+      <section className="px-6 pt-20 pb-24 md:pt-32 md:pb-36">
+        <div className="max-w-[680px] mx-auto text-center">
+          <h1 className="font-serif text-5xl md:text-6xl lg:text-7xl text-[#5A1F2B] mb-6 tracking-tight">
+            {CONTENT.hero.h1}
+          </h1>
+          <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-[#2C2C2C] mb-4">
+            {CONTENT.hero.h2}
+          </h2>
+          <p className="font-serif text-xl md:text-2xl text-[#2C2C2C]/60 italic mb-6">
+            {CONTENT.hero.subhead}
+          </p>
+          <p className="text-base md:text-lg text-[#2C2C2C]/70 mb-10 max-w-md mx-auto">
+            {CONTENT.hero.supporting}
+          </p>
+          
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <button
+              onClick={() => setLocation("/onboarding")}
+              className="w-full sm:w-auto px-8 py-4 bg-[#5A1F2B] text-white rounded-full text-base font-medium hover:bg-[#4a1923] transition-colors"
+              data-testid="button-hero-primary"
+            >
+              {CONTENT.hero.primaryCta}
+            </button>
+            <button
+              onClick={() => scrollToSection("video")}
+              className="flex items-center gap-2 text-[#5A1F2B] hover:text-[#4a1923] transition-colors"
+              data-testid="button-hero-secondary"
+            >
+              <Play size={18} />
+              <span className="text-base">{CONTENT.hero.secondaryCta}</span>
+            </button>
+          </div>
+
+          <p className="mt-12 text-sm text-[#2C2C2C]/50">
+            {CONTENT.hero.proof}
+          </p>
+        </div>
+      </section>
+
+      {/* Video Section */}
+      <section id="video" className="py-16 md:py-24">
+        <div className="relative w-full aspect-video max-w-5xl mx-auto overflow-hidden">
+          {!videoError ? (
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              poster={CONTENT.video.poster}
+              onError={() => setVideoError(true)}
+              className="w-full h-full object-cover"
+            >
+              <source src={CONTENT.video.src} type="video/mp4" />
+            </video>
+          ) : (
+            <div className="w-full h-full bg-[#E8E4DD] flex items-center justify-center">
+              <div className="text-center">
+                <Play size={48} className="mx-auto mb-4 text-[#5A1F2B]/40" />
+                <p className="text-[#2C2C2C]/50">Video coming soon</p>
+              </div>
+            </div>
+          )}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <p className="font-serif text-2xl md:text-4xl text-white drop-shadow-lg">
+              {CONTENT.video.overlay}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section id="how-it-works" className="px-6 py-20 md:py-32">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="font-serif text-3xl md:text-4xl text-center text-[#2C2C2C] mb-16">
+            {CONTENT.howItWorks.title}
+          </h2>
+          
+          <div className="grid md:grid-cols-3 gap-12 md:gap-8">
+            {CONTENT.howItWorks.steps.map((step, index) => (
+              <div key={index} className="text-center md:text-left">
+                <div className="w-12 h-12 mx-auto md:mx-0 mb-6 rounded-full bg-[#5A1F2B]/10 flex items-center justify-center">
+                  {index === 0 && <Calendar size={20} className="text-[#5A1F2B]" />}
+                  {index === 1 && <Send size={20} className="text-[#5A1F2B]" />}
+                  {index === 2 && <Users size={20} className="text-[#5A1F2B]" />}
+                </div>
+                <h3 className="font-serif text-xl md:text-2xl text-[#2C2C2C] mb-3">
+                  {step.title}
+                </h3>
+                <p className="text-[#2C2C2C]/70 leading-relaxed">
+                  {step.body}
+                </p>
+                {index < 2 && (
+                  <div className="hidden md:block mt-8 border-b border-[#2C2C2C]/10" />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* For Artists */}
+      <section id="for-artists" className="px-6 py-20 md:py-32 bg-[#F0EBE3]">
+        <div className="max-w-[680px] mx-auto text-center">
+          <h2 className="font-serif text-3xl md:text-4xl text-[#2C2C2C] mb-10">
+            {CONTENT.artists.title}
+          </h2>
+          
+          <ul className="space-y-4 mb-12 text-left max-w-sm mx-auto">
+            {CONTENT.artists.bullets.map((bullet, index) => (
+              <li key={index} className="flex items-start gap-3">
+                <span className="w-1.5 h-1.5 mt-2.5 rounded-full bg-[#5A1F2B] flex-shrink-0" />
+                <span className="text-[#2C2C2C]/80">{bullet}</span>
+              </li>
+            ))}
+          </ul>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <button
+              onClick={() => setLocation("/onboarding")}
+              className="w-full sm:w-auto px-8 py-4 bg-[#5A1F2B] text-white rounded-full text-base font-medium hover:bg-[#4a1923] transition-colors"
+              data-testid="button-artists-primary"
+            >
+              {CONTENT.artists.primaryCta}
+            </button>
+            <button
+              onClick={() => setLocation("/sarah")}
+              className="text-[#5A1F2B] hover:text-[#4a1923] underline underline-offset-4 transition-colors"
+              data-testid="button-artists-secondary"
+            >
+              {CONTENT.artists.secondaryCta}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* For Clients */}
+      <section id="for-clients" className="px-6 py-20 md:py-32">
+        <div className="max-w-[680px] mx-auto text-center">
+          <h2 className="font-serif text-3xl md:text-4xl text-[#2C2C2C] mb-6">
+            {CONTENT.clients.title}
+          </h2>
+          <p className="text-lg text-[#2C2C2C]/70 mb-10">
+            {CONTENT.clients.copy}
           </p>
           <button
-            onClick={() => setLocation("/login")}
-            className="text-xs text-[#5A1F2B]/50 hover:text-[#5A1F2B] transition-colors"
+            onClick={() => setLocation("/waitlist")}
+            className="px-8 py-4 border border-[#5A1F2B] text-[#5A1F2B] rounded-full text-base font-medium hover:bg-[#5A1F2B] hover:text-white transition-colors"
+            data-testid="button-clients-cta"
           >
-            Already using Beauvette? Sign in
+            {CONTENT.clients.cta}
           </button>
-        </footer>
-      </motion.div>
+        </div>
+      </section>
+
+      {/* Testimonial */}
+      <section className="px-6 py-20 md:py-32 bg-[#F0EBE3]">
+        <div className="max-w-[680px] mx-auto text-center">
+          <blockquote className="font-serif text-2xl md:text-3xl text-[#2C2C2C] italic mb-6">
+            "{CONTENT.testimonial.quote}"
+          </blockquote>
+          <p className="text-[#2C2C2C]/60">
+            {CONTENT.testimonial.name}
+          </p>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="px-6 py-12 border-t border-[#2C2C2C]/10">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-6">
+              {CONTENT.footer.links.map((link, index) => (
+                <a
+                  key={index}
+                  href={link === "Instagram" ? "https://instagram.com" : "#"}
+                  className="text-sm text-[#2C2C2C]/60 hover:text-[#5A1F2B] transition-colors"
+                  data-testid={`link-footer-${link.toLowerCase()}`}
+                >
+                  {link}
+                </a>
+              ))}
+            </div>
+            <p className="text-sm text-[#2C2C2C]/50">
+              {CONTENT.footer.copyright}
+            </p>
+          </div>
+          <div className="mt-8 text-center">
+            <button
+              onClick={() => setLocation("/login")}
+              className="text-sm text-[#2C2C2C]/50 hover:text-[#5A1F2B] transition-colors"
+              data-testid="button-sign-in"
+            >
+              Already using Beauvette? Sign in
+            </button>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
