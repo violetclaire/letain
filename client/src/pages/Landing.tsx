@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Link, Send, MessageCircle } from "lucide-react";
+import { Menu, X } from "lucide-react";
 
 const CONTENT = {
   nav: {
     brand: "Beauvette",
     links: ["How it works", "For Artists", "For Clients"],
-    cta: "Get started (Artists)"
+    cta: "Get started"
   },
   hero: {
     h1: "Beauvette",
@@ -15,22 +15,24 @@ const CONTENT = {
     subhead: "If not, who do you trust?",
     supporting: "Your operational assistant for availability and inquiries.",
     primaryCta: "Create your availability link",
-    proof: "Built for artists and their clients."
   },
   howItWorks: {
     title: "How it works",
     steps: [
       {
+        number: "01",
         title: "Share your Beauvette availability link",
         body: "Artists create a custom Beauvette link and share it on their social media.",
         subBody: "Clients can view availability and request information in one place."
       },
       {
+        number: "02",
         title: "Requests and pricing are sent clearly",
         body: "When a client requests a date, they receive your pricing and details without repeated back-and-forth.",
         subBody: "Everything starts in one structured inquiry."
       },
       {
+        number: "03",
         title: "Continue the conversation if needed",
         body: "If the client wants to move forward or ask questions, they can chat with you directly inside Beauvette.",
         subBody: "Bookings, messages, referrals, and client details stay organized in one place."
@@ -43,7 +45,7 @@ const CONTENT = {
       "Availability link for your bio",
       "Auto-send pricing & details",
       "Smart referrals when you're booked",
-      "One place for clients, photos, and chat (coming soon)"
+      "One place for clients, photos, and chat"
     ],
     primaryCta: "Get started",
   },
@@ -58,7 +60,21 @@ const CONTENT = {
   },
   footer: {
     links: ["Instagram", "Contact", "Privacy", "Terms"],
-    copyright: "© Beauvette"
+    copyright: "© 2025 Beauvette"
+  }
+};
+
+const fadeInUp = {
+  initial: { opacity: 0, y: 30 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }
+};
+
+const staggerContainer = {
+  animate: {
+    transition: {
+      staggerChildren: 0.15
+    }
   }
 };
 
@@ -91,7 +107,7 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-[#5A1F2B] text-[#F7F2EA] font-sans antialiased">
+    <div className="min-h-screen bg-[#FAF9F6] text-[#1A1A1A] font-sans antialiased">
       {/* Gingham Elevator Doors */}
       <AnimatePresence>
         {!isOpen && (
@@ -132,236 +148,362 @@ export default function Landing() {
           </motion.div>
         )}
       </AnimatePresence>
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-[#5A1F2B]/95 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <a 
-            href="/" 
-            className="font-script text-3xl text-[#F7F2EA]"
-            data-testid="link-brand"
-          >
-            {CONTENT.nav.brand}
-          </a>
 
-          {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-8">
-            <button 
-              onClick={() => scrollToSection("how-it-works")}
-              className="text-sm text-[#F7F2EA]/70 hover:text-[#F7F2EA] transition-colors"
-              data-testid="link-how-it-works"
+      {/* Navigation - Minimal & Refined */}
+      <nav className="fixed top-0 left-0 right-0 z-40 bg-[#FAF9F6]/90 backdrop-blur-md border-b border-[#1A1A1A]/5">
+        <div className="max-w-7xl mx-auto px-8 lg:px-16">
+          <div className="flex items-center justify-between h-20">
+            <a 
+              href="/" 
+              className="font-script text-2xl tracking-wide text-[#5A1F2B]"
+              data-testid="link-brand"
             >
-              How it works
-            </button>
-            <button 
-              onClick={() => scrollToSection("for-artists")}
-              className="text-sm text-[#F7F2EA]/70 hover:text-[#F7F2EA] transition-colors"
-              data-testid="link-for-artists"
-            >
-              For Artists
-            </button>
-            <button 
-              onClick={() => scrollToSection("for-clients")}
-              className="text-sm text-[#F7F2EA]/70 hover:text-[#F7F2EA] transition-colors"
-              data-testid="link-for-clients"
-            >
-              For Clients
-            </button>
-            <button
-              onClick={() => setLocation("/onboarding")}
-              className="px-5 py-2.5 bg-[#F7F2EA] text-[#5A1F2B] text-sm hover:bg-[#EDE8E0] transition-colors"
-              data-testid="button-nav-cta"
-            >
-              {CONTENT.nav.cta}
-            </button>
-          </div>
+              {CONTENT.nav.brand}
+            </a>
 
-          {/* Mobile Menu Button */}
-          <button 
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 -mr-2 text-[#F7F2EA]"
-            aria-label="Toggle menu"
-            data-testid="button-mobile-menu"
-          >
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
-
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden fixed inset-0 top-[60px] bg-[#5A1F2B] z-40 px-6 py-8">
-            <div className="flex flex-col gap-6">
+            {/* Desktop Nav */}
+            <div className="hidden md:flex items-center gap-12">
               <button 
                 onClick={() => scrollToSection("how-it-works")}
-                className="text-lg text-left text-[#F7F2EA]/80 hover:text-[#F7F2EA]"
+                className="text-xs uppercase tracking-[0.2em] text-[#1A1A1A]/60 hover:text-[#5A1F2B] transition-colors duration-300"
+                data-testid="link-how-it-works"
               >
                 How it works
               </button>
               <button 
                 onClick={() => scrollToSection("for-artists")}
-                className="text-lg text-left text-[#F7F2EA]/80 hover:text-[#F7F2EA]"
+                className="text-xs uppercase tracking-[0.2em] text-[#1A1A1A]/60 hover:text-[#5A1F2B] transition-colors duration-300"
+                data-testid="link-for-artists"
               >
                 For Artists
               </button>
               <button 
                 onClick={() => scrollToSection("for-clients")}
-                className="text-lg text-left text-[#F7F2EA]/80 hover:text-[#F7F2EA]"
+                className="text-xs uppercase tracking-[0.2em] text-[#1A1A1A]/60 hover:text-[#5A1F2B] transition-colors duration-300"
+                data-testid="link-for-clients"
               >
                 For Clients
               </button>
               <button
                 onClick={() => setLocation("/onboarding")}
-                className="mt-4 px-6 py-3 bg-[#F7F2EA] text-[#5A1F2B] hover:bg-[#EDE8E0] transition-colors"
+                className="px-6 py-3 bg-[#5A1F2B] text-[#FAF9F6] text-xs uppercase tracking-[0.15em] hover:bg-[#4a1923] transition-all duration-300"
+                data-testid="button-nav-cta"
               >
                 {CONTENT.nav.cta}
               </button>
             </div>
+
+            {/* Mobile Menu Button */}
+            <button 
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 -mr-2 text-[#1A1A1A]"
+              aria-label="Toggle menu"
+              data-testid="button-mobile-menu"
+            >
+              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
           </div>
-        )}
+        </div>
+
+        {/* Mobile Menu */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div 
+              className="md:hidden fixed inset-0 top-20 bg-[#FAF9F6] z-40"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <div className="flex flex-col items-center justify-center h-full gap-10">
+                <button 
+                  onClick={() => scrollToSection("how-it-works")}
+                  className="text-lg tracking-wide text-[#1A1A1A]/70 hover:text-[#5A1F2B]"
+                >
+                  How it works
+                </button>
+                <button 
+                  onClick={() => scrollToSection("for-artists")}
+                  className="text-lg tracking-wide text-[#1A1A1A]/70 hover:text-[#5A1F2B]"
+                >
+                  For Artists
+                </button>
+                <button 
+                  onClick={() => scrollToSection("for-clients")}
+                  className="text-lg tracking-wide text-[#1A1A1A]/70 hover:text-[#5A1F2B]"
+                >
+                  For Clients
+                </button>
+                <button
+                  onClick={() => setLocation("/onboarding")}
+                  className="mt-4 px-8 py-4 bg-[#5A1F2B] text-[#FAF9F6] text-sm uppercase tracking-[0.15em]"
+                >
+                  {CONTENT.nav.cta}
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </nav>
 
-      {/* Hero Section */}
+      {/* Hero Section - Full Height, Cinematic */}
       <section 
-        className="px-6 pt-20 pb-24 md:pt-32 md:pb-36 relative bg-cover bg-center bg-no-repeat"
+        className="relative min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: "url('/attached_assets/XjA9B4QkebdhWmwGiKohIZOvTAQ_1765779780557.avif')" }}
       >
-        <div className="absolute inset-0 bg-[#5A1F2B]/60" />
-        <div className="max-w-[680px] mx-auto text-center relative z-10">
-          <h1 className="font-script text-6xl md:text-7xl lg:text-8xl text-[#F7F2EA] mb-6">
-            {CONTENT.hero.h1}
-          </h1>
-          <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-[#F7F2EA] mb-4">
-            {CONTENT.hero.h2}
-          </h2>
-          <p className="font-serif text-xl md:text-2xl text-[#F7F2EA]/60 italic mb-6">
-            {CONTENT.hero.subhead}
-          </p>
-          <p className="text-base md:text-lg text-[#F7F2EA]/70 mb-10 max-w-md mx-auto">
-            {CONTENT.hero.supporting}
-          </p>
-          
-          <button
-            onClick={() => setLocation("/onboarding")}
-            className="w-full sm:w-auto px-8 py-4 bg-[#F7F2EA] text-[#5A1F2B] text-base font-medium hover:bg-[#EDE8E0] transition-colors"
-            data-testid="button-hero-primary"
+        <div className="absolute inset-0 bg-gradient-to-b from-[#5A1F2B]/70 via-[#5A1F2B]/50 to-[#5A1F2B]/80" />
+        
+        <motion.div 
+          className="relative z-10 max-w-4xl mx-auto px-8 text-center"
+          initial="initial"
+          animate="animate"
+          variants={staggerContainer}
+        >
+          <motion.h1 
+            className="font-script text-7xl md:text-8xl lg:text-9xl text-[#FAF9F6] mb-8"
+            variants={fadeInUp}
           >
-            {CONTENT.hero.primaryCta}
-          </button>
+            {CONTENT.hero.h1}
+          </motion.h1>
+          
+          <motion.div variants={fadeInUp}>
+            <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-[#FAF9F6] font-light tracking-wide mb-4">
+              {CONTENT.hero.h2}
+            </h2>
+          </motion.div>
+          
+          <motion.p 
+            className="font-serif text-xl md:text-2xl text-[#FAF9F6]/70 italic mb-8"
+            variants={fadeInUp}
+          >
+            {CONTENT.hero.subhead}
+          </motion.p>
+          
+          <motion.p 
+            className="text-sm md:text-base text-[#FAF9F6]/60 mb-12 max-w-lg mx-auto tracking-wide leading-relaxed"
+            variants={fadeInUp}
+          >
+            {CONTENT.hero.supporting}
+          </motion.p>
+          
+          <motion.div variants={fadeInUp}>
+            <button
+              onClick={() => setLocation("/onboarding")}
+              className="group relative px-10 py-5 bg-[#FAF9F6] text-[#5A1F2B] text-xs uppercase tracking-[0.2em] font-medium overflow-hidden transition-all duration-500 hover:bg-[#5A1F2B] hover:text-[#FAF9F6] border border-[#FAF9F6]"
+              data-testid="button-hero-primary"
+            >
+              {CONTENT.hero.primaryCta}
+            </button>
+          </motion.div>
+        </motion.div>
 
-          <p className="mt-12 text-sm text-[#F7F2EA]/50">
-            {CONTENT.hero.proof}
-          </p>
-        </div>
+        {/* Scroll Indicator */}
+        <motion.div 
+          className="absolute bottom-12 left-1/2 -translate-x-1/2"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5, duration: 1 }}
+        >
+          <div className="w-[1px] h-16 bg-gradient-to-b from-[#FAF9F6]/0 via-[#FAF9F6]/50 to-[#FAF9F6]/0" />
+        </motion.div>
       </section>
 
-      {/* How It Works */}
-      <section id="how-it-works" className="px-6 py-20 md:py-32 bg-[#F7F2EA]">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="font-serif text-3xl md:text-4xl text-center text-[#5A1F2B] mb-16">
-            {CONTENT.howItWorks.title}
-          </h2>
+      {/* How It Works - Generous Whitespace */}
+      <section id="how-it-works" className="px-8 lg:px-16 py-32 md:py-48 bg-[#FAF9F6]">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8 }}
+            className="text-center mb-24"
+          >
+            <span className="text-xs uppercase tracking-[0.3em] text-[#5A1F2B]/60 mb-4 block">
+              The Experience
+            </span>
+            <h2 className="font-serif text-4xl md:text-5xl lg:text-6xl text-[#1A1A1A] font-light">
+              {CONTENT.howItWorks.title}
+            </h2>
+          </motion.div>
           
-          <div className="grid md:grid-cols-3 gap-12 md:gap-8">
+          <div className="space-y-24 md:space-y-32">
             {CONTENT.howItWorks.steps.map((step, index) => (
-              <div key={index} className="text-center md:text-left">
-                <div className="w-12 h-12 mx-auto md:mx-0 mb-6 rounded-full bg-[#5A1F2B]/10 flex items-center justify-center">
-                  {index === 0 && <Link size={20} className="text-[#5A1F2B]" />}
-                  {index === 1 && <Send size={20} className="text-[#5A1F2B]" />}
-                  {index === 2 && <MessageCircle size={20} className="text-[#5A1F2B]" />}
+              <motion.div 
+                key={index}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.8, delay: index * 0.1 }}
+                className="grid md:grid-cols-12 gap-8 items-start"
+              >
+                <div className="md:col-span-2">
+                  <span className="font-serif text-6xl md:text-7xl text-[#5A1F2B]/20">
+                    {step.number}
+                  </span>
                 </div>
-                <h3 className="font-serif text-xl md:text-2xl text-[#5A1F2B] mb-3">
-                  {step.title}
-                </h3>
-                <p className="text-[#5A1F2B]/70 leading-relaxed mb-3">
-                  {step.body}
-                </p>
-                <p className="text-[#5A1F2B]/60 leading-relaxed text-sm">
-                  {step.subBody}
-                </p>
-              </div>
+                <div className="md:col-span-10 md:pt-4">
+                  <h3 className="font-serif text-2xl md:text-3xl text-[#1A1A1A] mb-6 font-light">
+                    {step.title}
+                  </h3>
+                  <p className="text-[#1A1A1A]/70 text-lg leading-relaxed mb-4 max-w-2xl">
+                    {step.body}
+                  </p>
+                  <p className="text-[#1A1A1A]/50 text-base leading-relaxed max-w-2xl">
+                    {step.subBody}
+                  </p>
+                </div>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* For Artists */}
-      <section id="for-artists" className="px-6 py-20 md:py-32 bg-[#5A1F2B]">
-        <div className="max-w-[680px] mx-auto text-center">
-          <h2 className="font-serif text-3xl md:text-4xl text-[#F7F2EA] mb-10">
-            {CONTENT.artists.title}
-          </h2>
+      {/* Divider */}
+      <div className="max-w-6xl mx-auto px-8">
+        <div className="h-[1px] bg-gradient-to-r from-transparent via-[#5A1F2B]/20 to-transparent" />
+      </div>
+
+      {/* For Artists - Dark, Atmospheric */}
+      <section id="for-artists" className="px-8 lg:px-16 py-32 md:py-48 bg-[#5A1F2B]">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8 }}
+            className="text-center mb-20"
+          >
+            <span className="text-xs uppercase tracking-[0.3em] text-[#FAF9F6]/40 mb-4 block">
+              For Professionals
+            </span>
+            <h2 className="font-serif text-4xl md:text-5xl lg:text-6xl text-[#FAF9F6] font-light">
+              {CONTENT.artists.title}
+            </h2>
+          </motion.div>
           
-          <ul className="space-y-4 mb-12 text-left max-w-sm mx-auto">
+          <motion.ul 
+            className="space-y-8 mb-16 max-w-xl mx-auto"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+          >
             {CONTENT.artists.bullets.map((bullet, index) => (
-              <li key={index} className="flex items-start gap-3">
-                <span className="w-1.5 h-1.5 mt-2.5 rounded-full bg-[#F7F2EA] flex-shrink-0" />
-                <span className="text-[#F7F2EA]/80">{bullet}</span>
+              <li key={index} className="flex items-center gap-6">
+                <span className="w-12 h-[1px] bg-[#FAF9F6]/30 flex-shrink-0" />
+                <span className="text-[#FAF9F6]/80 text-lg tracking-wide">{bullet}</span>
               </li>
             ))}
-          </ul>
+          </motion.ul>
 
-          <button
-            onClick={() => setLocation("/onboarding")}
-            className="w-full sm:w-auto px-8 py-4 bg-[#F7F2EA] text-[#5A1F2B] text-base font-medium hover:bg-[#EDE8E0] transition-colors"
-            data-testid="button-artists-primary"
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="text-center"
           >
-            {CONTENT.artists.primaryCta}
-          </button>
+            <button
+              onClick={() => setLocation("/onboarding")}
+              className="px-10 py-5 bg-[#FAF9F6] text-[#5A1F2B] text-xs uppercase tracking-[0.2em] font-medium hover:bg-transparent hover:text-[#FAF9F6] border border-[#FAF9F6] transition-all duration-500"
+              data-testid="button-artists-primary"
+            >
+              {CONTENT.artists.primaryCta}
+            </button>
+          </motion.div>
         </div>
       </section>
 
-      {/* For Clients */}
-      <section id="for-clients" className="px-6 py-20 md:py-32 bg-[#F7F2EA]">
-        <div className="max-w-[680px] mx-auto text-center">
-          <h2 className="font-serif text-3xl md:text-4xl text-[#5A1F2B] mb-6">
-            {CONTENT.clients.title}
-          </h2>
-          <p className="text-xl md:text-2xl text-[#5A1F2B]/80 mb-8">
+      {/* For Clients - Light, Elegant */}
+      <section id="for-clients" className="px-8 lg:px-16 py-32 md:py-48 bg-[#FAF9F6]">
+        <div className="max-w-4xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8 }}
+          >
+            <span className="text-xs uppercase tracking-[0.3em] text-[#5A1F2B]/60 mb-4 block">
+              For Those Seeking Excellence
+            </span>
+            <h2 className="font-serif text-4xl md:text-5xl lg:text-6xl text-[#1A1A1A] font-light mb-8">
+              {CONTENT.clients.title}
+            </h2>
+          </motion.div>
+
+          <motion.p 
+            className="font-serif text-xl md:text-2xl text-[#1A1A1A]/70 mb-10 max-w-2xl mx-auto leading-relaxed"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+          >
             {CONTENT.clients.tagline}
-          </p>
-          <div className="space-y-2 mb-12">
+          </motion.p>
+
+          <motion.div 
+            className="space-y-4 mb-16"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+          >
             {CONTENT.clients.bullets.map((bullet, index) => (
-              <p key={index} className="text-lg text-[#5A1F2B]/70">
+              <p key={index} className="text-lg text-[#1A1A1A]/60 tracking-wide">
                 {bullet}
               </p>
             ))}
-          </div>
-          <button
-            onClick={() => setLocation("/waitlist")}
-            className="px-8 py-4 border border-[#5A1F2B] text-[#5A1F2B] text-base font-medium hover:bg-[#5A1F2B] hover:text-[#F7F2EA] transition-colors"
-            data-testid="button-clients-cta"
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.4 }}
           >
-            {CONTENT.clients.cta}
-          </button>
+            <button
+              onClick={() => setLocation("/waitlist")}
+              className="px-10 py-5 border border-[#5A1F2B] text-[#5A1F2B] text-xs uppercase tracking-[0.2em] font-medium hover:bg-[#5A1F2B] hover:text-[#FAF9F6] transition-all duration-500"
+              data-testid="button-clients-cta"
+            >
+              {CONTENT.clients.cta}
+            </button>
+          </motion.div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="px-6 py-12 border-t border-[#F7F2EA]/10 bg-[#5A1F2B]">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-6">
+      {/* Footer - Minimal & Refined */}
+      <footer className="px-8 lg:px-16 py-16 bg-[#1A1A1A]">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-12">
+            <a href="/" className="font-script text-2xl text-[#FAF9F6]/80">
+              Beauvette
+            </a>
+            <div className="flex items-center gap-8">
               {CONTENT.footer.links.map((link, index) => (
                 <a
                   key={index}
                   href={link === "Instagram" ? "https://instagram.com" : "#"}
-                  className="text-sm text-[#F7F2EA]/60 hover:text-[#F7F2EA] transition-colors"
+                  className="text-xs uppercase tracking-[0.15em] text-[#FAF9F6]/40 hover:text-[#FAF9F6] transition-colors duration-300"
                   data-testid={`link-footer-${link.toLowerCase()}`}
                 >
                   {link}
                 </a>
               ))}
             </div>
-            <p className="text-sm text-[#F7F2EA]/50">
+          </div>
+
+          <div className="h-[1px] bg-[#FAF9F6]/10 mb-8" />
+
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-xs text-[#FAF9F6]/30 tracking-wide">
               {CONTENT.footer.copyright}
             </p>
-          </div>
-          <div className="mt-8 text-center">
             <button
               onClick={() => setLocation("/login")}
-              className="text-sm text-[#F7F2EA]/50 hover:text-[#F7F2EA] transition-colors"
+              className="text-xs text-[#FAF9F6]/30 hover:text-[#FAF9F6] transition-colors duration-300"
               data-testid="button-sign-in"
             >
-              Already using Beauvette? Sign in
+              Sign in
             </button>
           </div>
         </div>
