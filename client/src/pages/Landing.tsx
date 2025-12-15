@@ -249,16 +249,9 @@ export default function Landing() {
 
       {/* Hero Section - Full Height, Cinematic */}
       <section 
-        className="relative min-h-screen flex items-center justify-center"
+        className="relative min-h-screen flex items-center justify-center bg-[#5A1F2B]"
       >
-        {/* Gingham Background for Hero */}
-        <div className="absolute inset-0 gingham-check" />
-        {/* Background Image */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('/attached_assets/XjA9B4QkebdhWmwGiKohIZOvTAQ_1765779780557.avif')" }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#5A1F2B]/70 via-[#5A1F2B]/50 to-[#5A1F2B]/80" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#5A1F2B] via-[#5A1F2B]/95 to-[#5A1F2B]" />
         
         <motion.div 
           className="relative z-10 max-w-4xl mx-auto px-8 text-center"
