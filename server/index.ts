@@ -1,11 +1,15 @@
 import express, { type Request, Response, NextFunction } from "express";
 import helmet from "helmet";
+import path from "path";
 import { registerRoutes } from "./routes";
 import { startCronJobs } from "./cronJobs";
 import { serveStatic } from "./static";
 import { startScheduledEmailJob } from './scheduledEmailJob';
 
 const app = express();
+
+// Serve attached_assets as static files
+app.use('/attached_assets', express.static(path.join(process.cwd(), 'attached_assets')));
 
 // Health check endpoints - MUST be first, before any middleware
 // This ensures deployment health checks can succeed immediately
