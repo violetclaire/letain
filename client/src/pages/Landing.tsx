@@ -257,19 +257,23 @@ export default function Landing() {
         />
         <div className="absolute inset-0 bg-[#1c1a18]/10" />
         
+        {/* Beauvette at top */}
+        <motion.h1 
+          className="absolute top-28 left-1/2 -translate-x-1/2 z-10 font-script text-7xl md:text-8xl lg:text-9xl text-[#5A1F2B]"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+        >
+          {CONTENT.hero.h1}
+        </motion.h1>
+
+        {/* Rest of text lower */}
         <motion.div 
-          className="relative z-10 max-w-4xl mx-auto px-8 text-center pt-48 md:pt-56"
+          className="relative z-10 max-w-4xl mx-auto px-8 text-center pt-64 md:pt-80"
           initial="initial"
           animate="animate"
           variants={staggerContainer}
         >
-          <motion.h1 
-            className="font-script text-7xl md:text-8xl lg:text-9xl text-[#5A1F2B] mb-8"
-            variants={fadeInUp}
-          >
-            {CONTENT.hero.h1}
-          </motion.h1>
-          
           <motion.div variants={fadeInUp}>
             <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-[#5A1F2B] font-light tracking-wide mb-4">
               {CONTENT.hero.h2}
