@@ -90,13 +90,13 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F2EA] text-[#2C2C2C] font-sans antialiased">
+    <div className="min-h-screen bg-[#5A1F2B] text-[#F7F2EA] font-sans antialiased">
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-[#F7F2EA]/95 backdrop-blur-sm">
+      <nav className="sticky top-0 z-50 bg-[#5A1F2B]/95 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <a 
             href="/" 
-            className="font-serif text-2xl tracking-tight text-[#5A1F2B]"
+            className="font-serif text-2xl tracking-tight text-[#F7F2EA]"
             data-testid="link-brand"
           >
             {CONTENT.nav.brand}
@@ -106,28 +106,28 @@ export default function Landing() {
           <div className="hidden md:flex items-center gap-8">
             <button 
               onClick={() => scrollToSection("how-it-works")}
-              className="text-sm text-[#2C2C2C]/70 hover:text-[#5A1F2B] transition-colors"
+              className="text-sm text-[#F7F2EA]/70 hover:text-[#F7F2EA] transition-colors"
               data-testid="link-how-it-works"
             >
               How it works
             </button>
             <button 
               onClick={() => scrollToSection("for-artists")}
-              className="text-sm text-[#2C2C2C]/70 hover:text-[#5A1F2B] transition-colors"
+              className="text-sm text-[#F7F2EA]/70 hover:text-[#F7F2EA] transition-colors"
               data-testid="link-for-artists"
             >
               For Artists
             </button>
             <button 
               onClick={() => scrollToSection("for-clients")}
-              className="text-sm text-[#2C2C2C]/70 hover:text-[#5A1F2B] transition-colors"
+              className="text-sm text-[#F7F2EA]/70 hover:text-[#F7F2EA] transition-colors"
               data-testid="link-for-clients"
             >
               For Clients
             </button>
             <button
               onClick={() => setLocation("/onboarding")}
-              className="px-5 py-2.5 bg-[#5A1F2B] text-white text-sm rounded-full hover:bg-[#4a1923] transition-colors"
+              className="px-5 py-2.5 bg-[#F7F2EA] text-[#5A1F2B] text-sm rounded-full hover:bg-[#EDE8E0] transition-colors"
               data-testid="button-nav-cta"
             >
               {CONTENT.nav.cta}
@@ -137,7 +137,7 @@ export default function Landing() {
           {/* Mobile Menu Button */}
           <button 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 -mr-2"
+            className="md:hidden p-2 -mr-2 text-[#F7F2EA]"
             aria-label="Toggle menu"
             data-testid="button-mobile-menu"
           >
@@ -147,29 +147,29 @@ export default function Landing() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden fixed inset-0 top-[60px] bg-[#F7F2EA] z-40 px-6 py-8">
+          <div className="md:hidden fixed inset-0 top-[60px] bg-[#5A1F2B] z-40 px-6 py-8">
             <div className="flex flex-col gap-6">
               <button 
                 onClick={() => scrollToSection("how-it-works")}
-                className="text-lg text-left text-[#2C2C2C]/80 hover:text-[#5A1F2B]"
+                className="text-lg text-left text-[#F7F2EA]/80 hover:text-[#F7F2EA]"
               >
                 How it works
               </button>
               <button 
                 onClick={() => scrollToSection("for-artists")}
-                className="text-lg text-left text-[#2C2C2C]/80 hover:text-[#5A1F2B]"
+                className="text-lg text-left text-[#F7F2EA]/80 hover:text-[#F7F2EA]"
               >
                 For Artists
               </button>
               <button 
                 onClick={() => scrollToSection("for-clients")}
-                className="text-lg text-left text-[#2C2C2C]/80 hover:text-[#5A1F2B]"
+                className="text-lg text-left text-[#F7F2EA]/80 hover:text-[#F7F2EA]"
               >
                 For Clients
               </button>
               <button
                 onClick={() => setLocation("/onboarding")}
-                className="mt-4 px-6 py-3 bg-[#5A1F2B] text-white rounded-full hover:bg-[#4a1923] transition-colors"
+                className="mt-4 px-6 py-3 bg-[#F7F2EA] text-[#5A1F2B] rounded-full hover:bg-[#EDE8E0] transition-colors"
               >
                 {CONTENT.nav.cta}
               </button>
@@ -181,30 +181,30 @@ export default function Landing() {
       {/* Hero Section */}
       <section className="px-6 pt-20 pb-24 md:pt-32 md:pb-36">
         <div className="max-w-[680px] mx-auto text-center">
-          <h1 className="font-serif text-5xl md:text-6xl lg:text-7xl text-[#5A1F2B] mb-6 tracking-tight">
+          <h1 className="font-serif text-5xl md:text-6xl lg:text-7xl text-[#F7F2EA] mb-6 tracking-tight">
             {CONTENT.hero.h1}
           </h1>
-          <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-[#2C2C2C] mb-4">
+          <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-[#F7F2EA] mb-4">
             {CONTENT.hero.h2}
           </h2>
-          <p className="font-serif text-xl md:text-2xl text-[#2C2C2C]/60 italic mb-6">
+          <p className="font-serif text-xl md:text-2xl text-[#F7F2EA]/60 italic mb-6">
             {CONTENT.hero.subhead}
           </p>
-          <p className="text-base md:text-lg text-[#2C2C2C]/70 mb-10 max-w-md mx-auto">
+          <p className="text-base md:text-lg text-[#F7F2EA]/70 mb-10 max-w-md mx-auto">
             {CONTENT.hero.supporting}
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
               onClick={() => setLocation("/onboarding")}
-              className="w-full sm:w-auto px-8 py-4 bg-[#5A1F2B] text-white rounded-full text-base font-medium hover:bg-[#4a1923] transition-colors"
+              className="w-full sm:w-auto px-8 py-4 bg-[#F7F2EA] text-[#5A1F2B] rounded-full text-base font-medium hover:bg-[#EDE8E0] transition-colors"
               data-testid="button-hero-primary"
             >
               {CONTENT.hero.primaryCta}
             </button>
             <button
               onClick={() => scrollToSection("video")}
-              className="flex items-center gap-2 text-[#5A1F2B] hover:text-[#4a1923] transition-colors"
+              className="flex items-center gap-2 text-[#F7F2EA] hover:text-[#F7F2EA]/80 transition-colors"
               data-testid="button-hero-secondary"
             >
               <Play size={18} />
@@ -212,7 +212,7 @@ export default function Landing() {
             </button>
           </div>
 
-          <p className="mt-12 text-sm text-[#2C2C2C]/50">
+          <p className="mt-12 text-sm text-[#F7F2EA]/50">
             {CONTENT.hero.proof}
           </p>
         </div>
@@ -235,15 +235,15 @@ export default function Landing() {
               <source src={CONTENT.video.src} type="video/mp4" />
             </video>
           ) : (
-            <div className="w-full h-full bg-[#E8E4DD] flex items-center justify-center">
+            <div className="w-full h-full bg-[#4A1823] flex items-center justify-center">
               <div className="text-center">
-                <Play size={48} className="mx-auto mb-4 text-[#5A1F2B]/40" />
-                <p className="text-[#2C2C2C]/50">Video coming soon</p>
+                <Play size={48} className="mx-auto mb-4 text-[#F7F2EA]/40" />
+                <p className="text-[#F7F2EA]/50">Video coming soon</p>
               </div>
             </div>
           )}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <p className="font-serif text-2xl md:text-4xl text-white drop-shadow-lg">
+            <p className="font-serif text-2xl md:text-4xl text-[#F7F2EA] drop-shadow-lg">
               {CONTENT.video.overlay}
             </p>
           </div>
@@ -251,9 +251,9 @@ export default function Landing() {
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="px-6 py-20 md:py-32">
+      <section id="how-it-works" className="px-6 py-20 md:py-32 bg-[#F7F2EA]">
         <div className="max-w-5xl mx-auto">
-          <h2 className="font-serif text-3xl md:text-4xl text-center text-[#2C2C2C] mb-16">
+          <h2 className="font-serif text-3xl md:text-4xl text-center text-[#5A1F2B] mb-16">
             {CONTENT.howItWorks.title}
           </h2>
           
@@ -265,14 +265,14 @@ export default function Landing() {
                   {index === 1 && <Send size={20} className="text-[#5A1F2B]" />}
                   {index === 2 && <Users size={20} className="text-[#5A1F2B]" />}
                 </div>
-                <h3 className="font-serif text-xl md:text-2xl text-[#2C2C2C] mb-3">
+                <h3 className="font-serif text-xl md:text-2xl text-[#5A1F2B] mb-3">
                   {step.title}
                 </h3>
-                <p className="text-[#2C2C2C]/70 leading-relaxed">
+                <p className="text-[#5A1F2B]/70 leading-relaxed">
                   {step.body}
                 </p>
                 {index < 2 && (
-                  <div className="hidden md:block mt-8 border-b border-[#2C2C2C]/10" />
+                  <div className="hidden md:block mt-8 border-b border-[#5A1F2B]/10" />
                 )}
               </div>
             ))}
@@ -281,17 +281,17 @@ export default function Landing() {
       </section>
 
       {/* For Artists */}
-      <section id="for-artists" className="px-6 py-20 md:py-32 bg-[#F0EBE3]">
+      <section id="for-artists" className="px-6 py-20 md:py-32 bg-[#5A1F2B]">
         <div className="max-w-[680px] mx-auto text-center">
-          <h2 className="font-serif text-3xl md:text-4xl text-[#2C2C2C] mb-10">
+          <h2 className="font-serif text-3xl md:text-4xl text-[#F7F2EA] mb-10">
             {CONTENT.artists.title}
           </h2>
           
           <ul className="space-y-4 mb-12 text-left max-w-sm mx-auto">
             {CONTENT.artists.bullets.map((bullet, index) => (
               <li key={index} className="flex items-start gap-3">
-                <span className="w-1.5 h-1.5 mt-2.5 rounded-full bg-[#5A1F2B] flex-shrink-0" />
-                <span className="text-[#2C2C2C]/80">{bullet}</span>
+                <span className="w-1.5 h-1.5 mt-2.5 rounded-full bg-[#F7F2EA] flex-shrink-0" />
+                <span className="text-[#F7F2EA]/80">{bullet}</span>
               </li>
             ))}
           </ul>
@@ -299,14 +299,14 @@ export default function Landing() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
               onClick={() => setLocation("/onboarding")}
-              className="w-full sm:w-auto px-8 py-4 bg-[#5A1F2B] text-white rounded-full text-base font-medium hover:bg-[#4a1923] transition-colors"
+              className="w-full sm:w-auto px-8 py-4 bg-[#F7F2EA] text-[#5A1F2B] rounded-full text-base font-medium hover:bg-[#EDE8E0] transition-colors"
               data-testid="button-artists-primary"
             >
               {CONTENT.artists.primaryCta}
             </button>
             <button
               onClick={() => setLocation("/sarah")}
-              className="text-[#5A1F2B] hover:text-[#4a1923] underline underline-offset-4 transition-colors"
+              className="text-[#F7F2EA] hover:text-[#F7F2EA]/80 underline underline-offset-4 transition-colors"
               data-testid="button-artists-secondary"
             >
               {CONTENT.artists.secondaryCta}
@@ -316,17 +316,17 @@ export default function Landing() {
       </section>
 
       {/* For Clients */}
-      <section id="for-clients" className="px-6 py-20 md:py-32">
+      <section id="for-clients" className="px-6 py-20 md:py-32 bg-[#F7F2EA]">
         <div className="max-w-[680px] mx-auto text-center">
-          <h2 className="font-serif text-3xl md:text-4xl text-[#2C2C2C] mb-6">
+          <h2 className="font-serif text-3xl md:text-4xl text-[#5A1F2B] mb-6">
             {CONTENT.clients.title}
           </h2>
-          <p className="text-lg text-[#2C2C2C]/70 mb-10">
+          <p className="text-lg text-[#5A1F2B]/70 mb-10">
             {CONTENT.clients.copy}
           </p>
           <button
             onClick={() => setLocation("/waitlist")}
-            className="px-8 py-4 border border-[#5A1F2B] text-[#5A1F2B] rounded-full text-base font-medium hover:bg-[#5A1F2B] hover:text-white transition-colors"
+            className="px-8 py-4 border border-[#5A1F2B] text-[#5A1F2B] rounded-full text-base font-medium hover:bg-[#5A1F2B] hover:text-[#F7F2EA] transition-colors"
             data-testid="button-clients-cta"
           >
             {CONTENT.clients.cta}
@@ -335,19 +335,19 @@ export default function Landing() {
       </section>
 
       {/* Testimonial */}
-      <section className="px-6 py-20 md:py-32 bg-[#F0EBE3]">
+      <section className="px-6 py-20 md:py-32 bg-[#5A1F2B]">
         <div className="max-w-[680px] mx-auto text-center">
-          <blockquote className="font-serif text-2xl md:text-3xl text-[#2C2C2C] italic mb-6">
+          <blockquote className="font-serif text-2xl md:text-3xl text-[#F7F2EA] italic mb-6">
             "{CONTENT.testimonial.quote}"
           </blockquote>
-          <p className="text-[#2C2C2C]/60">
+          <p className="text-[#F7F2EA]/60">
             {CONTENT.testimonial.name}
           </p>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="px-6 py-12 border-t border-[#2C2C2C]/10">
+      <footer className="px-6 py-12 border-t border-[#F7F2EA]/10 bg-[#5A1F2B]">
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-6">
@@ -355,21 +355,21 @@ export default function Landing() {
                 <a
                   key={index}
                   href={link === "Instagram" ? "https://instagram.com" : "#"}
-                  className="text-sm text-[#2C2C2C]/60 hover:text-[#5A1F2B] transition-colors"
+                  className="text-sm text-[#F7F2EA]/60 hover:text-[#F7F2EA] transition-colors"
                   data-testid={`link-footer-${link.toLowerCase()}`}
                 >
                   {link}
                 </a>
               ))}
             </div>
-            <p className="text-sm text-[#2C2C2C]/50">
+            <p className="text-sm text-[#F7F2EA]/50">
               {CONTENT.footer.copyright}
             </p>
           </div>
           <div className="mt-8 text-center">
             <button
               onClick={() => setLocation("/login")}
-              className="text-sm text-[#2C2C2C]/50 hover:text-[#5A1F2B] transition-colors"
+              className="text-sm text-[#F7F2EA]/50 hover:text-[#F7F2EA] transition-colors"
               data-testid="button-sign-in"
             >
               Already using Beauvette? Sign in
