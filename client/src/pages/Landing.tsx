@@ -65,15 +65,14 @@ const CONTENT = {
 export default function Landing() {
   const [, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [introComplete, setIntroComplete] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+
+  const openElevator = () => {
+    setIsOpen(true);
+  };
 
   useEffect(() => {
-    const timer = setTimeout(() => setIntroComplete(true), 2000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    if (mobileMenuOpen || !introComplete) {
+    if (mobileMenuOpen || !isOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
@@ -81,7 +80,7 @@ export default function Landing() {
     return () => {
       document.body.style.overflow = "";
     };
-  }, [mobileMenuOpen, introComplete]);
+  }, [mobileMenuOpen, isOpen]);
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -95,34 +94,42 @@ export default function Landing() {
     <div className="min-h-screen bg-[#5A1F2B] text-[#F7F2EA] font-sans antialiased">
       {/* Gingham Elevator Doors */}
       <AnimatePresence>
-        {!introComplete && (
-          <>
+        {!isOpen && (
+          <motion.div 
+            className="fixed inset-0 z-50 flex items-center justify-center cursor-pointer"
+            onClick={openElevator}
+            exit={{ opacity: 0, pointerEvents: "none" }}
+            transition={{ duration: 0.5, delay: 1 }}
+          >
             {/* Left Door */}
             <motion.div
-              className="fixed inset-y-0 left-0 w-1/2 z-[100] gingham-pattern"
+              className="absolute left-0 top-0 w-1/2 h-full border-r border-[#5A1F2B]/20 overflow-hidden gingham-check"
               initial={{ x: 0 }}
-              animate={{ x: 0 }}
               exit={{ x: "-100%" }}
-              transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+              transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
             />
             {/* Right Door */}
             <motion.div
-              className="fixed inset-y-0 right-0 w-1/2 z-[100] gingham-pattern"
+              className="absolute right-0 top-0 w-1/2 h-full border-l border-[#5A1F2B]/20 overflow-hidden gingham-check"
               initial={{ x: 0 }}
-              animate={{ x: 0 }}
               exit={{ x: "100%" }}
-              transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+              transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
             />
-            {/* Center Logo */}
-            <motion.div
-              className="fixed inset-0 z-[101] flex items-center justify-center pointer-events-none"
-              initial={{ opacity: 1 }}
+            {/* Center Logo Card */}
+            <motion.div 
+              className="relative z-10 flex flex-col items-center justify-center text-center pointer-events-none"
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
+              transition={{ duration: 0.3 }}
             >
-              <h1 className="font-script text-6xl md:text-8xl text-[#5A1F2B]">Beauvette</h1>
+              <div className="bg-[#FCF9F4] p-1 border border-[#5A1F2B]">
+                <div className="border border-[#5A1F2B] px-16 py-10">
+                  <h1 className="font-script text-5xl text-[#5A1F2B]">
+                    Beauvette
+                  </h1>
+                </div>
+              </div>
             </motion.div>
-          </>
+          </motion.div>
         )}
       </AnimatePresence>
       {/* Navigation */}
