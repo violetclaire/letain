@@ -217,24 +217,6 @@ export default function Landing() {
               exit={{ opacity: 0 }}
             >
               <div className="flex flex-col items-center justify-center h-full gap-10">
-                <button 
-                  onClick={() => scrollToSection("how-it-works")}
-                  className="text-lg tracking-wide text-[#1A1A1A]/70 hover:text-[#5A1F2B]"
-                >
-                  How it works
-                </button>
-                <button 
-                  onClick={() => scrollToSection("for-artists")}
-                  className="text-lg tracking-wide text-[#1A1A1A]/70 hover:text-[#5A1F2B]"
-                >
-                  For Artists
-                </button>
-                <button 
-                  onClick={() => scrollToSection("for-clients")}
-                  className="text-lg tracking-wide text-[#1A1A1A]/70 hover:text-[#5A1F2B]"
-                >
-                  For Clients
-                </button>
                 <button
                   onClick={() => setLocation("/onboarding")}
                   className="mt-4 px-8 py-4 bg-[#5A1F2B] text-[#FAF9F6] text-sm uppercase tracking-[0.15em]"
@@ -466,16 +448,36 @@ export default function Landing() {
               Beauvette
             </a>
             <div className="flex items-center gap-8">
-              {CONTENT.footer.links.map((link, index) => (
-                <a
-                  key={index}
-                  href={link === "Instagram" ? "https://instagram.com" : "#"}
-                  className="text-xs uppercase tracking-[0.15em] text-[#F4F2EC]/40 hover:text-[#F4F2EC] transition-colors duration-300"
-                  data-testid={`link-footer-${link.toLowerCase()}`}
-                >
-                  {link}
-                </a>
-              ))}
+              <a
+                href="https://instagram.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs uppercase tracking-[0.15em] text-[#F4F2EC]/40 hover:text-[#F4F2EC] transition-colors duration-300"
+                data-testid="link-footer-instagram"
+              >
+                Instagram
+              </a>
+              <button
+                onClick={() => setLocation("/contact")}
+                className="text-xs uppercase tracking-[0.15em] text-[#F4F2EC]/40 hover:text-[#F4F2EC] transition-colors duration-300"
+                data-testid="link-footer-contact"
+              >
+                Contact
+              </button>
+              <button
+                onClick={() => setLocation("/privacy")}
+                className="text-xs uppercase tracking-[0.15em] text-[#F4F2EC]/40 hover:text-[#F4F2EC] transition-colors duration-300"
+                data-testid="link-footer-privacy"
+              >
+                Privacy
+              </button>
+              <button
+                onClick={() => setLocation("/terms")}
+                className="text-xs uppercase tracking-[0.15em] text-[#F4F2EC]/40 hover:text-[#F4F2EC] transition-colors duration-300"
+                data-testid="link-footer-terms"
+              >
+                Terms
+              </button>
             </div>
           </div>
 
