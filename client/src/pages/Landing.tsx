@@ -45,11 +45,14 @@ const CONTENT = {
       "One place for clients, photos, and chat (coming soon)"
     ],
     primaryCta: "Get started",
-    secondaryCta: "See an example"
   },
   clients: {
     title: "For Clients",
-    copy: "Find artists by date. Get answers instantly. No waiting on DMs.",
+    tagline: "Discover artists by date, availability, and trust.",
+    bullets: [
+      "Request information clearly.",
+      "Move forward with confidence."
+    ],
     cta: "Join the client waitlist"
   },
   footer: {
@@ -246,22 +249,13 @@ export default function Landing() {
             ))}
           </ul>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button
-              onClick={() => setLocation("/onboarding")}
-              className="w-full sm:w-auto px-8 py-4 bg-[#F7F2EA] text-[#5A1F2B] text-base font-medium hover:bg-[#EDE8E0] transition-colors"
-              data-testid="button-artists-primary"
-            >
-              {CONTENT.artists.primaryCta}
-            </button>
-            <button
-              onClick={() => setLocation("/sarah")}
-              className="text-[#F7F2EA] hover:text-[#F7F2EA]/80 underline underline-offset-4 transition-colors"
-              data-testid="button-artists-secondary"
-            >
-              {CONTENT.artists.secondaryCta}
-            </button>
-          </div>
+          <button
+            onClick={() => setLocation("/onboarding")}
+            className="w-full sm:w-auto px-8 py-4 bg-[#F7F2EA] text-[#5A1F2B] text-base font-medium hover:bg-[#EDE8E0] transition-colors"
+            data-testid="button-artists-primary"
+          >
+            {CONTENT.artists.primaryCta}
+          </button>
         </div>
       </section>
 
@@ -271,9 +265,16 @@ export default function Landing() {
           <h2 className="font-serif text-3xl md:text-4xl text-[#5A1F2B] mb-6">
             {CONTENT.clients.title}
           </h2>
-          <p className="text-lg text-[#5A1F2B]/70 mb-10">
-            {CONTENT.clients.copy}
+          <p className="text-xl md:text-2xl text-[#5A1F2B]/80 mb-8">
+            {CONTENT.clients.tagline}
           </p>
+          <div className="space-y-2 mb-12">
+            {CONTENT.clients.bullets.map((bullet, index) => (
+              <p key={index} className="text-lg text-[#5A1F2B]/70">
+                {bullet}
+              </p>
+            ))}
+          </div>
           <button
             onClick={() => setLocation("/waitlist")}
             className="px-8 py-4 border border-[#5A1F2B] text-[#5A1F2B] text-base font-medium hover:bg-[#5A1F2B] hover:text-[#F7F2EA] transition-colors"
