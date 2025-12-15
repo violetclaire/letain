@@ -129,10 +129,10 @@ export default function VintageCalendar({
             {(currentMonthStats.booked > 0 || currentMonthStats.pending > 0) && (
               <div className="text-xs mt-1 flex items-center justify-center gap-2">
                 {currentMonthStats.booked > 0 && (
-                  <span className="text-pink">{currentMonthStats.booked} booked</span>
+                  <span className="text-[#5A1F2B]">{currentMonthStats.booked} booked</span>
                 )}
                 {currentMonthStats.pending > 0 && (
-                  <span className="text-gold">{currentMonthStats.pending} pending</span>
+                  <span className="text-powder-blue">{currentMonthStats.pending} pending</span>
                 )}
               </div>
             )}
@@ -152,7 +152,7 @@ export default function VintageCalendar({
           {["S", "M", "T", "W", "T", "F", "S"].map((day, i) => (
             <div 
               key={`${day}-${i}`}
-              className="text-center text-xs font-medium py-2 text-gold"
+              className="text-center text-xs font-medium py-2 text-[#5A1F2B]"
             >
               {day}
             </div>
@@ -179,11 +179,11 @@ export default function VintageCalendar({
                   min-h-[44px] min-w-[44px] relative
                   ${isPast ? 'opacity-40' : 'hover:scale-105'}
                   ${isBooked 
-                    ? 'bg-pink text-white font-medium shadow-md' 
+                    ? 'bg-[#5A1F2B] text-white font-medium shadow-md' 
                     : isPending
-                      ? 'bg-gold/80 text-white font-medium shadow-md'
+                      ? 'bg-powder-blue text-white font-medium shadow-md'
                       : isCurrentDay 
-                        ? 'ring-2 ring-gold ink-main bg-powder-blue/30' 
+                        ? 'ring-2 ring-[#5A1F2B] ink-main bg-powder-blue/30' 
                         : 'ink-main hover:bg-powder-blue/50'
                   }
                 `}
@@ -214,7 +214,7 @@ export default function VintageCalendar({
             </span>
             <button
               onClick={() => setIsEditMode(!isEditMode)}
-              className={`p-1.5 rounded-full transition-colors ${isEditMode ? 'bg-pink text-white' : 'bg-powder-blue/50 text-forest hover:bg-powder-blue'}`}
+              className={`p-1.5 rounded-full transition-colors ${isEditMode ? 'bg-[#5A1F2B] text-white' : 'bg-powder-blue/50 text-forest hover:bg-powder-blue'}`}
               title={isEditMode ? "Done editing" : "Edit dates"}
               data-testid="button-edit-dates"
             >
@@ -226,7 +226,7 @@ export default function VintageCalendar({
             {bookedDates.slice(0, 6).map((date) => (
               <span
                 key={`booked-${date.toISOString()}`}
-                className={`px-2 py-1 rounded-full text-xs ${isEditMode ? 'cursor-pointer hover:opacity-80' : ''} bg-pink/20 text-pink`}
+                className={`px-2 py-1 rounded-full text-xs ${isEditMode ? 'cursor-pointer hover:opacity-80' : ''} bg-[#5A1F2B]/20 text-[#5A1F2B]`}
                 onClick={isEditMode ? () => handleDateClick(date) : undefined}
               >
                 {format(date, "MMM d")}
@@ -235,7 +235,7 @@ export default function VintageCalendar({
             {pendingDates.slice(0, 6).map((date) => (
               <span
                 key={`pending-${date.toISOString()}`}
-                className={`px-2 py-1 rounded-full text-xs ${isEditMode ? 'cursor-pointer hover:opacity-80' : ''} bg-gold/20 text-gold flex items-center gap-1`}
+                className={`px-2 py-1 rounded-full text-xs ${isEditMode ? 'cursor-pointer hover:opacity-80' : ''} bg-powder-blue/20 text-powder-blue flex items-center gap-1`}
                 onClick={isEditMode ? () => handleDateClick(date) : undefined}
               >
                 <Clock size={10} />
@@ -252,11 +252,11 @@ export default function VintageCalendar({
       <div className="px-4 py-2 text-center border-t border-[#c5ccd8] bg-cream">
         <div className="flex items-center justify-center gap-4 text-xs">
           <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-full bg-gold/80"></span>
+            <span className="w-3 h-3 rounded-full bg-powder-blue"></span>
             <span className="ink-soft">Pending</span>
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-full bg-pink"></span>
+            <span className="w-3 h-3 rounded-full bg-[#5A1F2B]"></span>
             <span className="ink-soft">Confirmed</span>
           </span>
         </div>
