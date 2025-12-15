@@ -255,7 +255,7 @@ export default function Landing() {
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: "url('/attached_assets/hero-flatlay.png')" }}
         />
-        <div className="absolute inset-0 bg-[#1c1a18]/10" />
+        <div className="absolute inset-0 bg-[#FAF9F6]/15" />
         
         <motion.div 
           className="relative z-10 max-w-4xl mx-auto px-8 text-center"
