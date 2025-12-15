@@ -310,6 +310,10 @@ export default function Waitlist() {
                         {joinWaitlist.isPending ? "Joining..." : "Join Waitlist"}
                       </Button>
                     </div>
+                    
+                    <p className="text-xs text-center text-[#5A1F2B]/50 mt-4">
+                      🔒 Your information is encrypted and only shared with vetted Beauvette artists
+                    </p>
                   </form>
                 </div>
               </div>
