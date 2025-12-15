@@ -269,44 +269,24 @@ export default function Landing() {
           {CONTENT.hero.h1}
         </motion.h1>
 
-        {/* Rest of text lower */}
+        {/* CTA section at bottom with "Are you available?" above button */}
         <motion.div 
-          className="relative z-10 max-w-4xl mx-auto px-8 text-center pt-64 md:pt-80"
-          initial="initial"
-          animate="animate"
-          variants={staggerContainer}
-        >
-          <motion.div variants={fadeInUp}>
-            <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-[#FAF9F6] font-light tracking-wide mb-4">
-              {CONTENT.hero.h2}
-            </h2>
-          </motion.div>
-          
-          <motion.p 
-            className="font-serif text-xl md:text-2xl text-[#FAF9F6]/80 italic mb-8"
-            variants={fadeInUp}
-          >
-            {CONTENT.hero.subhead}
-          </motion.p>
-          
-          <motion.p 
-            className="text-sm md:text-base text-[#FAF9F6]/70 mb-12 max-w-lg mx-auto tracking-wide leading-relaxed"
-            variants={fadeInUp}
-          >
-            {CONTENT.hero.supporting}
-          </motion.p>
-        </motion.div>
-
-        {/* CTA Button at Bottom */}
-        <motion.div 
-          className="absolute bottom-24 left-1/2 -translate-x-1/2 z-10"
+          className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10 text-center"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8, duration: 0.8 }}
+          transition={{ delay: 0.6, duration: 0.8 }}
         >
+          <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-[#FAF9F6] font-light tracking-wide mb-3">
+            {CONTENT.hero.h2}
+          </h2>
+          
+          <p className="font-serif text-lg md:text-xl text-[#FAF9F6]/80 italic mb-6">
+            {CONTENT.hero.subhead}
+          </p>
+          
           <button
             onClick={() => setLocation("/onboarding")}
-            className="group relative px-10 py-5 bg-[#5A1F2B] text-[#FAF9F6] text-xs uppercase tracking-[0.2em] font-medium overflow-hidden transition-all duration-500 hover:bg-transparent hover:text-[#5A1F2B] border border-[#5A1F2B]"
+            className="group relative px-10 py-5 bg-[#FAF9F6] text-[#5A1F2B] text-xs uppercase tracking-[0.2em] font-medium overflow-hidden transition-all duration-500 hover:bg-[#5A1F2B] hover:text-[#FAF9F6] border border-[#FAF9F6]"
             data-testid="button-hero-primary"
           >
             {CONTENT.hero.primaryCta}
