@@ -434,8 +434,8 @@ export interface IStorage {
   getIqsLearningRuns(limit?: number): Promise<IqsLearningRun[]>;
   
   // Waitlist
-  createWaitlistSignup(data: { email: string; source?: string; eventDate?: Date; location?: string; servicesNeeded?: string[]; notes?: string }): Promise<WaitlistSignup>;
-  upsertWaitlistSignup(data: { email: string; source?: string; eventDate?: Date; location?: string; servicesNeeded?: string[]; notes?: string }): Promise<WaitlistSignup>;
+  createWaitlistSignup(data: { email: string; source?: string; eventDate?: Date; location?: string; servicesNeeded?: string[]; inspirationImages?: string[]; notes?: string }): Promise<WaitlistSignup>;
+  upsertWaitlistSignup(data: { email: string; source?: string; eventDate?: Date; location?: string; servicesNeeded?: string[]; inspirationImages?: string[]; notes?: string }): Promise<WaitlistSignup>;
   getAllWaitlistSignups(): Promise<WaitlistSignup[]>;
   
   // Communication Logs
@@ -2652,7 +2652,7 @@ export class DatabaseStorage implements IStorage {
     return results;
   }
   
-  async createWaitlistSignup(data: { email: string; source?: string; eventDate?: Date; location?: string; servicesNeeded?: string[]; notes?: string }): Promise<WaitlistSignup> {
+  async createWaitlistSignup(data: { email: string; source?: string; eventDate?: Date; location?: string; servicesNeeded?: string[]; inspirationImages?: string[]; notes?: string }): Promise<WaitlistSignup> {
     const [signup] = await db
       .insert(waitlistSignups)
       .values({
@@ -2661,13 +2661,14 @@ export class DatabaseStorage implements IStorage {
         eventDate: data.eventDate || null,
         location: data.location || null,
         servicesNeeded: data.servicesNeeded || null,
+        inspirationImages: data.inspirationImages || null,
         notes: data.notes || null,
       })
       .returning();
     return signup;
   }
   
-  async upsertWaitlistSignup(data: { email: string; source?: string; eventDate?: Date; location?: string; servicesNeeded?: string[]; notes?: string }): Promise<WaitlistSignup> {
+  async upsertWaitlistSignup(data: { email: string; source?: string; eventDate?: Date; location?: string; servicesNeeded?: string[]; inspirationImages?: string[]; notes?: string }): Promise<WaitlistSignup> {
     const [signup] = await db
       .insert(waitlistSignups)
       .values({
@@ -2676,6 +2677,7 @@ export class DatabaseStorage implements IStorage {
         eventDate: data.eventDate || null,
         location: data.location || null,
         servicesNeeded: data.servicesNeeded || null,
+        inspirationImages: data.inspirationImages || null,
         notes: data.notes || null,
       })
       .onConflictDoUpdate({
@@ -2685,6 +2687,7 @@ export class DatabaseStorage implements IStorage {
           eventDate: data.eventDate || null,
           location: data.location || null,
           servicesNeeded: data.servicesNeeded || null,
+          inspirationImages: data.inspirationImages || null,
           notes: data.notes || null,
         },
       })

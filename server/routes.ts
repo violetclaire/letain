@@ -9319,7 +9319,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // ============================================================
   app.post("/api/waitlist", async (req, res) => {
     try {
-      const { email, eventDate, location, servicesNeeded, notes, source } = req.body;
+      const { email, eventDate, location, servicesNeeded, inspirationImages, notes, source } = req.body;
       
       if (!email || typeof email !== 'string') {
         return res.status(400).json({ message: "Email is required" });
@@ -9338,6 +9338,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         eventDate: parsedEventDate,
         location: location || undefined,
         servicesNeeded: servicesNeeded || undefined,
+        inspirationImages: inspirationImages || undefined,
         notes: notes || undefined,
       });
       

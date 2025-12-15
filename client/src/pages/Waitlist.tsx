@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Upload, X, Image as ImageIcon } from "lucide-react";
 
 const SERVICE_OPTIONS = [
   { id: "hair", label: "Hair" },
@@ -23,7 +23,60 @@ export default function Waitlist() {
   const [servicesNeeded, setServicesNeeded] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [inspirationImages, setInspirationImages] = useState<string[]>([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    if (inspirationImages.length >= 5) {
+      toast({
+        title: "Limit reached",
+        description: "You can upload up to 5 inspiration images",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      for (const file of Array.from(files)) {
+        if (inspirationImages.length >= 5) break;
+        
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("folder", "waitlist-inspiration");
+
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) throw new Error("Upload failed");
+
+        const data = await res.json();
+        setInspirationImages((prev) => [...prev, data.url]);
+      }
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setInspirationImages((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const joinWaitlist = useMutation({
     mutationFn: async (data: {
@@ -32,6 +85,7 @@ export default function Waitlist() {
       location?: string;
       servicesNeeded?: string[];
       notes?: string;
+      inspirationImages?: string[];
     }) => {
       const res = await fetch("/api/waitlist", {
         method: "POST",
@@ -73,6 +127,7 @@ export default function Waitlist() {
       location: location || undefined,
       servicesNeeded: servicesNeeded.length > 0 ? servicesNeeded : undefined,
       notes: notes || undefined,
+      inspirationImages: inspirationImages.length > 0 ? inspirationImages : undefined,
     });
   };
 
@@ -183,6 +238,66 @@ export default function Waitlist() {
                         className="min-h-[80px] border-[#5A1F2B]/30 focus:border-[#5A1F2B] bg-white resize-none text-[#5A1F2B]"
                         data-testid="input-waitlist-notes"
                       />
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium text-[#5A1F2B]">
+                        Your Desired Aesthetic (optional)
+                      </Label>
+                      <p className="text-xs text-[#5A1F2B]/60">
+                        Share inspiration photos so we can better match you with artists who fit your style
+                      </p>
+                      
+                      {inspirationImages.length > 0 && (
+                        <div className="grid grid-cols-3 gap-2">
+                          {inspirationImages.map((img, index) => (
+                            <div key={index} className="relative aspect-square">
+                              <img
+                                src={img}
+                                alt={`Inspiration ${index + 1}`}
+                                className="w-full h-full object-cover rounded border border-[#5A1F2B]/20"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeImage(index)}
+                                className="absolute -top-2 -right-2 w-5 h-5 bg-[#5A1F2B] text-white rounded-full flex items-center justify-center hover:bg-[#4a1923]"
+                                data-testid={`button-remove-image-${index}`}
+                              >
+                                <X size={12} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {inspirationImages.length < 5 && (
+                        <div
+                          onClick={() => fileInputRef.current?.click()}
+                          className="border-2 border-dashed border-[#5A1F2B]/30 rounded-lg p-4 text-center cursor-pointer hover:border-[#5A1F2B]/50 transition-colors bg-white"
+                        >
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={handleImageUpload}
+                            className="hidden"
+                            data-testid="input-inspiration-images"
+                          />
+                          {uploadingImage ? (
+                            <div className="flex items-center justify-center gap-2 text-[#5A1F2B]/60">
+                              <div className="w-4 h-4 border-2 border-[#5A1F2B]/30 border-t-[#5A1F2B] rounded-full animate-spin" />
+                              <span className="text-sm">Uploading...</span>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center gap-2 text-[#5A1F2B]/60">
+                              <ImageIcon size={24} />
+                              <span className="text-sm">Tap to add inspiration photos</span>
+                              <span className="text-xs">(Up to 5 images)</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div className="w-full bg-[#5A1F2B] p-1">

@@ -1587,6 +1587,7 @@ export const waitlistSignups = pgTable("waitlist_signups", {
   eventDate: timestamp("event_date"),
   location: text("location"),
   servicesNeeded: jsonb("services_needed").$type<string[]>(),
+  inspirationImages: jsonb("inspiration_images").$type<string[]>(),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
 });
