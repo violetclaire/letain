@@ -255,11 +255,13 @@ export default function Landing() {
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: "url('/attached_assets/hero-flatlay.png')" }}
         />
+        {/* Garnet gradient at top */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#5A1F2B] via-[#5A1F2B]/50 to-transparent" style={{ height: '40%' }} />
         <div className="absolute inset-0 bg-[#1c1a18]/10" />
         
         {/* Beauvette at top */}
         <motion.h1 
-          className="absolute top-28 left-1/2 -translate-x-1/2 z-10 font-script text-7xl md:text-8xl lg:text-9xl text-[#5A1F2B]"
+          className="absolute top-28 left-1/2 -translate-x-1/2 z-10 font-script text-7xl md:text-8xl lg:text-9xl text-[#FAF9F6]"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
@@ -275,20 +277,20 @@ export default function Landing() {
           variants={staggerContainer}
         >
           <motion.div variants={fadeInUp}>
-            <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-[#5A1F2B] font-light tracking-wide mb-4">
+            <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-[#FAF9F6] font-light tracking-wide mb-4">
               {CONTENT.hero.h2}
             </h2>
           </motion.div>
           
           <motion.p 
-            className="font-serif text-xl md:text-2xl text-[#5A1F2B]/80 italic mb-8"
+            className="font-serif text-xl md:text-2xl text-[#FAF9F6]/80 italic mb-8"
             variants={fadeInUp}
           >
             {CONTENT.hero.subhead}
           </motion.p>
           
           <motion.p 
-            className="text-sm md:text-base text-[#5A1F2B]/70 mb-12 max-w-lg mx-auto tracking-wide leading-relaxed"
+            className="text-sm md:text-base text-[#FAF9F6]/70 mb-12 max-w-lg mx-auto tracking-wide leading-relaxed"
             variants={fadeInUp}
           >
             {CONTENT.hero.supporting}
