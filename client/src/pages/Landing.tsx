@@ -449,7 +449,7 @@ export default function Landing() {
             </a>
             <div className="flex items-center gap-8">
               <a
-                href="https://instagram.com"
+                href="https://www.instagram.com/beauvetteapp?igsh=NTc4MTIwNjQ2YQ%3D%3D&utm_source=qr"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs uppercase tracking-[0.15em] text-[#F4F2EC]/40 hover:text-[#F4F2EC] transition-colors duration-300"
