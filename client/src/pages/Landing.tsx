@@ -107,7 +107,9 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] text-[#1A1A1A] font-sans antialiased">
+    <div className="min-h-screen bg-[#F4F2EC] text-[#1A1A1A] font-sans antialiased relative">
+      {/* Subtle Gingham Background */}
+      <div className="fixed inset-0 gingham-check opacity-[0.08] pointer-events-none z-0" />
       {/* Gingham Elevator Doors */}
       <AnimatePresence>
         {!isOpen && (
@@ -150,7 +152,7 @@ export default function Landing() {
       </AnimatePresence>
 
       {/* Navigation - Minimal & Refined */}
-      <nav className="fixed top-0 left-0 right-0 z-40 bg-[#FAF9F6]/90 backdrop-blur-md border-b border-[#1A1A1A]/5">
+      <nav className="fixed top-0 left-0 right-0 z-40 bg-[#F4F2EC]/95 backdrop-blur-md border-b border-[#5A1F2B]/5">
         <div className="max-w-7xl mx-auto px-8 lg:px-16">
           <div className="flex items-center justify-between h-20">
             <a 
@@ -209,7 +211,7 @@ export default function Landing() {
         <AnimatePresence>
           {mobileMenuOpen && (
             <motion.div 
-              className="md:hidden fixed inset-0 top-20 bg-[#FAF9F6] z-40"
+              className="md:hidden fixed inset-0 top-20 bg-[#F4F2EC] z-40"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -247,9 +249,15 @@ export default function Landing() {
 
       {/* Hero Section - Full Height, Cinematic */}
       <section 
-        className="relative min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url('/attached_assets/XjA9B4QkebdhWmwGiKohIZOvTAQ_1765779780557.avif')" }}
+        className="relative min-h-screen flex items-center justify-center"
       >
+        {/* Gingham Background for Hero */}
+        <div className="absolute inset-0 gingham-check" />
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('/attached_assets/XjA9B4QkebdhWmwGiKohIZOvTAQ_1765779780557.avif')" }}
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-[#5A1F2B]/70 via-[#5A1F2B]/50 to-[#5A1F2B]/80" />
         
         <motion.div 
@@ -308,7 +316,7 @@ export default function Landing() {
       </section>
 
       {/* How It Works - Generous Whitespace */}
-      <section id="how-it-works" className="px-8 lg:px-16 py-32 md:py-48 bg-[#FAF9F6]">
+      <section id="how-it-works" className="px-8 lg:px-16 py-32 md:py-48 bg-[#F4F2EC] relative z-10">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 40 }}
@@ -358,12 +366,12 @@ export default function Landing() {
       </section>
 
       {/* Divider */}
-      <div className="max-w-6xl mx-auto px-8">
+      <div className="max-w-6xl mx-auto px-8 relative z-10 bg-[#F4F2EC]">
         <div className="h-[1px] bg-gradient-to-r from-transparent via-[#5A1F2B]/20 to-transparent" />
       </div>
 
       {/* For Artists - Dark, Atmospheric */}
-      <section id="for-artists" className="px-8 lg:px-16 py-32 md:py-48 bg-[#5A1F2B]">
+      <section id="for-artists" className="px-8 lg:px-16 py-32 md:py-48 bg-[#5A1F2B] relative z-10">
         <div className="max-w-4xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 40 }}
@@ -414,7 +422,7 @@ export default function Landing() {
       </section>
 
       {/* For Clients - Light, Elegant */}
-      <section id="for-clients" className="px-8 lg:px-16 py-32 md:py-48 bg-[#FAF9F6]">
+      <section id="for-clients" className="px-8 lg:px-16 py-32 md:py-48 bg-[#F4F2EC] relative z-10">
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 40 }}
@@ -472,10 +480,10 @@ export default function Landing() {
       </section>
 
       {/* Footer - Minimal & Refined */}
-      <footer className="px-8 lg:px-16 py-16 bg-[#1A1A1A]">
+      <footer className="px-8 lg:px-16 py-16 bg-[#5A1F2B] relative z-10">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-12">
-            <a href="/" className="font-script text-2xl text-[#FAF9F6]/80">
+            <a href="/" className="font-script text-2xl text-[#F4F2EC]/80">
               Beauvette
             </a>
             <div className="flex items-center gap-8">
@@ -483,7 +491,7 @@ export default function Landing() {
                 <a
                   key={index}
                   href={link === "Instagram" ? "https://instagram.com" : "#"}
-                  className="text-xs uppercase tracking-[0.15em] text-[#FAF9F6]/40 hover:text-[#FAF9F6] transition-colors duration-300"
+                  className="text-xs uppercase tracking-[0.15em] text-[#F4F2EC]/40 hover:text-[#F4F2EC] transition-colors duration-300"
                   data-testid={`link-footer-${link.toLowerCase()}`}
                 >
                   {link}
@@ -492,15 +500,15 @@ export default function Landing() {
             </div>
           </div>
 
-          <div className="h-[1px] bg-[#FAF9F6]/10 mb-8" />
+          <div className="h-[1px] bg-[#F4F2EC]/10 mb-8" />
 
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-xs text-[#FAF9F6]/30 tracking-wide">
+            <p className="text-xs text-[#F4F2EC]/30 tracking-wide">
               {CONTENT.footer.copyright}
             </p>
             <button
               onClick={() => setLocation("/login")}
-              className="text-xs text-[#FAF9F6]/30 hover:text-[#FAF9F6] transition-colors duration-300"
+              className="text-xs text-[#F4F2EC]/30 hover:text-[#F4F2EC] transition-colors duration-300"
               data-testid="button-sign-in"
             >
               Sign in
