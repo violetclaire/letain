@@ -216,7 +216,8 @@ export async function sendInfoSheetEmail({
   infoSheetPdfUrl,
   infoSheetType,
   eventDate,
-  serviceType
+  serviceType,
+  chatLink
 }: {
   toEmail: string;
   vendorName: string;
@@ -226,6 +227,7 @@ export async function sendInfoSheetEmail({
   infoSheetType: 'template' | 'custom' | 'pdf';
   eventDate: string;
   serviceType: string;
+  chatLink?: string;
 }) {
   console.log("Getting Resend client for info sheet email...");
   const { client, fromEmail } = await getResendClient();
@@ -316,7 +318,16 @@ export async function sendInfoSheetEmail({
             }
           </div>
           
-          ${vendorEmail ? `<p style="margin-top: 24px; color: #666; font-size: 14px;">To continue the conversation, reply directly to <a href="mailto:${vendorEmail}" style="color: #E8B4B8;">${vendorEmail}</a></p>` : ''}
+          ${chatLink ? `
+          <div style="text-align: center; margin: 32px 0; padding: 24px; background: linear-gradient(135deg, #6B4A55 0%, #5A1F2B 100%); border-radius: 8px;">
+            <p style="color: white; margin: 0 0 16px 0; font-size: 16px;">Have questions? Chat directly with ${vendorName}:</p>
+            <a href="${chatLink}" 
+               style="display: inline-block; padding: 14px 32px; background: white; color: #5A1F2B; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+              💬 Chat with ${vendorName}
+            </a>
+          </div>
+          ` : ''}
+          ${vendorEmail && !chatLink ? `<p style="margin-top: 24px; color: #666; font-size: 14px;">To continue the conversation, reply directly to <a href="mailto:${vendorEmail}" style="color: #E8B4B8;">${vendorEmail}</a></p>` : ''}
         </div>
         <div class="footer">
           Sent via Beauvette - Beauty services for life's most important days

@@ -9093,7 +9093,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         }
       }
       
-      // Send email notification
+      // Send email notification to artist
       if (artist?.email) {
         try {
           const { sendInquiryNotificationEmail } = await import('./emailService');
@@ -9109,6 +9109,56 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           });
         } catch (emailError) {
           console.error("[Public Inquiry] Email send failed:", emailError);
+        }
+      }
+      
+      // Auto-send info sheet with chat link to client if vendor has info sheet enabled
+      const hasInfoSheet = artistProfile?.infoSheetEnabled && (
+        artistProfile?.infoSheetContent || 
+        (artistProfile?.infoSheetType === 'pdf' && artistProfile?.infoSheetPdfUrl)
+      );
+      
+      if (hasInfoSheet) {
+        try {
+          // Create chat invite token for the client
+          const chatToken = randomUUID();
+          const chatExpiresAt = new Date();
+          chatExpiresAt.setDate(chatExpiresAt.getDate() + 30); // 30 day expiry
+          
+          await storage.createChatInvite({
+            senderId: profile.userId,
+            inviteeEmail: clientEmail,
+            status: 'pending',
+            inquiryId: inquiry.id,
+            token: chatToken,
+            expiresAt: chatExpiresAt,
+          });
+          
+          const chatLink = `${prodUrl}/chat-invite/${chatToken}`;
+          const vendorName = artistProfile?.businessName || artist?.firstName || 'Your Artist';
+          const formattedEventDate = new Date(eventDate).toLocaleDateString('en-US', { 
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+          });
+          
+          // Send info sheet email with chat link
+          const { sendInfoSheetEmail } = await import('./emailService');
+          await sendInfoSheetEmail({
+            toEmail: clientEmail,
+            vendorName,
+            vendorEmail: artist?.email || undefined,
+            infoSheetContent: artistProfile?.infoSheetContent || undefined,
+            infoSheetPdfUrl: artistProfile?.infoSheetPdfUrl || undefined,
+            infoSheetType: (artistProfile?.infoSheetType as 'template' | 'custom' | 'pdf') || 'template',
+            eventDate: formattedEventDate,
+            serviceType: 'Beauty Services',
+            chatLink
+          });
+          
+          // Update inquiry with info sheet sent timestamp
+          await storage.updateInquiry(inquiry.id, { infoSheetSentAt: new Date() } as any);
+          console.log('[Public Inquiry] Info sheet with chat link sent to', clientEmail);
+        } catch (infoSheetError) {
+          console.error("[Public Inquiry] Info sheet send failed:", infoSheetError);
         }
       }
       
