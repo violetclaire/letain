@@ -244,7 +244,7 @@ export function generateContractPdfHtml(
   const endTime = options?.serviceEndTime || "TBD";
   const clientContact = options?.clientContact || "";
   const photographerInfo = options?.photographerInfo || "";
-  const balanceDueDate = options?.balanceDueDate || "Two weeks before event date";
+  const balanceDueDate = options?.balanceDueDate || "Two weeks before wedding date";
 
   const serviceItemsHtml = serviceItems.length > 0
     ? serviceItems.map(item => `

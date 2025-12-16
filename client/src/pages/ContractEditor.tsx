@@ -62,7 +62,7 @@ export default function ContractEditor() {
     serviceEndTime: "TBD",
     clientContact: "",
     photographerInfo: "",
-    balanceDueDate: "Two weeks before event date",
+    balanceDueDate: "Two weeks before wedding date",
   });
 
   const [uploadedPdf, setUploadedPdf] = useState<File | null>(null);
