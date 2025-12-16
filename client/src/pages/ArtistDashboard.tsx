@@ -2103,13 +2103,13 @@ export default function ArtistDashboard() {
                   </h2>
                   <p className="text-xs ink-soft mt-1">Share this link so clients can book with you directly</p>
                   <p className="text-xs font-mono bg-white px-2 py-1 rounded mt-2 border border-[#e5e8f2] inline-block" data-testid="text-schedule-url">
-                    {window.location.origin}/{user?.artistSlug || user?.id}
+                    beauvette.com/{user?.artistSlug || user?.id}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => {
-                      const url = `${window.location.origin}/${user?.artistSlug || user?.id}`;
+                      const url = `https://beauvette.com/${user?.artistSlug || user?.id}`;
                       navigator.clipboard.writeText(url);
                       toast({
                         title: "Link Copied!",
@@ -2132,7 +2132,7 @@ export default function ArtistDashboard() {
                   </Link>
                   <button
                     onClick={() => {
-                      const url = `${window.location.origin}/${user?.artistSlug || user?.id}`;
+                      const url = `https://beauvette.com/${user?.artistSlug || user?.id}`;
                       navigator.clipboard.writeText(url);
                       toast({
                         title: "Ready for Instagram!",
@@ -2147,7 +2147,7 @@ export default function ArtistDashboard() {
                   </button>
                   <button
                     onClick={() => {
-                      const url = `${window.location.origin}/${user?.artistSlug || user?.id}`;
+                      const url = `https://beauvette.com/${user?.artistSlug || user?.id}`;
                       const smsBody = encodeURIComponent(`Book with me: ${url}`);
                       window.open(`sms:?&body=${smsBody}`, '_blank');
                     }}
