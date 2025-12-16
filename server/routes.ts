@@ -4880,34 +4880,59 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       const vendor = await storage.getUser(invite.senderId);
       const artistProfile = await storage.getArtistProfile(invite.senderId);
       
-      // Get client info
+      // Get client info and event details
       let clientName = invite.inviteeEmail?.split('@')[0] || 'A Client';
+      let eventDate: string | undefined;
+      let serviceType: string | undefined;
+      
       if (invite.inquiryId) {
         const inquiry = await storage.getInquiry(invite.inquiryId);
         if (inquiry?.clientName) {
           clientName = inquiry.clientName;
         }
+        if (inquiry?.eventDate) {
+          eventDate = new Date(inquiry.eventDate).toLocaleDateString('en-US', {
+            weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+          });
+        }
+        serviceType = inquiry?.serviceType || undefined;
       }
       
-      // Send notification email to the vendor
+      const vendorName = artistProfile?.businessName || vendor?.firstName || 'Your Beauty Artist';
+      
+      // Generate AI response on behalf of vendor
+      const { generateClientResponse } = await import('./aiChat');
+      const aiResponse = await generateClientResponse(invite.senderId, message, {
+        clientName,
+        clientEmail: invite.inviteeEmail || '',
+        eventDate,
+        serviceType,
+      });
+      
+      console.log('[AI Secretary] Generated response:', aiResponse.response.substring(0, 100));
+      
+      // Send AI response to client
+      if (invite.inviteeEmail) {
+        import('./emailService').then(({ sendGeneralEmail }) => {
+          sendGeneralEmail({
+            to: invite.inviteeEmail!,
+            subject: `Message from ${vendorName}`,
+            body: aiResponse.response + '\n\nReply to this email or use your chat link to continue the conversation.',
+            senderName: vendorName,
+          }).catch((err: any) => console.error('[AI Response Email] Error:', err));
+        });
+      }
+      
+      // Send notification email to the vendor with both client message and AI response
       if (vendor?.email) {
-        const vendorName = artistProfile?.businessName || vendor.firstName || 'Artist';
-        import('./emailService').then(({ sendEmail }) => {
-          sendEmail({
+        const vendorNotification = `Hi ${vendor.firstName || vendorName},\n\n${clientName} sent you a message:\n\n"${message}"\n\nAI Secretary responded on your behalf:\n\n"${aiResponse.response}"\n\n${aiResponse.isBookingConfirmation ? '📋 Booking confirmation detected - consider sending contract!\n\n' : ''}Reply to: ${invite.inviteeEmail}`;
+        
+        import('./emailService').then(({ sendGeneralEmail }) => {
+          sendGeneralEmail({
             to: vendor.email,
-            subject: `New message from ${clientName}`,
-            html: `
-              <div style="font-family: 'Georgia', serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                <h1 style="color: #5A1F2B; font-family: 'Georgia', serif;">New Message on Beauvette</h1>
-                <p style="color: #666;">Hi ${vendor.firstName || vendorName},</p>
-                <p style="color: #666;">${clientName} sent you a message:</p>
-                <div style="background: #FAF9F7; border-left: 4px solid #5A1F2B; padding: 16px; margin: 16px 0;">
-                  <p style="color: #2C2C2C; margin: 0; white-space: pre-wrap;">${message}</p>
-                </div>
-                <p style="color: #666;">Reply to: ${invite.inviteeEmail}</p>
-                <p style="color: #888; font-size: 12px; margin-top: 24px;">— Beauvette</p>
-              </div>
-            `,
+            subject: `New message from ${clientName} - AI replied`,
+            body: vendorNotification,
+            senderName: 'Beauvette AI Secretary',
           }).catch((err: any) => console.error('[Chat Message Email] Error:', err));
         });
       }
@@ -4915,7 +4940,12 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       // Update invite status to show it's been used
       await storage.updateChatInvite(invite.id, { status: 'accepted' });
       
-      res.json({ success: true, message: "Message sent successfully" });
+      res.json({ 
+        success: true, 
+        message: "Message sent successfully",
+        aiResponse: aiResponse.response,
+        isBookingConfirmation: aiResponse.isBookingConfirmation,
+      });
     } catch (error: any) {
       console.error("[Chat Invite] Error sending message:", error);
       res.status(500).json({ error: "Failed to send message" });

@@ -962,3 +962,129 @@ export async function forwardCommunicationToArtist(
     return { success: false, error: err.message };
   }
 }
+
+// AI Secretary - responds to client messages on behalf of vendor
+const CLIENT_RESPONSE_PROMPT = `You are the AI secretary for a professional beauty artist. A client has sent a message, and you need to respond professionally on behalf of the artist.
+
+CONTEXT:
+- Vendor Name: {vendorName}
+- Client Name: {clientName}
+- Event Date: {eventDate}
+- Service: {serviceType}
+- Pricing Sheet: {pricingSheet}
+
+CLIENT'S MESSAGE:
+{clientMessage}
+
+RESPONSE GUIDELINES:
+1. Be warm, professional, and helpful
+2. If client confirms a booking/pricing, respond with enthusiasm and mention you'll send contract and deposit link
+3. If client asks a question, answer based on the pricing sheet or provide helpful info
+4. Keep responses conversational but professional (2-4 sentences)
+5. Sign off with the vendor's name
+
+BOOKING CONFIRMATION SIGNALS:
+- Client confirms number of people and pricing
+- Client mentions "book" or "deposit"
+- Client asks about next steps
+- Client agrees to pricing
+
+For booking confirmations, respond like:
+"That's perfect! I'll send over the contract and deposit link right now. Please let me know your ready time for the wedding day so I can prepare the schedule!"
+
+RESPOND WITH JSON:
+{
+  "response": "your response text here",
+  "isBookingConfirmation": true/false,
+  "shouldSendContract": true/false,
+  "extractedDetails": {
+    "partySize": number or null,
+    "totalAmount": number in cents or null,
+    "depositAmount": number in cents or null,
+    "readyTime": string or null
+  }
+}`;
+
+export interface ClientResponseResult {
+  response: string;
+  isBookingConfirmation: boolean;
+  shouldSendContract: boolean;
+  extractedDetails?: {
+    partySize?: number;
+    totalAmount?: number;
+    depositAmount?: number;
+    readyTime?: string;
+  };
+}
+
+export async function generateClientResponse(
+  vendorId: string,
+  clientMessage: string,
+  context: {
+    clientName: string;
+    clientEmail: string;
+    eventDate?: string;
+    serviceType?: string;
+  }
+): Promise<ClientResponseResult> {
+  try {
+    const vendor = await storage.getUser(vendorId);
+    const artistProfile = await storage.getArtistProfile(vendorId);
+    
+    const vendorName = artistProfile?.businessName || vendor?.firstName || 'Your Beauty Artist';
+    const pricingSheet = artistProfile?.infoSheetContent || 'Standard wedding pricing applies.';
+    
+    const prompt = CLIENT_RESPONSE_PROMPT
+      .replace('{vendorName}', vendorName)
+      .replace('{clientName}', context.clientName)
+      .replace('{eventDate}', context.eventDate || 'TBD')
+      .replace('{serviceType}', context.serviceType || 'Beauty Services')
+      .replace('{pricingSheet}', pricingSheet)
+      .replace('{clientMessage}', clientMessage);
+    
+    const result = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      config: {
+        temperature: 0.7,
+        maxOutputTokens: 500,
+      },
+    });
+    
+    const responseText = result.text || '';
+    
+    // Try to parse JSON response
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[0]);
+        return {
+          response: parsed.response || "Thank you for your message! I'll get back to you shortly.",
+          isBookingConfirmation: parsed.isBookingConfirmation || false,
+          shouldSendContract: parsed.shouldSendContract || false,
+          extractedDetails: parsed.extractedDetails || {},
+        };
+      } catch {
+        // If JSON parse fails, use the text directly
+        return {
+          response: responseText.replace(/```json|```/g, '').trim() || "Thank you for your message!",
+          isBookingConfirmation: false,
+          shouldSendContract: false,
+        };
+      }
+    }
+    
+    return {
+      response: "Thank you for your message! I've received it and will follow up shortly.",
+      isBookingConfirmation: false,
+      shouldSendContract: false,
+    };
+  } catch (err: any) {
+    console.error("[AI Secretary] Error generating response:", err);
+    return {
+      response: "Thank you for your message! I'll review it and get back to you soon.",
+      isBookingConfirmation: false,
+      shouldSendContract: false,
+    };
+  }
+}
