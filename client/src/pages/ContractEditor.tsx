@@ -494,43 +494,54 @@ export default function ContractEditor() {
   
   // Handle PDF upload to the platform
   const handleSavePdfToBooking = async () => {
-    if (!uploadedPdf || !selectedBookingId) {
-      toast({ title: "Missing Info", description: "Please upload a PDF and select a client from a booking.", variant: "destructive" });
+    if (!uploadedPdf) {
+      toast({ title: "Missing PDF", description: "Please upload a PDF file first.", variant: "destructive" });
+      return;
+    }
+    if (!selectedBookingId) {
+      toast({ title: "No Client Selected", description: "Please select a client from the list first.", variant: "destructive" });
       return;
     }
     
     setIsSaving(true);
     try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64Content = (reader.result as string).split(',')[1];
-        const res = await fetch(`/api/bookings/${selectedBookingId}/upload-contract`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            fileContent: base64Content,
-            fileName: uploadedPdf.name,
-            mimeType: 'application/pdf',
-            packageDetails: formData.serviceDetails,
-            totalAmount: formData.totalAmount * 100,
-            depositAmount: formData.depositAmount * 100,
-          }),
-        });
-        
-        if (res.ok) {
-          toast({ title: "PDF Saved", description: "Your contract PDF has been saved to the booking folder." });
-          queryClient.invalidateQueries({ queryKey: ["artistContracts"] });
-          setUploadedPdf(null);
-        } else {
-          const error = await res.json();
-          toast({ title: "Upload Failed", description: error.error || "Could not save PDF.", variant: "destructive" });
-        }
-        setIsSaving(false);
-      };
-      reader.readAsDataURL(uploadedPdf);
-    } catch (err) {
-      toast({ title: "Upload Failed", description: "Could not upload PDF.", variant: "destructive" });
+      const base64Content = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          const base64 = result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = () => reject(new Error("Failed to read file"));
+        reader.readAsDataURL(uploadedPdf);
+      });
+      
+      const res = await fetch(`/api/bookings/${selectedBookingId}/upload-contract`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          fileContent: base64Content,
+          fileName: uploadedPdf.name,
+          mimeType: 'application/pdf',
+          packageDetails: formData.serviceDetails || 'Beauty Services',
+          totalAmount: Math.round(formData.totalAmount * 100) || 0,
+          depositAmount: Math.round(formData.depositAmount * 100) || 0,
+        }),
+      });
+      
+      if (res.ok) {
+        toast({ title: "PDF Saved", description: "Your contract PDF has been saved to the booking." });
+        queryClient.invalidateQueries({ queryKey: ["artistContracts"] });
+        setUploadedPdf(null);
+      } else {
+        const error = await res.json().catch(() => ({ error: "Unknown error" }));
+        toast({ title: "Upload Failed", description: error.error || "Could not save PDF to booking.", variant: "destructive" });
+      }
+    } catch (err: any) {
+      console.error("PDF upload error:", err);
+      toast({ title: "Upload Failed", description: err.message || "Could not upload PDF.", variant: "destructive" });
+    } finally {
       setIsSaving(false);
     }
   };
