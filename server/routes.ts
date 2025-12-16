@@ -4900,6 +4900,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       
       const vendorName = artistProfile?.businessName || vendor?.firstName || 'Your Beauty Artist';
       
+      // Save client message to database
+      await storage.createChatInviteMessage({
+        chatInviteId: invite.id,
+        senderType: 'client',
+        senderName: clientName,
+        content: message.trim(),
+      });
+      
       // Generate AI response on behalf of vendor
       const { generateClientResponse } = await import('./aiChat');
       const aiResponse = await generateClientResponse(invite.senderId, message, {
@@ -4910,6 +4918,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       });
       
       console.log('[AI Secretary] Generated response:', aiResponse.response.substring(0, 100));
+      
+      // Save AI response to database
+      await storage.createChatInviteMessage({
+        chatInviteId: invite.id,
+        senderType: 'ai',
+        senderName: vendorName + ' (AI Assistant)',
+        content: aiResponse.response,
+      });
       
       // Send AI response to client
       if (invite.inviteeEmail) {
