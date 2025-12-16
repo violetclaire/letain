@@ -7728,23 +7728,14 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const vendorName = artistProfile?.businessName || user?.firstName || 'The Artist';
       
       // Send reply email to client
-      import('./emailService').then(({ sendEmail }) => {
-        sendEmail({
+      import('./emailService').then(({ sendGeneralEmail }) => {
+        const emailBody = `Hi ${inquiry.clientName},\n\n${vendorName} has sent you a message about your inquiry:\n\n"${message}"\n\nYou can reply directly to this email to continue the conversation.`;
+        
+        sendGeneralEmail({
           to: inquiry.clientEmail,
           subject: `Message from ${vendorName} about your inquiry`,
-          html: `
-            <div style="font-family: 'Georgia', serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h1 style="color: #5A1F2B; font-family: 'Georgia', serif; font-size: 24px;">Message from ${vendorName}</h1>
-              <p style="color: #666;">Hi ${inquiry.clientName},</p>
-              <p style="color: #666;">${vendorName} has sent you a message about your inquiry:</p>
-              <div style="background: #FAF9F7; border-left: 4px solid #5A1F2B; padding: 16px; margin: 16px 0;">
-                <p style="color: #2C2C2C; margin: 0; white-space: pre-wrap;">${message}</p>
-              </div>
-              <p style="color: #666; font-size: 14px;">You can reply directly to this email to continue the conversation.</p>
-              <p style="color: #888; font-size: 12px; margin-top: 24px;">— Beauvette</p>
-            </div>
-          `,
-          replyTo: user?.email,
+          body: emailBody,
+          senderName: vendorName,
         }).catch((err: any) => console.error('[Quick Reply Email] Error:', err));
       });
       
