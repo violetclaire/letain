@@ -998,13 +998,17 @@ export default function ContractEditor() {
                   ) : (
                     clients.map((client: any, index: number) => (
                       <button
-                        key={client.id || index}
+                        key={`${client.bookingId}-${index}`}
                         onClick={() => selectClient(client)}
-                        className="w-full text-left p-2 text-xs border border-black/10 rounded hover:border-black hover:bg-white transition-colors"
+                        className={`w-full text-left p-2 text-xs border rounded transition-colors ${
+                          selectedBookingId === client.bookingId 
+                            ? 'border-black bg-white font-semibold' 
+                            : 'border-black/10 hover:border-black hover:bg-white'
+                        }`}
                         data-testid={`button-select-client-${index}`}
                       >
                         <p className="font-medium">{client.name}</p>
-                        <p className="text-black/50">{client.eventDate ? new Date(client.eventDate).toLocaleDateString() : ''}</p>
+                        <p className="text-black/50">{client.eventDate ? new Date(client.eventDate).toLocaleDateString() : ''} - {client.location || 'No location'}</p>
                       </button>
                     ))
                   )}
