@@ -49,6 +49,7 @@ import Proposals from "@/pages/Proposals";
 import VendorOnboarding from "@/pages/VendorOnboarding";
 import Waitlist from "@/pages/Waitlist";
 import Privacy from "@/pages/Privacy";
+import ChatInvite from "@/pages/ChatInvite";
 
 function InviteRedirectHandler() {
   const [location, setLocation] = useLocation();
@@ -125,6 +126,9 @@ function Router() {
       
       {/* Payment Routes */}
       <Route path="/payment-success" component={PaymentSuccess} />
+      
+      {/* Chat Invite Route */}
+      <Route path="/chat-invite/:token" component={ChatInvite} />
       
       {/* Public Routes */}
       <Route path="/onboarding" component={PublicOnboarding} />

@@ -289,6 +289,7 @@ export interface IStorage {
   
   // Chat Invites
   getChatInvitesByUser(userId: string): Promise<ChatInvite[]>;
+  getChatInviteByToken(token: string): Promise<ChatInvite | undefined>;
   createChatInvite(invite: InsertChatInvite): Promise<ChatInvite>;
   updateChatInvite(id: string, invite: Partial<InsertChatInvite>): Promise<ChatInvite | undefined>;
   
@@ -1351,6 +1352,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(chatInvites.id, id))
       .returning();
     return updated || undefined;
+  }
+
+  async getChatInviteByToken(token: string): Promise<ChatInvite | undefined> {
+    const [invite] = await db
+      .select()
+      .from(chatInvites)
+      .where(eq(chatInvites.token, token));
+    return invite || undefined;
   }
 
   // Conversations

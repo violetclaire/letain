@@ -4796,6 +4796,121 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     }
   });
 
+  // Public chat invite validation (no auth required - for clients clicking email links)
+  app.get("/api/chat-invite/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const invite = await storage.getChatInviteByToken(token);
+      
+      if (!invite) {
+        return res.status(404).json({ error: "Chat invite not found" });
+      }
+      
+      if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
+        return res.status(410).json({ error: "This chat invite has expired" });
+      }
+      
+      // Get vendor info
+      const vendor = await storage.getUser(invite.senderId);
+      const artistProfile = await storage.getArtistProfile(invite.senderId);
+      const vendorName = artistProfile?.businessName || vendor?.firstName || 'The Artist';
+      
+      // Get inquiry info if linked
+      let eventDate = null;
+      let serviceType = null;
+      let clientName = invite.inviteeEmail?.split('@')[0] || 'Client';
+      
+      if (invite.inquiryId) {
+        const inquiry = await storage.getInquiry(invite.inquiryId);
+        if (inquiry) {
+          eventDate = inquiry.eventDate;
+          serviceType = inquiry.serviceType;
+          clientName = inquiry.clientName || clientName;
+        }
+      }
+      
+      res.json({
+        id: invite.id,
+        vendorName,
+        clientName,
+        clientEmail: invite.inviteeEmail,
+        eventDate,
+        serviceType,
+        status: invite.status,
+        artistSlug: artistProfile?.artistSlug,
+      });
+    } catch (error: any) {
+      console.error("[Chat Invite] Error validating token:", error);
+      res.status(500).json({ error: "Failed to validate chat invite" });
+    }
+  });
+
+  // Send message via chat invite (no auth required)
+  app.post("/api/chat-invite/:token/message", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { message } = req.body;
+      
+      if (!message?.trim()) {
+        return res.status(400).json({ error: "Message is required" });
+      }
+      
+      const invite = await storage.getChatInviteByToken(token);
+      
+      if (!invite) {
+        return res.status(404).json({ error: "Chat invite not found" });
+      }
+      
+      if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
+        return res.status(410).json({ error: "This chat invite has expired" });
+      }
+      
+      // Get vendor info for email
+      const vendor = await storage.getUser(invite.senderId);
+      const artistProfile = await storage.getArtistProfile(invite.senderId);
+      
+      // Get client info
+      let clientName = invite.inviteeEmail?.split('@')[0] || 'A Client';
+      if (invite.inquiryId) {
+        const inquiry = await storage.getInquiry(invite.inquiryId);
+        if (inquiry?.clientName) {
+          clientName = inquiry.clientName;
+        }
+      }
+      
+      // Send notification email to the vendor
+      if (vendor?.email) {
+        const vendorName = artistProfile?.businessName || vendor.firstName || 'Artist';
+        import('./emailService').then(({ sendEmail }) => {
+          sendEmail({
+            to: vendor.email,
+            subject: `New message from ${clientName}`,
+            html: `
+              <div style="font-family: 'Georgia', serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h1 style="color: #5A1F2B; font-family: 'Georgia', serif;">New Message on Beauvette</h1>
+                <p style="color: #666;">Hi ${vendor.firstName || vendorName},</p>
+                <p style="color: #666;">${clientName} sent you a message:</p>
+                <div style="background: #FAF9F7; border-left: 4px solid #5A1F2B; padding: 16px; margin: 16px 0;">
+                  <p style="color: #2C2C2C; margin: 0; white-space: pre-wrap;">${message}</p>
+                </div>
+                <p style="color: #666;">Reply to: ${invite.inviteeEmail}</p>
+                <p style="color: #888; font-size: 12px; margin-top: 24px;">— Beauvette</p>
+              </div>
+            `,
+          }).catch((err: any) => console.error('[Chat Message Email] Error:', err));
+        });
+      }
+      
+      // Update invite status to show it's been used
+      await storage.updateChatInvite(invite.id, { status: 'accepted' });
+      
+      res.json({ success: true, message: "Message sent successfully" });
+    } catch (error: any) {
+      console.error("[Chat Invite] Error sending message:", error);
+      res.status(500).json({ error: "Failed to send message" });
+    }
+  });
+
   // ========== CONVERSATIONS ==========
   app.post("/api/conversations", isAuthenticated, async (req: any, res) => {
     try {
