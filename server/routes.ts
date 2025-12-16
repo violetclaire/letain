@@ -6389,7 +6389,16 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         return res.status(403).json({ error: "Admin access required" });
       }
       const allContracts = await storage.getAllContracts();
-      res.json(allContracts);
+      const stats = {
+        total: allContracts.length,
+        byStatus: {
+          draft: allContracts.filter(c => c.status === 'draft').length,
+          sent: allContracts.filter(c => c.status === 'sent').length,
+          signed: allContracts.filter(c => c.status === 'signed').length,
+        },
+        totalValue: allContracts.reduce((sum, c) => sum + (c.totalAmount || 0), 0),
+      };
+      res.json(stats);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
