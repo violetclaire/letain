@@ -698,11 +698,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateUserRole(userId, 'artist');
       
       // Also create artist profile from intake data
+      // Generate artistSlug from Instagram handle or business name
+      const instagramHandle = (data as any).instagramHandle || null;
+      let artistSlug = null;
+      if (instagramHandle) {
+        artistSlug = instagramHandle.replace('@', '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+      } else if (data.businessName) {
+        artistSlug = data.businessName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().slice(0, 30);
+      }
+      
       await storage.createArtistProfile({
         userId,
         businessName: data.businessName,
         location: data.serviceAreas?.[0] || null,
         specialties: data.serviceTypes,
+        instagramHandle: instagramHandle,
+        artistSlug: artistSlug,
       });
       
       if (cdiConsent) {
