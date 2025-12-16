@@ -16,6 +16,7 @@ import {
   scheduleAppointments,
   scheduleChatMessages,
   chatInvites,
+  chatInviteMessages,
   conversations,
   conversationParticipants,
   teamMembers,
@@ -76,6 +77,8 @@ import {
   type InsertScheduleChatMessage,
   type ChatInvite,
   type InsertChatInvite,
+  type ChatInviteMessage,
+  type InsertChatInviteMessage,
   type Conversation,
   type InsertConversation,
   type ConversationParticipant,
@@ -290,8 +293,13 @@ export interface IStorage {
   // Chat Invites
   getChatInvitesByUser(userId: string): Promise<ChatInvite[]>;
   getChatInviteByToken(token: string): Promise<ChatInvite | undefined>;
+  getChatInvite(id: string): Promise<ChatInvite | undefined>;
   createChatInvite(invite: InsertChatInvite): Promise<ChatInvite>;
   updateChatInvite(id: string, invite: Partial<InsertChatInvite>): Promise<ChatInvite | undefined>;
+  
+  // Chat Invite Messages
+  getChatInviteMessages(chatInviteId: string): Promise<ChatInviteMessage[]>;
+  createChatInviteMessage(message: InsertChatInviteMessage): Promise<ChatInviteMessage>;
   
   // Conversations
   getConversation(id: string): Promise<Conversation | undefined>;
@@ -1360,6 +1368,28 @@ export class DatabaseStorage implements IStorage {
       .from(chatInvites)
       .where(eq(chatInvites.token, token));
     return invite || undefined;
+  }
+
+  async getChatInvite(id: string): Promise<ChatInvite | undefined> {
+    const [invite] = await db
+      .select()
+      .from(chatInvites)
+      .where(eq(chatInvites.id, id));
+    return invite || undefined;
+  }
+
+  // Chat Invite Messages
+  async getChatInviteMessages(chatInviteId: string): Promise<ChatInviteMessage[]> {
+    return await db
+      .select()
+      .from(chatInviteMessages)
+      .where(eq(chatInviteMessages.chatInviteId, chatInviteId))
+      .orderBy(chatInviteMessages.createdAt);
+  }
+
+  async createChatInviteMessage(message: InsertChatInviteMessage): Promise<ChatInviteMessage> {
+    const [created] = await db.insert(chatInviteMessages).values(message as any).returning();
+    return created;
   }
 
   // Conversations

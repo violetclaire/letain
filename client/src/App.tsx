@@ -50,6 +50,7 @@ import VendorOnboarding from "@/pages/VendorOnboarding";
 import Waitlist from "@/pages/Waitlist";
 import Privacy from "@/pages/Privacy";
 import ChatInvite from "@/pages/ChatInvite";
+import ClientMessages from "@/pages/ClientMessages";
 
 function InviteRedirectHandler() {
   const [location, setLocation] = useLocation();
@@ -98,6 +99,7 @@ function Router() {
       <Route path="/artist/manage-bookings" component={ManageBookings} />
       <Route path="/artist/rolodex" component={ArtistRolodex} />
       <Route path="/artist/proposals" component={Proposals} />
+      <Route path="/artist/messages" component={ClientMessages} />
       <Route path="/artist/onboarding" component={VendorOnboarding} />
       <Route path="/planner/import" component={PlannerImport} />
       <Route path="/settings" component={ProfileSettings} />

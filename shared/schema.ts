@@ -462,6 +462,16 @@ export const chatInvites = pgTable("chat_invites", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Chat invite messages - conversation history between artist and client
+export const chatInviteMessages = pgTable("chat_invite_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  chatInviteId: varchar("chat_invite_id").notNull().references(() => chatInvites.id, { onDelete: 'cascade' }),
+  senderType: text("sender_type").notNull(), // 'artist', 'client', 'ai'
+  senderName: text("sender_name").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Hold struct type for inquiries
 export type InquiryHoldStruct = {
   placedAt: string | null;
@@ -1114,6 +1124,11 @@ export const insertChatInviteSchema = createInsertSchema(chatInvites).omit({
   createdAt: true,
 });
 
+export const insertChatInviteMessageSchema = createInsertSchema(chatInviteMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertInquirySchema = createInsertSchema(inquiries).omit({
   id: true,
   createdAt: true,
@@ -1662,6 +1677,8 @@ export type ScheduleChatMessage = typeof scheduleChatMessages.$inferSelect;
 
 export type InsertChatInvite = z.infer<typeof insertChatInviteSchema>;
 export type ChatInvite = typeof chatInvites.$inferSelect;
+export type InsertChatInviteMessage = z.infer<typeof insertChatInviteMessageSchema>;
+export type ChatInviteMessage = typeof chatInviteMessages.$inferSelect;
 
 export type InsertInquiry = z.infer<typeof insertInquirySchema>;
 export type Inquiry = typeof inquiries.$inferSelect;

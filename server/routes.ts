@@ -4952,6 +4952,133 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     }
   });
 
+  // ========== ARTIST CLIENT CHATS ==========
+  // Get all client chats for the current artist
+  app.get("/api/client-chats", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const chatInvites = await storage.getChatInvitesByUser(userId);
+      
+      // Get inquiries in one batch for all chats that have inquiryId
+      const inquiryIds = chatInvites.filter(c => c.inquiryId).map(c => c.inquiryId!);
+      const inquiries: Record<string, any> = {};
+      for (const id of inquiryIds) {
+        const inquiry = await storage.getInquiry(id);
+        if (inquiry) inquiries[id] = inquiry;
+      }
+      
+      // Enrich chats with summary info (no full message fetch - just get counts)
+      const enrichedChats = chatInvites.map((chat) => {
+        const inquiry = chat.inquiryId ? inquiries[chat.inquiryId] : null;
+        return {
+          id: chat.id,
+          inviteeEmail: chat.inviteeEmail,
+          status: chat.status,
+          createdAt: chat.createdAt,
+          clientName: inquiry?.clientName || chat.inviteeEmail?.split('@')[0] || 'Client',
+          eventDate: inquiry?.eventDate || null,
+        };
+      });
+      
+      res.json(enrichedChats);
+    } catch (error: any) {
+      console.error("[Client Chats] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get messages for a specific client chat
+  app.get("/api/client-chats/:id/messages", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const chatInvite = await storage.getChatInvite(req.params.id);
+      if (!chatInvite) {
+        return res.status(404).json({ error: "Chat not found" });
+      }
+      
+      if (chatInvite.senderId !== userId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      const messages = await storage.getChatInviteMessages(chatInvite.id);
+      res.json(messages);
+    } catch (error: any) {
+      console.error("[Client Chat Messages] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Artist sends message to client
+  app.post("/api/client-chats/:id/messages", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      // Validate request body
+      const bodySchema = z.object({ content: z.string().min(1, "Message content is required") });
+      const parsed = bodySchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0]?.message || "Invalid request" });
+      }
+      const { content } = parsed.data;
+      
+      const chatInvite = await storage.getChatInvite(req.params.id);
+      if (!chatInvite) {
+        return res.status(404).json({ error: "Chat not found" });
+      }
+      
+      if (chatInvite.senderId !== userId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      // Get artist info
+      const user = await storage.getUser(userId);
+      const artistProfile = await storage.getArtistProfile(userId);
+      const artistName = artistProfile?.businessName || user?.firstName || 'Artist';
+      
+      // Save message to database
+      const message = await storage.createChatInviteMessage({
+        chatInviteId: chatInvite.id,
+        senderType: 'artist',
+        senderName: artistName,
+        content: content.trim(),
+      });
+      
+      // Get base URL for chat link
+      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+        : (process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.app');
+      const chatLink = `${baseUrl}/chat-invite/${chatInvite.token}`;
+      
+      // Send email to client
+      if (chatInvite.inviteeEmail) {
+        const { sendGeneralEmail } = await import('./emailService');
+        await sendGeneralEmail({
+          to: chatInvite.inviteeEmail,
+          subject: `Message from ${artistName}`,
+          body: content.trim(),
+          senderName: artistName,
+          chatLink,
+        });
+      }
+      
+      res.json({ success: true, message });
+    } catch (error: any) {
+      console.error("[Send Client Message] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ========== CONVERSATIONS ==========
   app.post("/api/conversations", isAuthenticated, async (req: any, res) => {
     try {
