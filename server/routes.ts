@@ -9290,10 +9290,22 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const user = await storage.getUser(userId);
       const artistProfile = await storage.getArtistProfile(userId);
       
-      // Build chat link using artist slug - always use production URL for emails
-      const chatLink = artistProfile?.artistSlug 
-        ? `https://beauvette.com/${artistProfile.artistSlug}` 
-        : 'https://beauvette.com';
+      // Create a chat invite token for the client
+      const token = randomUUID();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 30); // 30 day expiry for proposal chat links
+      
+      await storage.createChatInvite({
+        senderId: userId,
+        inviteeEmail: proposal.clientEmail,
+        status: 'pending',
+        token,
+        expiresAt,
+      });
+      
+      // Build chat link using the token - always use production URL for emails
+      const baseUrl = process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.com';
+      const chatLink = `${baseUrl}/chat-invite/${token}`;
       
       // Send email
       const { sendProposalEmail } = await import('./emailService');
