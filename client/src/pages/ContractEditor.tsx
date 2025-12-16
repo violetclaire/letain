@@ -90,8 +90,9 @@ export default function ContractEditor() {
       if (!res.ok) return [];
       const bookings = await res.json();
       return bookings.map((b: any) => ({
-        id: b.clientId,
+        id: b.id,
         name: b.clientName,
+        email: b.clientEmail,
         eventDate: b.eventDate,
         location: b.location,
         bookingId: b.id,
