@@ -33,8 +33,6 @@ interface ContractFormData {
   serviceEndTime: string;
   clientContact: string;
   photographerInfo: string;
-  venmoHandle: string;
-  paypalEmail: string;
   balanceDueDate: string;
 }
 
@@ -64,8 +62,6 @@ export default function ContractEditor() {
     serviceEndTime: "TBD",
     clientContact: "",
     photographerInfo: "",
-    venmoHandle: "",
-    paypalEmail: "",
     balanceDueDate: "Two weeks before event date",
   });
 
@@ -834,44 +830,51 @@ export default function ContractEditor() {
                           </button>
                         </div>
                       ))}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFormData(prev => ({
-                            ...prev,
-                            serviceItems: [...prev.serviceItems, { clientType: '', qty: 1, service: '', price: 0, total: 0 }]
-                          }));
-                        }}
-                        className="flex items-center gap-1 text-xs text-plum hover:text-plum/80"
-                      >
-                        <Plus size={12} /> Add service line
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-black/10">
-                    <div>
-                      <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">Venmo Handle</label>
-                      <div className="flex">
-                        <span className="bg-gray-100 border border-r-0 border-black/20 rounded-l px-2 py-2 text-sm text-black/50">@</span>
-                        <input
-                          type="text"
-                          value={formData.venmoHandle}
-                          onChange={(e) => setFormData(prev => ({ ...prev, venmoHandle: e.target.value }))}
-                          className="flex-1 border border-black/20 rounded-r px-2 py-2 text-sm"
-                          placeholder="yourvenmo"
-                        />
+                      <div className="flex gap-2 flex-wrap">
+                        {artistServices.length > 0 && (
+                          <select
+                            onChange={(e) => {
+                              const serviceId = e.target.value;
+                              if (!serviceId) return;
+                              const service = artistServices.find((s: any) => s.id === serviceId);
+                              if (service) {
+                                const price = service.price || 0;
+                                setFormData(prev => ({
+                                  ...prev,
+                                  serviceItems: [...prev.serviceItems, {
+                                    clientType: 'Bride',
+                                    qty: 1,
+                                    service: service.name,
+                                    price: price,
+                                    total: price
+                                  }]
+                                }));
+                              }
+                              e.target.value = '';
+                            }}
+                            className="text-xs border border-black/20 rounded px-2 py-1 bg-white"
+                          >
+                            <option value="">+ Add from your services...</option>
+                            {artistServices.filter((s: any) => s.isActive !== false).map((service: any) => (
+                              <option key={service.id} value={service.id}>
+                                {service.name} - ${((service.price || 0) / 100).toFixed(0)}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              serviceItems: [...prev.serviceItems, { clientType: '', qty: 1, service: '', price: 0, total: 0 }]
+                            }));
+                          }}
+                          className="flex items-center gap-1 text-xs text-plum hover:text-plum/80"
+                        >
+                          <Plus size={12} /> Add custom line
+                        </button>
                       </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">PayPal Email</label>
-                      <input
-                        type="email"
-                        value={formData.paypalEmail}
-                        onChange={(e) => setFormData(prev => ({ ...prev, paypalEmail: e.target.value }))}
-                        className="w-full border border-black/20 rounded px-2 py-2 text-sm"
-                        placeholder="your@email.com"
-                      />
                     </div>
                   </div>
 

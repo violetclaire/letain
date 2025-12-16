@@ -216,8 +216,6 @@ interface ContractPdfOptions {
   serviceEndTime?: string;
   clientContact?: string;
   photographerInfo?: string;
-  venmoHandle?: string;
-  paypalEmail?: string;
   balanceDueDate?: string;
 }
 
@@ -246,8 +244,6 @@ export function generateContractPdfHtml(
   const endTime = options?.serviceEndTime || "TBD";
   const clientContact = options?.clientContact || "";
   const photographerInfo = options?.photographerInfo || "";
-  const venmoHandle = options?.venmoHandle || "";
-  const paypalEmail = options?.paypalEmail || "";
   const balanceDueDate = options?.balanceDueDate || "Two weeks before event date";
 
   const serviceItemsHtml = serviceItems.length > 0
@@ -368,9 +364,7 @@ export function generateContractPdfHtml(
 
   <div style="margin-top: 20px;">
     <p><strong>Payment:</strong></p>
-    <p>A Square invoice will be sent or you're welcome to use below:</p>
-    ${venmoHandle ? `<p>Venmo: @${venmoHandle}</p>` : ''}
-    ${paypalEmail ? `<p>PayPal: ${paypalEmail} (please send as friends and family so there is no fee, thank you)</p>` : ''}
+    <p>A Square invoice will be sent for payment.</p>
     
     <ul style="margin-top: 15px;">
       <li>Retainer amount is to hold the date. <strong>${formattedDeposit}</strong> - No date is guaranteed without the signed contract and retainer amount. Retainer is non refundable and required at the same time.</li>
