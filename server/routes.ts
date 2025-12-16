@@ -9084,7 +9084,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       // Try to send SMS notification
       if (artist?.phone) {
         try {
-          await smsService.sendSMS(
+          await smsService.sendSms(
             artist.phone,
             `${clientName} wants to chat about booking ${new Date(eventDate).toLocaleDateString()}. Respond here: ${prodUrl}/artist`
           );
