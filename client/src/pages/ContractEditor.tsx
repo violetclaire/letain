@@ -256,13 +256,56 @@ export default function ContractEditor() {
   };
 
   const generateContract = async () => {
+    const eventDateFormatted = formData.eventDate ? new Date(formData.eventDate).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }) : 'TBD';
+    const contractDateFormatted = new Date(formData.contractDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    
+    const serviceItemsHtml = formData.serviceItems.length > 0 
+      ? `<table class="services-table">
+          <thead>
+            <tr>
+              <th>Client</th>
+              <th>QTY</th>
+              <th>Service</th>
+              <th>Price</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${formData.serviceItems.map(item => `
+              <tr>
+                <td>${item.clientType}</td>
+                <td>${item.qty}</td>
+                <td>${item.service}</td>
+                <td>$${(item.price / 100).toFixed(2)}</td>
+                <td>$${(item.total / 100).toFixed(2)}</td>
+              </tr>
+            `).join('')}
+            <tr class="total-row">
+              <td colspan="4"><strong>Total</strong></td>
+              <td><strong>$${formData.totalAmount.toLocaleString()}</strong></td>
+            </tr>
+            <tr>
+              <td colspan="4">Retainer (${formData.depositPercent}%)</td>
+              <td>$${formData.depositAmount.toLocaleString()}</td>
+            </tr>
+            <tr>
+              <td colspan="4">Balance Due (${formData.balanceDueDate})</td>
+              <td>$${formData.remainingBalance.toLocaleString()}</td>
+            </tr>
+          </tbody>
+        </table>`
+      : `<p>Services as agreed: ${formData.serviceDetails || 'See Attachment A'}</p>
+         <p><strong>Total:</strong> $${formData.totalAmount.toLocaleString()}</p>
+         <p><strong>Retainer (${formData.depositPercent}%):</strong> $${formData.depositAmount.toLocaleString()}</p>
+         <p><strong>Balance Due (${formData.balanceDueDate}):</strong> $${formData.remainingBalance.toLocaleString()}</p>`;
+
     const contractHtml = `
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Beauty Services Contract - ${formData.clientName}</title>
+  <title>Service Contract - ${formData.clientName}</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Inter:wght@400;500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
     body { 
       font-family: 'Inter', sans-serif; 
       max-width: 800px; 
@@ -270,156 +313,128 @@ export default function ContractEditor() {
       padding: 40px; 
       color: #262329; 
       background: #fff;
-      line-height: 1.6;
+      line-height: 1.7;
+      font-size: 14px;
     }
     .header { 
       text-align: center; 
-      border-bottom: 2px solid #C9A961; 
-      padding-bottom: 20px; 
       margin-bottom: 30px;
     }
     .header h1 { 
-      font-family: 'Playfair Display', serif;
-      font-size: 28px; 
-      margin: 0 0 5px 0;
-      color: #262329;
+      font-size: 24px; 
+      margin: 0 0 10px 0;
     }
-    .header p { 
-      color: #666; 
-      font-size: 14px;
-      margin: 5px 0;
+    .intro {
+      margin-bottom: 25px;
     }
-    .section { 
-      margin: 25px 0; 
-      padding: 20px; 
-      background: #f9f9f9; 
-      border-radius: 8px;
+    .section {
+      margin-bottom: 20px;
     }
-    .section h2 { 
-      font-family: 'Playfair Display', serif;
-      font-size: 18px; 
-      margin: 0 0 15px 0;
-      color: #262329;
-      border-bottom: 1px solid #ddd;
-      padding-bottom: 8px;
+    .section-title {
+      font-weight: 600;
+      margin-bottom: 5px;
     }
-    .row { 
-      display: flex; 
-      justify-content: space-between; 
-      margin: 10px 0;
-      padding: 8px 0;
-      border-bottom: 1px dotted #ddd;
+    .services-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
     }
-    .row:last-child { border-bottom: none; }
-    .label { color: #666; font-size: 14px; }
-    .value { font-weight: 500; font-size: 14px; }
-    .amount { 
-      font-size: 18px; 
-      color: #C9A961; 
+    .services-table th, .services-table td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    .services-table th {
+      background: #f5f5f5;
       font-weight: 600;
     }
-    .terms { 
-      font-size: 12px; 
-      color: #666; 
-      margin-top: 30px;
-      padding: 20px;
-      background: #f5f5f5;
-      border-radius: 8px;
+    .total-row td {
+      border-top: 2px solid #262329;
     }
-    .terms h3 { 
-      font-size: 14px; 
-      margin: 15px 0 8px 0;
-      color: #262329;
-    }
-    .terms p { margin: 5px 0; }
     .signature-section {
-      margin-top: 40px;
+      margin-top: 50px;
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 40px;
     }
     .signature-box {
-      padding: 20px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
+      padding: 15px 0;
     }
     .signature-line {
       border-bottom: 1px solid #262329;
       height: 40px;
-      margin: 20px 0 10px 0;
+      margin: 15px 0 5px 0;
     }
     .signature-label {
       font-size: 12px;
       color: #666;
     }
-    .footer {
-      text-align: center;
+    .attachment {
       margin-top: 40px;
       padding-top: 20px;
-      border-top: 1px solid #ddd;
-      font-size: 12px;
-      color: #999;
+      border-top: 2px solid #262329;
+    }
+    .attachment h2 {
+      font-size: 16px;
+      margin-bottom: 15px;
+    }
+    .payment-note {
+      margin-top: 15px;
+      font-size: 13px;
+      color: #444;
     }
   </style>
 </head>
 <body>
   <div class="header">
-    <h1>${formData.businessName || "Beauty Services"}</h1>
-    <p>Professional Beauty Services Contract</p>
-    <p>Contract Date: ${new Date(formData.contractDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+    <h1>${formData.businessName || "Service Contract"}</h1>
+  </div>
+
+  <div class="intro">
+    <p>This service contract is entered into as of ${contractDateFormatted} between <strong>${formData.clientName}</strong> (Client) and <strong>${formData.businessName || formData.artistName}</strong> (Artist). The Client and the Artist agree as follows:</p>
   </div>
 
   <div class="section">
-    <h2>Client Information</h2>
-    <div class="row">
-      <span class="label">Client Name</span>
-      <span class="value">${formData.clientName}</span>
-    </div>
-    <div class="row">
-      <span class="label">Event Date</span>
-      <span class="value">${formData.eventDate ? new Date(formData.eventDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : 'TBD'}</span>
-    </div>
-    <div class="row">
-      <span class="label">Event Location</span>
-      <span class="value">${formData.eventLocation || 'TBD'}</span>
-    </div>
-    <div class="row">
-      <span class="label">Services Location</span>
-      <span class="value">${formData.serviceLocation || 'TBD'}</span>
-    </div>
+    <p class="section-title">1. SERVICE to be PROVIDED</p>
+    <p>Artist will provide services to client as specified in Attachment A.</p>
   </div>
 
   <div class="section">
-    <h2>Services</h2>
-    <div class="row">
-      <span class="label">Service Type</span>
-      <span class="value">${formData.serviceDetails}</span>
-    </div>
-    <div class="row">
-      <span class="label">Number of Services</span>
-      <span class="value">${formData.numberOfServices}</span>
-    </div>
+    <p class="section-title">2. LOCATION of SERVICE</p>
+    <p>The service will take place at the following location: ${formData.serviceLocation || formData.eventLocation || 'TBD'}</p>
   </div>
 
   <div class="section">
-    <h2>Payment Details</h2>
-    <div class="row">
-      <span class="label">Total Amount</span>
-      <span class="amount">$${formData.totalAmount.toLocaleString()}</span>
-    </div>
-    <div class="row">
-      <span class="label">Deposit (${formData.depositPercent}%)</span>
-      <span class="value">$${formData.depositAmount.toLocaleString()}</span>
-    </div>
-    <div class="row">
-      <span class="label">Remaining Balance (Due day of event)</span>
-      <span class="value">$${formData.remainingBalance.toLocaleString()}</span>
-    </div>
+    <p class="section-title">3. DATE and TIME of SERVICE</p>
+    <p>The date of Service: ${eventDateFormatted}<br/>
+    Service Begins: ${formData.serviceStartTime || 'TBD'} (We will arrive a few minutes early to set up)<br/>
+    Service Completion: ${formData.serviceEndTime || 'TBD'}</p>
+  </div>
+
+  <div class="section">
+    <p class="section-title">4. PARKING</p>
+    <p>Valet parking is required for all hotel getting ready locations. The amount of equipment required for day of services is extensive and to ensure ease for the artist and timely arrival, valet parking will be charged to the room at the time of arrival.</p>
+  </div>
+
+  <div class="section">
+    <p class="section-title">5. PAYMENT</p>
+    <p>In full consideration for all services rendered by Artist at the location, the Client agrees to make deposit and payment in U.S. funds to the Artist, as provided in Attachment A.</p>
+  </div>
+
+  <div class="section">
+    <p class="section-title">6. CANCELLATION</p>
+    <p>Cancellations can be made 30 days prior to the event without penalty other than loss of the retainer amount. In case of cancellations less than two calendar weeks retainer and final payment will not be refunded. The retainer is non refundable.</p>
+    <p>The Artist's obligation is to give services as provided in Attachment A. If Artist is unavailable as a result of sickness, accidents, acts of God or other reasons beyond the Artist's control, artist will make all commercially reasonable efforts to arrange for comparable services agreed upon within this contract.</p>
+  </div>
+
+  <div class="section">
+    <p class="section-title">7. MISCELLANEOUS</p>
+    <p>The service contract and specified attachments set forth the entire agreement between the Artist and Client, and may not be amended except in writing signed by both parties. This service contract will be governed by and construed in accordance with the laws of the State of California.</p>
   </div>
 
   <div class="signature-section">
     <div class="signature-box">
-      <strong>Service Provider</strong>
+      <strong>Artist</strong>
       <div class="signature-line"></div>
       <p class="signature-label">${formData.artistName || formData.businessName}</p>
       <p class="signature-label">Date: _________________</p>
@@ -432,8 +447,10 @@ export default function ContractEditor() {
     </div>
   </div>
 
-  <div class="footer">
-    <p>${formData.businessName} | Beauvette | For Life's Most Important Days</p>
+  <div class="attachment">
+    <h2>Attachment A - Services & Payment</h2>
+    ${serviceItemsHtml}
+    <p class="payment-note"><strong>Payment Method:</strong> Square only</p>
   </div>
 </body>
 </html>`;
