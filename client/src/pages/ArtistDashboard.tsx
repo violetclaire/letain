@@ -1112,8 +1112,8 @@ export default function ArtistDashboard() {
         const data = await res.json();
         setContractSigningUrl(data.signingUrl);
         toast({
-          title: "Contract Sent for Signing!",
-          description: "OpenSign will send the signing request to your client. The contract is now tracked in Beauvette.",
+          title: "Contract Tracked!",
+          description: "Your DocuSign contract is now being tracked in Beauvette.",
         });
         setShowDocusignModal(false);
         setPendingBookingId(null);
@@ -3571,7 +3571,7 @@ export default function ArtistDashboard() {
         </div>
       )}
 
-      {/* OpenSign Contract Modal */}
+      {/* DocuSign Contract Modal */}
       {showDocusignModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
@@ -3579,15 +3579,15 @@ export default function ArtistDashboard() {
               <div className="p-2 bg-pink/20 rounded-full">
                 <FileText size={20} className="text-pink" />
               </div>
-              <h3 className="font-header text-lg ink-main">Send Contract for Signing</h3>
+              <h3 className="font-header text-lg ink-main">DocuSign Contract</h3>
             </div>
             <p className="text-xs ink-soft mb-4">
-              Your contract will be sent via OpenSign for e-signature. Click "Confirm" to send the signing request to your client.
+              Have you created and sent this envelope in DocuSign? Click "Confirm" to track this contract in Beauvette.
             </p>
             <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-4">
               <p className="text-[0.65rem] text-blue-900">
                 <strong>What happens next:</strong><br />
-                OpenSign sends the signing email → Client receives invitation → Client signs → You're notified
+                DocuSign sends the signing email → Client signs → Update status here when complete
               </p>
             </div>
             <div className="flex gap-3 justify-end">
