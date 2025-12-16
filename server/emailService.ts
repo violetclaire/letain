@@ -2,6 +2,14 @@ import { Resend } from 'resend';
 
 let connectionSettings: any;
 
+// Get the base URL for email links
+function getBaseUrl(): string {
+  if (process.env.REPLIT_DEV_DOMAIN) {
+    return `https://${process.env.REPLIT_DEV_DOMAIN}`;
+  }
+  return process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.app';
+}
+
 function sanitizeSenderName(name: string): string {
   return name
     .replace(/[<>"'\r\n\\]/g, '')
@@ -778,7 +786,7 @@ export async function sendAppointmentConfirmationEmail({
           <p style="margin-top: 32px;">Warmly,<br><strong>${artistBusinessName}</strong></p>
         </div>
         <div class="footer">
-          <p>Sent via <a href="https://beauvette.com">Beauvette</a> - Beauty services for life's most important days</p>
+          <p>Sent via <a href="${getBaseUrl()}">Beauvette</a> - Beauty services for life's most important days</p>
         </div>
       </div>
     </body>
@@ -882,7 +890,7 @@ export async function sendChatInviteEmail({
           <p style="color: #888; font-size: 13px;">Or copy this link: <a href="${chatLink}" style="color: #C9A961;">${chatLink}</a></p>
         </div>
         <div class="footer">
-          Sent via <a href="https://beauvette.com">Beauvette</a> - Beauty services for life's most important days
+          Sent via <a href="${getBaseUrl()}">Beauvette</a> - Beauty services for life's most important days
         </div>
       </div>
     </body>
@@ -956,7 +964,7 @@ export async function sendGeneralEmail({
           ${safeBody}
         </div>
         <div class="footer">
-          Sent by ${safeSenderName} via <a href="https://beauvette.com" style="color: #C9A961;">Beauvette</a>
+          Sent by ${safeSenderName} via <a href="${getBaseUrl()}" style="color: #C9A961;">Beauvette</a>
         </div>
       </div>
     </body>
@@ -1126,7 +1134,7 @@ export async function sendProposalEmail({
             `}
           </div>
           <div class="footer">
-            Sent by ${safeArtistName} via <a href="https://beauvette.com" style="color: #2C2C2C;">Beauvette</a>
+            Sent by ${safeArtistName} via <a href="${getBaseUrl()}" style="color: #2C2C2C;">Beauvette</a>
           </div>
         </div>
       </div>
@@ -1218,7 +1226,7 @@ export async function sendInquiryNotificationEmail({
           </div>
         </div>
         <div class="footer">
-          Sent to ${safeVendorName} via <a href="https://beauvette.com" style="color: #6B4A55;">Beauvette</a>
+          Sent to ${safeVendorName} via <a href="${getBaseUrl()}" style="color: #6B4A55;">Beauvette</a>
         </div>
       </div>
     </body>
@@ -1315,7 +1323,7 @@ export async function sendReferralNotificationEmail({
           <p>Warm regards,<br>The Beauvette Team</p>
         </div>
         <div class="footer">
-          <a href="https://beauvette.com" style="color: #6B4A55;">Beauvette</a> - For Life's Most Important Days
+          <a href="${getBaseUrl()}" style="color: #6B4A55;">Beauvette</a> - For Life's Most Important Days
         </div>
       </div>
     </body>
@@ -1397,7 +1405,7 @@ export async function sendPasswordResetEmail({
           <p>Best,<br>The Beauvette Team</p>
         </div>
         <div class="footer">
-          <a href="https://beauvette.com" style="color: #6B4A55;">Beauvette</a> - For Life's Most Important Days
+          <a href="${getBaseUrl()}" style="color: #6B4A55;">Beauvette</a> - For Life's Most Important Days
         </div>
       </div>
     </body>
@@ -1498,7 +1506,7 @@ export async function sendWaitlistConfirmationEmail({
           <p>With love,<br>The Beauvette Team</p>
         </div>
         <div class="footer">
-          <a href="https://beauvette.com" style="color: #6B4A55;">Beauvette</a> - For Life's Most Important Days
+          <a href="${getBaseUrl()}" style="color: #6B4A55;">Beauvette</a> - For Life's Most Important Days
         </div>
       </div>
     </body>
