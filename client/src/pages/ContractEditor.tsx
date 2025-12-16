@@ -417,16 +417,6 @@ export default function ContractEditor() {
     </div>
   </div>
 
-  <div class="terms">
-    <h3>Terms & Conditions</h3>
-    <p>1. The deposit is non-refundable and due upon signing to secure the date.</p>
-    <p>2. Remaining balance is due on or before the day of the event.</p>
-    <p>3. Cancellations made less than 30 days before the event will forfeit the full deposit.</p>
-    <p>4. Travel fees may apply for locations beyond 30 miles.</p>
-    <p>5. A trial session is recommended and available at an additional cost.</p>
-    <p>6. The artist reserves the right to use photos from the event for portfolio purposes unless otherwise agreed in writing.</p>
-  </div>
-
   <div class="signature-section">
     <div class="signature-box">
       <strong>Service Provider</strong>
