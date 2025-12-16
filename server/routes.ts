@@ -2804,7 +2804,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         contract = await storage.createContract({
           bookingId,
           artistId: userId,
-          clientId: booking.clientId || booking.clientContactId || userId,
+          clientId: booking.clientId || userId,
           packageDetails: packageDetails || 'Beauty Services',
           totalAmount: totalAmount || 0,
           depositAmount: depositAmount || 0,
