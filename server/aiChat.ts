@@ -364,10 +364,10 @@ export async function processAIChatMessage(
     let availabilityContext = '';
     
     if (potentialDates.length > 0) {
-      const blockedDates = await storage.getAvailability(userId);
+      const blockedDates = await storage.getAvailabilityByUser(userId);
       const blockedDateStrings = blockedDates
-        .filter(a => !a.isAvailable)
-        .map(a => a.date.toISOString().split('T')[0]);
+        .filter((a: any) => !a.isAvailable)
+        .map((a: any) => a.date.toISOString().split('T')[0]);
       
       if (blockedDateStrings.length > 0) {
         availabilityContext = `\n\nBLOCKED DATES (you are NOT available on these): ${blockedDateStrings.join(', ')}`;
