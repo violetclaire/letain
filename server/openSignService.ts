@@ -323,11 +323,6 @@ export function generateContractPdfHtml(
     <p>The service contract and specified attachments set forth the entire agreement between the Artist and Client, and may not be amended except in writing signed by both parties. This service contract will be governed by and construed in accordance with the laws of the State of California.</p>
   </div>
 
-  <h2>8. PHOTO RIGHTS</h2>
-  <div class="section">
-    <p>The Artist reserves the right to use photos from the event for portfolio purposes unless otherwise agreed in writing.</p>
-  </div>
-
   <div class="signature-section">
     <table style="border: none;">
       <tr>
