@@ -269,9 +269,6 @@ export default function ArtistDashboardNew() {
           <div className="md:row-span-2 bg-white rounded-xl shadow-sm border border-[#5A1F2B]/10 p-4" data-testid="quadrant-calendar">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-serif text-lg text-[#5A1F2B]">Calendar</h2>
-              <Link href="/artist/calendar" className="text-xs text-[#5A1F2B] hover:underline flex items-center gap-1">
-                View Full <ChevronRight size={12} />
-              </Link>
             </div>
             <AvailabilityCalendar 
               userId={user?.id || ""}
