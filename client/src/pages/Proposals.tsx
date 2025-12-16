@@ -625,40 +625,43 @@ export default function Proposals() {
                 className="bg-[#FFFEF9] p-1 border border-[#2C2C2C]"
               >
                 <div className="border border-[#2C2C2C] p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-medium text-[#2C2C2C]">{proposal.clientName}</h3>
-                        <span className={`px-2 py-0.5 text-xs font-medium uppercase ${getStatusColor(proposal.status)}`}>
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                        <h3 className="font-medium text-[#2C2C2C] break-words">{proposal.clientName}</h3>
+                        <span className={`px-2 py-0.5 text-xs font-medium uppercase shrink-0 ${getStatusColor(proposal.status)}`}>
                           {proposal.status || 'draft'}
                         </span>
+                        <span className="text-lg font-bold text-[#2C2C2C] sm:hidden ml-auto">
+                          {formatCurrency(proposal.total || 0)}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-[#666]">
-                        <span className="flex items-center gap-1">
-                          <Mail size={14} />
-                          {proposal.clientEmail}
+                      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-1 sm:gap-4 text-sm text-[#666]">
+                        <span className="flex items-center gap-1 truncate">
+                          <Mail size={14} className="shrink-0" />
+                          <span className="truncate">{proposal.clientEmail}</span>
                         </span>
                         {proposal.eventDate && (
                           <span className="flex items-center gap-1">
-                            <Calendar size={14} />
+                            <Calendar size={14} className="shrink-0" />
                             {format(new Date(proposal.eventDate), "MMM d, yyyy")}
                           </span>
                         )}
                         {proposal.eventLocation && (
-                          <span className="flex items-center gap-1">
-                            <MapPin size={14} />
-                            {proposal.eventLocation}
+                          <span className="flex items-center gap-1 truncate">
+                            <MapPin size={14} className="shrink-0" />
+                            <span className="truncate">{proposal.eventLocation}</span>
                           </span>
                         )}
                       </div>
                       {proposal.lineItems && proposal.lineItems.length > 0 && (
-                        <div className="mt-2 text-sm text-[#666]">
+                        <div className="mt-2 text-sm text-[#666] line-clamp-2">
                           {proposal.lineItems.map((item, i) => item.description).filter(Boolean).join(" • ")}
                         </div>
                       )}
                     </div>
-                    <div className="text-right">
-                      <div className="text-xl font-bold text-[#2C2C2C] mb-2">
+                    <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-3 sm:gap-2 pt-3 sm:pt-0 border-t sm:border-t-0 border-[#2C2C2C]/20">
+                      <div className="hidden sm:block text-xl font-bold text-[#2C2C2C] mb-2">
                         {formatCurrency(proposal.total || 0)}
                       </div>
                       <div className="flex items-center gap-2">
@@ -684,7 +687,7 @@ export default function Proposals() {
                             title="Send"
                           >
                             <Send size={16} />
-                            Send
+                            <span className="hidden sm:inline">Send</span>
                           </button>
                         )}
                         <button
