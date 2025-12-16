@@ -241,12 +241,17 @@ export default function ContractEditor() {
 
   const handlePdfUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && file.type === 'application/pdf') {
-      setUploadedPdf(file);
-      setUseCustomTemplate(true);
-      toast({ title: "PDF Uploaded", description: "Your contract template has been uploaded." });
+    if (file) {
+      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+      if (isPdf) {
+        setUploadedPdf(file);
+        setUseCustomTemplate(true);
+        toast({ title: "PDF Uploaded", description: `${file.name} has been uploaded.` });
+      } else {
+        toast({ title: "Invalid File", description: `Please upload a PDF file. Got: ${file.type || 'unknown type'}`, variant: "destructive" });
+      }
     } else {
-      toast({ title: "Invalid File", description: "Please upload a PDF file.", variant: "destructive" });
+      toast({ title: "No File Selected", description: "Please select a file to upload.", variant: "destructive" });
     }
   };
 
@@ -1022,8 +1027,8 @@ export default function ContractEditor() {
                   <span className="text-sm">Upload Your PDF Contract</span>
                   <input 
                     type="file" 
-                    accept=".pdf" 
-                    className="hidden" 
+                    accept=".pdf,application/pdf" 
+                    className="sr-only" 
                     onChange={handlePdfUpload}
                     data-testid="input-upload-pdf"
                   />
