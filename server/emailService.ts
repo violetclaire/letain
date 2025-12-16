@@ -919,18 +919,27 @@ export async function sendGeneralEmail({
   to,
   subject,
   body,
-  senderName
+  senderName,
+  chatLink
 }: {
   to: string;
   subject: string;
   body: string;
   senderName: string;
+  chatLink?: string;
 }) {
   const { client } = await getResendClient();
+  const baseUrl = getBaseUrl();
 
   const safeSenderName = sanitizeSenderName(senderName) || 'Beauvette User';
   const safeBody = escapeHtml(body).replace(/\n/g, '<br>');
   const safeSubject = sanitizeSubject(subject);
+  
+  const chatButtonHtml = chatLink ? `
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${chatLink}" style="display: inline-block; background: #6B4A55; color: white; padding: 16px 32px; text-decoration: none; border-radius: 6px; font-size: 15px; letter-spacing: 1px; font-weight: bold;">Continue Chat</a>
+    </div>
+  ` : '';
   
   const htmlContent = `
     <!DOCTYPE html>
@@ -962,9 +971,10 @@ export async function sendGeneralEmail({
         </div>
         <div class="content">
           ${safeBody}
+          ${chatButtonHtml}
         </div>
         <div class="footer">
-          Sent by ${safeSenderName} via <a href="${getBaseUrl()}" style="color: #C9A961;">Beauvette</a>
+          Sent by ${safeSenderName} via <a href="${baseUrl}" style="color: #C9A961;">Beauvette</a>
         </div>
       </div>
     </body>
