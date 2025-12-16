@@ -5,10 +5,19 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+interface ServiceItem {
+  clientType: string;
+  qty: number;
+  service: string;
+  price: number;
+  total: number;
+}
+
 interface ContractFormData {
   clientName: string;
   contractDate: string;
   eventDate: string;
+  eventDates: string;
   eventLocation: string;
   serviceLocation: string;
   numberOfServices: number;
@@ -19,6 +28,14 @@ interface ContractFormData {
   remainingBalance: number;
   businessName: string;
   artistName: string;
+  serviceItems: ServiceItem[];
+  serviceStartTime: string;
+  serviceEndTime: string;
+  clientContact: string;
+  photographerInfo: string;
+  venmoHandle: string;
+  paypalEmail: string;
+  balanceDueDate: string;
 }
 
 export default function ContractEditor() {
@@ -31,16 +48,25 @@ export default function ContractEditor() {
     clientName: "",
     contractDate: new Date().toISOString().split('T')[0],
     eventDate: "",
+    eventDates: "",
     eventLocation: "",
     serviceLocation: "",
     numberOfServices: 1,
-    serviceDetails: "Bridal Beauty Services",
+    serviceDetails: "",
     totalAmount: 0,
-    depositPercent: 30,
+    depositPercent: 50,
     depositAmount: 0,
     remainingBalance: 0,
     businessName: "",
     artistName: "",
+    serviceItems: [],
+    serviceStartTime: "TBD",
+    serviceEndTime: "TBD",
+    clientContact: "",
+    photographerInfo: "",
+    venmoHandle: "",
+    paypalEmail: "",
+    balanceDueDate: "Two weeks before event date",
   });
 
   const [uploadedPdf, setUploadedPdf] = useState<File | null>(null);
@@ -738,6 +764,155 @@ export default function ContractEditor() {
                     <div>
                       <p className="text-xs text-black/60 uppercase tracking-wide">Remaining Balance</p>
                       <p className="text-lg font-semibold">${formData.remainingBalance.toLocaleString()}</p>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-black/10">
+                    <label className="block text-xs uppercase tracking-wide text-black/60 mb-2">Itemized Services (for Attachment A)</label>
+                    <div className="space-y-2">
+                      {formData.serviceItems.map((item, index) => (
+                        <div key={index} className="grid grid-cols-12 gap-2 items-center">
+                          <input
+                            type="text"
+                            placeholder="Client (e.g., Bride)"
+                            value={item.clientType}
+                            onChange={(e) => {
+                              const newItems = [...formData.serviceItems];
+                              newItems[index].clientType = e.target.value;
+                              setFormData(prev => ({ ...prev, serviceItems: newItems }));
+                            }}
+                            className="col-span-3 border border-black/20 rounded px-2 py-1 text-xs"
+                          />
+                          <input
+                            type="number"
+                            placeholder="Qty"
+                            min="1"
+                            value={item.qty}
+                            onChange={(e) => {
+                              const newItems = [...formData.serviceItems];
+                              const qty = parseInt(e.target.value) || 1;
+                              newItems[index].qty = qty;
+                              newItems[index].total = qty * newItems[index].price;
+                              setFormData(prev => ({ ...prev, serviceItems: newItems }));
+                            }}
+                            className="col-span-1 border border-black/20 rounded px-2 py-1 text-xs text-center"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Service"
+                            value={item.service}
+                            onChange={(e) => {
+                              const newItems = [...formData.serviceItems];
+                              newItems[index].service = e.target.value;
+                              setFormData(prev => ({ ...prev, serviceItems: newItems }));
+                            }}
+                            className="col-span-4 border border-black/20 rounded px-2 py-1 text-xs"
+                          />
+                          <input
+                            type="number"
+                            placeholder="Price"
+                            value={item.price / 100}
+                            onChange={(e) => {
+                              const newItems = [...formData.serviceItems];
+                              const price = (parseFloat(e.target.value) || 0) * 100;
+                              newItems[index].price = price;
+                              newItems[index].total = newItems[index].qty * price;
+                              setFormData(prev => ({ ...prev, serviceItems: newItems }));
+                            }}
+                            className="col-span-2 border border-black/20 rounded px-2 py-1 text-xs"
+                          />
+                          <span className="col-span-1 text-xs text-right">${(item.total / 100).toFixed(0)}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newItems = formData.serviceItems.filter((_, i) => i !== index);
+                              setFormData(prev => ({ ...prev, serviceItems: newItems }));
+                            }}
+                            className="col-span-1 text-red-500 hover:text-red-700"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({
+                            ...prev,
+                            serviceItems: [...prev.serviceItems, { clientType: '', qty: 1, service: '', price: 0, total: 0 }]
+                          }));
+                        }}
+                        className="flex items-center gap-1 text-xs text-plum hover:text-plum/80"
+                      >
+                        <Plus size={12} /> Add service line
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-black/10">
+                    <div>
+                      <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">Venmo Handle</label>
+                      <div className="flex">
+                        <span className="bg-gray-100 border border-r-0 border-black/20 rounded-l px-2 py-2 text-sm text-black/50">@</span>
+                        <input
+                          type="text"
+                          value={formData.venmoHandle}
+                          onChange={(e) => setFormData(prev => ({ ...prev, venmoHandle: e.target.value }))}
+                          className="flex-1 border border-black/20 rounded-r px-2 py-2 text-sm"
+                          placeholder="yourvenmo"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">PayPal Email</label>
+                      <input
+                        type="email"
+                        value={formData.paypalEmail}
+                        onChange={(e) => setFormData(prev => ({ ...prev, paypalEmail: e.target.value }))}
+                        className="w-full border border-black/20 rounded px-2 py-2 text-sm"
+                        placeholder="your@email.com"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">Balance Due Date</label>
+                    <input
+                      type="text"
+                      value={formData.balanceDueDate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, balanceDueDate: e.target.value }))}
+                      className="w-full border border-black/20 rounded px-2 py-2 text-sm"
+                      placeholder="Two weeks before event date"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="card-frame rounded-lg p-5">
+                <h2 className="font-header text-lg ink-main mb-4 flex items-center gap-2">
+                  <Users size={18} /> Additional Info
+                </h2>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">Client Contact Info</label>
+                      <input
+                        type="text"
+                        value={formData.clientContact}
+                        onChange={(e) => setFormData(prev => ({ ...prev, clientContact: e.target.value }))}
+                        className="w-full border border-black/20 rounded px-2 py-2 text-sm"
+                        placeholder="Phone or email"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">Photographer</label>
+                      <input
+                        type="text"
+                        value={formData.photographerInfo}
+                        onChange={(e) => setFormData(prev => ({ ...prev, photographerInfo: e.target.value }))}
+                        className="w-full border border-black/20 rounded px-2 py-2 text-sm"
+                        placeholder="Photographer name/contact"
+                      />
                     </div>
                   </div>
                 </div>

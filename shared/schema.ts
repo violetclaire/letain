@@ -305,6 +305,23 @@ export const contracts = pgTable("contracts", {
   openSignDocumentId: text("open_sign_document_id"),
   openSignSigningUrl: text("open_sign_signing_url"),
   openSignCertificateUrl: text("open_sign_certificate_url"),
+  serviceItems: jsonb("service_items").$type<Array<{
+    clientType: string;
+    qty: number;
+    service: string;
+    price: number;
+    total: number;
+  }>>(),
+  eventDates: text("event_dates"),
+  eventLocation: text("event_location"),
+  serviceStartTime: text("service_start_time"),
+  serviceEndTime: text("service_end_time"),
+  clientName: text("client_name"),
+  clientContact: text("client_contact"),
+  photographerInfo: text("photographer_info"),
+  venmoHandle: text("venmo_handle"),
+  paypalEmail: text("paypal_email"),
+  balanceDueDate: text("balance_due_date"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

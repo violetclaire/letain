@@ -191,6 +191,36 @@ export async function syncContractSigningStatus(contractId: string): Promise<{ s
   return { success: true, signed: isSigned };
 }
 
+interface ContractServiceItem {
+  clientType: string;
+  qty: number;
+  service: string;
+  price: number;
+  total: number;
+}
+
+interface ContractPdfOptions {
+  artistName: string;
+  clientName: string;
+  packageDetails: string;
+  totalAmount: number;
+  depositAmount: number;
+  eventDate: string;
+  serviceType: string;
+  additionalTerms?: string;
+  businessName?: string;
+  eventLocation?: string;
+  serviceItems?: ContractServiceItem[];
+  eventDates?: string;
+  serviceStartTime?: string;
+  serviceEndTime?: string;
+  clientContact?: string;
+  photographerInfo?: string;
+  venmoHandle?: string;
+  paypalEmail?: string;
+  balanceDueDate?: string;
+}
+
 export function generateContractPdfHtml(
   artistName: string,
   clientName: string,
@@ -201,13 +231,36 @@ export function generateContractPdfHtml(
   serviceType: string,
   additionalTerms?: string,
   businessName?: string,
-  eventLocation?: string
+  eventLocation?: string,
+  options?: Partial<ContractPdfOptions>
 ): string {
   const formattedTotal = (totalAmount / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
   const formattedDeposit = (depositAmount / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
   const formattedBalance = ((totalAmount - depositAmount) / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
   const contractDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
   const displayBusinessName = businessName || artistName;
+  
+  const serviceItems = options?.serviceItems || [];
+  const displayEventDates = options?.eventDates || eventDate;
+  const startTime = options?.serviceStartTime || "TBD";
+  const endTime = options?.serviceEndTime || "TBD";
+  const clientContact = options?.clientContact || "";
+  const photographerInfo = options?.photographerInfo || "";
+  const venmoHandle = options?.venmoHandle || "";
+  const paypalEmail = options?.paypalEmail || "";
+  const balanceDueDate = options?.balanceDueDate || "Two weeks before event date";
+
+  const serviceItemsHtml = serviceItems.length > 0
+    ? serviceItems.map(item => `
+        <tr>
+          <td>${item.clientType}</td>
+          <td style="text-align: center;">${item.qty}</td>
+          <td>${item.service}</td>
+          <td style="text-align: right;">$${(item.price / 100).toFixed(0)}</td>
+          <td style="text-align: right;">$${(item.total / 100).toFixed(0)}</td>
+        </tr>
+      `).join('')
+    : `<tr><td colspan="5">${packageDetails || serviceType}</td></tr>`;
 
   return `
 <!DOCTYPE html>
@@ -219,7 +272,7 @@ export function generateContractPdfHtml(
     h1 { text-align: center; font-size: 16px; margin-bottom: 5px; }
     .business-name { text-align: center; font-size: 14px; font-weight: bold; margin-bottom: 20px; }
     .contract-intro { margin: 20px 0; }
-    h2 { font-size: 12px; font-weight: bold; margin-top: 15px; margin-bottom: 8px; text-decoration: underline; }
+    h2 { font-size: 12px; font-weight: bold; margin-top: 15px; margin-bottom: 8px; }
     .section { margin: 10px 0; }
     table { width: 100%; border-collapse: collapse; margin: 10px 0; }
     td, th { padding: 8px; border: 1px solid #999; text-align: left; font-size: 11px; }
@@ -228,12 +281,10 @@ export function generateContractPdfHtml(
     .signature-line { border-bottom: 1px solid #333; width: 250px; margin-bottom: 5px; }
     .signature-block { display: inline-block; width: 45%; vertical-align: top; }
     .footer { text-align: center; margin-top: 30px; font-size: 10px; color: #666; }
+    .page-break { page-break-before: always; }
   </style>
 </head>
 <body>
-  <h1>SERVICE CONTRACT</h1>
-  <div class="business-name">${displayBusinessName}</div>
-
   <div class="contract-intro">
     <p>This service contract is entered into as of <strong>${contractDate}</strong> between <strong>${clientName}</strong> (Client) and <strong>${displayBusinessName}</strong> (Artist). The Client and the Artist agree as follows:</p>
   </div>
@@ -245,14 +296,14 @@ export function generateContractPdfHtml(
 
   <h2>2. LOCATION OF SERVICE</h2>
   <div class="section">
-    <p>The service will take place at the following location: ${eventLocation || 'TBD'}</p>
+    <p>The service will take place at the following location: <strong>${eventLocation || 'TBD'}</strong></p>
   </div>
 
   <h2>3. DATE AND TIME OF SERVICE</h2>
   <div class="section">
-    <p>The date of Service: ${eventDate}<br>
-    Service Begins: TBD (We will arrive a few minutes early to set up)<br>
-    Service Completion: TBD</p>
+    <p>The date of Service: <strong>${displayEventDates}</strong><br>
+    Service Begins: ${startTime} (We will arrive a few minutes early to set up)<br>
+    Service Completion: ${endTime}</p>
   </div>
 
   <h2>4. PARKING</h2>
@@ -267,7 +318,7 @@ export function generateContractPdfHtml(
 
   <h2>6. CANCELLATION</h2>
   <div class="section">
-    <p>Cancellations can be made 30 days prior to the event without penalty other than loss of the retainer amount. In case of cancellations less than two calendar weeks retainer and final payment will not be refunded. The retainer is non refundable.
+    <p>Cancellations can be made 30 days prior to the event without penalty other than loss of the retainer amount. In case of cancellations less than two calendar weeks retainer and final payment will not be refunded. The retainer is non refundable.<br><br>
     The Artist's obligation is to give services as provided in Attachment A. If Artist is unavailable as a result of sickness, accidents, acts of God or other reasons beyond the Artist's control, artist will make all commercially reasonable efforts to arrange for comparable services agreed upon within this contract.</p>
   </div>
 
@@ -277,61 +328,58 @@ export function generateContractPdfHtml(
   </div>
 
   <div class="signature-section">
-    <table>
+    <table style="border: none;">
       <tr>
-        <td style="border: none; width: 45%; padding-right: 20px;">
-          <div class="signature-block">
-            <div class="signature-line"></div>
-            <p style="margin: 5px 0 0 0; font-size: 10px;">Client Signature (${clientName})</p>
-            <p style="margin: 3px 0; font-size: 10px;">Date: _______________</p>
-          </div>
+        <td style="border: none; width: 50%; vertical-align: top;">
+          <p style="margin-bottom: 30px;">/sig1/</p>
+          <p style="margin: 0; font-size: 10px;">(${clientName}, Client) /date1/</p>
         </td>
-        <td style="border: none;">
-          <div class="signature-block">
-            <div class="signature-line"></div>
-            <p style="margin: 5px 0 0 0; font-size: 10px;">Artist Signature (${artistName})</p>
-            <p style="margin: 3px 0; font-size: 10px;">Date: _______________</p>
-          </div>
+        <td style="border: none; width: 50%; vertical-align: top;">
+          <p style="margin-bottom: 30px;">&nbsp;</p>
+          <p style="margin: 0; font-size: 10px;">(${artistName}, Artist) (${contractDate})</p>
         </td>
       </tr>
     </table>
   </div>
 
-  <h2 style="margin-top: 30px;">ATTACHMENT A - SERVICE DETAILS & PAYMENT</h2>
+  <div class="page-break"></div>
+  
+  <h2 style="text-align: center; margin-top: 20px;">Attachment A</h2>
+  
   <table>
     <tr>
-      <th>Service Description</th>
-      <th>Amount</th>
+      <th>Client</th>
+      <th style="text-align: center;">QTY</th>
+      <th>Service</th>
+      <th style="text-align: right;">Price</th>
+      <th style="text-align: right;">Total</th>
     </tr>
+    ${serviceItemsHtml}
     <tr>
-      <td>${serviceType}</td>
-      <td>${formattedTotal}</td>
-    </tr>
-    <tr>
-      <th colspan="2" style="background: #f5f5f5;">PAYMENT BREAKDOWN</th>
-    </tr>
-    <tr>
-      <td>Retainer (Non-Refundable)</td>
-      <td>${formattedDeposit}</td>
-    </tr>
-    <tr>
-      <td>Final Balance Due</td>
-      <td>${formattedBalance}</td>
-    </tr>
-    <tr>
-      <th>TOTAL</th>
-      <th>${formattedTotal}</th>
+      <td colspan="4" style="text-align: right; font-weight: bold;">Total</td>
+      <td style="text-align: right; font-weight: bold;">${formattedTotal}</td>
     </tr>
   </table>
 
-  <div style="margin-top: 20px; font-size: 11px;">
-    <p><strong>Payment Schedule:</strong></p>
-    <p>• Retainer amount is to hold the date. ${formattedDeposit} - No date is guaranteed without the signed contract and retainer amount. Retainer is non refundable and required at the same time.</p>
-    <p>• Payment of Balance: ${formattedBalance} due two weeks before event date.</p>
+  <div style="margin-top: 30px;">
+    <p><strong>Client Contact:</strong> ${clientContact}</p>
+    <p><strong>Photographer:</strong> ${photographerInfo}</p>
+  </div>
+
+  <div style="margin-top: 20px;">
+    <p><strong>Payment:</strong></p>
+    <p>A Square invoice will be sent or you're welcome to use below:</p>
+    ${venmoHandle ? `<p>Venmo: @${venmoHandle}</p>` : ''}
+    ${paypalEmail ? `<p>PayPal: ${paypalEmail} (please send as friends and family so there is no fee, thank you)</p>` : ''}
+    
+    <ul style="margin-top: 15px;">
+      <li>Retainer amount is to hold the date. <strong>${formattedDeposit}</strong> - No date is guaranteed without the signed contract and retainer amount. Retainer is non refundable and required at the same time.</li>
+      <li>Payment of Balance: ${balanceDueDate} the Client will pay the Artist the remaining balance of <strong>${formattedBalance}</strong></li>
+    </ul>
   </div>
 
   <div class="footer">
-    <p style="margin-top: 40px; border-top: 1px solid #ddd; padding-top: 15px;">This contract was created through Beauvette, a beauty services marketplace.</p>
+    <p style="margin-top: 40px; border-top: 1px solid #ddd; padding-top: 15px;">This contract was created through Beauvette.</p>
   </div>
 </body>
 </html>
