@@ -1112,8 +1112,8 @@ export default function ArtistDashboard() {
         const data = await res.json();
         setContractSigningUrl(data.signingUrl);
         toast({
-          title: "Contract Marked as Sent!",
-          description: "DocuSign will send the signing request to your client. The contract is now tracked in Beauvette.",
+          title: "Contract Sent for Signing!",
+          description: "OpenSign will send the signing request to your client. The contract is now tracked in Beauvette.",
         });
         setShowDocusignModal(false);
         setPendingBookingId(null);
@@ -3571,7 +3571,7 @@ export default function ArtistDashboard() {
         </div>
       )}
 
-      {/* DocuSign Contract Modal */}
+      {/* OpenSign Contract Modal */}
       {showDocusignModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
@@ -3579,15 +3579,15 @@ export default function ArtistDashboard() {
               <div className="p-2 bg-pink/20 rounded-full">
                 <FileText size={20} className="text-pink" />
               </div>
-              <h3 className="font-header text-lg ink-main">DocuSign Contract</h3>
+              <h3 className="font-header text-lg ink-main">Send Contract for Signing</h3>
             </div>
             <p className="text-xs ink-soft mb-4">
-              Have you created and sent this envelope in DocuSign? DocuSign will handle sending the signing request to your client. Click "Confirm" to track this contract in Beauvette.
+              Your contract will be sent via OpenSign for e-signature. Click "Confirm" to send the signing request to your client.
             </p>
             <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-4">
               <p className="text-[0.65rem] text-blue-900">
                 <strong>What happens next:</strong><br />
-                DocuSign sends the signing email → Client receives invitation → Client signs → You're notified
+                OpenSign sends the signing email → Client receives invitation → Client signs → You're notified
               </p>
             </div>
             <div className="flex gap-3 justify-end">
