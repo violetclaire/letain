@@ -567,9 +567,29 @@ export default function ContractEditor() {
                 <ArrowLeft size={12} /> Back to Dashboard
               </Link>
               <h1 className="font-script text-2xl ink-main">Contract Editor</h1>
-              <p className="text-xs ink-soft">Create and customize contracts for your clients</p>
+              <p className="text-xs ink-soft">Create contracts for your clients in 3 simple steps</p>
             </div>
           </header>
+
+          {/* Simple Step Indicator */}
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center justify-between text-xs">
+              <div className={`flex items-center gap-2 ${selectedBookingId ? 'text-green-600' : 'text-blue-600 font-semibold'}`}>
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${selectedBookingId ? 'bg-green-500 text-white' : 'bg-blue-500 text-white'}`}>1</span>
+                Select Client
+              </div>
+              <div className="h-px bg-blue-300 flex-1 mx-2" />
+              <div className={`flex items-center gap-2 ${selectedBookingId && formData.totalAmount > 0 ? 'text-green-600' : selectedBookingId ? 'text-blue-600 font-semibold' : 'text-gray-400'}`}>
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${selectedBookingId && formData.totalAmount > 0 ? 'bg-green-500 text-white' : selectedBookingId ? 'bg-blue-500 text-white' : 'bg-gray-300 text-white'}`}>2</span>
+                Fill Details
+              </div>
+              <div className="h-px bg-blue-300 flex-1 mx-2" />
+              <div className="flex items-center gap-2 text-gray-400">
+                <span className="w-5 h-5 rounded-full bg-gray-300 text-white flex items-center justify-center text-[10px]">3</span>
+                Download & Send via DocuSign
+              </div>
+            </div>
+          </div>
 
           <div className="grid md:grid-cols-3 gap-6">
             <div className="md:col-span-2 space-y-6">
@@ -1006,8 +1026,9 @@ export default function ContractEditor() {
                 </div>
               </div>
               
-              <div className="card-frame rounded-lg p-5">
-                <h3 className="font-header text-md ink-main mb-3">Quick Select Client</h3>
+              <div className="card-frame rounded-lg p-5 border-2 border-blue-300">
+                <h3 className="font-header text-md ink-main mb-1">Step 1: Select Client</h3>
+                <p className="text-[0.65rem] text-black/50 mb-3">Choose a booking to auto-fill contract details</p>
                 <div className="space-y-2 max-h-[150px] overflow-y-auto">
                   {clients.length === 0 ? (
                     <p className="text-xs text-black/50 text-center py-4">No clients with bookings</p>
@@ -1032,10 +1053,11 @@ export default function ContractEditor() {
               </div>
 
               <div className="card-frame rounded-lg p-5">
-                <h3 className="font-header text-md ink-main mb-3">Your Contract</h3>
+                <h3 className="font-header text-md ink-main mb-1">Or: Upload Your Own Contract</h3>
+                <p className="text-[0.65rem] text-black/50 mb-3">Already have a PDF? Upload it here</p>
                 <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed border-black/20 rounded-lg cursor-pointer hover:border-black transition-colors bg-white">
                   <Upload size={16} />
-                  <span className="text-sm">Upload Your PDF Contract</span>
+                  <span className="text-sm">Upload PDF</span>
                   <input 
                     type="file" 
                     accept=".pdf,application/pdf" 
@@ -1070,7 +1092,8 @@ export default function ContractEditor() {
                 )}
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <h3 className="font-header text-sm ink-main text-center mb-2">Step 3: Download & Send</h3>
                 <button
                   onClick={generateContract}
                   disabled={!isFormValid()}
@@ -1078,15 +1101,15 @@ export default function ContractEditor() {
                   data-testid="button-generate-contract"
                 >
                   <Download size={16} />
-                  Generate Contract
+                  Download Contract
                 </button>
                 {!isFormValid() && (
                   <p className="text-[0.65rem] text-center text-red-500">
                     Please fill in client name, event date, and total amount
                   </p>
                 )}
-                <p className="text-[0.65rem] text-center text-black/50">
-                  Downloads as an HTML file you can print or save as PDF
+                <p className="text-[0.65rem] text-center text-black/60">
+                  After downloading, upload to DocuSign to send for signature
                 </p>
               </div>
             </div>
