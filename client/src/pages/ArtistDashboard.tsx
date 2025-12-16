@@ -2218,6 +2218,14 @@ export default function ArtistDashboard() {
                         {/* Quick Actions Row - Stack on mobile */}
                         <div className="flex flex-col sm:flex-row gap-1.5 mt-3 pt-3 border-t border-[#e5e8f2]">
                           <Link 
+                            href="/artist/messages" 
+                            className="px-3 py-1.5 bg-[#6B4A55] text-white text-[0.6rem] rounded hover:bg-[#8a6270] transition-colors flex items-center justify-center gap-1"
+                            data-testid="link-client-messages"
+                          >
+                            <MessageSquare size={10} />
+                            <span>Client Messages</span>
+                          </Link>
+                          <Link 
                             href="/artist/manage-bookings" 
                             className="px-3 py-1.5 bg-black text-white text-[0.6rem] rounded hover:bg-gray-800 transition-colors flex items-center justify-center gap-1"
                             data-testid="link-manage-bookings"
@@ -2516,7 +2524,24 @@ export default function ArtistDashboard() {
                       </div>
 
                       {/* Quick Actions Row */}
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-3 gap-3">
+                        {/* Client Messages - Primary Action */}
+                        <Link 
+                          href="/artist/messages"
+                          className="card-frame rounded-md px-4 py-3 block hover:border-[#6B4A55] border-2 border-[#6B4A55]/30 bg-gradient-to-r from-[#FAF7F2] to-[#F5F0EA] transition-colors group"
+                          data-testid="link-client-messages-main"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-[#6B4A55] rounded-full">
+                              <MessageSquare size={16} className="text-white" />
+                            </div>
+                            <div>
+                              <h3 className="font-header text-sm ink-main">Client Messages</h3>
+                              <p className="text-[0.6rem] ink-soft">View & reply to chats</p>
+                            </div>
+                          </div>
+                        </Link>
+                        
                         {/* New Proposal - For off-platform requests */}
                         <Link 
                           href="/artist/proposals"
