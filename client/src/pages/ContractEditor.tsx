@@ -89,6 +89,19 @@ export default function ContractEditor() {
     enabled: !!user,
   });
 
+  const { data: artistServices = [] } = useQuery({
+    queryKey: ["artistServices", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const res = await fetch(`/api/artist-services/${user.id}`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!user,
+  });
+
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
   const [isLoadingContract, setIsLoadingContract] = useState(false);
 
@@ -612,8 +625,62 @@ export default function ContractEditor() {
                     </div>
                   </div>
 
+                  {artistServices.length > 0 && (
+                    <div>
+                      <label className="block text-xs uppercase tracking-wide text-black/60 mb-2">Select Services</label>
+                      <div className="space-y-2 max-h-48 overflow-y-auto border border-black/20 rounded p-3 bg-white">
+                        {artistServices.filter((s: any) => s.isActive !== false).map((service: any) => (
+                          <label 
+                            key={service.id} 
+                            className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
+                            data-testid={`service-option-${service.id}`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedServices.includes(service.id)}
+                              onChange={(e) => {
+                                const newSelected = e.target.checked
+                                  ? [...selectedServices, service.id]
+                                  : selectedServices.filter(id => id !== service.id);
+                                setSelectedServices(newSelected);
+                                
+                                const selectedServicesList = artistServices.filter((s: any) => newSelected.includes(s.id));
+                                const totalPrice = selectedServicesList.reduce((sum: number, s: any) => sum + (s.price || 0), 0) / 100;
+                                const serviceNames = selectedServicesList.map((s: any) => `${s.name} - $${((s.price || 0) / 100).toFixed(0)}`).join('\n');
+                                
+                                setFormData(prev => ({
+                                  ...prev,
+                                  serviceDetails: serviceNames || prev.serviceDetails,
+                                  totalAmount: totalPrice || prev.totalAmount,
+                                }));
+                              }}
+                              className="w-4 h-4 accent-plum"
+                              data-testid={`checkbox-service-${service.id}`}
+                            />
+                            <div className="flex-1">
+                              <span className="font-medium text-sm">{service.name}</span>
+                              {service.description && (
+                                <p className="text-xs text-black/50">{service.description}</p>
+                              )}
+                            </div>
+                            <span className="text-sm font-semibold text-plum">
+                              ${((service.price || 0) / 100).toFixed(0)}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                      {selectedServices.length > 0 && (
+                        <p className="text-xs text-black/60 mt-1">
+                          {selectedServices.length} service{selectedServices.length !== 1 ? 's' : ''} selected
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   <div>
-                    <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">Service Details</label>
+                    <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">
+                      Service Details {artistServices.length > 0 && <span className="text-black/40">(or add custom)</span>}
+                    </label>
                     <textarea
                       value={formData.serviceDetails}
                       onChange={(e) => setFormData(prev => ({ ...prev, serviceDetails: e.target.value }))}
