@@ -7692,6 +7692,82 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
   
+  // Quick reply to inquiry (send email to client)
+  app.post("/api/inquiries/:id/quick-reply", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const user = await storage.getUser(userId);
+      const inquiry = await storage.getInquiry(req.params.id);
+      
+      if (!inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+      
+      if (inquiry.vendorId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const { message } = req.body;
+      if (!message?.trim()) {
+        return res.status(400).json({ error: "Message is required" });
+      }
+      
+      // Get artist profile for name
+      const artistProfile = await storage.getArtistProfile(userId);
+      const vendorName = artistProfile?.businessName || user?.firstName || 'The Artist';
+      
+      // Send reply email to client
+      import('./emailService').then(({ sendEmail }) => {
+        sendEmail({
+          to: inquiry.clientEmail,
+          subject: `Message from ${vendorName} about your inquiry`,
+          html: `
+            <div style="font-family: 'Georgia', serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h1 style="color: #5A1F2B; font-family: 'Georgia', serif; font-size: 24px;">Message from ${vendorName}</h1>
+              <p style="color: #666;">Hi ${inquiry.clientName},</p>
+              <p style="color: #666;">${vendorName} has sent you a message about your inquiry:</p>
+              <div style="background: #FAF9F7; border-left: 4px solid #5A1F2B; padding: 16px; margin: 16px 0;">
+                <p style="color: #2C2C2C; margin: 0; white-space: pre-wrap;">${message}</p>
+              </div>
+              <p style="color: #666; font-size: 14px;">You can reply directly to this email to continue the conversation.</p>
+              <p style="color: #888; font-size: 12px; margin-top: 24px;">— Beauvette</p>
+            </div>
+          `,
+          replyTo: user?.email,
+        }).catch((err: any) => console.error('[Quick Reply Email] Error:', err));
+      });
+      
+      // Update inquiry with first response timestamp if not set
+      const now = new Date();
+      const updates: any = {
+        lastActionAt: now,
+        status: inquiry.status === 'pending' ? 'responded' : inquiry.status,
+      };
+      if (!inquiry.firstResponseAt) {
+        updates.firstResponseAt = now;
+      }
+      await storage.updateInquiry(inquiry.id, updates);
+      
+      // Create audit log
+      await storage.createAuditLog({
+        action: 'quick_reply_sent',
+        entityType: 'inquiry',
+        entityId: inquiry.id,
+        performedBy: userId,
+        actorRole: 'artist',
+        changes: { 
+          message: message.substring(0, 100) + (message.length > 100 ? '...' : ''),
+          sentAt: now.toISOString(),
+        },
+      });
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("[Inquiry] Error sending quick reply:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Decline inquiry
   app.post("/api/inquiries/:id/decline", isAuthenticated, async (req: any, res) => {
     try {

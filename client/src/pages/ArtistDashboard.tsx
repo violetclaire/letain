@@ -180,6 +180,16 @@ export default function ArtistDashboard() {
   } | null>(null);
   const [loadingTimeline, setLoadingTimeline] = useState(false);
   
+  // Quick Reply state
+  const [showQuickReplyModal, setShowQuickReplyModal] = useState(false);
+  const [quickReplyInquiry, setQuickReplyInquiry] = useState<{
+    id: string;
+    clientName: string;
+    clientEmail: string;
+  } | null>(null);
+  const [quickReplyMessage, setQuickReplyMessage] = useState("");
+  const [sendingQuickReply, setSendingQuickReply] = useState(false);
+  
   // Appointment email state
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailSubject, setEmailSubject] = useState("");
@@ -538,6 +548,49 @@ export default function ArtistDashboard() {
       });
     }
     setSendingChatInvite(null);
+  };
+  
+  const handleQuickReply = async () => {
+    if (!quickReplyInquiry || !quickReplyMessage.trim()) return;
+    
+    setSendingQuickReply(true);
+    try {
+      const res = await fetch(`/api/inquiries/${quickReplyInquiry.id}/quick-reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ message: quickReplyMessage }),
+      });
+      
+      if (res.ok) {
+        toast({
+          title: "Message Sent",
+          description: `Your reply has been sent to ${quickReplyInquiry.clientName}.`,
+        });
+        setShowQuickReplyModal(false);
+        setQuickReplyMessage("");
+        setQuickReplyInquiry(null);
+        // Refresh inquiries
+        const inquiriesRes = await fetch('/api/vendor/inquiries', { credentials: 'include' });
+        if (inquiriesRes.ok) {
+          setInquiries(await inquiriesRes.json());
+        }
+      } else {
+        const error = await res.json();
+        toast({
+          title: "Error",
+          description: error.error || "Failed to send reply",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to send reply",
+        variant: "destructive",
+      });
+    }
+    setSendingQuickReply(false);
   };
   
   const handleDeclineInquiry = async (inquiryId: string) => {
@@ -2342,6 +2395,23 @@ export default function ArtistDashboard() {
                                         <p className="text-[0.65rem] ink-soft italic bg-[#FAF9F7] p-2 rounded">"{inquiry.message}"</p>
                                       )}
                                       
+                                      {/* Quick Reply Button */}
+                                      <button
+                                        onClick={() => {
+                                          setQuickReplyInquiry({
+                                            id: inquiry.id,
+                                            clientName: inquiry.clientName,
+                                            clientEmail: inquiry.clientEmail,
+                                          });
+                                          setShowQuickReplyModal(true);
+                                        }}
+                                        className="w-full py-2 bg-[#5A1F2B] text-white text-[0.7rem] font-medium rounded flex items-center justify-center gap-2 hover:bg-[#4a1923] transition-colors"
+                                        data-testid={`button-quick-reply-${inquiry.id}`}
+                                      >
+                                        <MessageCircle size={12} />
+                                        Reply to {inquiry.clientName.split(' ')[0]}
+                                      </button>
+                                      
                                       {/* Timeline Toggle Button */}
                                       <button
                                         onClick={() => fetchInquiryTimeline(inquiry.id)}
@@ -3622,6 +3692,65 @@ export default function ArtistDashboard() {
                   </>
                 ) : (
                   "Send Invite Link"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Reply Modal */}
+      {showQuickReplyModal && quickReplyInquiry && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-[#5A1F2B]/10 rounded-full">
+                <MessageCircle size={20} className="text-[#5A1F2B]" />
+              </div>
+              <h3 className="font-header text-lg ink-main">Reply to {quickReplyInquiry.clientName}</h3>
+            </div>
+            <p className="text-xs ink-soft mb-4">
+              Send a message to {quickReplyInquiry.clientEmail}. They can reply directly to this email.
+            </p>
+            <div className="mb-4">
+              <label className="block text-[0.7rem] uppercase tracking-wide ink-soft mb-1">Your Message</label>
+              <textarea
+                value={quickReplyMessage}
+                onChange={(e) => setQuickReplyMessage(e.target.value)}
+                placeholder="Hi! Thank you for reaching out. I wanted to let you know..."
+                rows={5}
+                className="w-full border border-[#c5ccd8] bg-[#fbfcff] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#5A1F2B]"
+                data-testid="textarea-quick-reply"
+              />
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button 
+                onClick={() => {
+                  setShowQuickReplyModal(false);
+                  setQuickReplyMessage("");
+                  setQuickReplyInquiry(null);
+                }}
+                disabled={sendingQuickReply}
+                className="px-4 py-2 text-xs rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleQuickReply}
+                disabled={sendingQuickReply || !quickReplyMessage.trim()}
+                className="px-4 py-2 text-xs rounded bg-[#5A1F2B] text-white hover:bg-[#4a1923] disabled:opacity-50 flex items-center gap-2"
+                data-testid="button-send-quick-reply"
+              >
+                {sendingQuickReply ? (
+                  <>
+                    <Loader2 size={12} className="animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send size={12} />
+                    Send Reply
+                  </>
                 )}
               </button>
             </div>
