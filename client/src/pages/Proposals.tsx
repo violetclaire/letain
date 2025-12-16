@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Plus, Send, Trash2, Edit, FileText, Calendar, MapPin, Clock, DollarSign, X, Check, User, Mail, Building, Eye } from "lucide-react";
+import { Plus, Send, Trash2, Edit, FileText, Calendar, MapPin, Clock, DollarSign, X, Check, User, Mail, Building, Eye, MessageCircle } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -208,6 +208,23 @@ export default function Proposals() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/proposals"] });
       toast({ title: "Proposal deleted" });
+    }
+  });
+
+  const resendChatLinkMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/proposals/${id}/resend-chat-link`, {
+        method: "POST",
+        credentials: "include"
+      });
+      if (!res.ok) throw new Error("Failed to send chat link");
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Chat link sent!", description: "A new chat link has been emailed to the client." });
+    },
+    onError: () => {
+      toast({ title: "Failed to send", description: "Please try again", variant: "destructive" });
     }
   });
 
@@ -688,6 +705,17 @@ export default function Proposals() {
                           >
                             <Send size={16} />
                             <span className="hidden sm:inline">Send</span>
+                          </button>
+                        )}
+                        {proposal.status === 'sent' && (
+                          <button
+                            onClick={() => resendChatLinkMutation.mutate(proposal.id)}
+                            disabled={resendChatLinkMutation.isPending}
+                            className="flex items-center gap-1 px-3 py-2 bg-[#5A1F2B] text-white hover:bg-[#4a1923] transition-colors disabled:opacity-50"
+                            title="Resend Chat Link"
+                          >
+                            <MessageCircle size={16} />
+                            <span className="hidden sm:inline">Chat Link</span>
                           </button>
                         )}
                         <button

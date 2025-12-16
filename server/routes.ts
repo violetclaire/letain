@@ -9351,6 +9351,60 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       res.status(500).json({ error: error.message });
     }
   });
+  
+  // Resend chat link for a proposal (sends a follow-up email with working chat link)
+  app.post("/api/proposals/:id/resend-chat-link", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const proposal = await storage.getProposal(req.params.id);
+      if (!proposal) return res.status(404).json({ error: "Proposal not found" });
+      if (proposal.artistId !== userId) return res.status(403).json({ error: "Not authorized" });
+      
+      // Get artist profile and user info
+      const user = await storage.getUser(userId);
+      const artistProfile = await storage.getArtistProfile(userId);
+      const vendorName = artistProfile?.businessName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Your Beauty Artist';
+      
+      // Create a new chat invite token
+      const token = randomUUID();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 30);
+      
+      await storage.createChatInvite({
+        senderId: userId,
+        inviteeEmail: proposal.clientEmail,
+        status: 'pending',
+        token,
+        expiresAt,
+      });
+      
+      // Build chat link
+      const baseUrl = process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.com';
+      const chatLink = `${baseUrl}/chat-invite/${token}`;
+      
+      // Send chat invite email
+      const { sendChatInviteEmail } = await import('./emailService');
+      const result = await sendChatInviteEmail({
+        toEmail: proposal.clientEmail,
+        vendorName,
+        clientName: proposal.clientName,
+        chatLink,
+        eventDate: proposal.eventDate ? new Date(proposal.eventDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : undefined,
+      });
+      
+      if (result.success) {
+        res.json({ success: true, message: "Chat link sent!" });
+      } else {
+        res.status(500).json({ error: result.error || 'Failed to send email' });
+      }
+    } catch (error: any) {
+      console.error("[Resend Chat Link] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
 
   // ============================================================
   // PUBLIC WEBHOOK - External Contact Form Submissions
