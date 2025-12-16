@@ -1609,6 +1609,22 @@ export const waitlistSignups = pgTable("waitlist_signups", {
 
 export const insertWaitlistSignupSchema = createInsertSchema(waitlistSignups).omit({ id: true, createdAt: true });
 
+// DocuSign OAuth credentials for artists
+export const docusignCredentials = pgTable("docusign_credentials", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id).unique(),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token").notNull(),
+  tokenExpiresAt: timestamp("token_expires_at").notNull(),
+  accountId: text("account_id").notNull(),
+  accountName: text("account_name"),
+  baseUri: text("base_uri").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertDocusignCredentialsSchema = createInsertSchema(docusignCredentials).omit({ id: true, createdAt: true, updatedAt: true });
+
 // Types for Replit Auth
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -1776,3 +1792,6 @@ export type Proposal = typeof proposals.$inferSelect;
 
 export type InsertWaitlistSignup = z.infer<typeof insertWaitlistSignupSchema>;
 export type WaitlistSignup = typeof waitlistSignups.$inferSelect;
+
+export type InsertDocusignCredentials = z.infer<typeof insertDocusignCredentialsSchema>;
+export type DocusignCredentials = typeof docusignCredentials.$inferSelect;
