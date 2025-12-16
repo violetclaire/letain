@@ -8976,15 +8976,22 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       
       const user = await storage.getUser(profile.userId);
       const availability = await storage.getAvailabilityByUser(profile.userId);
+      // Normalize dates to YYYY-MM-DD format to avoid timezone issues
       const unavailableDates = availability
         .filter(a => !a.isAvailable)
-        .map(a => a.date.toISOString());
+        .map(a => {
+          const d = new Date(a.date);
+          return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+        });
       
       // Also get dates from actual bookings
       const bookings = await storage.getBookingsByArtist(profile.userId);
       const bookedFromBookings = bookings
         .filter(b => b.status !== 'cancelled' && b.eventDate)
-        .map(b => new Date(b.eventDate!).toISOString());
+        .map(b => {
+          const d = new Date(b.eventDate!);
+          return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+        });
       
       // Combine both sources and remove duplicates
       const bookedDates = [...new Set([...unavailableDates, ...bookedFromBookings])];

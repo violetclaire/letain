@@ -87,7 +87,12 @@ export default function PublicArtistCalendar() {
     }
   });
 
-  const bookedDates = artist?.bookedDates?.map(d => new Date(d)) || [];
+  // Parse date strings as local dates to avoid timezone issues
+  // Dates come as YYYY-MM-DD strings, parse them at noon to prevent timezone shift
+  const bookedDates = artist?.bookedDates?.map(d => {
+    const [year, month, day] = d.split('-').map(Number);
+    return new Date(year, month - 1, day, 12, 0, 0);
+  }) || [];
   
   const isDateBooked = (date: Date) => {
     return bookedDates.some(bd => isSameDay(bd, date));
