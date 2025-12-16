@@ -9108,8 +9108,10 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const artist = await storage.getUser(profile.userId);
       const artistProfile = await storage.getArtistProfile(profile.userId);
       
-      // Always use production URL for notifications
-      const prodUrl = process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.com';
+      // Use dev domain for notifications (production URL when deployed)
+      const prodUrl = process.env.REPLIT_DEV_DOMAIN 
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+        : (process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.com');
       
       // Try to send SMS notification
       if (artist?.phone) {
@@ -9383,8 +9385,10 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         expiresAt,
       });
       
-      // Build chat link using the token - always use production URL for emails
-      const baseUrl = process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.com';
+      // Build chat link using the token - use dev domain or production URL
+      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+        : (process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.com');
       const chatLink = `${baseUrl}/chat-invite/${token}`;
       
       // Send email
@@ -9461,8 +9465,10 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         expiresAt,
       });
       
-      // Build chat link
-      const baseUrl = process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.com';
+      // Build chat link - use dev domain or production URL
+      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+        : (process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.com');
       const chatLink = `${baseUrl}/chat-invite/${token}`;
       
       // Send chat invite email
