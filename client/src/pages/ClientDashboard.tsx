@@ -94,6 +94,11 @@ export default function ClientDashboard() {
     }
     
     if (user && user.role !== 'client') {
+      // If user has no role yet, redirect to registration to pick a role
+      if (!user.role) {
+        setLocation("/register");
+        return;
+      }
       toast({
         title: "Access Denied",
         description: "This dashboard is for clients.",
