@@ -321,13 +321,13 @@ export default function PublicArtistCalendar() {
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
                     {artist.instagramHandle && (
                       <a
-                        href={`https://instagram.com/${artist.instagramHandle}`}
+                        href={`https://instagram.com/${artist.instagramHandle.replace('@', '')}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1 text-xs text-[#2C2C2C] hover:underline"
                       >
                         <Instagram size={14} />
-                        @{artist.instagramHandle}
+                        @{artist.instagramHandle.replace('@', '')}
                       </a>
                     )}
                     {artist.websiteUrl && (
@@ -435,7 +435,7 @@ export default function PublicArtistCalendar() {
                       <div>
                         <p className="text-sm font-medium text-[#2C2C2C]">{ref.name}</p>
                         {ref.instagramHandle && (
-                          <p className="text-xs text-[#666]">@{ref.instagramHandle}</p>
+                          <p className="text-xs text-[#666]">@{ref.instagramHandle.replace('@', '')}</p>
                         )}
                       </div>
                       {ref.isOnPlatform && ref.slug ? (
