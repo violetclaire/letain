@@ -216,12 +216,28 @@ export default function Landing() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              <div className="flex flex-col items-center justify-center h-full gap-10">
+              <div className="flex flex-col items-center justify-center h-full gap-6">
+                <p className="text-xs uppercase tracking-[0.2em] text-[#1A1A1A]/50 mb-2">Login as</p>
                 <button
-                  onClick={() => setLocation("/onboarding")}
-                  className="mt-4 px-8 py-4 bg-[#5A1F2B] text-[#FAF9F6] text-sm uppercase tracking-[0.15em]"
+                  onClick={() => { setMobileMenuOpen(false); setLocation("/login?role=artist"); }}
+                  className="px-8 py-3 bg-[#5A1F2B] text-[#FAF9F6] text-sm uppercase tracking-[0.15em] w-48 text-center"
+                  data-testid="mobile-login-artist"
                 >
-                  {CONTENT.nav.cta}
+                  Artist
+                </button>
+                <button
+                  onClick={() => { setMobileMenuOpen(false); setLocation("/login?role=client"); }}
+                  className="px-8 py-3 bg-[#5A1F2B] text-[#FAF9F6] text-sm uppercase tracking-[0.15em] w-48 text-center"
+                  data-testid="mobile-login-client"
+                >
+                  Client
+                </button>
+                <button
+                  onClick={() => { setMobileMenuOpen(false); setLocation("/login?role=planner"); }}
+                  className="px-8 py-3 bg-[#5A1F2B] text-[#FAF9F6] text-sm uppercase tracking-[0.15em] w-48 text-center"
+                  data-testid="mobile-login-planner"
+                >
+                  Planner
                 </button>
               </div>
             </motion.div>
