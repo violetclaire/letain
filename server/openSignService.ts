@@ -1,6 +1,6 @@
 import { storage } from "./storage";
 
-const OPENSIGN_API_URL = process.env.OPENSIGN_API_URL || "https://api.opensignlabs.com";
+const OPENSIGN_API_URL = process.env.OPENSIGN_API_URL || "https://app.opensignlabs.com";
 const OPENSIGN_API_TOKEN = process.env.OPENSIGN_API_TOKEN;
 
 interface OpenSignSigner {
