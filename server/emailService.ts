@@ -2,12 +2,9 @@ import { Resend } from 'resend';
 
 let connectionSettings: any;
 
-// Get the base URL for email links
+// Get the base URL for email links - always use production URL for client-facing links
 function getBaseUrl(): string {
-  if (process.env.REPLIT_DEV_DOMAIN) {
-    return `https://${process.env.REPLIT_DEV_DOMAIN}`;
-  }
-  return process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.app';
+  return process.env.PUBLIC_BASE_URL || 'https://beauvette.app';
 }
 
 function sanitizeSenderName(name: string): string {
