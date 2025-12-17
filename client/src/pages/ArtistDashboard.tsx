@@ -2167,35 +2167,21 @@ export default function ArtistDashboard() {
                     beauvette.com/{user?.artistSlug || user?.id}
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => {
-                      const url = `https://beauvette.com/${user?.artistSlug || user?.id}`;
-                      navigator.clipboard.writeText(url);
-                      toast({
-                        title: "Link Copied!",
-                        description: "Share this link with clients to let them book with you.",
-                      });
-                    }}
-                    className="px-4 py-2 bg-[#6B4A55] text-white text-sm rounded-lg hover:bg-[#8a6270] transition-colors flex items-center gap-2 shadow-sm"
-                    data-testid="button-copy-schedule-link"
-                  >
-                    <Copy size={14} />
-                    Copy Link
-                  </button>
-                  <button
-                    onClick={() => {
-                      const url = `https://beauvette.com/${user?.artistSlug || user?.id}`;
-                      const smsBody = encodeURIComponent(`Book with me: ${url}`);
-                      window.open(`sms:?&body=${smsBody}`, '_blank');
-                    }}
-                    className="px-3 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2 shadow-sm"
-                    data-testid="button-text-link"
-                  >
-                    <MessageCircle size={14} />
-                    Text
-                  </button>
-                </div>
+                <button
+                  onClick={() => {
+                    const url = `https://beauvette.com/${user?.artistSlug || user?.id}`;
+                    navigator.clipboard.writeText(url);
+                    toast({
+                      title: "Link Copied!",
+                      description: "Share this link with clients to let them book with you.",
+                    });
+                  }}
+                  className="px-4 py-2 bg-[#6B4A55] text-white text-sm rounded-lg hover:bg-[#8a6270] transition-colors flex items-center gap-2 shadow-sm"
+                  data-testid="button-copy-schedule-link"
+                >
+                  <Copy size={14} />
+                  Copy Link
+                </button>
               </div>
             </div>
           </section>
