@@ -2882,7 +2882,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const servingUrl = await objectService.uploadBuffer(objectPath, buffer, mimeType || 'application/pdf', userId);
       
       // Create or update contract with signing token
-      const { randomUUID } = await import("crypto");
       let existingContracts = await storage.getContractsByBooking(bookingId);
       let contract;
       
@@ -2895,7 +2894,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalAmount: totalAmount || existingContracts[0].totalAmount,
           depositAmount: depositAmount || existingContracts[0].depositAmount,
           signingToken,
-          status: 'pending_signature',
+          status: 'draft',
         });
       } else {
         const signingToken = randomUUID();
@@ -2906,7 +2905,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           packageDetails: packageDetails || 'Beauty Services',
           totalAmount: totalAmount || 0,
           depositAmount: depositAmount || 0,
-          status: 'pending_signature',
+          status: 'draft',
           fileUrl: servingUrl,
           signingToken,
         });

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
+import { TopNav } from "@/components/TopNav";
 
 const CONTENT = {
   nav: {
@@ -108,6 +109,8 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-[#F4F2EC] text-[#1A1A1A] font-sans antialiased relative">
+      {/* Top Navigation with Login/Logout */}
+      <TopNav />
       {/* Subtle Gingham Background */}
       <div className="fixed inset-0 gingham-check opacity-[0.08] pointer-events-none z-0" />
       {/* Gingham Elevator Doors */}
