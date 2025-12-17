@@ -89,10 +89,10 @@ export default function Register() {
       title: 'Planner',
       description: 'Coordinate vendors & schedules',
       icon: Calendar,
-      color: 'text-emerald-500',
-      bgColor: 'bg-emerald-50',
-      borderColor: 'border-emerald-200',
-      hoverBorder: 'hover:border-emerald-400',
+      color: 'text-[#9A9472]',
+      bgColor: 'bg-[#9A9472]/10',
+      borderColor: 'border-[#9A9472]/40',
+      hoverBorder: 'hover:border-[#9A9472]',
     },
   ];
 
