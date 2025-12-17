@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useState, useEffect, useRef } from "react";
-import { Folder, ArrowLeft, Calendar, Clock, FileText, DollarSign, Image as ImageIcon, Check, X, AlertCircle, Plus, Search, CreditCard, Send, Instagram, Globe, MessageCircle, MessageSquare, UserPlus, LogOut, Upload, Settings, User, Wallet, BookUser, Info, ChevronDown, ChevronUp, Camera, Paperclip, Mic, Loader2, Eye, ShieldAlert, ThumbsUp, ThumbsDown, Flag, Mail, XCircle } from "lucide-react";
+import { Folder, ArrowLeft, Calendar, Clock, FileText, DollarSign, Image as ImageIcon, Check, X, AlertCircle, Plus, Search, CreditCard, Send, Instagram, Globe, MessageCircle, MessageSquare, UserPlus, LogOut, Upload, Settings, User, Wallet, BookUser, Info, ChevronDown, ChevronUp, Camera, Paperclip, Mic, Loader2, Eye, ShieldAlert, ThumbsUp, ThumbsDown, Flag, Mail, XCircle, Copy } from "lucide-react";
 import VoiceDictation from "../components/VoiceDictation";
 import AvailabilityCalendar from "../components/AvailabilityCalendar";
 import AIChatPanel from "../components/AIChatPanel";
@@ -210,9 +210,15 @@ export default function ArtistDashboard() {
     packageDetails?: string;
     totalAmount?: number;
     createdAt: string;
+    signingToken?: string;
+    signedAt?: string;
+    signedByName?: string;
+    clientEmail?: string;
+    clientName?: string;
   }>>([]);
   const [loadingContracts, setLoadingContracts] = useState(false);
   const [uploadingContract, setUploadingContract] = useState(false);
+  const [sendingContractForSignature, setSendingContractForSignature] = useState<string | null>(null);
   
   const [messages, setMessages] = useState([
     { from: "other", text: "Select a client to start chatting." }
@@ -1280,6 +1286,53 @@ export default function ArtistDashboard() {
     
     if (e.target) {
       e.target.value = '';
+    }
+  };
+
+  const sendContractForSignature = async (contractId: string, clientEmail?: string, clientName?: string) => {
+    if (!clientEmail) {
+      toast({
+        title: "Missing Email",
+        description: "This contract needs a client email address to send for signature.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setSendingContractForSignature(contractId);
+    try {
+      const res = await fetch(`/api/contracts/${contractId}/send-for-signing`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ clientEmail, clientName }),
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        toast({
+          title: "Contract Sent!",
+          description: `Signing link sent to ${clientEmail}`,
+        });
+        if (selectedBooking?.id) {
+          fetchBookingContracts(selectedBooking.id);
+        }
+      } else {
+        const error = await res.json();
+        toast({
+          title: "Send Failed",
+          description: error.error || "Failed to send contract for signing",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to send contract for signing",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingContractForSignature(null);
     }
   };
 
@@ -3240,29 +3293,88 @@ export default function ArtistDashboard() {
                         {bookingContracts.map((contract) => (
                           <div 
                             key={contract.id} 
-                            className="flex items-center justify-between p-2 bg-[#fbfcff] border border-[#e5e8f2] rounded hover:border-black transition-colors"
+                            className={`p-3 rounded border transition-colors ${
+                              contract.signedAt 
+                                ? 'bg-green-50 border-green-200' 
+                                : contract.signingToken 
+                                  ? 'bg-amber-50 border-amber-200' 
+                                  : 'bg-[#fbfcff] border-[#e5e8f2] hover:border-black'
+                            }`}
                             data-testid={`contract-item-${contract.id}`}
                           >
-                            <div className="flex items-center gap-2">
-                              <FileText size={14} className="text-gray-500" />
-                              <div>
-                                <p className="text-xs font-medium">{contract.packageDetails || 'Contract'}</p>
-                                <p className="text-[0.65rem] text-gray-500">
-                                  {contract.status} • {new Date(contract.createdAt).toLocaleDateString()}
-                                </p>
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-start gap-2 flex-1">
+                                <FileText size={14} className={`mt-0.5 ${contract.signedAt ? 'text-green-600' : 'text-gray-500'}`} />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-medium truncate">{contract.packageDetails || 'Contract'}</p>
+                                  <p className="text-[0.65rem] text-gray-500">
+                                    {new Date(contract.createdAt).toLocaleDateString()}
+                                  </p>
+                                  {contract.signedAt ? (
+                                    <div className="flex items-center gap-1 mt-1">
+                                      <Check size={10} className="text-green-600" />
+                                      <span className="text-[0.65rem] text-green-700 font-medium">
+                                        Signed by {contract.signedByName || 'Client'} on {new Date(contract.signedAt).toLocaleDateString()}
+                                      </span>
+                                    </div>
+                                  ) : contract.signingToken ? (
+                                    <div className="flex items-center gap-1 mt-1">
+                                      <Send size={10} className="text-amber-600" />
+                                      <span className="text-[0.65rem] text-amber-700">Sent for signature - awaiting client</span>
+                                    </div>
+                                  ) : null}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                {contract.fileUrl && (
+                                  <a
+                                    href={contract.fileUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1 px-2 py-1 text-[0.65rem] text-blue-600 hover:underline"
+                                    data-testid={`button-download-contract-${contract.id}`}
+                                  >
+                                    <Eye size={12} /> View
+                                  </a>
+                                )}
+                                {!contract.signedAt && !contract.signingToken && (
+                                  <button
+                                    onClick={() => sendContractForSignature(
+                                      contract.id, 
+                                      contract.clientEmail || selectedBooking?.clientEmail,
+                                      contract.clientName || selectedBooking?.name
+                                    )}
+                                    disabled={sendingContractForSignature === contract.id}
+                                    className="flex items-center gap-1 px-2 py-1 text-[0.65rem] bg-[#6B4A55] text-white rounded hover:bg-[#8a6270] disabled:opacity-50"
+                                    data-testid={`button-send-for-signature-${contract.id}`}
+                                  >
+                                    {sendingContractForSignature === contract.id ? (
+                                      <>
+                                        <Loader2 size={10} className="animate-spin" />
+                                        Sending...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Send size={10} /> Send for Signature
+                                      </>
+                                    )}
+                                  </button>
+                                )}
+                                {contract.signingToken && !contract.signedAt && (
+                                  <button
+                                    onClick={() => {
+                                      const link = `${window.location.origin}/sign/${contract.signingToken}`;
+                                      navigator.clipboard.writeText(link);
+                                      toast({ title: "Link Copied", description: "Signing link copied to clipboard" });
+                                    }}
+                                    className="flex items-center gap-1 px-2 py-1 text-[0.65rem] text-gray-600 hover:text-black"
+                                    data-testid={`button-copy-signing-link-${contract.id}`}
+                                  >
+                                    <Copy size={10} /> Copy Link
+                                  </button>
+                                )}
                               </div>
                             </div>
-                            {contract.fileUrl && (
-                              <a
-                                href={contract.fileUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-1 px-2 py-1 text-[0.65rem] text-blue-600 hover:underline"
-                                data-testid={`button-download-contract-${contract.id}`}
-                              >
-                                <Eye size={12} /> View
-                              </a>
-                            )}
                           </div>
                         ))}
                       </div>
