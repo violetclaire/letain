@@ -3494,15 +3494,20 @@ export default function ArtistDashboard() {
               )}
 
               {/* Availability Calendar */}
-              {user && <AvailabilityCalendar 
-                userId={user.id} 
-                refreshKey={calendarRefreshKey} 
-                onCreateBooking={(date) => {
-                  const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                  setBookingForm(prev => ({ ...prev, eventDate: dateStr }));
-                  setShowCreateBooking(true);
-                }}
-              />}
+              <div className="card-frame rounded-md px-4 py-3" data-testid="section-availability-calendar">
+                <h3 className="font-header text-sm ink-main mb-3 flex items-center gap-2">
+                  <Calendar size={14} /> Your Schedule
+                </h3>
+                {user && <AvailabilityCalendar 
+                  userId={user.id} 
+                  refreshKey={calendarRefreshKey} 
+                  onCreateBooking={(date) => {
+                    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                    setBookingForm(prev => ({ ...prev, eventDate: dateStr }));
+                    setShowCreateBooking(true);
+                  }}
+                />}
+              </div>
 
             </div>
           </section>
