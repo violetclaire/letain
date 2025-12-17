@@ -3042,7 +3042,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ========== OPENSIGN E-SIGNATURE ==========
+  // ========== BUILT-IN E-SIGNATURE ==========
   app.post("/api/bookings/:bookingId/send-for-signing", isAuthenticated, async (req: any, res) => {
     try {
       const userId = getAuthUserId(req);
@@ -3110,49 +3110,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Client email is required for signing" });
       }
       
-      const { createSigningDocument, generateContractPdfHtml } = await import("./openSignService");
+      // Generate unique signing token
+      const signingToken = randomUUID();
       
-      const eventDate = booking.eventDate 
-        ? new Date(booking.eventDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
-        : "TBD";
+      // Generate contract HTML for signing page
+      const contractHtml = generateContractHtml(contract, client, artistProfile?.businessName || (artist?.firstName ? `${artist.firstName} ${artist.lastName || ""}`.trim() : "Your beauty artist"));
       
-      const pdfHtml = generateContractPdfHtml(
-        artist?.firstName ? `${artist.firstName} ${artist.lastName || ""}`.trim() : "Service Provider",
-        client?.firstName ? `${client.firstName} ${client.lastName || ""}`.trim() : "Client",
-        contract.packageDetails,
-        contract.totalAmount,
-        contract.depositAmount || 0,
-        eventDate,
-        booking.serviceType || "Beauty Services",
-        req.body.additionalTerms,
-        artistProfile?.businessName || (artist?.firstName ? `${artist.firstName} ${artist.lastName || ""}`.trim() : "Service Provider"),
-        booking.location
-      );
+      // Update contract with signing token and HTML
+      await storage.updateContract(contract.id, {
+        signingToken,
+        contractHtml,
+        status: "sent",
+        sentForSigningAt: new Date(),
+      });
       
-      const pdfBase64 = Buffer.from(pdfHtml).toString("base64");
+      // Send signing email
+      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+        : process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.app';
+      const signingUrl = `${baseUrl}/sign/${signingToken}`;
       
-      const result = await createSigningDocument(
-        contract.id,
-        `Contract - ${booking.serviceType || "Beauty Services"} - ${eventDate}`,
-        pdfBase64,
-        [
-          { name: artist?.firstName ? `${artist.firstName} ${artist.lastName || ""}`.trim() : "Artist", email: artist?.email || "", role: "Service Provider" },
-          { name: client?.firstName ? `${client.firstName} ${client.lastName || ""}`.trim() : "Client", email: client.email, role: "Client" },
-        ]
-      );
-      
-      if (!result.success) {
-        return res.status(500).json({ error: result.error || "Failed to create signing document" });
-      }
+      const { sendContractSigningEmail } = await import("./emailService");
+      await sendContractSigningEmail({
+        toEmail: client.email,
+        clientName: client.firstName || contract.clientName || "Client",
+        artistName: artistProfile?.businessName || (artist?.firstName ? `${artist.firstName} ${artist.lastName || ""}`.trim() : "Service Provider"),
+        packageDetails: contract.packageDetails,
+        totalAmount: contract.totalAmount / 100,
+        depositAmount: (contract.depositAmount || 0) / 100,
+        signingUrl,
+      });
       
       res.json({ 
         success: true, 
-        documentId: result.documentId,
-        signingUrl: result.signingUrl,
-        message: "Contract sent for e-signature" 
+        signingUrl,
+        message: "Contract sent for signature"
       });
     } catch (error: any) {
-      console.error("[OpenSign] Error sending for signing:", error);
+      console.error("[Sign] Error sending for signing:", error);
       res.status(500).json({ error: error.message });
     }
   });
