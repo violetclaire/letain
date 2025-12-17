@@ -56,6 +56,11 @@ export function buildContractHtml(contract: any, client: any, artistName: string
     if (!cents) return "$0.00";
     return `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
   };
+  
+  const clientName = contract.clientName || client?.firstName || 'Client';
+  const clientLastName = client?.lastName || '';
+  const fullClientName = `${clientName} ${clientLastName}`.trim();
+  const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
   let serviceItemsHtml = '';
   if (contract.serviceItems && Array.isArray(contract.serviceItems) && contract.serviceItems.length > 0) {
@@ -63,8 +68,8 @@ export function buildContractHtml(contract: any, client: any, artistName: string
       <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
         <thead>
           <tr style="background: #f5f1e8;">
-            <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Client Type</th>
-            <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">Qty</th>
+            <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Client</th>
+            <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">QTY</th>
             <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Service</th>
             <th style="padding: 8px; border: 1px solid #ddd; text-align: right;">Price</th>
             <th style="padding: 8px; border: 1px solid #ddd; text-align: right;">Total</th>
@@ -83,7 +88,7 @@ export function buildContractHtml(contract: any, client: any, artistName: string
         </tbody>
         <tfoot>
           <tr style="font-weight: bold;">
-            <td colspan="4" style="padding: 8px; border: 1px solid #ddd; text-align: right;">Total:</td>
+            <td colspan="4" style="padding: 8px; border: 1px solid #ddd; text-align: right;">Total</td>
             <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${formatCurrency(contract.totalAmount || 0)}</td>
           </tr>
         </tfoot>
@@ -117,57 +122,61 @@ export function buildContractHtml(contract: any, client: any, artistName: string
         <h2>Service Contract</h2>
       </div>
       
-      <div style="margin-bottom: 24px;">
-        <p><strong>Client:</strong> ${contract.clientName || client?.firstName || 'Client'} ${client?.lastName || ''}</p>
-        ${contract.clientContact ? `<p><strong>Contact:</strong> ${contract.clientContact}</p>` : ''}
-        ${contract.eventDates ? `<p><strong>Event Date(s):</strong> ${contract.eventDates}</p>` : ''}
-        ${contract.eventLocation ? `<p><strong>Location:</strong> ${contract.eventLocation}</p>` : ''}
-        ${contract.serviceStartTime && contract.serviceEndTime ? `<p><strong>Service Time:</strong> ${contract.serviceStartTime} - ${contract.serviceEndTime}</p>` : ''}
-      </div>
+      <p>This service contract is entered into as of ${today} between ${fullClientName} (Client) and ${artistName} (Artist). The Client and the Artist agree as follows:</p>
       
-      <h3>1. SERVICE</h3>
-      <p>${contract.packageDetails || 'Beauty services as specified'}</p>
-      ${serviceItemsHtml}
+      <h3>1. SERVICE to be PROVIDED</h3>
+      <p>Artist will provide services to client as specified in Attachment A.</p>
       
-      <h3>2. LOCATION</h3>
-      <p>${contract.eventLocation || 'To be determined'}</p>
+      <h3>2. LOCATION of SERVICE</h3>
+      <p>The service will take place at the following location: ${contract.eventLocation || 'To be determined'}</p>
       
-      <h3>3. DATE/TIME</h3>
-      <p><strong>Event Date:</strong> ${contract.eventDates || 'To be determined'}</p>
-      ${contract.serviceStartTime ? `<p><strong>Start Time:</strong> ${contract.serviceStartTime}</p>` : ''}
-      ${contract.serviceEndTime ? `<p><strong>End Time:</strong> ${contract.serviceEndTime}</p>` : ''}
+      <h3>3. DATE and TIME of SERVICE</h3>
+      <p>The date of Service: ${contract.eventDates || 'To be determined'}</p>
+      <p>Service Begins: ${contract.serviceStartTime || 'TBD'} (We will arrive a few minutes early to set up)</p>
+      <p>Service Completion: ${contract.serviceEndTime || 'TBD'}</p>
       
       <h3>4. PARKING</h3>
-      <p>Parking should be provided at the service location or nearby. Client to notify artist of any parking restrictions.</p>
+      <p>Valet parking is required for all hotel getting ready locations. The amount of equipment required for day of services is extensive and to ensure ease for the artist and timely arrival, valet parking will be charged to the room at the time of arrival.</p>
       
       <h3>5. PAYMENT</h3>
-      <p><strong>Total Amount:</strong> ${formatCurrency(contract.totalAmount)}</p>
-      ${contract.depositAmount ? `<p><strong>Deposit Required:</strong> ${formatCurrency(contract.depositAmount)}</p>` : ''}
-      ${contract.balanceDueDate ? `<p><strong>Balance Due:</strong> ${contract.balanceDueDate}</p>` : '<p><strong>Balance Due:</strong> Two weeks before wedding date</p>'}
-      <p><strong>Payment Method:</strong> Square (credit card, debit card, Apple Pay)</p>
+      <p>In full consideration for all services rendered by Artist at the location, the Client agrees to make deposit and payment in U.S. funds to the Artist, as provided in Attachment A.</p>
       
       <h3>6. CANCELLATION</h3>
-      <p>If Client cancels this Agreement, Artist will be entitled to compensation for work done prior to the cancellation date, subject to the retainer amount. If Artist cancels this Agreement, Artist shall return all payment(s) received from Client.</p>
+      <p>Cancellations can be made 30 days prior to the event without penalty other than loss of the retainer amount. In case of cancellations less than two calendar weeks retainer and final payment will not be refunded. The retainer is non refundable.</p>
+      <p>The Artist's obligation is to give services as provided in Attachment A. If Artist is unavailable as a result of sickness, accidents, acts of God or other reasons beyond the Artist's control, artist will make all commercially reasonable efforts to arrange for comparable services agreed upon within this contract.</p>
       
       <h3>7. MISCELLANEOUS</h3>
-      <p>Artist is not responsible for damage caused by any third party. Client agrees to communicate any concerns directly with Artist before, during, and after the event. Both parties agree to act in good faith to resolve any disputes.</p>
+      <p>The service contract and specified attachments set forth the entire agreement between the Artist and Client, and may not be amended except in writing signed by both parties. This service contract will be governed by and construed in accordance with the laws of the State of California.</p>
       
       <div class="signature-section">
-        <p style="color: #666; font-size: 13px;">
-          By signing below, Client agrees to the terms and conditions outlined in this contract.
-        </p>
         <div class="signature-box">
-          <strong>Artist</strong>
+          <strong>Client Signature</strong>
+          <div class="signature-line"></div>
+          <p style="font-size: 12px;">Date: _________________</p>
+        </div>
+        <div class="signature-box">
+          <strong>Artist Signature</strong>
           <div class="signature-line"></div>
           <p style="font-size: 12px;">${artistName}</p>
           <p style="font-size: 12px;">Date: _________________</p>
         </div>
-        <div class="signature-box">
-          <strong>Client</strong>
-          <div class="signature-line"></div>
-          <p style="font-size: 12px;">${contract.clientName || 'Client'}</p>
-          <p style="font-size: 12px;">Date: _________________</p>
-        </div>
+      </div>
+      
+      <h3 style="margin-top: 48px;">Attachment A</h3>
+      ${serviceItemsHtml || `<p>${contract.packageDetails || 'Services as agreed'}</p>`}
+      
+      <div style="margin-top: 24px;">
+        <p><strong>Client Contact:</strong> ${contract.clientContact || client?.email || ''}</p>
+        ${contract.photographerInfo ? `<p><strong>Photographer:</strong> ${contract.photographerInfo}</p>` : ''}
+      </div>
+      
+      <div style="margin-top: 24px;">
+        <p><strong>Payment:</strong></p>
+        <p>A square invoice will be sent via Square Beauvette</p>
+        <ul style="margin-top: 8px;">
+          <li>Retainer amount is to hold the date: ${formatCurrency(contract.depositAmount || 0)}. No date is guaranteed without the signed contract and retainer amount. Retainer is non refundable and required at the same time.</li>
+          <li>Payment of Balance: Two weeks before wedding date the Client will pay the Artist the remaining balance of ${formatCurrency((contract.totalAmount || 0) - (contract.depositAmount || 0))} via Square Beauvette Link</li>
+        </ul>
       </div>
     </body>
     </html>
