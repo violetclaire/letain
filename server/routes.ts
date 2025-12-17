@@ -2868,7 +2868,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "You can only upload contracts for your own bookings" });
       }
       
-      const { fileContent, fileName, mimeType, packageDetails, totalAmount, depositAmount } = req.body;
+      const { 
+        fileContent, fileName, mimeType, packageDetails, totalAmount, depositAmount,
+        clientName, eventDates, eventLocation, serviceStartTime, serviceEndTime, clientContact,
+        balanceDueDate, serviceItems
+      } = req.body;
+      
       if (!fileContent) {
         return res.status(400).json({ error: "File content is required" });
       }
@@ -2884,37 +2889,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create or update contract with signing token
       let existingContracts = await storage.getContractsByBooking(bookingId);
       let contract;
+      const signingToken = randomUUID();
+      
+      // Get client and artist info for HTML generation
+      const client = await storage.getUser(booking.clientId || userId);
+      const artist = await storage.getUser(userId);
+      const artistProfile = await storage.getArtistProfile(userId);
+      const artistName = artistProfile?.businessName || (artist?.firstName ? `${artist.firstName} ${artist.lastName || ""}`.trim() : "Beauty Artist");
+      
+      // Build contract data
+      const contractData = {
+        fileUrl: servingUrl,
+        packageDetails: packageDetails || 'Beauty Services',
+        totalAmount: totalAmount || 0,
+        depositAmount: depositAmount || 0,
+        signingToken,
+        status: 'draft' as const,
+        clientName: clientName || booking.clientName || client?.firstName || 'Client',
+        eventDates: eventDates || booking.eventDate,
+        eventLocation: eventLocation || booking.location,
+        serviceStartTime: serviceStartTime,
+        serviceEndTime: serviceEndTime,
+        clientContact: clientContact,
+        balanceDueDate: balanceDueDate || 'Two weeks before wedding date',
+        serviceItems: serviceItems,
+      };
+      
+      // Generate contract HTML for signing page
+      const { buildContractHtml } = await import('./contractSystem');
+      const contractHtml = buildContractHtml(contractData, client, artistName);
       
       if (existingContracts.length > 0) {
-        // Generate new signing token if one doesn't exist
-        const signingToken = existingContracts[0].signingToken || randomUUID();
-        contract = await storage.updateContract(existingContracts[0].id, { 
-          fileUrl: servingUrl,
-          packageDetails: packageDetails || existingContracts[0].packageDetails,
-          totalAmount: totalAmount || existingContracts[0].totalAmount,
-          depositAmount: depositAmount || existingContracts[0].depositAmount,
-          signingToken,
-          status: 'draft',
+        contract = await storage.updateContract(existingContracts[0].id, {
+          ...contractData,
+          contractHtml,
         });
       } else {
-        const signingToken = randomUUID();
         contract = await storage.createContract({
           bookingId,
           artistId: userId,
           clientId: booking.clientId || userId,
-          packageDetails: packageDetails || 'Beauty Services',
-          totalAmount: totalAmount || 0,
-          depositAmount: depositAmount || 0,
-          status: 'draft',
-          fileUrl: servingUrl,
-          signingToken,
+          ...contractData,
+          contractHtml,
         });
       }
       
       res.json({ 
         success: true, 
         fileUrl: servingUrl,
-        contract 
+        contract,
+        signingUrl: `/sign/${signingToken}`
       });
     } catch (error: any) {
       console.error("Booking contract upload error:", error);
@@ -3330,14 +3354,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const artistProfile = await storage.getArtistProfile(contract.artistId);
       const artistName = artistProfile?.businessName || (artist?.firstName ? `${artist.firstName} ${artist.lastName || ""}`.trim() : "Your beauty artist");
       
-      // Generate unique signing token
-      const signingToken = randomUUID();
+      // Use existing signing token or generate new one
+      const signingToken = contract.signingToken || randomUUID();
       
-      // Generate contract HTML for signing page
-      const contractHtml = generateContractHtml(contract, client, artistName);
+      // Generate contract HTML for signing page if not already generated
+      let contractHtml = contract.contractHtml;
+      if (!contractHtml) {
+        const { buildContractHtml } = await import('./contractSystem');
+        contractHtml = buildContractHtml(contract, client, artistName);
+      }
       
-      // Update contract with signing token and HTML
-      await storage.updateContract(contractId, {
+      // Update contract with status
+      const updated = await storage.updateContract(contractId, {
         signingToken,
         contractHtml,
         status: "sent",
@@ -3364,7 +3392,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ 
         success: true, 
         message: "Contract sent for signature",
-        signingUrl 
+        signingUrl,
+        contract: updated
       });
     } catch (error: any) {
       console.error("[Sign] Error sending for signature:", error);
