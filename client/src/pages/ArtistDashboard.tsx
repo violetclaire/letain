@@ -2383,12 +2383,11 @@ export default function ArtistDashboard() {
                                     </span>
                                     <span className="text-gray-300">•</span>
                                     <span className="truncate max-w-[80px]">{inquiry.serviceType}</span>
-                                    {(isHold || hasNextAction) && slaCountdown && (
+                                    {inquiry.createdAt && (
                                       <>
                                         <span className="text-gray-300">•</span>
-                                        <span className={`px-1.5 py-0.5 rounded text-[0.55rem] font-medium ${countdownColor}`}>
-                                          {isHold ? '⏸ ' : actionInfo?.owner === 'You' ? '👤 ' : '📩 '}
-                                          {slaCountdown.text}
+                                        <span className="text-[0.55rem] ink-soft">
+                                          Received {new Date(inquiry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                         </span>
                                       </>
                                     )}
