@@ -259,9 +259,7 @@ export async function sendInfoSheetEmail({
       pdfLink = infoSheetPdfUrl;
     } else {
       // Object path - need to prepend base URL
-      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-        ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-        : process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.com';
+      const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.replit.app';
       pdfLink = `${baseUrl}${infoSheetPdfUrl}`;
     }
   }
@@ -1729,7 +1727,7 @@ export async function sendWaitlistConfirmationEmail({
           
           <p>If you have any questions, please email <a href="mailto:violet@beauvette.com" style="color: #6B4A55;">violet@beauvette.com</a>.</p>
           
-          <p>Already working with a beauty artist you love? Send them this link to join Beauvette: <a href="https://beauvette.com/onboarding" style="color: #6B4A55;">beauvette.com/onboarding</a></p>
+          <p>Already working with a beauty artist you love? Send them this link to join Beauvette: <a href="https://beauvette.replit.app/onboarding" style="color: #6B4A55;">beauvette.replit.app/onboarding</a></p>
           
           <p>In the meantime, save this email so you can easily find us when the time comes.</p>
           

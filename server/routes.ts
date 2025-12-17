@@ -411,9 +411,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send reset email
       try {
         const { sendPasswordResetEmail } = await import('./emailService');
-        const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-          ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-          : 'https://beauvette.com';
+        const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.replit.app';
         
         await sendPasswordResetEmail({
           toEmail: user.email!,
@@ -2688,10 +2686,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })
         : undefined;
 
-      // Build chat link
-      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-        ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-        : process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.com';
+      // Build chat link - use production URL for client-facing links
+      const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.replit.app';
       const chatLink = `${baseUrl}/messages`;
 
       // Send branded email
@@ -3183,10 +3179,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sentForSigningAt: new Date(),
       });
       
-      // Send signing email
-      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-        ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-        : process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.app';
+      // Send signing email - use production URL for client-facing links
+      const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.replit.app';
       const signingUrl = `${baseUrl}/sign/${signingToken}`;
       
       const { sendContractSigningEmail } = await import("./emailService");
@@ -3430,7 +3424,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const artistName = artistProfile?.businessName || (artist?.firstName ? `${artist.firstName} ${artist.lastName || ""}`.trim() : "Beauty Artist");
       
       // Build signing URL - ALWAYS use production URL for client-facing links
-      const baseUrl = process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.replit.app';
+      const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.replit.app';
       const signingUrl = `${baseUrl}/sign/${signingToken}`;
       
       console.log("[SEND CONTRACT] Signing URL:", signingUrl);
@@ -5459,10 +5453,8 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         content: content.trim(),
       });
       
-      // Get base URL for chat link
-      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-        : (process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.app');
+      // Get base URL for chat link - use production URL
+      const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.replit.app';
       const chatLink = `${baseUrl}/chat-invite/${chatInvite.token}`;
       
       // Send email to client
@@ -8163,10 +8155,8 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         chatInviteSentAt: new Date()
       } as any);
       
-      // Build chat link
-      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-        ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-        : process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.com';
+      // Build chat link - use production URL
+      const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.replit.app';
       const chatLink = `${baseUrl}/chat-invite/${token}`;
       
       // Get vendor info
@@ -8241,10 +8231,8 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const artistProfile = await storage.getArtistProfile(userId);
       const vendorName = artistProfile?.businessName || vendor?.firstName || 'The Vendor';
       
-      // Build chat link
-      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-        ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-        : process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.com';
+      // Build chat link - use production URL
+      const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.replit.app';
       const chatLink = `${baseUrl}/chat-invite/${token}`;
       
       // Send chat invite email
@@ -9291,9 +9279,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       if (email) {
         try {
           const { sendArtistWelcomeEmail } = await import('./emailService');
-          const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-            ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-            : 'https://beauvette.app';
+          const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.replit.app';
           const calendarUrl = `${baseUrl}/${artistSlug}`;
           const settingsUrl = `${baseUrl}/${artistSlug}/settings?token=${editToken}`;
           await sendArtistWelcomeEmail({
@@ -9312,9 +9298,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       // Check referral artists - see which ones are not on platform yet
       const referralResults: Array<{ handle: string; isOnPlatform: boolean; inviteLink?: string }> = [];
       if (referralArtists && referralArtists.length > 0) {
-        const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-          ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-          : 'https://beauvette.app';
+        const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.replit.app';
         
         for (const refHandle of referralArtists) {
           if (!refHandle || refHandle.trim() === '') continue;
@@ -9649,10 +9633,8 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const artist = await storage.getUser(profile.userId);
       const artistProfile = await storage.getArtistProfile(profile.userId);
       
-      // Use dev domain for notifications (production URL when deployed)
-      const prodUrl = process.env.REPLIT_DEV_DOMAIN 
-        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-        : (process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.com');
+      // Use production URL for notifications
+      const prodUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.replit.app';
       
       // Try to send SMS notification
       if (artist?.phone) {
@@ -9926,10 +9908,8 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         expiresAt,
       });
       
-      // Build chat link using the token - use dev domain or production URL
-      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-        : (process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.com');
+      // Build chat link using production URL
+      const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.replit.app';
       const chatLink = `${baseUrl}/chat-invite/${token}`;
       
       // Send email
@@ -10006,10 +9986,8 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         expiresAt,
       });
       
-      // Build chat link - use dev domain or production URL
-      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-        : (process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.com');
+      // Build chat link - use production URL
+      const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.replit.app';
       const chatLink = `${baseUrl}/chat-invite/${token}`;
       
       // Send chat invite email
@@ -10125,7 +10103,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       if (artist?.email) {
         const { sendInquiryNotificationEmail } = await import('./emailService');
         // Always use production URL for email links so they work reliably
-        const baseUrl = process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.com';
+        const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.replit.app';
         
         sendInquiryNotificationEmail({
           toEmail: artist.email,
