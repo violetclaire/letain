@@ -13,6 +13,7 @@ import { ObjectPermission } from "./objectAcl";
 import { GoogleGenAI, Modality } from "@google/genai";
 import * as smsService from "./smsService";
 import * as iqsService from "./iqsService";
+import { logActivity, getRecentActivity, getTodayActivity } from "./activityService";
 
 // Rate limiter for auth endpoints to prevent brute force attacks
 const authLimiter = rateLimit({
@@ -566,6 +567,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
       res.json(user);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // ========== ACTIVITY TRACKING ==========
+  app.get("/api/activity/recent", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const limit = parseInt(req.query.limit as string) || 20;
+      const activity = await getRecentActivity(userId, limit);
+      res.json(activity);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/activity/today", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const activity = await getTodayActivity(userId);
+      res.json(activity);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
@@ -1754,6 +1783,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           
           console.log('[Info Sheet] Queued email for', clientUser.email);
+        }
+      }
+      
+      // Log activity for the artist
+      if (booking.artistId) {
+        try {
+          const clientUser = await storage.getUser(userId);
+          await logActivity({
+            userId: booking.artistId,
+            actorRole: 'client',
+            action: 'booking_created',
+            resourceType: 'booking',
+            resourceId: booking.id,
+            description: `New booking from ${clientUser?.firstName || 'client'} for ${booking.serviceType || 'services'} on ${booking.eventDate ? new Date(booking.eventDate).toLocaleDateString() : 'date TBD'}`,
+            metadata: {
+              clientName: clientUser?.firstName || 'Client',
+              clientEmail: clientUser?.email,
+              serviceType: booking.serviceType,
+              eventDate: booking.eventDate,
+            },
+            sendEmail: true,
+          });
+        } catch (activityErr) {
+          console.error('[Booking] Activity logging failed:', activityErr);
         }
       }
       
@@ -3304,6 +3357,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Log activity for the artist
+      if (contract.artistId) {
+        try {
+          await logActivity({
+            userId: contract.artistId,
+            actorRole: 'client',
+            action: 'contract_signed',
+            resourceType: 'contract',
+            resourceId: contract.id,
+            description: `${signedByName} signed the contract for ${contract.packageDetails || 'services'}`,
+            metadata: {
+              clientName: signedByName,
+              clientEmail: signedByEmail,
+              amount: contract.totalAmount,
+              packageDetails: contract.packageDetails,
+            },
+            sendEmail: true,
+          });
+        } catch (activityErr) {
+          console.error("[Sign] Activity logging failed:", activityErr);
+        }
+      }
+      
       res.json({ success: true, message: "Contract signed successfully" });
     } catch (error: any) {
       console.error("[Sign] Error signing contract:", error);
@@ -3376,6 +3452,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("[SEND CONTRACT] Email sent successfully");
       } catch (emailErr) {
         console.error("[SEND CONTRACT] Email send failed (continuing):", emailErr);
+      }
+      
+      // Log activity and send notification to artist
+      try {
+        await logActivity({
+          userId,
+          actorRole: 'artist',
+          action: 'contract_sent',
+          resourceType: 'contract',
+          resourceId: contractId,
+          description: `Contract sent to ${client.firstName || 'client'} (${client.email}) for ${contract.packageDetails || 'services'}`,
+          metadata: {
+            clientName: client.firstName || 'Client',
+            clientEmail: client.email,
+            amount: contract.totalAmount,
+            packageDetails: contract.packageDetails,
+          },
+          sendEmail: true,
+        });
+        console.log("[SEND CONTRACT] Activity logged and notification sent");
+      } catch (activityErr) {
+        console.error("[SEND CONTRACT] Activity logging failed:", activityErr);
       }
       
       res.json({ 

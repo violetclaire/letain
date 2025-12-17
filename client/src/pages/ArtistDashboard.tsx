@@ -102,6 +102,19 @@ export default function ArtistDashboard() {
   const [showIqsPanel, setShowIqsPanel] = useState(true);
   const [submittingFeedback, setSubmittingFeedback] = useState<string | null>(null);
   
+  // Activity feed state
+  const [activityFeed, setActivityFeed] = useState<Array<{
+    id: string;
+    action: string;
+    description: string;
+    resourceType: string;
+    resourceId?: string;
+    emailSent: boolean;
+    createdAt: string;
+    metadata?: Record<string, any>;
+  }>>([]);
+  const [activityLoading, setActivityLoading] = useState(false);
+  
   // Inquiry inbox state
   const [inquiries, setInquiries] = useState<Array<{
     id: string;
@@ -397,6 +410,20 @@ export default function ArtistDashboard() {
         }
       } catch (err) {
         console.error("[Dashboard] Error fetching artist contracts:", err);
+      }
+      
+      // Fetch activity feed
+      setActivityLoading(true);
+      try {
+        const activityRes = await fetch('/api/activity/today', { credentials: 'include' });
+        if (activityRes.ok) {
+          const activityData = await activityRes.json();
+          setActivityFeed(activityData || []);
+        }
+      } catch (actErr) {
+        console.error("[Dashboard] Error fetching activity:", actErr);
+      } finally {
+        setActivityLoading(false);
       }
     } catch (err) {
       console.error("Error fetching bookings:", err);
@@ -3393,6 +3420,56 @@ export default function ArtistDashboard() {
                     userId={user.id}
                     userName={user.firstName || user.email?.split('@')[0] || 'there'}
                   />
+                )}
+              </div>
+              
+              {/* Today's Activity Feed */}
+              <div className="card-frame rounded-md px-4 py-3" data-testid="section-activity-feed">
+                <h3 className="font-header text-sm ink-main mb-3 flex items-center gap-2">
+                  <Clock size={14} className="text-[#6B4A55]" />
+                  Today's Activity
+                </h3>
+                {activityLoading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 size={16} className="animate-spin text-gray-400" />
+                  </div>
+                ) : activityFeed.length === 0 ? (
+                  <p className="text-xs ink-soft italic py-2">No activity yet today. Actions you take (contracts sent, bookings confirmed, etc.) will appear here.</p>
+                ) : (
+                  <div className="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar pr-1">
+                    {activityFeed.map((activity) => (
+                      <div 
+                        key={activity.id}
+                        className="border border-[#e5e8f2] bg-[#fbfcff] p-2.5 rounded-md"
+                        data-testid={`activity-item-${activity.id}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs ink-main leading-relaxed">{activity.description}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-[0.6rem] ink-soft">
+                                {new Date(activity.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                              </span>
+                              {activity.emailSent && (
+                                <span className="flex items-center gap-0.5 text-[0.55rem] text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full">
+                                  <Mail size={8} />
+                                  Notified
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <span className={`text-[0.5rem] px-1.5 py-0.5 rounded-full font-medium uppercase tracking-wide ${
+                            activity.action.includes('signed') ? 'bg-green-100 text-green-700' :
+                            activity.action.includes('sent') ? 'bg-blue-100 text-blue-700' :
+                            activity.action.includes('created') ? 'bg-purple-100 text-purple-700' :
+                            'bg-gray-100 text-gray-600'
+                          }`}>
+                            {activity.action.replace(/_/g, ' ')}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
               
