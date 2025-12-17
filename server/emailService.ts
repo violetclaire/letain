@@ -677,6 +677,227 @@ export async function sendContractWithSigningLink({
   }
 }
 
+export async function sendContractSigningEmail({
+  toEmail,
+  clientName,
+  artistName,
+  packageDetails,
+  totalAmount,
+  depositAmount,
+  signingUrl
+}: {
+  toEmail: string;
+  clientName: string;
+  artistName: string;
+  packageDetails: string;
+  totalAmount: number;
+  depositAmount: number;
+  signingUrl: string;
+}) {
+  const { client, fromEmail } = await getResendClient();
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Georgia', serif; background-color: #f5f1e8; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { 
+          background-color: #FAF7F2;
+          background-image:
+            repeating-linear-gradient(0deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px),
+            repeating-linear-gradient(90deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px);
+          padding: 28px; 
+          text-align: center;
+          border-bottom: 1px solid rgba(107, 74, 85, 0.2);
+        }
+        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55; }
+        .header p { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin: 8px 0 0 0; color: #6B4A55; opacity: 0.8; }
+        .content { padding: 32px; }
+        .contract-title { font-size: 18px; color: #6B4A55; margin-bottom: 20px; font-weight: bold; text-align: center; }
+        .details { background: #f5f1e8; padding: 20px; border-radius: 8px; margin-bottom: 24px; }
+        .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dotted #ccc; }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label { color: #666; }
+        .detail-value { font-weight: bold; color: #262329; }
+        .button { display: inline-block; background: #6B4A55; color: white !important; padding: 16px 40px; text-decoration: none; border-radius: 6px; font-size: 16px; letter-spacing: 1px; }
+        .button:hover { background: #8a6270; }
+        .cta-section { text-align: center; margin: 32px 0; }
+        .footer { text-align: center; padding: 20px; color: #888; font-size: 12px; border-top: 1px solid #eee; }
+        .note { background: #fff8e7; border-left: 3px solid #C9A961; padding: 12px 16px; margin: 20px 0; font-size: 13px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Beauvette</h1>
+          <p>For Life's Most Important Days</p>
+        </div>
+        <div class="content">
+          <p style="margin-bottom: 24px;">Hi ${escapeHtml(clientName)},</p>
+          <p style="margin-bottom: 16px;"><strong>${escapeHtml(artistName)}</strong> has sent you a service contract for your upcoming beauty services:</p>
+          
+          <div class="contract-title">Beauty Services Contract</div>
+          
+          <div class="details">
+            <div class="detail-row">
+              <span class="detail-label">Services</span>
+              <span class="detail-value">${escapeHtml(packageDetails)}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Total Amount</span>
+              <span class="detail-value">$${totalAmount.toLocaleString()}</span>
+            </div>
+            ${depositAmount > 0 ? `
+            <div class="detail-row">
+              <span class="detail-label">Deposit Due</span>
+              <span class="detail-value">$${depositAmount.toLocaleString()}</span>
+            </div>
+            ` : ''}
+          </div>
+          
+          <div class="note">
+            Please review the full contract terms carefully before signing. Once signed, this becomes a binding agreement.
+          </div>
+          
+          <div class="cta-section">
+            <a href="${signingUrl}" class="button">Review & Sign Contract</a>
+          </div>
+          
+          <p style="color: #888; font-size: 13px; text-align: center; margin-top: 20px;">
+            If you have any questions about the contract, please contact ${escapeHtml(artistName)} before signing.
+          </p>
+        </div>
+        <div class="footer">
+          Sent via Beauvette - Beauty services for life's most important days
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const senderEmail = 'Beauvette <violet@beauvette.com>';
+  
+  try {
+    console.log("Sending contract signing email to:", toEmail);
+    const result = await client.emails.send({
+      from: senderEmail,
+      to: toEmail.trim(),
+      subject: `Contract from ${artistName} - Ready for Your Signature`,
+      html: htmlContent
+    });
+    console.log("Contract signing email sent:", JSON.stringify(result));
+    return { success: true, result };
+  } catch (err: any) {
+    console.error("Failed to send contract signing email:", err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function sendContractSignedNotification({
+  toEmail,
+  artistName,
+  clientName,
+  packageDetails,
+  signedAt
+}: {
+  toEmail: string;
+  artistName: string;
+  clientName: string;
+  packageDetails: string;
+  signedAt: string;
+}) {
+  const { client, fromEmail } = await getResendClient();
+
+  const signedDate = new Date(signedAt).toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Georgia', serif; background-color: #f5f1e8; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { 
+          background-color: #FAF7F2;
+          background-image:
+            repeating-linear-gradient(0deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px),
+            repeating-linear-gradient(90deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px);
+          padding: 28px; 
+          text-align: center;
+          border-bottom: 1px solid rgba(107, 74, 85, 0.2);
+        }
+        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55; }
+        .header p { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin: 8px 0 0 0; color: #6B4A55; opacity: 0.8; }
+        .content { padding: 32px; }
+        .success-icon { text-align: center; margin-bottom: 20px; }
+        .success-icon svg { width: 64px; height: 64px; color: #3D5A3B; }
+        .details { background: #f0f9f0; padding: 20px; border-radius: 8px; margin: 24px 0; border-left: 4px solid #3D5A3B; }
+        .footer { text-align: center; padding: 20px; color: #888; font-size: 12px; border-top: 1px solid #eee; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Beauvette</h1>
+          <p>For Life's Most Important Days</p>
+        </div>
+        <div class="content">
+          <div class="success-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#3D5A3B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </div>
+          
+          <h2 style="text-align: center; color: #3D5A3B; margin-bottom: 16px;">Contract Signed!</h2>
+          
+          <p style="margin-bottom: 24px;">Hi ${escapeHtml(artistName)},</p>
+          <p style="margin-bottom: 16px;">Great news! <strong>${escapeHtml(clientName)}</strong> has signed your contract.</p>
+          
+          <div class="details">
+            <p style="margin: 0 0 8px 0;"><strong>Contract:</strong> ${escapeHtml(packageDetails)}</p>
+            <p style="margin: 0;"><strong>Signed:</strong> ${signedDate}</p>
+          </div>
+          
+          <p style="color: #666; font-size: 14px;">
+            The signed contract is now stored in your Beauvette dashboard. You can view it anytime from your Contracts page.
+          </p>
+        </div>
+        <div class="footer">
+          Sent via Beauvette - Beauty services for life's most important days
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const senderEmail = 'Beauvette <violet@beauvette.com>';
+  
+  try {
+    console.log("Sending contract signed notification to:", toEmail);
+    const result = await client.emails.send({
+      from: senderEmail,
+      to: toEmail.trim(),
+      subject: `Contract Signed by ${clientName}`,
+      html: htmlContent
+    });
+    console.log("Contract signed notification sent:", JSON.stringify(result));
+    return { success: true, result };
+  } catch (err: any) {
+    console.error("Failed to send contract signed notification:", err.message);
+    return { success: false, error: err.message };
+  }
+}
+
 export async function sendAppointmentConfirmationEmail({
   toEmail,
   clientName,

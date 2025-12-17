@@ -231,6 +231,7 @@ export interface IStorage {
   
   // Contracts
   getContract(id: string): Promise<Contract | undefined>;
+  getContractBySigningToken(token: string): Promise<Contract | undefined>;
   getContractsByBooking(bookingId: string): Promise<Contract[]>;
   getContractsByArtist(artistId: string): Promise<Contract[]>;
   createContract(contract: InsertContract): Promise<Contract>;
@@ -1051,6 +1052,11 @@ export class DatabaseStorage implements IStorage {
   // Contracts
   async getContract(id: string): Promise<Contract | undefined> {
     const [contract] = await db.select().from(contracts).where(eq(contracts.id, id));
+    return contract || undefined;
+  }
+
+  async getContractBySigningToken(token: string): Promise<Contract | undefined> {
+    const [contract] = await db.select().from(contracts).where(eq(contracts.signingToken, token));
     return contract || undefined;
   }
 

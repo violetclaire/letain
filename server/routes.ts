@@ -151,6 +151,98 @@ function parseLocalDate(dateStr: string): Date {
   return new Date(dateStr + 'T12:00:00');
 }
 
+// Helper to generate contract HTML for the signing page
+function generateContractHtml(contract: any, client: any, artistName: string): string {
+  const formatCurrency = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+  
+  // Build service items table if available
+  let serviceItemsHtml = '';
+  if (contract.serviceItems && Array.isArray(contract.serviceItems) && contract.serviceItems.length > 0) {
+    serviceItemsHtml = `
+      <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+        <thead>
+          <tr style="background: #f5f1e8;">
+            <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Client Type</th>
+            <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">Qty</th>
+            <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Service</th>
+            <th style="padding: 8px; border: 1px solid #ddd; text-align: right;">Price</th>
+            <th style="padding: 8px; border: 1px solid #ddd; text-align: right;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${contract.serviceItems.map((item: any) => `
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd;">${item.clientType || ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${item.qty || 1}</td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${item.service || ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${formatCurrency(item.price || 0)}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${formatCurrency(item.total || 0)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+        <tfoot>
+          <tr style="font-weight: bold;">
+            <td colspan="4" style="padding: 8px; border: 1px solid #ddd; text-align: right;">Total:</td>
+            <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${formatCurrency(contract.totalAmount)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    `;
+  }
+
+  return `
+    <div style="font-family: 'Georgia', serif; max-width: 800px; margin: 0 auto; padding: 20px;">
+      <div style="text-align: center; margin-bottom: 32px;">
+        <h1 style="font-size: 24px; color: #6B4A55; margin-bottom: 8px;">${artistName}</h1>
+        <h2 style="font-size: 18px; color: #333; font-weight: normal;">Service Contract</h2>
+      </div>
+      
+      <div style="margin-bottom: 24px;">
+        <p><strong>Client:</strong> ${contract.clientName || client?.firstName || 'Client'} ${client?.lastName || ''}</p>
+        ${contract.clientContact ? `<p><strong>Contact:</strong> ${contract.clientContact}</p>` : ''}
+        ${contract.eventDates ? `<p><strong>Event Date(s):</strong> ${contract.eventDates}</p>` : ''}
+        ${contract.eventLocation ? `<p><strong>Location:</strong> ${contract.eventLocation}</p>` : ''}
+        ${contract.serviceStartTime && contract.serviceEndTime ? `<p><strong>Service Time:</strong> ${contract.serviceStartTime} - ${contract.serviceEndTime}</p>` : ''}
+      </div>
+      
+      <h3 style="border-bottom: 2px solid #6B4A55; padding-bottom: 8px; margin-top: 32px;">1. SERVICE</h3>
+      <p>${contract.packageDetails}</p>
+      ${serviceItemsHtml}
+      
+      <h3 style="border-bottom: 2px solid #6B4A55; padding-bottom: 8px; margin-top: 32px;">2. LOCATION</h3>
+      <p>${contract.eventLocation || 'To be determined'}</p>
+      
+      <h3 style="border-bottom: 2px solid #6B4A55; padding-bottom: 8px; margin-top: 32px;">3. DATE/TIME</h3>
+      <p><strong>Event Date:</strong> ${contract.eventDates || 'To be determined'}</p>
+      ${contract.serviceStartTime ? `<p><strong>Start Time:</strong> ${contract.serviceStartTime}</p>` : ''}
+      ${contract.serviceEndTime ? `<p><strong>End Time:</strong> ${contract.serviceEndTime}</p>` : ''}
+      
+      <h3 style="border-bottom: 2px solid #6B4A55; padding-bottom: 8px; margin-top: 32px;">4. PARKING</h3>
+      <p>Parking should be provided at the service location or nearby. Client to notify artist of any parking restrictions.</p>
+      
+      <h3 style="border-bottom: 2px solid #6B4A55; padding-bottom: 8px; margin-top: 32px;">5. PAYMENT</h3>
+      <p><strong>Total Amount:</strong> ${formatCurrency(contract.totalAmount)}</p>
+      ${contract.depositAmount ? `<p><strong>Deposit Required:</strong> ${formatCurrency(contract.depositAmount)}</p>` : ''}
+      ${contract.balanceDueDate ? `<p><strong>Balance Due:</strong> ${contract.balanceDueDate}</p>` : '<p><strong>Balance Due:</strong> Two weeks before wedding date</p>'}
+      <p><strong>Payment Method:</strong> Square (credit card, debit card, Apple Pay)</p>
+      
+      <h3 style="border-bottom: 2px solid #6B4A55; padding-bottom: 8px; margin-top: 32px;">6. CANCELLATION</h3>
+      <p>If Client cancels this Agreement, Artist will be entitled to compensation for work done prior to the cancellation date, 
+      subject to the retainer amount. If Artist cancels this Agreement, Artist shall return all payment(s) received from Client.</p>
+      
+      <h3 style="border-bottom: 2px solid #6B4A55; padding-bottom: 8px; margin-top: 32px;">7. MISCELLANEOUS</h3>
+      <p>Artist is not responsible for damage caused by any third party. Client agrees to communicate any concerns directly with Artist 
+      before, during, and after the event. Both parties agree to act in good faith to resolve any disputes.</p>
+      
+      <div style="margin-top: 48px; padding-top: 24px; border-top: 1px solid #ccc;">
+        <p style="color: #666; font-size: 13px;">
+          By signing below, Client agrees to the terms and conditions outlined in this contract.
+        </p>
+      </div>
+    </div>
+  `;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   
   // Setup Replit Auth
@@ -3152,6 +3244,157 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({ success: true, message: "Signing reminder sent" });
     } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ========== BUILT-IN E-SIGNATURE (PUBLIC ROUTES) ==========
+  
+  // Public: Get contract for signing (no auth required)
+  app.get("/api/contracts/sign/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      
+      const contract = await storage.getContractBySigningToken(token);
+      if (!contract) {
+        return res.status(404).json({ message: "Contract not found or signing link has expired" });
+      }
+      
+      // Return contract details for signing page
+      res.json({
+        id: contract.id,
+        status: contract.status,
+        contractHtml: contract.contractHtml,
+        clientName: contract.clientName,
+        packageDetails: contract.packageDetails,
+        totalAmount: contract.totalAmount,
+        depositAmount: contract.depositAmount,
+        signedAt: contract.signedAt,
+        signedByName: contract.signedByName,
+        clientSignature: contract.clientSignature,
+      });
+    } catch (error: any) {
+      console.error("[Sign] Error fetching contract:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Public: Submit signature (no auth required)
+  app.post("/api/contracts/sign/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { signedByName, signedByEmail, clientSignature } = req.body;
+      
+      if (!signedByName || !signedByEmail || !clientSignature) {
+        return res.status(400).json({ message: "Name, email, and signature are required" });
+      }
+      
+      const contract = await storage.getContractBySigningToken(token);
+      if (!contract) {
+        return res.status(404).json({ message: "Contract not found or signing link has expired" });
+      }
+      
+      if (contract.status === "signed") {
+        return res.status(400).json({ message: "This contract has already been signed" });
+      }
+      
+      // Update contract with signature
+      await storage.updateContract(contract.id, {
+        status: "signed",
+        signedAt: new Date(),
+        signedByName,
+        signedByEmail,
+        clientSignature,
+      });
+      
+      // Notify artist via email
+      const artist = await storage.getUser(contract.artistId);
+      if (artist?.email) {
+        try {
+          const { sendContractSignedNotification } = await import("./emailService");
+          await sendContractSignedNotification({
+            toEmail: artist.email,
+            artistName: artist.firstName || "Artist",
+            clientName: signedByName,
+            packageDetails: contract.packageDetails,
+            signedAt: new Date().toISOString(),
+          });
+        } catch (emailError) {
+          console.error("[Sign] Failed to send notification email:", emailError);
+        }
+      }
+      
+      res.json({ success: true, message: "Contract signed successfully" });
+    } catch (error: any) {
+      console.error("[Sign] Error signing contract:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Artist: Send contract for signing (generates token and sends email)
+  app.post("/api/contracts/:id/send-for-signing", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const contractId = req.params.id;
+      
+      const contract = await storage.getContract(contractId);
+      if (!contract) {
+        return res.status(404).json({ error: "Contract not found" });
+      }
+      
+      if (contract.artistId !== userId) {
+        return res.status(403).json({ error: "Not authorized to send this contract" });
+      }
+      
+      // Get client info
+      const client = await storage.getUser(contract.clientId);
+      if (!client?.email) {
+        return res.status(400).json({ error: "Client email not found" });
+      }
+      
+      // Get artist info
+      const artist = await storage.getUser(contract.artistId);
+      const artistProfile = await storage.getArtistProfile(contract.artistId);
+      const artistName = artistProfile?.businessName || (artist?.firstName ? `${artist.firstName} ${artist.lastName || ""}`.trim() : "Your beauty artist");
+      
+      // Generate unique signing token
+      const signingToken = randomUUID();
+      
+      // Generate contract HTML for signing page
+      const contractHtml = generateContractHtml(contract, client, artistName);
+      
+      // Update contract with signing token and HTML
+      await storage.updateContract(contractId, {
+        signingToken,
+        contractHtml,
+        status: "sent",
+        sentForSigningAt: new Date(),
+      });
+      
+      // Send signing email
+      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+        : process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.app';
+      const signingUrl = `${baseUrl}/sign/${signingToken}`;
+      
+      const { sendContractSigningEmail } = await import("./emailService");
+      await sendContractSigningEmail({
+        toEmail: client.email,
+        clientName: client.firstName || contract.clientName || "Client",
+        artistName,
+        packageDetails: contract.packageDetails,
+        totalAmount: contract.totalAmount / 100,
+        depositAmount: (contract.depositAmount || 0) / 100,
+        signingUrl,
+      });
+      
+      res.json({ 
+        success: true, 
+        message: "Contract sent for signature",
+        signingUrl 
+      });
+    } catch (error: any) {
+      console.error("[Sign] Error sending for signature:", error);
       res.status(500).json({ error: error.message });
     }
   });
