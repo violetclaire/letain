@@ -3429,10 +3429,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const artistProfile = await storage.getArtistProfile(contract.artistId);
       const artistName = artistProfile?.businessName || (artist?.firstName ? `${artist.firstName} ${artist.lastName || ""}`.trim() : "Beauty Artist");
       
-      // Build signing URL
-      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-        ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-        : process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.app';
+      // Build signing URL - ALWAYS use production URL for client-facing links
+      const baseUrl = process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.replit.app';
       const signingUrl = `${baseUrl}/sign/${signingToken}`;
       
       console.log("[SEND CONTRACT] Signing URL:", signingUrl);
