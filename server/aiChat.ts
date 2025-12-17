@@ -252,6 +252,13 @@ Create contracts when vendor says: "create contract", "send contract", "make con
 {"createContract": {"clientName": "Sarah Smith", "bookingId": "optional-id", "packageDetails": "Bridal Package - Hair & Makeup for bride and 4 bridesmaids", "totalAmount": 150000, "depositAmount": 75000}, "response": "Created contract for Sarah - Bridal Package at $1,500 with 50% deposit."}
 - totalAmount and depositAmount are in CENTS (e.g., $1500 = 150000)
 
+=== PAYMENT LINKS / INVOICES ===
+Send payment links when vendor says: "send payment", "send invoice", "payment link to", "send bill", "charge them", "send her an invoice", etc.
+{"sendPaymentLink": {"clientName": "Sarah", "clientEmail": "sarah@email.com", "amount": 150000, "description": "Bridal Hair & Makeup - February 2026 Wedding"}, "response": "Sent a $1,500 payment link to Sarah!"}
+- amount is in CENTS (e.g., $1500 = 150000, $500 = 50000)
+- Include a clear description of what the payment is for
+- If you know the client's email from earlier in the conversation, use it!
+
 === THANK YOU NOTES / EMAILS ===
 Send thank you emails when vendor says: "send thank you", "thank you note to", "email thanks", etc.
 {"sendThankYou": {"recipientName": "Sarah", "recipientEmail": "sarah@email.com", "message": "Thank you for choosing me for your special day! It was an honor to be part of your wedding.", "occasion": "Wedding"}, "response": "Sent a thank you note to Sarah!"}
@@ -320,6 +327,13 @@ interface ParsedResponse {
     recipientEmail: string;
     message: string;
     occasion?: string;
+  };
+  sendPaymentLink?: {
+    clientName: string;
+    clientEmail: string;
+    amount: number;
+    description: string;
+    bookingId?: string;
   };
   generateImage?: {
     prompt: string;
@@ -489,6 +503,7 @@ User message: ${message}`;
         else if (parsed.createBooking) actionTaken = 'create_booking';
         else if (parsed.createContract) actionTaken = 'create_contract';
         else if (parsed.sendThankYou) actionTaken = 'send_thank_you';
+        else if (parsed.sendPaymentLink) actionTaken = 'send_payment_link';
         else if (parsed.generateImage) actionTaken = 'generate_image';
         else if (parsed.searchQuery) actionTaken = 'search';
         else if (parsed.blockUpdates || parsed.availabilityUpdates) actionTaken = 'update_availability';
@@ -782,6 +797,112 @@ export async function sendThankYouEmailFromAI(
     return { success: true };
   } catch (err: any) {
     console.error("[AI] Failed to send thank you email:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function sendPaymentLinkFromAI(
+  artistId: string,
+  payment: {
+    clientName: string;
+    clientEmail: string;
+    amount: number;
+    description: string;
+    bookingId?: string;
+  }
+): Promise<{ success: boolean; paymentLink?: string; error?: string }> {
+  try {
+    const { sendInvoiceEmail } = await import('./emailService');
+    const { getMerchantSquare } = await import('./squareClient');
+    const crypto = await import('crypto');
+    
+    // Get artist profile for business name
+    const artist = await storage.getUser(artistId);
+    const artistProfile = await storage.getArtistProfile(artistId);
+    const vendorName = artistProfile?.businessName || artist?.firstName || 'Beauty Artist';
+    
+    // Get merchant Square access token
+    const { db } = await import('./db');
+    const { squareConnections } = await import('@shared/schema');
+    const { eq } = await import('drizzle-orm');
+    
+    const [connection] = await db.select().from(squareConnections).where(eq(squareConnections.userId, artistId));
+    if (!connection?.accessToken) {
+      return { success: false, error: "Square account not connected. Please connect Square in Settings first." };
+    }
+    
+    const locationId = process.env.SQUARE_LOCATION_ID;
+    if (!locationId) {
+      return { success: false, error: "Square location not configured" };
+    }
+    
+    const square = getMerchantSquare(connection.accessToken);
+    const amountInCents = payment.amount;
+    const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.replit.app';
+    
+    // Create Square payment link
+    const checkoutResponse = await (square.checkout as any).paymentLinks.create({
+      idempotencyKey: crypto.randomUUID(),
+      quickPay: {
+        name: payment.description || 'Beauty Services',
+        priceMoney: {
+          amount: BigInt(amountInCents),
+          currency: 'USD',
+        },
+        locationId,
+      },
+      checkoutOptions: {
+        redirectUrl: `${baseUrl}/payment-success?bookingId=${payment.bookingId || 'invoice'}`,
+        askForShippingAddress: false,
+      },
+    });
+    
+    const checkoutResult = checkoutResponse as any;
+    if (!checkoutResult.paymentLink?.url) {
+      throw new Error('Failed to create Square payment link');
+    }
+    
+    const paymentLinkUrl = checkoutResult.paymentLink.url;
+    
+    // Update booking if provided
+    if (payment.bookingId) {
+      await storage.updateBooking(payment.bookingId, {
+        squarePaymentLinkUrl: paymentLinkUrl,
+      });
+    }
+    
+    // Send invoice email
+    await sendInvoiceEmail({
+      toEmail: payment.clientEmail,
+      clientName: payment.clientName,
+      vendorName,
+      amount: amountInCents / 100,
+      description: payment.description,
+      paymentLink: paymentLinkUrl,
+    });
+    
+    console.log(`[AI] Created and sent payment link to ${payment.clientEmail}: ${paymentLinkUrl}`);
+    
+    // Log the communication
+    await storage.createCommunicationLog({
+      artistId,
+      recipientName: payment.clientName,
+      recipientEmail: payment.clientEmail,
+      communicationType: "invoice",
+      subject: `Payment Request - ${payment.description}`,
+      content: `Amount: $${(amountInCents / 100).toFixed(2)}\nDescription: ${payment.description}\nPayment Link: ${paymentLinkUrl}`,
+      metadata: { 
+        amount: amountInCents, 
+        paymentLink: paymentLinkUrl,
+        bookingId: payment.bookingId 
+      },
+      status: "sent",
+      sentVia: "ai_chat",
+    });
+    
+    return { success: true, paymentLink: paymentLinkUrl };
+  } catch (err: any) {
+    console.error("[AI] Failed to send payment link:", err);
     return { success: false, error: err.message };
   }
 }

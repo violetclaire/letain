@@ -3758,6 +3758,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Handle payment link / invoice sending
+      if (result?.sendPaymentLink?.clientEmail && result?.sendPaymentLink?.amount) {
+        console.log("Processing payment link:", result.sendPaymentLink);
+        try {
+          const paymentResult = await aiChat.sendPaymentLinkFromAI(userId, result.sendPaymentLink);
+          if (paymentResult.success && paymentResult.paymentLink) {
+            (result as any).paymentSent = true;
+            (result as any).paymentLink = paymentResult.paymentLink;
+            console.log("Payment link sent successfully:", paymentResult.paymentLink);
+          } else {
+            result.response = paymentResult.error || "I had trouble sending that payment link. Please try again or check your Square connection in Settings.";
+            console.error("Payment link sending failed:", paymentResult.error);
+          }
+        } catch (paymentError: any) {
+          console.error("Payment link error:", paymentError);
+          result.response = "I had trouble sending that payment link. Please check your Square connection in Settings.";
+        }
+      }
+      
       // Handle image generation
       if (result?.generateImage?.prompt) {
         console.log("Processing image generation:", result.generateImage);
