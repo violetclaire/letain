@@ -322,6 +322,13 @@ export const contracts = pgTable("contracts", {
   venmoHandle: text("venmo_handle"),
   paypalEmail: text("paypal_email"),
   balanceDueDate: text("balance_due_date"),
+  // Built-in e-signature fields (like Dubsado)
+  signingToken: text("signing_token").unique(), // Unique token for signing link
+  clientSignature: text("client_signature"), // Typed signature text
+  signedByName: text("signed_by_name"), // Name entered when signing
+  signedByEmail: text("signed_by_email"), // Email entered when signing
+  contractHtml: text("contract_html"), // Rendered contract HTML for signing page
+  sentForSigningAt: timestamp("sent_for_signing_at"), // When the signing link was sent
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
