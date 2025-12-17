@@ -234,6 +234,19 @@ export default function ArtistDashboard() {
   const [uploadingContract, setUploadingContract] = useState(false);
   const [sendingContractForSignature, setSendingContractForSignature] = useState<string | null>(null);
   
+  // Contract Creation Modal state
+  const [showContractCreationModal, setShowContractCreationModal] = useState(false);
+  const [contractServiceItems, setContractServiceItems] = useState<Array<{
+    id: string;
+    clientType: string;
+    qty: number;
+    service: string;
+    price: number;
+  }>>([{ id: crypto.randomUUID(), clientType: 'Bride', qty: 1, service: '', price: 0 }]);
+  const [contractDepositAmount, setContractDepositAmount] = useState<number>(0);
+  const [contractDepositPercent, setContractDepositPercent] = useState<number>(50);
+  const [savingContract, setSavingContract] = useState(false);
+  
   const [messages, setMessages] = useState([
     { from: "other", text: "Select a client to start chatting." }
   ]);
@@ -1186,6 +1199,113 @@ export default function ArtistDashboard() {
       });
     }
     setSendingForSigning(false);
+  };
+
+  // Contract creation helpers
+  const calculateContractTotal = () => {
+    return contractServiceItems.reduce((sum, item) => sum + (item.qty * item.price), 0);
+  };
+  
+  const addServiceItem = () => {
+    setContractServiceItems(prev => [...prev, { 
+      id: crypto.randomUUID(), 
+      clientType: 'Guest', 
+      qty: 1, 
+      service: '',
+      price: 0 
+    }]);
+  };
+  
+  const removeServiceItem = (id: string) => {
+    if (contractServiceItems.length > 1) {
+      setContractServiceItems(prev => prev.filter(item => item.id !== id));
+    }
+  };
+  
+  const updateServiceItem = (id: string, field: string, value: string | number) => {
+    setContractServiceItems(prev => prev.map(item => 
+      item.id === id ? { ...item, [field]: value } : item
+    ));
+  };
+  
+  const openContractCreationModal = () => {
+    // Reset form with default service item from booking
+    setContractServiceItems([{ 
+      id: crypto.randomUUID(), 
+      clientType: 'Bride', 
+      qty: 1, 
+      service: selectedBooking?.serviceType || '',
+      price: 0 
+    }]);
+    setContractDepositPercent(50);
+    setShowContractCreationModal(true);
+  };
+  
+  const handleCreateAndSendContract = async () => {
+    if (!selectedBooking?.id) return;
+    
+    const total = calculateContractTotal();
+    const deposit = Math.round(total * (contractDepositPercent / 100));
+    
+    if (total <= 0) {
+      toast({
+        title: "Missing Information",
+        description: "Please add at least one service with a price",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setSavingContract(true);
+    try {
+      // Create contract with service details matching schema
+      const res = await fetch(`/api/bookings/${selectedBooking.id}/create-contract`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          serviceItems: contractServiceItems.map(item => ({
+            clientType: item.clientType,
+            qty: item.qty,
+            service: item.service,
+            price: item.price,
+            total: item.qty * item.price
+          })),
+          totalAmount: total,
+          depositAmount: deposit,
+          depositPercent: contractDepositPercent,
+          clientName: selectedBooking.name || selectedBooking.clientName,
+          clientEmail: selectedBooking.clientEmail,
+          eventDate: selectedBooking.eventDate || selectedBooking.date,
+          eventLocation: selectedBooking.location || selectedBooking.eventLocation,
+        }),
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        toast({
+          title: "Contract Created & Sent!",
+          description: `Contract sent to ${selectedBooking.clientEmail} for signature`,
+        });
+        setShowContractCreationModal(false);
+        // Refresh contracts list
+        fetchBookingContracts(selectedBooking.id);
+      } else {
+        const error = await res.json();
+        toast({
+          title: "Error",
+          description: error.error || "Failed to create contract",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to create contract",
+        variant: "destructive",
+      });
+    }
+    setSavingContract(false);
   };
 
   const sendMessage = () => {
@@ -3112,7 +3232,13 @@ export default function ArtistDashboard() {
                         <p><strong>Status:</strong> {selectedBooking?.status || 'Pending'}</p>
                       </div>
                       <div className="flex flex-col gap-2">
-                        <Link href="/artist/contracts" className="text-[0.65rem] uppercase tracking-wide underline text-blue-600">Create Contract</Link>
+                        <button 
+                          onClick={openContractCreationModal}
+                          className="text-[0.65rem] uppercase tracking-wide underline text-blue-600"
+                          data-testid="button-create-contract"
+                        >
+                          Create Contract
+                        </button>
                         <button
                           onClick={() => {
                             if (selectedBooking?.id) {
@@ -3690,6 +3816,170 @@ export default function ArtistDashboard() {
                   </>
                 ) : (
                   "Send Email"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Contract Creation Modal */}
+      {showContractCreationModal && selectedBooking && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full shadow-xl my-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-pink/20 rounded-full">
+                <FileText size={20} className="text-pink" />
+              </div>
+              <div>
+                <h3 className="font-header text-lg ink-main">Create Contract</h3>
+                <p className="text-xs ink-soft">For {selectedBooking.name || selectedBooking.clientName}</p>
+              </div>
+            </div>
+            
+            {/* Event Info */}
+            <div className="bg-[#fbfcff] border border-[#e5e8f2] rounded p-3 mb-4">
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <p><strong>Event Date:</strong> {selectedBooking.eventDate || selectedBooking.date || 'TBD'}</p>
+                <p><strong>Email:</strong> {selectedBooking.clientEmail}</p>
+                <p><strong>Location:</strong> {selectedBooking.location || selectedBooking.eventLocation || 'TBD'}</p>
+                <p><strong>Package:</strong> {selectedBooking.serviceType || 'Custom'}</p>
+              </div>
+            </div>
+
+            {/* Service Line Items */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-[0.7rem] uppercase tracking-wide ink-soft font-semibold">Service Items</label>
+                <button 
+                  onClick={addServiceItem}
+                  className="text-xs text-blue-600 underline flex items-center gap-1"
+                  data-testid="button-add-service-item"
+                >
+                  <Plus size={12} /> Add Item
+                </button>
+              </div>
+              
+              <div className="space-y-2">
+                {contractServiceItems.map((item, index) => (
+                  <div key={item.id} className="flex gap-2 items-center flex-wrap sm:flex-nowrap">
+                    <select
+                      value={item.clientType}
+                      onChange={(e) => updateServiceItem(item.id, 'clientType', e.target.value)}
+                      className="w-24 border border-[#c5ccd8] bg-[#fbfcff] rounded px-2 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
+                      data-testid={`select-client-type-${index}`}
+                    >
+                      <option value="Bride">Bride</option>
+                      <option value="Groom">Groom</option>
+                      <option value="Bridesmaid">Bridesmaid</option>
+                      <option value="MOB">MOB</option>
+                      <option value="MOG">MOG</option>
+                      <option value="Guest">Guest</option>
+                      <option value="Flower Girl">Flower Girl</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    <input
+                      type="text"
+                      placeholder="Service (e.g., Hair & Makeup)"
+                      value={item.service}
+                      onChange={(e) => updateServiceItem(item.id, 'service', e.target.value)}
+                      className="flex-1 min-w-[140px] border border-[#c5ccd8] bg-[#fbfcff] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
+                      data-testid={`input-service-${index}`}
+                    />
+                    <input
+                      type="number"
+                      placeholder="Qty"
+                      value={item.qty}
+                      onChange={(e) => updateServiceItem(item.id, 'qty', parseInt(e.target.value) || 1)}
+                      className="w-14 border border-[#c5ccd8] bg-[#fbfcff] rounded px-2 py-2 text-sm text-center focus:outline-none focus:ring-1 focus:ring-black"
+                      min="1"
+                      data-testid={`input-qty-${index}`}
+                    />
+                    <div className="relative">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-500">$</span>
+                      <input
+                        type="number"
+                        placeholder="Price"
+                        value={item.price || ''}
+                        onChange={(e) => updateServiceItem(item.id, 'price', parseFloat(e.target.value) || 0)}
+                        className="w-24 border border-[#c5ccd8] bg-[#fbfcff] rounded pl-5 pr-2 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
+                        min="0"
+                        step="0.01"
+                        data-testid={`input-price-${index}`}
+                      />
+                    </div>
+                    {contractServiceItems.length > 1 && (
+                      <button 
+                        onClick={() => removeServiceItem(item.id)}
+                        className="p-1 text-red-500 hover:bg-red-50 rounded"
+                        data-testid={`button-remove-service-${index}`}
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Totals */}
+            <div className="bg-gray-50 rounded p-3 mb-4">
+              <div className="flex justify-between text-sm mb-2">
+                <span>Total:</span>
+                <span className="font-semibold">${calculateContractTotal().toFixed(2)}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs ink-soft">Deposit:</label>
+                <select
+                  value={contractDepositPercent}
+                  onChange={(e) => setContractDepositPercent(parseInt(e.target.value))}
+                  className="border border-[#c5ccd8] bg-white rounded px-2 py-1 text-sm"
+                  data-testid="select-deposit-percent"
+                >
+                  <option value={25}>25%</option>
+                  <option value={50}>50%</option>
+                  <option value={75}>75%</option>
+                  <option value={100}>100%</option>
+                </select>
+                <span className="text-sm">
+                  = ${(calculateContractTotal() * contractDepositPercent / 100).toFixed(2)} due to book
+                </span>
+              </div>
+            </div>
+
+            {/* Contract Preview Note */}
+            <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-4">
+              <p className="text-[0.65rem] text-blue-900">
+                <strong>What happens next:</strong><br />
+                Contract will be created with your standard terms and sent to {selectedBooking.clientEmail} for electronic signature.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 justify-end">
+              <button 
+                onClick={() => setShowContractCreationModal(false)}
+                disabled={savingContract}
+                className="px-4 py-2 text-xs rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                data-testid="button-cancel-contract"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleCreateAndSendContract}
+                disabled={savingContract || calculateContractTotal() <= 0}
+                className="px-4 py-2 text-xs rounded bg-black text-white hover:bg-gray-800 disabled:opacity-50 flex items-center gap-2"
+                data-testid="button-send-contract"
+              >
+                {savingContract ? (
+                  <>
+                    <Loader2 size={12} className="animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Send size={12} /> Create & Send Contract
+                  </>
                 )}
               </button>
             </div>

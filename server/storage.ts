@@ -240,6 +240,7 @@ export interface IStorage {
   createContract(contract: InsertContract): Promise<Contract>;
   getAllContracts(): Promise<Contract[]>;
   updateContract(id: string, contract: Partial<InsertContract>): Promise<Contract | undefined>;
+  deleteContract(id: string): Promise<void>;
   
   // Contract Templates
   getContractTemplatesByArtist(artistId: string): Promise<ContractTemplate[]>;
@@ -1095,6 +1096,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(contracts.id, id))
       .returning();
     return updated || undefined;
+  }
+
+  async deleteContract(id: string): Promise<void> {
+    await db.delete(contracts).where(eq(contracts.id, id));
   }
 
   // Contract Templates

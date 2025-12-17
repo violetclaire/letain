@@ -3116,6 +3116,142 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ========== BUILT-IN E-SIGNATURE ==========
+  
+  // Create contract from form with service items and send for signing
+  app.post("/api/bookings/:bookingId/create-contract", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const bookingId = req.params.bookingId;
+      const { serviceItems, totalAmount, depositAmount, depositPercent, clientName, clientEmail, eventDate, eventLocation } = req.body;
+      
+      const booking = await storage.getBooking(bookingId);
+      if (!booking) {
+        return res.status(404).json({ error: "Booking not found" });
+      }
+      
+      if (booking.artistId !== userId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      if (!serviceItems || serviceItems.length === 0) {
+        return res.status(400).json({ error: "At least one service item is required" });
+      }
+      
+      // Build package details from service items
+      const packageDetails = serviceItems.map((item: any) => 
+        `${item.clientType}: ${item.service} (${item.qty}x @ $${item.price})`
+      ).join(', ');
+      
+      // Get or create client
+      let clientId = booking.clientId;
+      
+      if (!clientId && booking.clientContactId) {
+        const contact = await storage.getClientContact(booking.clientContactId);
+        if (!contact) {
+          return res.status(400).json({ error: "Client contact not found" });
+        }
+        
+        const existingUser = await storage.getUserByEmail(contact.email);
+        if (existingUser) {
+          clientId = existingUser.id;
+        } else {
+          const tempPassword = Math.random().toString(36).substring(2, 15);
+          const newUser = await storage.createUser({
+            email: contact.email,
+            password: tempPassword,
+            firstName: contact.name?.split(' ')[0] || contact.name || "Client",
+            lastName: contact.name?.split(' ').slice(1).join(' ') || "",
+          });
+          clientId = newUser.id;
+        }
+      }
+      
+      if (!clientId) {
+        return res.status(400).json({ error: "No client associated with this booking" });
+      }
+      
+      // Delete any existing draft contracts for this booking
+      const existingContracts = await storage.getContractsByBooking(bookingId);
+      for (const existing of existingContracts) {
+        if (existing.status === 'draft') {
+          await storage.deleteContract(existing.id);
+        }
+      }
+      
+      // Convert service items to cents for storage
+      const serviceItemsInCents = serviceItems.map((item: any) => ({
+        clientType: item.clientType,
+        qty: item.qty,
+        service: item.service,
+        price: Math.round(item.price * 100), // Convert to cents
+        total: Math.round(item.qty * item.price * 100), // Convert to cents
+      }));
+      
+      // Create contract with the service items (as JSONB array, not string)
+      const contract = await storage.createContract({
+        bookingId,
+        artistId: userId,
+        clientId,
+        packageDetails,
+        totalAmount: Math.round(totalAmount * 100), // Convert to cents
+        depositAmount: Math.round(depositAmount * 100), // Convert to cents
+        status: "draft",
+        serviceItems: serviceItemsInCents, // Pass as array with cents values
+        clientName,
+        clientEmail,
+        eventLocation,
+      });
+      
+      // Now send for signing
+      const artist = await storage.getUser(contract.artistId);
+      const client = await storage.getUser(contract.clientId);
+      const artistProfile = await storage.getArtistProfile(contract.artistId);
+      
+      if (!client?.email && !clientEmail) {
+        return res.status(400).json({ error: "Client email is required for signing" });
+      }
+      
+      // Generate unique signing token
+      const signingToken = randomUUID();
+      
+      // Generate contract HTML for signing page with service items
+      const contractHtml = generateContractHtml(contract, client, artistProfile?.businessName || (artist?.firstName ? `${artist.firstName} ${artist.lastName || ""}`.trim() : "Your beauty artist"));
+      
+      // Update contract with signing token and HTML
+      await storage.updateContract(contract.id, {
+        signingToken,
+        contractHtml,
+        status: "sent",
+        sentForSigningAt: new Date(),
+      });
+      
+      // Send signing email
+      const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.replit.app';
+      const signingUrl = `${baseUrl}/sign/${signingToken}`;
+      
+      const { sendContractSigningEmail } = await import("./emailService");
+      await sendContractSigningEmail({
+        toEmail: client?.email || clientEmail,
+        clientName: client?.firstName || clientName || "Client",
+        artistName: artistProfile?.businessName || (artist?.firstName ? `${artist.firstName} ${artist.lastName || ""}`.trim() : "Service Provider"),
+        packageDetails,
+        totalAmount: totalAmount,
+        depositAmount: depositAmount,
+        signingUrl,
+      });
+      
+      res.json({ 
+        success: true, 
+        contractId: contract.id,
+        signingUrl,
+        message: "Contract created and sent for signature"
+      });
+    } catch (error: any) {
+      console.error("[Contract] Error creating contract:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/bookings/:bookingId/send-for-signing", isAuthenticated, async (req: any, res) => {
     try {
       const userId = getAuthUserId(req);
