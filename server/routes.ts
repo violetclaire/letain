@@ -3047,8 +3047,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = getAuthUserId(req);
       const bookingId = req.params.bookingId;
-      const { docusignUrl } = req.body; // Allow manual DocuSign URL
-      
       const booking = await storage.getBooking(bookingId);
       if (!booking) {
         return res.status(404).json({ error: "Booking not found" });
@@ -3110,32 +3108,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!client?.email) {
         return res.status(400).json({ error: "Client email is required for signing" });
-      }
-      
-      // If DocuSign URL provided, use that instead of OpenSign
-      if (docusignUrl) {
-        await storage.updateContract(contract.id, {
-          openSignSigningUrl: docusignUrl,
-          status: "sent",
-        });
-        
-        // Send contract email with DocuSign link
-        const { sendContractWithSigningLink } = await import('./emailService');
-        await sendContractWithSigningLink({
-          toEmail: client.email,
-          clientName: client?.firstName ? `${client.firstName} ${client.lastName || ""}`.trim() : "Client",
-          packageDetails: contract.packageDetails,
-          totalAmount: contract.totalAmount,
-          depositAmount: contract.depositAmount || 0,
-          senderName: artistProfile?.businessName || (artist?.firstName ? `${artist.firstName} ${artist.lastName || ""}`.trim() : "Service Provider"),
-          signingUrl: docusignUrl,
-        }).catch((err: any) => console.error('[Contract Email] Error:', err));
-        
-        return res.json({ 
-          success: true, 
-          signingUrl: docusignUrl,
-          message: "Contract sent to client with DocuSign link" 
-        });
       }
       
       const { createSigningDocument, generateContractPdfHtml } = await import("./openSignService");

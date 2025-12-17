@@ -538,8 +538,7 @@ export async function sendContractEmail({
           
           <p style="color: #666; font-size: 14px; margin-bottom: 24px;">Please review the attached contract details. Contact ${senderName} if you have any questions about the services or payment terms.</p>
           
-          <p style="color: #888; font-size: 12px;">Note: For secure e-signature capability, contracts can be set up with DocuSign for formal signing and record-keeping.</p>
-        </div>
+                  </div>
         <div class="footer">
           Sent via Beauvette - Beauty services for life's most important days
         </div>
