@@ -2075,6 +2075,9 @@ export default function ArtistDashboard() {
               <Link href={`/${user?.artistSlug || user?.id}`} className="text-xs ink-soft hover:ink-main flex items-center gap-1 transition-colors" data-testid="link-my-profile">
                 <Eye size={14} /> My Public Profile
               </Link>
+              <Link href="/artist/schedules" className="text-xs ink-soft hover:ink-main flex items-center gap-1 transition-colors" data-testid="link-schedule-maker">
+                <Clock size={14} /> Day-Of Schedule
+              </Link>
               <Link href="/settings" className="text-xs ink-soft hover:ink-main flex items-center gap-1 transition-colors" data-testid="link-settings">
                 <Settings size={14} /> Settings
               </Link>
