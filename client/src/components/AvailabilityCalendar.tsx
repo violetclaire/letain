@@ -179,7 +179,9 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
     
     setLoading(true);
     try {
-      const isoDate = `${dateKey}T12:00:00.000Z`;
+      // Use noon local time to avoid timezone date shifts
+      const localNoon = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
+      const isoDate = localNoon.toISOString();
       
       if (nextStatus === 'available') {
         // Clear both blocked and manual booked
