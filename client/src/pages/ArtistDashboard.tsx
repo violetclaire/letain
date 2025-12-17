@@ -389,10 +389,14 @@ export default function ArtistDashboard() {
         const contractsRes = await fetch(`/api/contracts/artist/${user.id}`, { credentials: 'include' });
         if (contractsRes.ok) {
           const contractsData = await contractsRes.json();
+          console.log("[Dashboard] Contracts fetched:", contractsData);
           setBookingContracts(contractsData || []);
+        } else {
+          const errorText = await contractsRes.text();
+          console.error("[Dashboard] Contracts fetch failed:", contractsRes.status, errorText);
         }
       } catch (err) {
-        console.error("Error fetching artist contracts:", err);
+        console.error("[Dashboard] Error fetching artist contracts:", err);
       }
     } catch (err) {
       console.error("Error fetching bookings:", err);
