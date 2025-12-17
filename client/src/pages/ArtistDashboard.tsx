@@ -2159,6 +2159,10 @@ export default function ArtistDashboard() {
                     <MessageSquare size={16} className="ink-soft" /> 
                     <span>Client Messages</span>
                   </Link>
+                  <Link href="/artist/schedules" className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 border-b border-[#e5e8f2]">
+                    <Clock size={16} className="ink-soft" /> 
+                    <span>Day-Of Schedule</span>
+                  </Link>
                   <a href="/api/logout" className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 text-red-600">
                     <LogOut size={16} /> 
                     <span>Logout</span>
