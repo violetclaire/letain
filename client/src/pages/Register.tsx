@@ -164,49 +164,43 @@ export default function Register() {
           transition={{ duration: 0.5 }}
           className="max-w-sm mx-auto w-full"
         >
-          <h2 className="text-lg font-medium text-gray-700 mb-6 text-center md:text-left">
+          <h2 className="text-lg font-medium text-gray-700 mb-4 text-center md:text-left">
             I am a...
           </h2>
 
           {isLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="w-8 h-8 animate-spin text-[#6B4A55]/40" />
+            <div className="flex justify-center py-6">
+              <Loader2 className="w-6 h-6 animate-spin text-[#6B4A55]/40" />
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="flex flex-wrap gap-2 justify-center md:justify-start">
               {roles.map((role, index) => (
                 <motion.button
                   key={role.id}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.1 * (index + 1) }}
-                  whileHover={{ x: 4 }}
-                  whileTap={{ scale: 0.98 }}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.2, delay: 0.05 * (index + 1) }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => handleRoleSelect(role.id)}
                   onMouseEnter={() => setHoveredRole(role.id)}
                   onMouseLeave={() => setHoveredRole(null)}
                   disabled={isSubmitting}
                   className={`
-                    w-full flex items-center gap-4 p-4 rounded-xl
+                    flex items-center gap-2 px-4 py-2.5 rounded-full
                     bg-white border-2 ${role.borderColor} ${role.hoverBorder}
-                    transition-all duration-200 text-left
+                    transition-all duration-200
                     disabled:opacity-50 disabled:cursor-not-allowed
                     hover:shadow-md
                   `}
                   data-testid={`button-register-${role.id}`}
                 >
-                  <div className={`w-12 h-12 rounded-lg ${role.bgColor} flex items-center justify-center flex-shrink-0`}>
-                    {isSubmitting && hoveredRole === role.id ? (
-                      <Loader2 className={`w-6 h-6 animate-spin ${role.color}`} />
-                    ) : (
-                      <role.icon className={`w-6 h-6 ${role.color}`} />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-800">{role.title}</h3>
-                    <p className="text-sm text-gray-500 truncate">{role.description}</p>
-                  </div>
-                  <span className="text-gray-400 text-lg">→</span>
+                  {isSubmitting && hoveredRole === role.id ? (
+                    <Loader2 className={`w-4 h-4 animate-spin ${role.color}`} />
+                  ) : (
+                    <role.icon className={`w-4 h-4 ${role.color}`} />
+                  )}
+                  <span className="font-medium text-gray-700 text-sm">{role.title}</span>
                 </motion.button>
               ))}
             </div>
