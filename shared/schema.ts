@@ -935,7 +935,7 @@ export const cdiPatternLibrary = pgTable("cdi_pattern_library", {
 // inquiry_created, first_response, hold_placed, hold_expired, proposal_sent, proposal_viewed,
 // confirm_clicked, booking_created, declined, auto_escalated, reminder_sent
 
-// Audit logs for compliance
+// Audit logs for compliance and activity tracking
 export const auditLogs = pgTable("audit_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id),
@@ -944,11 +944,17 @@ export const auditLogs = pgTable("audit_logs", {
   actionVersion: integer("action_version").default(1), // Future-proof schema changes
   resourceType: text("resource_type").notNull(),
   resourceId: varchar("resource_id"),
+  description: text("description"), // Human-readable description for activity feed
+  emailSent: boolean("email_sent").default(false), // Whether notification email was sent
+  emailSentTo: text("email_sent_to"), // Email address notification was sent to
   metadata: jsonb("metadata").$type<{
     diff?: Record<string, { from: any; to: any }>; // Changed fields
     reason?: string;
     previousStatus?: string;
     newStatus?: string;
+    clientName?: string;
+    clientEmail?: string;
+    amount?: number;
     [key: string]: any;
   }>(),
   ipAddress: text("ip_address"),
