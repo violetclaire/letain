@@ -21,41 +21,37 @@ export function TopNav() {
   };
 
   return (
-    <div className="fixed top-0 right-0 z-40 p-4">
+    <div className="fixed top-0 right-0 z-40 p-6 md:p-8">
       {user ? (
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-[#6B4A55]">
+        <div className="flex items-center gap-4">
+          <span className="text-xs md:text-sm font-medium text-[#6B4A55]">
             {user.firstName || user.email}
           </span>
-          <Button
+          <button
             onClick={handleLogout}
-            variant="outline"
-            size="sm"
-            className="gap-2"
+            className="inline-flex items-center gap-2 px-4 py-2 text-xs uppercase tracking-wide text-[#6B4A55] border border-[#6B4A55]/20 rounded hover:bg-[#6B4A55]/5 transition-all duration-200"
             data-testid="button-logout"
           >
-            <LogOut className="h-4 w-4" />
-            Logout
-          </Button>
+            <LogOut className="h-3.5 w-3.5" />
+            <span>Logout</span>
+          </button>
         </div>
       ) : (
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
+        <div className="flex gap-3 md:gap-4">
+          <button
             onClick={() => setLocation("/login")}
+            className="px-5 py-2.5 text-xs uppercase tracking-wide font-medium text-[#6B4A55] border border-[#6B4A55]/30 rounded hover:bg-[#6B4A55]/5 transition-all duration-200"
             data-testid="button-login"
           >
             Login
-          </Button>
-          <Button
-            size="sm"
-            className="bg-[#6B4A55] hover:bg-[#5A1F2B]"
+          </button>
+          <button
             onClick={() => setLocation("/signup")}
+            className="px-5 py-2.5 text-xs uppercase tracking-wide font-medium text-white bg-[#6B4A55] rounded hover:bg-[#5A1F2B] transition-all duration-200 shadow-sm"
             data-testid="button-signup"
           >
             Sign Up
-          </Button>
+          </button>
         </div>
       )}
     </div>
