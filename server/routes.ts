@@ -2881,18 +2881,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const buffer = Buffer.from(fileContent, 'base64');
       const servingUrl = await objectService.uploadBuffer(objectPath, buffer, mimeType || 'application/pdf', userId);
       
-      // Create or update contract
+      // Create or update contract with signing token
+      const { randomUUID } = await import("crypto");
       let existingContracts = await storage.getContractsByBooking(bookingId);
       let contract;
       
       if (existingContracts.length > 0) {
+        // Generate new signing token if one doesn't exist
+        const signingToken = existingContracts[0].signingToken || randomUUID();
         contract = await storage.updateContract(existingContracts[0].id, { 
           fileUrl: servingUrl,
           packageDetails: packageDetails || existingContracts[0].packageDetails,
           totalAmount: totalAmount || existingContracts[0].totalAmount,
           depositAmount: depositAmount || existingContracts[0].depositAmount,
+          signingToken,
+          status: 'pending_signature',
         });
       } else {
+        const signingToken = randomUUID();
         contract = await storage.createContract({
           bookingId,
           artistId: userId,
@@ -2900,8 +2906,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           packageDetails: packageDetails || 'Beauty Services',
           totalAmount: totalAmount || 0,
           depositAmount: depositAmount || 0,
-          status: 'draft',
+          status: 'pending_signature',
           fileUrl: servingUrl,
+          signingToken,
         });
       }
       
