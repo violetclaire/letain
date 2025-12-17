@@ -438,7 +438,7 @@ User message: ${message}`;
     const enhancedSystemPrompt = SYSTEM_PROMPT + cdiToneModifier;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-pro",
+      model: "gemini-3-pro-preview",
       contents: [
         { role: "user", parts: [{ text: enhancedSystemPrompt }] },
         {
@@ -914,7 +914,7 @@ export async function generateImageFromAI(
     const enhancedPrompt = `Professional beauty/wedding photography style: ${prompt}. High quality, elegant, soft natural lighting, luxurious aesthetic.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-image",
+      model: "gemini-3-flash",
       contents: [{ role: "user", parts: [{ text: enhancedPrompt }] }],
       config: {
         responseModalities: [Modality.TEXT, Modality.IMAGE],
@@ -1164,7 +1164,7 @@ export async function generateClientResponse(
       .replace('{clientMessage}', clientMessage);
     
     const result = await ai.models.generateContent({
-      model: "gemini-2.5-pro",
+      model: "gemini-3-pro-preview",
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: {
         temperature: 0.7,
