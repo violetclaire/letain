@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { ArrowLeft, Upload, Send } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,18 +16,24 @@ export default function ContractEditor() {
   const [isSending, setIsSending] = useState(false);
 
   // Fetch artist bookings
-  const { data: bookings = [] } = useQuery({
+  const { data: bookings = [], error: bookingsError } = useQuery({
     queryKey: ["artistBookings", user?.id],
     queryFn: async () => {
       if (!user) return [];
       try {
+        console.log("[ContractEditor] Fetching bookings for artist:", user.id);
         const res = await fetch(`/api/bookings/artist/${user.id}`, { 
           credentials: "include" 
         });
-        if (!res.ok) return [];
-        return res.json();
+        if (!res.ok) {
+          console.error("[ContractEditor] Bookings fetch failed:", res.status, res.statusText);
+          return [];
+        }
+        const data = await res.json();
+        console.log("[ContractEditor] Bookings fetched:", data.length);
+        return data;
       } catch (err) {
-        console.error("Error fetching bookings:", err);
+        console.error("[ContractEditor] Error fetching bookings:", err);
         return [];
       }
     },
@@ -35,23 +41,50 @@ export default function ContractEditor() {
   });
 
   // Fetch artist contracts
-  const { data: contracts = [] } = useQuery({
+  const { data: contracts = [], error: contractsError } = useQuery({
     queryKey: ["artistContracts", user?.id],
     queryFn: async () => {
       if (!user) return [];
       try {
+        console.log("[ContractEditor] Fetching contracts for artist:", user.id);
         const res = await fetch(`/api/contracts/artist/${user.id}`, { 
           credentials: "include" 
         });
-        if (!res.ok) return [];
-        return res.json();
+        if (!res.ok) {
+          console.error("[ContractEditor] Contracts fetch failed:", res.status, res.statusText);
+          const text = await res.text();
+          console.error("[ContractEditor] Response:", text);
+          return [];
+        }
+        const data = await res.json();
+        console.log("[ContractEditor] Contracts fetched:", data.length, data);
+        return data;
       } catch (err) {
-        console.error("Error fetching contracts:", err);
+        console.error("[ContractEditor] Error fetching contracts:", err);
         return [];
       }
     },
     enabled: !!user,
   });
+
+  useEffect(() => {
+    if (bookingsError) {
+      console.error("[ContractEditor] Bookings error:", bookingsError);
+      toast({
+        title: "Error loading bookings",
+        description: bookingsError.message,
+        variant: "destructive"
+      });
+    }
+    if (contractsError) {
+      console.error("[ContractEditor] Contracts error:", contractsError);
+      toast({
+        title: "Error loading contracts",
+        description: contractsError.message,
+        variant: "destructive"
+      });
+    }
+  }, [bookingsError, contractsError, toast]);
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,6 +114,7 @@ export default function ContractEditor() {
         try {
           const base64 = (event.target?.result as string).split(',')[1];
           
+          console.log("[ContractEditor] Uploading contract for booking:", selectedBookingId);
           const res = await fetch(`/api/bookings/${selectedBookingId}/upload-contract`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -97,6 +131,7 @@ export default function ContractEditor() {
 
           if (res.ok) {
             const data = await res.json();
+            console.log("[ContractEditor] Upload successful:", data);
             toast({ 
               title: "Success", 
               description: "Contract uploaded successfully!"
@@ -105,6 +140,7 @@ export default function ContractEditor() {
             queryClient.invalidateQueries({ queryKey: ["artistContracts"] });
           } else {
             const error = await res.json();
+            console.error("[ContractEditor] Upload failed:", error);
             toast({ 
               title: "Upload Failed", 
               description: error.error || "Failed to upload contract",
@@ -112,7 +148,7 @@ export default function ContractEditor() {
             });
           }
         } catch (err: any) {
-          console.error("Upload error:", err);
+          console.error("[ContractEditor] Upload error:", err);
           toast({ 
             title: "Error", 
             description: err.message || "Failed to upload contract",
@@ -124,7 +160,7 @@ export default function ContractEditor() {
       };
       reader.readAsDataURL(uploadedFile);
     } catch (err: any) {
-      console.error("File read error:", err);
+      console.error("[ContractEditor] File read error:", err);
       toast({ 
         title: "Error", 
         description: "Failed to read file",
@@ -137,6 +173,7 @@ export default function ContractEditor() {
   const handleSend = async (contractId: string) => {
     setIsSending(true);
     try {
+      console.log("[ContractEditor] Sending contract for signing:", contractId);
       const res = await fetch(`/api/contracts/${contractId}/send-for-signing`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -146,6 +183,7 @@ export default function ContractEditor() {
 
       if (res.ok) {
         const data = await res.json();
+        console.log("[ContractEditor] Send successful:", data);
         toast({ 
           title: "Success", 
           description: "Contract sent for signing! Client will receive an email."
@@ -153,6 +191,7 @@ export default function ContractEditor() {
         queryClient.invalidateQueries({ queryKey: ["artistContracts"] });
       } else {
         const error = await res.json();
+        console.error("[ContractEditor] Send failed:", error);
         toast({ 
           title: "Error", 
           description: error.error || "Failed to send contract",
@@ -160,7 +199,7 @@ export default function ContractEditor() {
         });
       }
     } catch (err: any) {
-      console.error("Send error:", err);
+      console.error("[ContractEditor] Send error:", err);
       toast({ 
         title: "Error", 
         description: err.message || "Failed to send contract",
@@ -240,7 +279,7 @@ export default function ContractEditor() {
 
         {/* Contracts List */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-2xl font-bold mb-4">Your Contracts</h2>
+          <h2 className="text-2xl font-bold mb-4">Your Contracts ({contracts.length})</h2>
           
           {contracts.length === 0 ? (
             <p className="text-gray-500">No contracts yet. Upload one to get started!</p>

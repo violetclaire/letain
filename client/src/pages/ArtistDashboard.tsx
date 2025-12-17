@@ -383,6 +383,17 @@ export default function ArtistDashboard() {
       } finally {
         setBadgesLoading(false);
       }
+
+      // Fetch all contracts for this artist
+      try {
+        const contractsRes = await fetch(`/api/contracts/artist/${user.id}`, { credentials: 'include' });
+        if (contractsRes.ok) {
+          const contractsData = await contractsRes.json();
+          setBookingContracts(contractsData || []);
+        }
+      } catch (err) {
+        console.error("Error fetching artist contracts:", err);
+      }
     } catch (err) {
       console.error("Error fetching bookings:", err);
     }
