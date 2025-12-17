@@ -17,7 +17,7 @@ import ClientDetails from "@/pages/intake/ClientDetails";
 import ArtistIntake from "@/pages/intake/ArtistIntake";
 import PlannerIntake from "@/pages/intake/PlannerIntake";
 import ClientDashboard from "@/pages/ClientDashboard";
-import ArtistDashboard from "@/pages/ArtistDashboardNew";
+import ArtistDashboard from "@/pages/ArtistDashboard";
 import PlannerDashboard from "@/pages/PlannerDashboard";
 import BrowseArtists from "@/pages/BrowseArtists";
 import AdminDashboard from "@/pages/AdminDashboard";
