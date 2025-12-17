@@ -114,6 +114,7 @@ export default function ArtistDashboard() {
     metadata?: Record<string, any>;
   }>>([]);
   const [activityLoading, setActivityLoading] = useState(false);
+  const [activityError, setActivityError] = useState(false);
   
   // Inquiry inbox state
   const [inquiries, setInquiries] = useState<Array<{
@@ -414,14 +415,18 @@ export default function ArtistDashboard() {
       
       // Fetch activity feed
       setActivityLoading(true);
+      setActivityError(false);
       try {
         const activityRes = await fetch('/api/activity/today', { credentials: 'include' });
         if (activityRes.ok) {
           const activityData = await activityRes.json();
           setActivityFeed(activityData || []);
+        } else {
+          setActivityError(true);
         }
       } catch (actErr) {
         console.error("[Dashboard] Error fetching activity:", actErr);
+        setActivityError(true);
       } finally {
         setActivityLoading(false);
       }
@@ -3433,6 +3438,8 @@ export default function ArtistDashboard() {
                   <div className="flex items-center justify-center py-4">
                     <Loader2 size={16} className="animate-spin text-gray-400" />
                   </div>
+                ) : activityError ? (
+                  <p className="text-xs text-red-500 py-2">Unable to load activity. Please refresh the page.</p>
                 ) : activityFeed.length === 0 ? (
                   <p className="text-xs ink-soft italic py-2">No activity yet today. Actions you take (contracts sent, bookings confirmed, etc.) will appear here.</p>
                 ) : (
