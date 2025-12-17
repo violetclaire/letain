@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useState, useEffect, useRef } from "react";
-import { Calendar, Bell, Settings, Check, X, Send, MessageCircle, Copy, DollarSign, Clock, MapPin, ChevronRight, Plus, Search, Loader2, ExternalLink } from "lucide-react";
+import { Bell, Settings, Check, X, Send, MessageCircle, Copy, DollarSign, Loader2 } from "lucide-react";
 import AvailabilityCalendar from "../components/AvailabilityCalendar";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -230,199 +230,175 @@ export default function ArtistDashboardNew() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5]" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%235A1F2B' fill-opacity='0.03'%3E%3Cpath d='M0 0h20v20H0zM20 20h20v20H20z'/%3E%3C/g%3E%3C/svg%3E\")" }}>
+    <div className="min-h-screen bg-[#F7F4EF]" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%235A1F2B' stroke-opacity='0.06' stroke-width='1'%3E%3Cpath d='M0 30h60M30 0v60'/%3E%3C/g%3E%3C/svg%3E\")" }}>
       {/* Top Bar */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-[#5A1F2B]/10 px-4 py-3">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link href="/" className="font-serif text-xl text-[#5A1F2B]" data-testid="link-home">
+      <header className="sticky top-0 z-50 bg-[#F7F4EF]/95 backdrop-blur px-6 py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <Link href="/" className="font-serif text-2xl tracking-tight text-[#5A1F2B]" data-testid="link-home">
             Beauvette
           </Link>
           
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-[#262329]">{user?.firstName || "Artist"}</span>
-            {user?.profileImageUrl && (
-              <img src={user.profileImageUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
+          <div className="flex items-center gap-4">
+            {user?.profileImageUrl ? (
+              <img src={user.profileImageUrl} alt="" className="w-10 h-10 rounded-full object-cover border-2 border-[#5A1F2B]/20" />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-[#5A1F2B]/10 flex items-center justify-center">
+                <span className="text-[#5A1F2B] font-medium">{user?.firstName?.charAt(0) || "A"}</span>
+              </div>
             )}
+            <span className="font-serif text-lg text-[#262329]">{user?.firstName || "Artist"}</span>
           </div>
           
-          <div className="flex items-center gap-2">
-            <button className="relative p-2 hover:bg-[#5A1F2B]/5 rounded-full" data-testid="button-notifications">
-              <Bell size={20} className="text-[#5A1F2B]" />
+          <div className="flex items-center gap-4">
+            <button className="relative p-2 hover:bg-[#5A1F2B]/5 rounded-full transition-colors" data-testid="button-notifications">
+              <Bell size={22} className="text-[#5A1F2B]" />
               {notifications > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-[#5A1F2B] text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-medium">
                   {notifications}
                 </span>
               )}
             </button>
-            <Link href="/artist/settings" className="p-2 hover:bg-[#5A1F2B]/5 rounded-full" data-testid="link-settings">
-              <Settings size={20} className="text-[#5A1F2B]" />
+            <Link href="/artist/settings" className="p-2 hover:bg-[#5A1F2B]/5 rounded-full transition-colors" data-testid="link-settings">
+              <Settings size={22} className="text-[#5A1F2B]" />
             </Link>
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto p-4">
-        {/* 4-Quadrant Grid */}
-        <div className="grid md:grid-cols-2 gap-4">
+      <main className="max-w-7xl mx-auto px-6 py-8">
+        {/* 4-Quadrant Grid - Calendar dominates left side */}
+        <div className="grid lg:grid-cols-[3fr_2fr] gap-8">
           
-          {/* Quadrant 1: Calendar (Top Left - Largest) */}
-          <div className="md:row-span-2 bg-white rounded-xl shadow-sm border border-[#5A1F2B]/10 p-4" data-testid="quadrant-calendar">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-serif text-lg text-[#5A1F2B]">Calendar</h2>
-            </div>
+          {/* Left Column: Calendar (Dominant) */}
+          <div className="bg-white/80 backdrop-blur rounded-2xl p-8 min-h-[600px]" data-testid="quadrant-calendar">
+            <h2 className="font-serif text-2xl text-[#5A1F2B] mb-6">Your Calendar</h2>
             <AvailabilityCalendar 
               userId={user?.id || ""}
             />
           </div>
 
-          {/* Quadrant 2: Requests (Top Right) */}
-          <div className="bg-white rounded-xl shadow-sm border border-[#5A1F2B]/10 p-4" data-testid="quadrant-requests">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-serif text-lg text-[#5A1F2B]">
-                Requests
-                {requests.length > 0 && (
-                  <span className="ml-2 bg-[#5A1F2B] text-white text-xs px-2 py-0.5 rounded-full">
-                    {requests.length}
-                  </span>
-                )}
-              </h2>
-            </div>
+          {/* Right Column: 3 Stacked Sections */}
+          <div className="space-y-6">
             
-            <div className="space-y-3 max-h-[280px] overflow-y-auto">
-              {requests.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-8">No pending requests</p>
-              ) : (
-                requests.slice(0, 5).map((req) => (
-                  <div key={req.id} className="p-3 bg-[#FAF8F5] rounded-lg" data-testid={`request-${req.id}`}>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{req.clientName}</p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(req.eventDate).toLocaleDateString()} • {req.serviceType || "Service"}
+            {/* Requests */}
+            <div className="bg-white/80 backdrop-blur rounded-2xl p-6" data-testid="quadrant-requests">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-serif text-xl text-[#5A1F2B]">
+                  Requests
+                  {requests.length > 0 && (
+                    <span className="ml-3 bg-[#5A1F2B] text-white text-xs px-2.5 py-1 rounded-full">
+                      {requests.length}
+                    </span>
+                  )}
+                </h2>
+              </div>
+              
+              <div className="space-y-3">
+                {requests.length === 0 ? (
+                  <p className="text-sm text-[#6B5A50] text-center py-6">No pending requests</p>
+                ) : (
+                  requests.slice(0, 4).map((req) => (
+                    <div key={req.id} className="flex items-center justify-between p-4 bg-[#F7F4EF] rounded-xl" data-testid={`request-${req.id}`}>
+                      <div className="flex-1 min-w-0 mr-4">
+                        <p className="font-medium text-[#262329]">{req.clientName}</p>
+                        <p className="text-sm text-[#6B5A50]">
+                          {new Date(req.eventDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} • {req.serviceType || "Service"}
                         </p>
                         {req.amount && (
-                          <p className="text-xs font-medium text-[#5A1F2B] mt-1">${(req.amount / 100).toLocaleString()}</p>
+                          <p className="text-sm font-semibold text-[#5A1F2B] mt-1">${(req.amount / 100).toLocaleString()}</p>
                         )}
                       </div>
-                      <div className="flex gap-1 ml-2">
+                      <div className="flex gap-2">
                         <button
                           onClick={() => handleAcceptRequest(req.id)}
-                          className="p-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200"
+                          className="px-4 py-2 bg-[#5A1F2B] text-white text-sm rounded-lg hover:bg-[#5A1F2B]/90 transition-colors"
                           data-testid={`button-accept-${req.id}`}
                         >
-                          <Check size={14} />
+                          Accept
                         </button>
                         <button
                           onClick={() => handleDeclineRequest(req.id)}
-                          className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200"
+                          className="px-4 py-2 bg-white border border-[#5A1F2B]/20 text-[#5A1F2B] text-sm rounded-lg hover:bg-[#5A1F2B]/5 transition-colors"
                           data-testid={`button-decline-${req.id}`}
                         >
-                          <X size={14} />
+                          Decline
                         </button>
                       </div>
                     </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Quadrant 3: Messages (Bottom Left) */}
-          <div className="bg-white rounded-xl shadow-sm border border-[#5A1F2B]/10 p-4" data-testid="quadrant-messages">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-serif text-lg text-[#5A1F2B]">
-                Messages
-                {notifications > 0 && (
-                  <span className="ml-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-                    {notifications}
-                  </span>
+                  ))
                 )}
-              </h2>
-            </div>
-            
-            <div className="mb-3">
-              <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search messages..."
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#5A1F2B]"
-                  data-testid="input-search-messages"
-                />
               </div>
             </div>
 
-            <div className="space-y-2 max-h-[200px] overflow-y-auto">
-              {messages.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-6">No messages yet</p>
-              ) : (
-                messages.slice(0, 5).map((msg) => (
-                  <button
-                    key={msg.id}
-                    onClick={() => openChat(msg)}
-                    className={`w-full text-left p-3 rounded-lg transition-colors ${
-                      msg.unread ? "bg-[#5A1F2B]/5" : "bg-gray-50 hover:bg-gray-100"
-                    }`}
-                    data-testid={`message-${msg.id}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[#5A1F2B]/10 flex items-center justify-center text-xs font-medium text-[#5A1F2B]">
-                        {msg.contactName.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <p className={`text-sm truncate ${msg.unread ? "font-semibold" : ""}`}>
-                            {msg.contactName}
-                          </p>
-                          {msg.unread && <span className="w-2 h-2 bg-[#5A1F2B] rounded-full" />}
+            {/* Messages */}
+            <div className="bg-white/80 backdrop-blur rounded-2xl p-6" data-testid="quadrant-messages">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-serif text-xl text-[#5A1F2B]">
+                  Messages
+                  {notifications > 0 && (
+                    <span className="ml-3 bg-[#5A1F2B] text-white text-xs px-2.5 py-1 rounded-full">
+                      {notifications}
+                    </span>
+                  )}
+                </h2>
+              </div>
+
+              <div className="space-y-2">
+                {messages.length === 0 ? (
+                  <p className="text-sm text-[#6B5A50] text-center py-6">No messages yet</p>
+                ) : (
+                  messages.slice(0, 4).map((msg) => (
+                    <button
+                      key={msg.id}
+                      onClick={() => openChat(msg)}
+                      className={`w-full text-left p-4 rounded-xl transition-colors ${
+                        msg.unread ? "bg-[#5A1F2B]/5 border border-[#5A1F2B]/20" : "bg-[#F7F4EF] hover:bg-[#F7F4EF]/80"
+                      }`}
+                      data-testid={`message-${msg.id}`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-[#5A1F2B]/10 flex items-center justify-center text-sm font-medium text-[#5A1F2B]">
+                          {msg.contactName.charAt(0).toUpperCase()}
                         </div>
-                        <p className="text-xs text-gray-500 truncate">{msg.lastMessage}</p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <p className={`text-sm ${msg.unread ? "font-semibold text-[#262329]" : "text-[#262329]"}`}>
+                              {msg.contactName}
+                            </p>
+                            {msg.unread && <span className="w-2.5 h-2.5 bg-[#5A1F2B] rounded-full" />}
+                          </div>
+                          <p className="text-sm text-[#6B5A50] truncate">{msg.lastMessage}</p>
+                        </div>
                       </div>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Quadrant 4: Quick Actions (Bottom Right) */}
-          <div className="bg-white rounded-xl shadow-sm border border-[#5A1F2B]/10 p-4" data-testid="quadrant-actions">
-            <h2 className="font-serif text-lg text-[#5A1F2B] mb-4">Quick Actions</h2>
-            
-            <div className="space-y-3">
-              <button
-                onClick={() => setShowInvoiceModal(true)}
-                className="w-full py-3 bg-[#5A1F2B] text-white rounded-lg font-medium hover:bg-[#5A1F2B]/90 transition-colors flex items-center justify-center gap-2"
-                data-testid="button-create-invoice"
-              >
-                <DollarSign size={18} />
-                Create Invoice
-              </button>
-              
-              <button
-                onClick={copyScheduleLink}
-                className="w-full py-2.5 border border-[#5A1F2B] text-[#5A1F2B] rounded-lg text-sm hover:bg-[#5A1F2B]/5 transition-colors flex items-center justify-center gap-2"
-                data-testid="button-copy-schedule"
-              >
-                {copiedLink ? <Check size={16} /> : <Copy size={16} />}
-                {copiedLink ? "Copied!" : "My Schedule Link"}
-              </button>
-              
-              <div className="flex items-center justify-between p-3 bg-[#FAF8F5] rounded-lg">
-                <span className="text-sm">Availability</span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" defaultChecked className="sr-only peer" data-testid="toggle-availability" />
-                  <div className="w-9 h-5 bg-gray-300 peer-checked:bg-green-500 rounded-full peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
-                </label>
+                    </button>
+                  ))
+                )}
               </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="bg-white/80 backdrop-blur rounded-2xl p-6" data-testid="quadrant-actions">
+              <h2 className="font-serif text-xl text-[#5A1F2B] mb-4">Quick Actions</h2>
               
-              <Link
-                href="/artist/settings#payments"
-                className="block w-full py-2.5 text-center text-sm text-[#5A1F2B] hover:underline"
-                data-testid="link-payment-settings"
-              >
-                Payment Settings →
-              </Link>
+              <div className="space-y-3">
+                <button
+                  onClick={() => setShowInvoiceModal(true)}
+                  className="w-full py-4 bg-[#5A1F2B] text-white rounded-xl font-medium text-lg hover:bg-[#5A1F2B]/90 transition-colors flex items-center justify-center gap-3"
+                  data-testid="button-create-invoice"
+                >
+                  <DollarSign size={20} />
+                  Create Invoice
+                </button>
+                
+                <button
+                  onClick={copyScheduleLink}
+                  className="w-full py-3 border-2 border-[#5A1F2B] text-[#5A1F2B] rounded-xl font-medium hover:bg-[#5A1F2B]/5 transition-colors flex items-center justify-center gap-2"
+                  data-testid="button-copy-schedule"
+                >
+                  {copiedLink ? <Check size={18} /> : <Copy size={18} />}
+                  {copiedLink ? "Copied!" : "Copy Schedule Link"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
