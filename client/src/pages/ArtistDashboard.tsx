@@ -2195,22 +2195,64 @@ export default function ArtistDashboard() {
               {view === "overview" ? (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                    {/* Service Requests - Compact */}
+                    {/* Inbox - Combined requests and inquiries */}
                     <div className="space-y-4">
-                      <div className="card-frame rounded-md px-5 py-4">
+                      <div className="card-frame rounded-md px-5 py-4" data-testid="section-inbox">
                         <h2 className="font-header text-md ink-main mb-3 flex items-center justify-between">
-                          Service Requests
-                          <span className="bg-red-50 text-red-600 text-[0.6rem] px-2 py-1 rounded-full font-sans uppercase tracking-wide font-semibold">{requests.length} New</span>
+                          <span className="flex items-center gap-2">
+                            <Mail size={14} /> Inbox
+                          </span>
+                          {(requests.length + inquiries.filter(i => i.status === 'pending').length) > 0 && (
+                            <span className="bg-pink/20 text-pink text-[0.6rem] px-2 py-1 rounded-full font-sans uppercase tracking-wide font-semibold">
+                              {requests.length + inquiries.filter(i => i.status === 'pending').length} New
+                            </span>
+                          )}
                         </h2>
                         
-                        {requests.length === 0 ? (
-                          <p className="text-xs ink-soft italic">No pending requests.</p>
+                        {/* Quick Actions */}
+                        <div className="flex flex-wrap gap-1.5 mb-3 pb-3 border-b border-[#e5e8f2]">
+                          <Link 
+                            href="/artist/import" 
+                            className="px-2.5 py-1 bg-[#6B4A55] text-white text-[0.6rem] rounded hover:bg-[#8a6270] transition-colors flex items-center gap-1"
+                            data-testid="link-add-inquiry"
+                          >
+                            <Plus size={10} />
+                            Add
+                          </Link>
+                          <Link 
+                            href="/artist/proposals" 
+                            className="px-2.5 py-1 bg-white border border-gray-200 text-gray-600 text-[0.6rem] rounded hover:bg-gray-50 transition-colors flex items-center gap-1"
+                            data-testid="link-new-proposal"
+                          >
+                            <FileText size={10} />
+                            Proposal
+                          </Link>
+                          <Link 
+                            href="/artist/messages" 
+                            className="px-2.5 py-1 bg-white border border-gray-200 text-gray-600 text-[0.6rem] rounded hover:bg-gray-50 transition-colors flex items-center gap-1"
+                            data-testid="link-send-info"
+                          >
+                            <Send size={10} />
+                            Send Info
+                          </Link>
+                        </div>
+
+                        {inquiriesLoading ? (
+                          <div className="flex items-center justify-center py-4">
+                            <Loader2 size={16} className="animate-spin text-gray-400" />
+                          </div>
+                        ) : (requests.length === 0 && inquiries.length === 0) ? (
+                          <p className="text-xs ink-soft italic">No messages yet. New requests will appear here.</p>
                         ) : (
-                          <div className="space-y-2 max-h-[120px] overflow-y-auto pr-1 custom-scrollbar">
+                          <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1 custom-scrollbar">
+                            {/* Service Requests */}
                             {requests.map(req => (
-                              <div key={req.id} className="border border-[#e5e8f2] bg-[#fbfcff] p-2 rounded-md text-xs">
+                              <div key={`req-${req.id}`} className="border border-[#e5e8f2] bg-[#fbfcff] p-2 rounded-md text-xs">
                                 <div className="flex justify-between items-start mb-1">
-                                  <h3 className="font-header text-xs ink-main">{req.name}</h3>
+                                  <div className="flex items-center gap-2">
+                                    <h3 className="font-header text-xs ink-main">{req.name}</h3>
+                                    <span className="bg-[#6B4A55]/10 text-[#6B4A55] text-[0.5rem] px-1.5 py-0.5 rounded-full font-semibold uppercase">Request</span>
+                                  </div>
                                   <p className="text-[0.6rem] ink-soft">{req.date}</p>
                                 </div>
                                 <p className="text-[0.65rem] ink-soft mb-2">{req.service}</p>
@@ -2224,67 +2266,16 @@ export default function ArtistDashboard() {
                                   </button>
                                   <button 
                                     onClick={() => acceptRequest(req)}
-                                    className="flex-1 py-1 rounded-md bg-black text-white border border-black hover:bg-gray-800 transition-colors flex justify-center"
-                                    title="Accept & Book"
+                                    className="flex-1 py-1 rounded-md bg-[#6B4A55] text-white hover:bg-[#5A1F2B] transition-colors flex justify-center"
+                                    title="Accept"
                                   >
                                     <Check size={12} />
                                   </button>
                                 </div>
                               </div>
                             ))}
-                          </div>
-                        )}
-
-                        {/* Quick Actions Row - Stack on mobile */}
-                        <div className="flex flex-col sm:flex-row gap-1.5 mt-3 pt-3 border-t border-[#e5e8f2]">
-                          <Link 
-                            href="/artist/messages" 
-                            className="px-3 py-1.5 bg-[#6B4A55] text-white text-[0.6rem] rounded hover:bg-[#8a6270] transition-colors flex items-center justify-center gap-1"
-                            data-testid="link-client-messages"
-                          >
-                            <MessageSquare size={10} />
-                            <span>Client Messages</span>
-                          </Link>
-                          <Link 
-                            href="/artist/manage-bookings" 
-                            className="px-3 py-1.5 bg-black text-white text-[0.6rem] rounded hover:bg-gray-800 transition-colors flex items-center justify-center gap-1"
-                            data-testid="link-manage-bookings"
-                          >
-                            <FileText size={10} />
-                            <span>Manage</span>
-                          </Link>
-                          <Link 
-                            href="/artist/import" 
-                            className="px-3 py-1.5 bg-black text-white text-[0.6rem] rounded hover:bg-gray-800 transition-colors flex items-center justify-center gap-1"
-                            data-testid="link-import-bookings"
-                          >
-                            <Upload size={10} />
-                            <span>Import</span>
-                          </Link>
-                        </div>
-                      </div>
-
-                      {/* Inquiry Inbox */}
-                      <div className="card-frame rounded-md px-5 py-4" data-testid="section-inquiry-inbox">
-                        <h2 className="font-header text-md ink-main mb-3 flex items-center justify-between">
-                          <span className="flex items-center gap-2">
-                            <Mail size={14} /> Inquiry Inbox
-                          </span>
-                          {inquiries.filter(i => i.status === 'pending').length > 0 && (
-                            <span className="bg-pink/20 text-pink text-[0.6rem] px-2 py-1 rounded-full font-sans uppercase tracking-wide font-semibold">
-                              {inquiries.filter(i => i.status === 'pending').length} New
-                            </span>
-                          )}
-                        </h2>
-                        
-                        {inquiriesLoading ? (
-                          <div className="flex items-center justify-center py-4">
-                            <Loader2 size={16} className="animate-spin text-gray-400" />
-                          </div>
-                        ) : inquiries.length === 0 ? (
-                          <p className="text-xs ink-soft italic">No inquiries yet. Prospective clients will appear here.</p>
-                        ) : (
-                          <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1 custom-scrollbar">
+                            
+                            {/* Inquiries */}
                             {inquiries.map(inquiry => {
                               // Compute status info for inline display
                               const isHold = inquiry.status === 'hold' && (inquiry.hold?.expiresAt || inquiry.holdExpiresAt);
@@ -2362,7 +2353,7 @@ export default function ArtistDashboard() {
                                       <button 
                                         onClick={(e) => { e.stopPropagation(); handleConfirmInquiry(inquiry.id); }}
                                         disabled={confirmingInquiry === inquiry.id}
-                                        className="flex-1 py-1.5 rounded bg-green-600 text-white text-[0.6rem] font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+                                        className="flex-1 py-1.5 rounded bg-[#6B4A55] text-white text-[0.6rem] font-medium hover:bg-[#5A1F2B] transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
                                         data-testid={`button-confirm-inquiry-${inquiry.id}`}
                                       >
                                         {confirmingInquiry === inquiry.id ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
@@ -2541,60 +2532,6 @@ export default function ArtistDashboard() {
                             })}
                           </div>
                         )}
-                      </div>
-
-                      {/* Quick Actions Row */}
-                      <div className="grid grid-cols-3 gap-3">
-                        {/* Client Messages - Primary Action */}
-                        <Link 
-                          href="/artist/messages"
-                          className="card-frame rounded-md px-4 py-3 block hover:border-[#6B4A55] border-2 border-[#6B4A55]/30 bg-gradient-to-r from-[#FAF7F2] to-[#F5F0EA] transition-colors group"
-                          data-testid="link-client-messages-main"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 bg-[#6B4A55] rounded-full">
-                              <MessageSquare size={16} className="text-white" />
-                            </div>
-                            <div>
-                              <h3 className="font-header text-sm ink-main">Client Messages</h3>
-                              <p className="text-[0.6rem] ink-soft">View & reply to chats</p>
-                            </div>
-                          </div>
-                        </Link>
-                        
-                        {/* New Proposal - For off-platform requests */}
-                        <Link 
-                          href="/artist/proposals"
-                          className="card-frame rounded-md px-4 py-3 block hover:border-black transition-colors group"
-                          data-testid="link-new-proposal"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 bg-[#B8D4E3] rounded-full group-hover:bg-black transition-colors">
-                              <FileText size={16} className="text-[#5A1F2B] group-hover:text-white transition-colors" />
-                            </div>
-                            <div>
-                              <h3 className="font-header text-sm ink-main">New Proposal</h3>
-                              <p className="text-[0.6rem] ink-soft">For any client request</p>
-                            </div>
-                          </div>
-                        </Link>
-                        
-                        {/* Day-of Schedules */}
-                        <Link 
-                          href="/artist/schedules"
-                          className="card-frame rounded-md px-4 py-3 block hover:border-black transition-colors group"
-                          data-testid="link-day-schedules"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 bg-powder-blue rounded-full group-hover:bg-black transition-colors">
-                              <Clock size={16} className="text-black group-hover:text-white transition-colors" />
-                            </div>
-                            <div>
-                              <h3 className="font-header text-sm ink-main">Day-of Schedules</h3>
-                              <p className="text-[0.6rem] ink-soft">View or create timelines</p>
-                            </div>
-                          </div>
-                        </Link>
                       </div>
 
                       {/* Manage Section - Collapsible */}
