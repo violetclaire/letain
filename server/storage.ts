@@ -39,6 +39,7 @@ import {
   cdiLearningRuns,
   cdiPatternLibrary,
   auditLogs,
+  aiChatConversations,
   aiChatMessages,
   analyticsEvents,
   type AnalyticsEvent,
@@ -123,6 +124,8 @@ import {
   type AuditLog,
   profileReports,
   type InsertProfileReport,
+  type AiChatConversation,
+  type InsertAiChatConversation,
   type AiChatMessage,
   type InsertAiChatMessage,
   iqsLeadScores,
@@ -401,10 +404,18 @@ export interface IStorage {
     diff?: Record<string, { from: any; to: any }>;
   }): Promise<AuditLog>;
   
+  // AI Chat Conversations
+  getAiChatConversations(userId: string): Promise<AiChatConversation[]>;
+  createAiChatConversation(userId: string, title?: string): Promise<AiChatConversation>;
+  updateAiChatConversationTitle(conversationId: string, title: string): Promise<AiChatConversation | undefined>;
+  deleteAiChatConversation(conversationId: string): Promise<void>;
+  
   // AI Chat Messages
   getAiChatMessages(userId: string, limit?: number): Promise<AiChatMessage[]>;
+  getAiChatMessagesByConversation(conversationId: string, limit?: number): Promise<AiChatMessage[]>;
   createAiChatMessage(message: InsertAiChatMessage): Promise<AiChatMessage>;
   clearAiChatMessages(userId: string): Promise<void>;
+  clearAiChatMessagesByConversation(conversationId: string): Promise<void>;
   
   // Messaging security
   checkBookingRelationship(user1Id: string, user2Id: string): Promise<boolean>;
@@ -1928,26 +1939,78 @@ export class DatabaseStorage implements IStorage {
     return newLog;
   }
 
+  // AI Chat Conversations
+  async getAiChatConversations(userId: string): Promise<AiChatConversation[]> {
+    return await db
+      .select()
+      .from(aiChatConversations)
+      .where(eq(aiChatConversations.userId, userId))
+      .orderBy(desc(aiChatConversations.updatedAt));
+  }
+
+  async createAiChatConversation(userId: string, title: string = "New Chat"): Promise<AiChatConversation> {
+    const [newConversation] = await db.insert(aiChatConversations).values({
+      userId,
+      title,
+    } as any).returning();
+    return newConversation;
+  }
+
+  async updateAiChatConversationTitle(conversationId: string, title: string): Promise<AiChatConversation | undefined> {
+    const [updated] = await db
+      .update(aiChatConversations)
+      .set({ title, updatedAt: new Date() })
+      .where(eq(aiChatConversations.id, conversationId))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteAiChatConversation(conversationId: string): Promise<void> {
+    await db.delete(aiChatMessages).where(eq(aiChatMessages.conversationId, conversationId));
+    await db.delete(aiChatConversations).where(eq(aiChatConversations.id, conversationId));
+  }
+
   // AI Chat Messages
   async getAiChatMessages(userId: string, limit: number = 50): Promise<AiChatMessage[]> {
-    // Get most recent messages first, then reverse for chronological order in context
     const messages = await db
       .select()
       .from(aiChatMessages)
       .where(eq(aiChatMessages.userId, userId))
       .orderBy(desc(aiChatMessages.createdAt))
       .limit(limit);
-    // Return in chronological order (oldest first) for conversation context
+    return messages.reverse();
+  }
+
+  async getAiChatMessagesByConversation(conversationId: string, limit: number = 100): Promise<AiChatMessage[]> {
+    const messages = await db
+      .select()
+      .from(aiChatMessages)
+      .where(eq(aiChatMessages.conversationId, conversationId))
+      .orderBy(desc(aiChatMessages.createdAt))
+      .limit(limit);
     return messages.reverse();
   }
 
   async createAiChatMessage(message: InsertAiChatMessage): Promise<AiChatMessage> {
     const [newMessage] = await db.insert(aiChatMessages).values(message as any).returning();
+    
+    // Update conversation's updatedAt timestamp
+    if (message.conversationId) {
+      await db
+        .update(aiChatConversations)
+        .set({ updatedAt: new Date() })
+        .where(eq(aiChatConversations.id, message.conversationId));
+    }
+    
     return newMessage;
   }
 
   async clearAiChatMessages(userId: string): Promise<void> {
     await db.delete(aiChatMessages).where(eq(aiChatMessages.userId, userId));
+  }
+
+  async clearAiChatMessagesByConversation(conversationId: string): Promise<void> {
+    await db.delete(aiChatMessages).where(eq(aiChatMessages.conversationId, conversationId));
   }
   
   // Messaging security - check if two users have a confirmed booking relationship

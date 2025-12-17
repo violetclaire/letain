@@ -2116,13 +2116,17 @@ export default function ArtistDashboard() {
               
               {showMobileInfo && (
                 <div className="border-t border-[#e5e8f2] bg-[#fbfcff]">
-                  <Link href={`/${user?.artistSlug || user?.id}`} className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 border-b border-[#e5e8f2]">
-                    <Eye size={16} className="ink-soft" /> 
-                    <span>View My Public Profile</span>
-                  </Link>
                   <Link href="/settings" className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 border-b border-[#e5e8f2]">
                     <Settings size={16} className="ink-soft" /> 
                     <span>Settings</span>
+                  </Link>
+                  <Link 
+                    href={`/${user?.artistSlug || user?.id}`}
+                    className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 border-b border-[#e5e8f2]"
+                    data-testid="link-view-as-client"
+                  >
+                    <Eye size={16} className="ink-soft" /> 
+                    <span>View as Client</span>
                   </Link>
                   <Link href="/artist/profile" className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 border-b border-[#e5e8f2]">
                     <User size={16} className="ink-soft" /> 
@@ -2170,37 +2174,14 @@ export default function ArtistDashboard() {
                       navigator.clipboard.writeText(url);
                       toast({
                         title: "Link Copied!",
-                        description: "Your schedule link has been copied to clipboard.",
+                        description: "Share this link with clients to let them book with you.",
                       });
                     }}
                     className="px-4 py-2 bg-[#6B4A55] text-white text-sm rounded-lg hover:bg-[#8a6270] transition-colors flex items-center gap-2 shadow-sm"
                     data-testid="button-copy-schedule-link"
                   >
-                    <Paperclip size={14} />
+                    <Copy size={14} />
                     Copy Link
-                  </button>
-                  <Link
-                    href={`/${user?.artistSlug || user?.id}`}
-                    className="px-4 py-2 bg-white text-[#6B4A55] text-sm rounded-lg border border-[#6B4A55] hover:bg-[#FAF7F2] transition-colors flex items-center gap-2"
-                    data-testid="button-view-as-client"
-                  >
-                    <Eye size={14} />
-                    View as Client
-                  </Link>
-                  <button
-                    onClick={() => {
-                      const url = `https://beauvette.com/${user?.artistSlug || user?.id}`;
-                      navigator.clipboard.writeText(url);
-                      toast({
-                        title: "Ready for Instagram!",
-                        description: "Link copied. Paste it in your Instagram bio.",
-                      });
-                    }}
-                    className="px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all flex items-center gap-2 shadow-sm"
-                    data-testid="button-share-instagram"
-                  >
-                    <Instagram size={14} />
-                    Instagram Bio
                   </button>
                   <button
                     onClick={() => {
@@ -2212,7 +2193,7 @@ export default function ArtistDashboard() {
                     data-testid="button-text-link"
                   >
                     <MessageCircle size={14} />
-                    Text Link
+                    Text
                   </button>
                 </div>
               </div>

@@ -3444,7 +3444,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ========== AI CHAT ==========
-  // Get chat history
+  // Get all conversations
+  app.get("/api/ai/chat/conversations", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const conversations = await storage.getAiChatConversations(userId);
+      res.json(conversations);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Create new conversation
+  app.post("/api/ai/chat/conversations", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const { title } = req.body;
+      const conversation = await storage.createAiChatConversation(userId, title || "New Chat");
+      res.json(conversation);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Get messages for a specific conversation
+  app.get("/api/ai/chat/conversations/:conversationId/messages", isAuthenticated, async (req: any, res) => {
+    try {
+      const messages = await storage.getAiChatMessagesByConversation(req.params.conversationId);
+      res.json(messages);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Update conversation title
+  app.patch("/api/ai/chat/conversations/:conversationId", isAuthenticated, async (req: any, res) => {
+    try {
+      const { title } = req.body;
+      const conversation = await storage.updateAiChatConversationTitle(req.params.conversationId, title);
+      if (!conversation) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+      res.json(conversation);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Delete conversation
+  app.delete("/api/ai/chat/conversations/:conversationId", isAuthenticated, async (req: any, res) => {
+    try {
+      await storage.deleteAiChatConversation(req.params.conversationId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Get chat history (legacy - all messages)
   app.get("/api/ai/chat/history", isAuthenticated, async (req: any, res) => {
     try {
       const userId = getAuthUserId(req);
@@ -3469,7 +3526,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/ai/chat", isAuthenticated, async (req: any, res) => {
     try {
       const userId = getAuthUserId(req);
-      const { message, attachments } = req.body;
+      const { message, attachments, conversationId } = req.body;
       
       if (!message && (!attachments || attachments.length === 0)) {
         return res.status(400).json({ error: "Message or attachments required" });
@@ -3488,6 +3545,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await storage.createAiChatMessage({
         userId,
+        conversationId: conversationId || null,
         role: "user",
         content: message || "(Image attached)",
         attachments: userAttachments.length > 0 ? userAttachments : null,
@@ -3502,6 +3560,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Save assistant response to history
       await storage.createAiChatMessage({
         userId,
+        conversationId: conversationId || null,
         role: "assistant",
         content: result.response,
         attachments: null,

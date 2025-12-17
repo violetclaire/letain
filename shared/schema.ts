@@ -1470,14 +1470,29 @@ export const insertAnalyticsEventSchema = createInsertSchema(analyticsEvents).om
   createdAt: true,
 });
 
+// AI Chat Conversations - groups chat messages into conversations
+export const aiChatConversations = pgTable("ai_chat_conversations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  title: text("title").default("New Chat"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertAiChatConversationSchema = createInsertSchema(aiChatConversations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // AI Chat Messages - stores chat history for the AI assistant
 export const aiChatMessages = pgTable("ai_chat_messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
+  conversationId: varchar("conversation_id").references(() => aiChatConversations.id),
   role: text("role").notNull(), // 'user' or 'assistant'
   content: text("content").notNull(),
   attachments: jsonb("attachments").$type<{ type: string; url: string; name: string }[]>(),
-  // Extracted entities from conversation for working memory
   extractedEntities: jsonb("extracted_entities").$type<{
     names?: string[];
     emails?: string[];
@@ -1486,7 +1501,6 @@ export const aiChatMessages = pgTable("ai_chat_messages", {
     locations?: string[];
     amounts?: number[];
   }>(),
-  // Action taken by AI (for consistency tracking)
   actionTaken: text("action_taken"),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -1779,6 +1793,8 @@ export type CdiPatternLibrary = typeof cdiPatternLibrary.$inferSelect;
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type AuditLog = typeof auditLogs.$inferSelect;
 
+export type InsertAiChatConversation = z.infer<typeof insertAiChatConversationSchema>;
+export type AiChatConversation = typeof aiChatConversations.$inferSelect;
 export type InsertAiChatMessage = z.infer<typeof insertAiChatMessageSchema>;
 export type AiChatMessage = typeof aiChatMessages.$inferSelect;
 

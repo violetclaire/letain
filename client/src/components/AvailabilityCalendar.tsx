@@ -56,12 +56,13 @@ interface InquiryHold {
   clientName: string;
 }
 
-type DateStatus = 'booked' | 'pending' | 'blocked' | 'available' | 'hold';
+type DateStatus = 'booked' | 'pending' | 'blocked' | 'available' | 'hold' | 'manual_booked';
 
 export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBooking, onCreateBooking, viewOnly = false, refreshKey = 0 }: AvailabilityCalendarProps) {
   const { toast } = useToast();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [availability, setAvailability] = useState<Record<string, boolean>>({});
+  const [manualBooked, setManualBooked] = useState<Record<string, boolean>>({});
   const [bookings, setBookings] = useState<Record<string, { status: string; id: string }>>({});
   const [holds, setHolds] = useState<Record<string, { id: string; expiresAt?: string; clientName: string }>>({});
   const [loading, setLoading] = useState(false);
@@ -97,11 +98,16 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
       if (availResponse.ok) {
         const data: AvailabilityRecord[] = await availResponse.json();
         const avail: Record<string, boolean> = {};
+        const manual: Record<string, boolean> = {};
         data.forEach((record) => {
           const dateKey = parseToLocalDate(record.date);
           avail[dateKey] = record.isAvailable;
+          if (record.notes === 'BOOKED') {
+            manual[dateKey] = true;
+          }
         });
         setAvailability(avail);
+        setManualBooked(manual);
       }
 
       if (bookingsResponse.ok) {
@@ -134,7 +140,7 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
     }
   };
 
-  const toggleDateBlock = async (date: Date) => {
+  const cycleStatus = async (date: Date) => {
     if (viewOnly) return;
     
     const dateKey = toLocalDateKey(date);
@@ -149,13 +155,34 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
       return;
     }
     
-    const isCurrentlyBlocked = availability[dateKey] === false;
-    const newBlockedStatus = !isCurrentlyBlocked;
+    const currentStatus = getDateStatus(date);
+    let nextStatus: 'available' | 'blocked' | 'manual_booked';
+    let toastTitle: string;
+    let toastDesc: string;
+    
+    // Cycle: available → blocked → booked → available
+    if (currentStatus === 'available') {
+      nextStatus = 'blocked';
+      toastTitle = "Date blocked";
+      toastDesc = `${dateKey} is now blocked`;
+    } else if (currentStatus === 'blocked') {
+      nextStatus = 'manual_booked';
+      toastTitle = "Marked as booked";
+      toastDesc = `${dateKey} is marked as booked`;
+    } else if (currentStatus === 'manual_booked') {
+      nextStatus = 'available';
+      toastTitle = "Date available";
+      toastDesc = `${dateKey} is now available`;
+    } else {
+      return; // Can't modify holds or real bookings
+    }
     
     setLoading(true);
     try {
       const isoDate = `${dateKey}T12:00:00.000Z`;
-      if (isCurrentlyBlocked) {
+      
+      if (nextStatus === 'available') {
+        // Clear both blocked and manual booked
         await fetch("/api/availability", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
@@ -165,8 +192,10 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
         const newAvail = { ...availability };
         delete newAvail[dateKey];
         setAvailability(newAvail);
-        toast({ title: "Date unblocked", description: `${dateKey} is now available for requests` });
-      } else {
+        const newManual = { ...manualBooked };
+        delete newManual[dateKey];
+        setManualBooked(newManual);
+      } else if (nextStatus === 'blocked') {
         const response = await fetch("/api/availability", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -175,10 +204,26 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
         });
         if (response.ok) {
           setAvailability({ ...availability, [dateKey]: false });
-          toast({ title: "Date blocked", description: `${dateKey} is now blocked` });
+          const newManual = { ...manualBooked };
+          delete newManual[dateKey];
+          setManualBooked(newManual);
+        }
+      } else if (nextStatus === 'manual_booked') {
+        // Mark as manually booked (uses availability with a flag)
+        const response = await fetch("/api/availability", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ date: isoDate, isAvailable: false, notes: 'BOOKED' }),
+        });
+        if (response.ok) {
+          setAvailability({ ...availability, [dateKey]: false });
+          setManualBooked({ ...manualBooked, [dateKey]: true });
         }
       }
-      onDateSelect?.(date, newBlockedStatus ? 'blocked' : 'available');
+      
+      toast({ title: toastTitle, description: toastDesc });
+      onDateSelect?.(date, nextStatus);
     } catch (err) {
       console.error("Error updating availability:", err);
       toast({ title: "Error", description: "Failed to update", variant: "destructive" });
@@ -234,6 +279,9 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
     
     if (hold) return 'hold';
     
+    // Check for manually marked as booked
+    if (manualBooked[dateKey]) return 'manual_booked';
+    
     if (availability[dateKey] === false) return 'blocked';
     
     return 'available';
@@ -247,6 +295,10 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
     switch (status) {
       case 'booked':
         return 'bg-forest text-white cursor-default';
+      case 'manual_booked':
+        return viewOnly
+          ? 'bg-forest/80 text-white cursor-default'
+          : 'bg-forest/80 text-white cursor-pointer hover:bg-forest';
       case 'pending':
         return 'bg-gold/30 text-forest cursor-default border border-gold/50';
       case 'hold':
@@ -266,6 +318,7 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
   const getStatusLabel = (status: DateStatus): string => {
     switch (status) {
       case 'booked': return 'Booked';
+      case 'manual_booked': return 'Booked (Manual)';
       case 'pending': return 'Pending';
       case 'hold': return 'On Hold';
       case 'blocked': return 'Blocked';
@@ -330,7 +383,7 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
           const past = isPast(date);
           const today = isToday(date);
           const canBook = viewOnly && onRequestBooking && status === 'available' && !past;
-          const canInteract = !past && !viewOnly && (status === 'available' || status === 'blocked');
+          const canInteract = !past && !viewOnly && (status === 'available' || status === 'blocked' || status === 'manual_booked');
           
           const handleClick = () => {
             if (canBook) {
@@ -338,7 +391,7 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
             } else if (!viewOnly && onCreateBooking && status === 'available' && !past) {
               onCreateBooking(date);
             } else if (canInteract) {
-              toggleDateBlock(date);
+              cycleStatus(date);
             }
           };
           
@@ -391,7 +444,7 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
 
       {!viewOnly && (
         <p className="text-center text-[0.6rem] ink-soft mt-3">
-          Click a date to block/unblock it
+          Click to cycle: Available → Blocked → Booked
         </p>
       )}
       {viewOnly && onRequestBooking && (
