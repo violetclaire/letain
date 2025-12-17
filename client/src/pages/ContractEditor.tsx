@@ -1,1126 +1,285 @@
-import { useState, useEffect } from "react";
-import { Link, useLocation } from "wouter";
-import { ArrowLeft, Save, FileText, Upload, Download, DollarSign, Calendar, MapPin, Users, Percent, Building, User, X, Plus, Check } from "lucide-react";
+import { useState } from "react";
+import { Link } from "wouter";
+import { ArrowLeft, Upload, Send } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
-interface ServiceItem {
-  clientType: string;
-  qty: number;
-  service: string;
-  price: number;
-  total: number;
-}
-
-interface ContractFormData {
-  clientName: string;
-  contractDate: string;
-  eventDate: string;
-  eventDates: string;
-  eventLocation: string;
-  serviceLocation: string;
-  numberOfServices: number;
-  serviceDetails: string;
-  totalAmount: number;
-  depositPercent: number;
-  depositAmount: number;
-  remainingBalance: number;
-  businessName: string;
-  artistName: string;
-  serviceItems: ServiceItem[];
-  serviceStartTime: string;
-  serviceEndTime: string;
-  clientContact: string;
-  photographerInfo: string;
-  balanceDueDate: string;
-}
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export default function ContractEditor() {
-  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
-  const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
 
-  const [formData, setFormData] = useState<ContractFormData>({
-    clientName: "",
-    contractDate: new Date().toISOString().split('T')[0],
-    eventDate: "",
-    eventDates: "",
-    eventLocation: "",
-    serviceLocation: "",
-    numberOfServices: 1,
-    serviceDetails: "",
-    totalAmount: 0,
-    depositPercent: 50,
-    depositAmount: 0,
-    remainingBalance: 0,
-    businessName: "",
-    artistName: "",
-    serviceItems: [],
-    serviceStartTime: "TBD",
-    serviceEndTime: "TBD",
-    clientContact: "",
-    photographerInfo: "",
-    balanceDueDate: "Two weeks before wedding date",
-  });
+  const [selectedBookingId, setSelectedBookingId] = useState<string>("");
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
 
-  const [uploadedPdf, setUploadedPdf] = useState<File | null>(null);
-  const [useCustomTemplate, setUseCustomTemplate] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
-
-  const { data: artistProfile } = useQuery({
-    queryKey: ["artistProfile", user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const res = await fetch(`/api/artist-profiles/${user.id}`, { credentials: "include" });
-      if (!res.ok) return null;
-      return res.json();
-    },
-    enabled: !!user,
-  });
-
-  const { data: clients = [] } = useQuery({
+  // Fetch artist bookings
+  const { data: bookings = [] } = useQuery({
     queryKey: ["artistBookings", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const res = await fetch(`/api/bookings/artist/${user.id}`, { credentials: "include" });
-      if (!res.ok) return [];
-      const bookings = await res.json();
-      return bookings.map((b: any) => ({
-        id: b.id,
-        name: b.clientName,
-        email: b.clientEmail,
-        eventDate: b.eventDate,
-        location: b.location,
-        bookingId: b.id,
-      }));
+      try {
+        const res = await fetch(`/api/bookings/artist/${user.id}`, { 
+          credentials: "include" 
+        });
+        if (!res.ok) return [];
+        return res.json();
+      } catch (err) {
+        console.error("Error fetching bookings:", err);
+        return [];
+      }
     },
     enabled: !!user,
   });
 
-  const { data: existingContracts = [] } = useQuery({
+  // Fetch artist contracts
+  const { data: contracts = [] } = useQuery({
     queryKey: ["artistContracts", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const res = await fetch(`/api/contracts/artist/${user.id}`, { credentials: "include" });
-      if (!res.ok) return [];
-      return res.json();
-    },
-    enabled: !!user,
-  });
-
-  const { data: artistServices = [] } = useQuery({
-    queryKey: ["artistServices", user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-      const res = await fetch(`/api/artist-services/${user.id}`, { credentials: "include" });
-      if (!res.ok) return [];
-      return res.json();
-    },
-    enabled: !!user,
-  });
-
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
-
-  const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
-  const [isLoadingContract, setIsLoadingContract] = useState(false);
-
-  const { data: selectedContract } = useQuery({
-    queryKey: ["contract", selectedContractId],
-    queryFn: async () => {
-      if (!selectedContractId) return null;
-      const res = await fetch(`/api/contracts/${selectedContractId}`, { credentials: "include" });
-      if (!res.ok) return null;
-      return res.json();
-    },
-    enabled: !!selectedContractId,
-  });
-
-  useEffect(() => {
-    if (selectedContract) {
-      setIsLoadingContract(true);
-      const totalInDollars = selectedContract.totalAmount ? selectedContract.totalAmount / 100 : 0;
-      const depositInDollars = selectedContract.depositAmount ? selectedContract.depositAmount / 100 : 0;
-      const remainingInDollars = selectedContract.remainingAmount ? selectedContract.remainingAmount / 100 : (totalInDollars - depositInDollars);
-      const depositPct = totalInDollars > 0 ? Math.round((depositInDollars / totalInDollars) * 100) : 30;
-      
-      setFormData(prev => ({
-        ...prev,
-        clientName: selectedContract.clientName || "",
-        contractDate: selectedContract.createdAt ? new Date(selectedContract.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        eventDate: selectedContract.eventDate ? new Date(selectedContract.eventDate).toISOString().split('T')[0] : "",
-        eventLocation: selectedContract.eventLocation || "",
-        serviceLocation: selectedContract.eventLocation || "",
-        numberOfServices: 1,
-        serviceDetails: selectedContract.packageDetails || "Bridal Beauty Services",
-        totalAmount: totalInDollars,
-        depositPercent: depositPct,
-        depositAmount: depositInDollars,
-        remainingBalance: remainingInDollars,
-      }));
-      
-      toast({ 
-        title: "Contract Loaded", 
-        description: `Viewing contract for ${selectedContract.clientName || 'client'}` 
-      });
-      
-      setTimeout(() => setIsLoadingContract(false), 100);
-    }
-  }, [selectedContract]);
-
-  useEffect(() => {
-    if (artistProfile) {
-      setFormData(prev => ({
-        ...prev,
-        businessName: artistProfile.businessName || "",
-      }));
-    }
-    if (user) {
-      setFormData(prev => ({
-        ...prev,
-        artistName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-      }));
-    }
-  }, [artistProfile, user]);
-
-  useEffect(() => {
-    if (isLoadingContract) return;
-    const deposit = Math.round((formData.totalAmount * formData.depositPercent) / 100);
-    const remaining = formData.totalAmount - deposit;
-    setFormData(prev => ({
-      ...prev,
-      depositAmount: deposit,
-      remainingBalance: remaining,
-    }));
-  }, [formData.totalAmount, formData.depositPercent, isLoadingContract]);
-
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      toast({
-        title: "Access Required",
-        description: "Please log in to create contracts.",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/api/login";
-      }, 1000);
-      return;
-    }
-    
-    if (!authLoading && user && user.role !== 'artist') {
-      toast({
-        title: "Access Denied",
-        description: "Contract editor is for vendors only.",
-        variant: "destructive",
-      });
-      setLocation("/");
-    }
-  }, [authLoading, isAuthenticated, user]);
-
-  const isFormValid = () => {
-    return (
-      formData.clientName.trim().length > 0 &&
-      formData.eventDate &&
-      formData.totalAmount > 0
-    );
-  };
-
-  const selectClient = (client: any) => {
-    setFormData(prev => ({
-      ...prev,
-      clientName: client.name,
-      eventDate: client.eventDate ? new Date(client.eventDate).toISOString().split('T')[0] : "",
-      eventLocation: client.location || "",
-      serviceLocation: client.location || "",
-    }));
-    setSelectedBookingId(client.bookingId || null);
-  };
-
-  const handlePdfUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-      if (isPdf) {
-        setUploadedPdf(file);
-        setUseCustomTemplate(true);
-        toast({ title: "PDF Uploaded", description: `${file.name} has been uploaded.` });
-      } else {
-        toast({ title: "Invalid File", description: `Please upload a PDF file. Got: ${file.type || 'unknown type'}`, variant: "destructive" });
-      }
-    } else {
-      toast({ title: "No File Selected", description: "Please select a file to upload.", variant: "destructive" });
-    }
-  };
-
-  const generateContract = async () => {
-    const eventDateFormatted = formData.eventDate ? new Date(formData.eventDate).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }) : 'TBD';
-    const contractDateFormatted = new Date(formData.contractDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-    
-    const serviceItemsHtml = formData.serviceItems.length > 0 
-      ? `<table class="services-table">
-          <thead>
-            <tr>
-              <th>Client</th>
-              <th>QTY</th>
-              <th>Service</th>
-              <th>Price</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${formData.serviceItems.map(item => `
-              <tr>
-                <td>${item.clientType}</td>
-                <td>${item.qty}</td>
-                <td>${item.service}</td>
-                <td>$${(item.price / 100).toFixed(2)}</td>
-                <td>$${(item.total / 100).toFixed(2)}</td>
-              </tr>
-            `).join('')}
-            <tr class="total-row">
-              <td colspan="4"><strong>Total</strong></td>
-              <td><strong>$${formData.totalAmount.toLocaleString()}</strong></td>
-            </tr>
-            <tr>
-              <td colspan="4">Retainer (${formData.depositPercent}%)</td>
-              <td>$${formData.depositAmount.toLocaleString()}</td>
-            </tr>
-            <tr>
-              <td colspan="4">Balance Due (${formData.balanceDueDate})</td>
-              <td>$${formData.remainingBalance.toLocaleString()}</td>
-            </tr>
-          </tbody>
-        </table>`
-      : `<p>Services as agreed: ${formData.serviceDetails || 'See Attachment A'}</p>
-         <p><strong>Total:</strong> $${formData.totalAmount.toLocaleString()}</p>
-         <p><strong>Retainer (${formData.depositPercent}%):</strong> $${formData.depositAmount.toLocaleString()}</p>
-         <p><strong>Balance Due (${formData.balanceDueDate}):</strong> $${formData.remainingBalance.toLocaleString()}</p>`;
-
-    const contractHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Service Contract - ${formData.clientName}</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-    body { 
-      font-family: 'Inter', sans-serif; 
-      max-width: 800px; 
-      margin: 0 auto; 
-      padding: 40px; 
-      color: #262329; 
-      background: #fff;
-      line-height: 1.7;
-      font-size: 14px;
-    }
-    .header { 
-      text-align: center; 
-      margin-bottom: 30px;
-    }
-    .header h1 { 
-      font-size: 24px; 
-      margin: 0 0 10px 0;
-    }
-    .intro {
-      margin-bottom: 25px;
-    }
-    .section {
-      margin-bottom: 20px;
-    }
-    .section-title {
-      font-weight: 600;
-      margin-bottom: 5px;
-    }
-    .services-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 15px 0;
-    }
-    .services-table th, .services-table td {
-      border: 1px solid #ddd;
-      padding: 8px;
-      text-align: left;
-    }
-    .services-table th {
-      background: #f5f5f5;
-      font-weight: 600;
-    }
-    .total-row td {
-      border-top: 2px solid #262329;
-    }
-    .signature-section {
-      margin-top: 50px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 40px;
-    }
-    .signature-box {
-      padding: 15px 0;
-    }
-    .signature-line {
-      border-bottom: 1px solid #262329;
-      height: 40px;
-      margin: 15px 0 5px 0;
-    }
-    .signature-label {
-      font-size: 12px;
-      color: #666;
-    }
-    .attachment {
-      margin-top: 40px;
-      padding-top: 20px;
-      border-top: 2px solid #262329;
-    }
-    .attachment h2 {
-      font-size: 16px;
-      margin-bottom: 15px;
-    }
-    .payment-note {
-      margin-top: 15px;
-      font-size: 13px;
-      color: #444;
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>${formData.businessName || "Service Contract"}</h1>
-  </div>
-
-  <div class="intro">
-    <p>This service contract is entered into as of ${contractDateFormatted} between <strong>${formData.clientName}</strong> (Client) and <strong>${formData.businessName || formData.artistName}</strong> (Artist). The Client and the Artist agree as follows:</p>
-  </div>
-
-  <div class="section">
-    <p class="section-title">1. SERVICE to be PROVIDED</p>
-    <p>Artist will provide services to client as specified in Attachment A.</p>
-  </div>
-
-  <div class="section">
-    <p class="section-title">2. LOCATION of SERVICE</p>
-    <p>The service will take place at the following location: ${formData.serviceLocation || formData.eventLocation || 'TBD'}</p>
-  </div>
-
-  <div class="section">
-    <p class="section-title">3. DATE and TIME of SERVICE</p>
-    <p>The date of Service: ${eventDateFormatted}<br/>
-    Service Begins: ${formData.serviceStartTime || 'TBD'} (We will arrive a few minutes early to set up)<br/>
-    Service Completion: ${formData.serviceEndTime || 'TBD'}</p>
-  </div>
-
-  <div class="section">
-    <p class="section-title">4. PARKING</p>
-    <p>Valet parking is required for all hotel getting ready locations. The amount of equipment required for day of services is extensive and to ensure ease for the artist and timely arrival, valet parking will be charged to the room at the time of arrival.</p>
-  </div>
-
-  <div class="section">
-    <p class="section-title">5. PAYMENT</p>
-    <p>In full consideration for all services rendered by Artist at the location, the Client agrees to make deposit and payment in U.S. funds to the Artist, as provided in Attachment A.</p>
-  </div>
-
-  <div class="section">
-    <p class="section-title">6. CANCELLATION</p>
-    <p>Cancellations can be made 30 days prior to the event without penalty other than loss of the retainer amount. In case of cancellations less than two calendar weeks retainer and final payment will not be refunded. The retainer is non refundable.</p>
-    <p>The Artist's obligation is to give services as provided in Attachment A. If Artist is unavailable as a result of sickness, accidents, acts of God or other reasons beyond the Artist's control, artist will make all commercially reasonable efforts to arrange for comparable services agreed upon within this contract.</p>
-  </div>
-
-  <div class="section">
-    <p class="section-title">7. MISCELLANEOUS</p>
-    <p>The service contract and specified attachments set forth the entire agreement between the Artist and Client, and may not be amended except in writing signed by both parties. This service contract will be governed by and construed in accordance with the laws of the State of California.</p>
-  </div>
-
-  <div class="signature-section">
-    <div class="signature-box">
-      <strong>Artist</strong>
-      <div class="signature-line"></div>
-      <p class="signature-label">${formData.artistName || formData.businessName}</p>
-      <p class="signature-label">Date: _________________</p>
-    </div>
-    <div class="signature-box">
-      <strong>Client</strong>
-      <div class="signature-line"></div>
-      <p class="signature-label">${formData.clientName}</p>
-      <p class="signature-label">Date: _________________</p>
-    </div>
-  </div>
-
-  <div class="attachment">
-    <h2>Attachment A - Services & Payment</h2>
-    ${serviceItemsHtml}
-    <p class="payment-note"><strong>Payment Method:</strong> Square only</p>
-  </div>
-</body>
-</html>`;
-
-    // Download locally
-    const blob = new Blob([contractHtml], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `contract-${formData.clientName.replace(/\s+/g, '-').toLowerCase()}-${formData.contractDate}.html`;
-    a.click();
-    URL.revokeObjectURL(url);
-    
-    // Also save to the platform if a booking is selected
-    if (selectedBookingId) {
-      setIsSaving(true);
       try {
-        const fileContent = btoa(unescape(encodeURIComponent(contractHtml)));
-        const res = await fetch(`/api/bookings/${selectedBookingId}/upload-contract`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            fileContent,
-            fileName: `contract-${formData.clientName.replace(/\s+/g, '-').toLowerCase()}.html`,
-            mimeType: 'text/html',
-            packageDetails: formData.serviceDetails,
-            totalAmount: formData.totalAmount * 100,
-            depositAmount: formData.depositAmount * 100,
-          }),
+        const res = await fetch(`/api/contracts/artist/${user.id}`, { 
+          credentials: "include" 
         });
-        
-        if (res.ok) {
-          toast({ title: "Contract Saved", description: "Contract downloaded and saved to the booking folder." });
-          queryClient.invalidateQueries({ queryKey: ["artistContracts"] });
-        } else {
-          toast({ title: "Contract Downloaded", description: "Contract downloaded. Could not save to platform." });
-        }
+        if (!res.ok) return [];
+        return res.json();
       } catch (err) {
-        toast({ title: "Contract Downloaded", description: "Contract downloaded locally." });
-      } finally {
-        setIsSaving(false);
+        console.error("Error fetching contracts:", err);
+        return [];
       }
-    } else {
-      toast({ title: "Contract Downloaded", description: "Select a client from a booking to also save to the platform." });
+    },
+    enabled: !!user,
+  });
+
+  const handleUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedBookingId) {
+      toast({ 
+        title: "Error", 
+        description: "Please select a client first",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    if (!uploadedFile) {
+      toast({ 
+        title: "Error", 
+        description: "Please select a file to upload",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const base64 = (event.target?.result as string).split(',')[1];
+          
+          const res = await fetch(`/api/bookings/${selectedBookingId}/upload-contract`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              fileContent: base64,
+              fileName: uploadedFile.name,
+              mimeType: uploadedFile.type || 'application/pdf',
+              packageDetails: 'Beauty Services Package',
+              totalAmount: 0,
+              depositAmount: 0,
+            }),
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            toast({ 
+              title: "Success", 
+              description: "Contract uploaded successfully!"
+            });
+            setUploadedFile(null);
+            queryClient.invalidateQueries({ queryKey: ["artistContracts"] });
+          } else {
+            const error = await res.json();
+            toast({ 
+              title: "Upload Failed", 
+              description: error.error || "Failed to upload contract",
+              variant: "destructive" 
+            });
+          }
+        } catch (err: any) {
+          console.error("Upload error:", err);
+          toast({ 
+            title: "Error", 
+            description: err.message || "Failed to upload contract",
+            variant: "destructive" 
+          });
+        } finally {
+          setIsUploading(false);
+        }
+      };
+      reader.readAsDataURL(uploadedFile);
+    } catch (err: any) {
+      console.error("File read error:", err);
+      toast({ 
+        title: "Error", 
+        description: "Failed to read file",
+        variant: "destructive" 
+      });
+      setIsUploading(false);
     }
   };
-  
-  // Handle PDF upload to the platform
-  const handleSavePdfToBooking = async () => {
-    if (!uploadedPdf) {
-      toast({ title: "Missing PDF", description: "Please upload a PDF file first.", variant: "destructive" });
-      return;
-    }
-    if (!selectedBookingId) {
-      toast({ title: "No Client Selected", description: "Please select a client from the list first.", variant: "destructive" });
-      return;
-    }
-    
-    setIsSaving(true);
+
+  const handleSend = async (contractId: string) => {
+    setIsSending(true);
     try {
-      const base64Content = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const result = reader.result as string;
-          const base64 = result.split(',')[1];
-          resolve(base64);
-        };
-        reader.onerror = () => reject(new Error("Failed to read file"));
-        reader.readAsDataURL(uploadedPdf);
-      });
-      
-      const res = await fetch(`/api/bookings/${selectedBookingId}/upload-contract`, {
+      const res = await fetch(`/api/contracts/${contractId}/send-for-signing`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          fileContent: base64Content,
-          fileName: uploadedPdf.name,
-          mimeType: 'application/pdf',
-          packageDetails: formData.serviceDetails || 'Beauty Services',
-          totalAmount: Math.round(formData.totalAmount * 100) || 0,
-          depositAmount: Math.round(formData.depositAmount * 100) || 0,
-        }),
+        body: JSON.stringify({}),
       });
-      
+
       if (res.ok) {
-        toast({ title: "PDF Saved", description: "Your contract PDF has been saved to the booking." });
+        const data = await res.json();
+        toast({ 
+          title: "Success", 
+          description: "Contract sent for signing! Client will receive an email."
+        });
         queryClient.invalidateQueries({ queryKey: ["artistContracts"] });
-        setUploadedPdf(null);
       } else {
-        const error = await res.json().catch(() => ({ error: "Unknown error" }));
-        toast({ title: "Upload Failed", description: error.error || "Could not save PDF to booking.", variant: "destructive" });
+        const error = await res.json();
+        toast({ 
+          title: "Error", 
+          description: error.error || "Failed to send contract",
+          variant: "destructive" 
+        });
       }
     } catch (err: any) {
-      console.error("PDF upload error:", err);
-      toast({ title: "Upload Failed", description: err.message || "Could not upload PDF.", variant: "destructive" });
+      console.error("Send error:", err);
+      toast({ 
+        title: "Error", 
+        description: err.message || "Failed to send contract",
+        variant: "destructive" 
+      });
     } finally {
-      setIsSaving(false);
+      setIsSending(false);
     }
   };
 
   if (authLoading) {
     return (
       <div className="min-h-screen bg-powder-blue flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto mb-4"></div>
-          <p className="text-sm text-black/60">Loading...</p>
-        </div>
+        <p>Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="font-sans min-h-screen overflow-y-auto p-4 bg-powder-blue">
-      <div className="max-w-4xl mx-auto frame-outer shadow-sm">
-        <div className="frame-inner">
-          <header className="flex items-center justify-between mb-6">
+    <div className="font-sans min-h-screen p-4 bg-powder-blue">
+      <div className="max-w-4xl mx-auto">
+        <Link href="/artist" className="text-sm flex items-center gap-1 hover:underline mb-6">
+          <ArrowLeft size={16} /> Back to Dashboard
+        </Link>
+
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h1 className="text-3xl font-bold mb-2">Upload Contract</h1>
+          <p className="text-gray-600">Upload and send contracts for clients to sign</p>
+        </div>
+
+        {/* Upload Form */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <form onSubmit={handleUpload} className="space-y-4">
             <div>
-              <Link href="/artist" className="text-xs flex items-center gap-1 hover:underline ink-soft mb-2">
-                <ArrowLeft size={12} /> Back to Dashboard
-              </Link>
-              <h1 className="font-script text-2xl ink-main">Contract Editor</h1>
-              <p className="text-xs ink-soft">Create contracts for your clients in 3 simple steps</p>
-            </div>
-          </header>
-
-          {/* Simple Step Indicator */}
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-center justify-between text-xs">
-              <div className={`flex items-center gap-2 ${selectedBookingId ? 'text-green-600' : 'text-blue-600 font-semibold'}`}>
-                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${selectedBookingId ? 'bg-green-500 text-white' : 'bg-blue-500 text-white'}`}>1</span>
-                Select Client
-              </div>
-              <div className="h-px bg-blue-300 flex-1 mx-2" />
-              <div className={`flex items-center gap-2 ${selectedBookingId && formData.totalAmount > 0 ? 'text-green-600' : selectedBookingId ? 'text-blue-600 font-semibold' : 'text-gray-400'}`}>
-                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${selectedBookingId && formData.totalAmount > 0 ? 'bg-green-500 text-white' : selectedBookingId ? 'bg-blue-500 text-white' : 'bg-gray-300 text-white'}`}>2</span>
-                Fill Details
-              </div>
-              <div className="h-px bg-blue-300 flex-1 mx-2" />
-              <div className="flex items-center gap-2 text-gray-400">
-                <span className="w-5 h-5 rounded-full bg-gray-300 text-white flex items-center justify-center text-[10px]">3</span>
-                Download & Send via DocuSign
-              </div>
-            </div>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="md:col-span-2 space-y-6">
-              <div className="card-frame rounded-lg p-5">
-                <h2 className="font-header text-lg ink-main mb-4 flex items-center gap-2">
-                  <FileText size={18} /> Contract Details
-                </h2>
-
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">
-                        <User size={12} className="inline mr-1" /> Client Name *
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.clientName}
-                        onChange={(e) => setFormData(prev => ({ ...prev, clientName: e.target.value }))}
-                        className="w-full border border-black/20 bg-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
-                        placeholder="Enter client name"
-                        data-testid="input-client-name"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">
-                        <Calendar size={12} className="inline mr-1" /> Contract Date
-                      </label>
-                      <input
-                        type="date"
-                        value={formData.contractDate}
-                        onChange={(e) => setFormData(prev => ({ ...prev, contractDate: e.target.value }))}
-                        className="w-full border border-black/20 bg-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
-                        data-testid="input-contract-date"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">
-                        <Calendar size={12} className="inline mr-1" /> Event Date
-                      </label>
-                      <input
-                        type="date"
-                        value={formData.eventDate}
-                        onChange={(e) => setFormData(prev => ({ ...prev, eventDate: e.target.value }))}
-                        className="w-full border border-black/20 bg-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
-                        data-testid="input-event-date"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">
-                        <MapPin size={12} className="inline mr-1" /> Event Location
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.eventLocation}
-                        onChange={(e) => setFormData(prev => ({ ...prev, eventLocation: e.target.value }))}
-                        className="w-full border border-black/20 bg-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
-                        placeholder="Venue name or address"
-                        data-testid="input-event-location"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">
-                        <MapPin size={12} className="inline mr-1" /> Services Location
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.serviceLocation}
-                        onChange={(e) => setFormData(prev => ({ ...prev, serviceLocation: e.target.value }))}
-                        className="w-full border border-black/20 bg-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
-                        placeholder="Where services will be provided"
-                        data-testid="input-service-location"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">
-                        <Users size={12} className="inline mr-1" /> Number of Services
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={formData.numberOfServices}
-                        onChange={(e) => setFormData(prev => ({ ...prev, numberOfServices: parseInt(e.target.value) || 1 }))}
-                        className="w-full border border-black/20 bg-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
-                        data-testid="input-num-services"
-                      />
-                    </div>
-                  </div>
-
-                  {artistServices.length > 0 && (
-                    <div>
-                      <label className="block text-xs uppercase tracking-wide text-black/60 mb-2">Select Services</label>
-                      <div className="space-y-2 max-h-48 overflow-y-auto border border-black/20 rounded p-3 bg-white">
-                        {artistServices.filter((s: any) => s.isActive !== false).map((service: any) => (
-                          <label 
-                            key={service.id} 
-                            className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
-                            data-testid={`service-option-${service.id}`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selectedServices.includes(service.id)}
-                              onChange={(e) => {
-                                const newSelected = e.target.checked
-                                  ? [...selectedServices, service.id]
-                                  : selectedServices.filter(id => id !== service.id);
-                                setSelectedServices(newSelected);
-                                
-                                const selectedServicesList = artistServices.filter((s: any) => newSelected.includes(s.id));
-                                const totalPrice = selectedServicesList.reduce((sum: number, s: any) => sum + (s.price || 0), 0) / 100;
-                                const serviceNames = selectedServicesList.map((s: any) => `${s.name} - $${((s.price || 0) / 100).toFixed(0)}`).join('\n');
-                                
-                                setFormData(prev => ({
-                                  ...prev,
-                                  serviceDetails: serviceNames || prev.serviceDetails,
-                                  totalAmount: totalPrice || prev.totalAmount,
-                                }));
-                              }}
-                              className="w-4 h-4 accent-plum"
-                              data-testid={`checkbox-service-${service.id}`}
-                            />
-                            <div className="flex-1">
-                              <span className="font-medium text-sm">{service.name}</span>
-                              {service.description && (
-                                <p className="text-xs text-black/50">{service.description}</p>
-                              )}
-                            </div>
-                            <span className="text-sm font-semibold text-plum">
-                              ${((service.price || 0) / 100).toFixed(0)}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                      {selectedServices.length > 0 && (
-                        <p className="text-xs text-black/60 mt-1">
-                          {selectedServices.length} service{selectedServices.length !== 1 ? 's' : ''} selected
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">
-                      Service Details {artistServices.length > 0 && <span className="text-black/40">(or add custom)</span>}
-                    </label>
-                    <textarea
-                      value={formData.serviceDetails}
-                      onChange={(e) => setFormData(prev => ({ ...prev, serviceDetails: e.target.value }))}
-                      rows={2}
-                      className="w-full border border-black/20 bg-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black resize-none"
-                      placeholder="Describe the services included..."
-                      data-testid="input-service-details"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="card-frame rounded-lg p-5">
-                <h2 className="font-header text-lg ink-main mb-4 flex items-center gap-2">
-                  <DollarSign size={18} /> Payment Information
-                </h2>
-
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">
-                        <DollarSign size={12} className="inline mr-1" /> Total Amount ($)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={formData.totalAmount}
-                        onChange={(e) => setFormData(prev => ({ ...prev, totalAmount: parseInt(e.target.value) || 0 }))}
-                        className="w-full border border-black/20 bg-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
-                        placeholder="0"
-                        data-testid="input-total-amount"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">
-                        <Percent size={12} className="inline mr-1" /> Deposit Percentage
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={formData.depositPercent}
-                        onChange={(e) => setFormData(prev => ({ ...prev, depositPercent: parseInt(e.target.value) || 0 }))}
-                        className="w-full border border-black/20 bg-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
-                        data-testid="input-deposit-percent"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded-lg">
-                    <div>
-                      <p className="text-xs text-black/60 uppercase tracking-wide">Deposit Due</p>
-                      <p className="text-lg font-semibold text-gold">${formData.depositAmount.toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-black/60 uppercase tracking-wide">Remaining Balance</p>
-                      <p className="text-lg font-semibold">${formData.remainingBalance.toLocaleString()}</p>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t border-black/10">
-                    <label className="block text-xs uppercase tracking-wide text-black/60 mb-2">Itemized Services (for Attachment A)</label>
-                    <div className="space-y-2">
-                      {formData.serviceItems.map((item, index) => (
-                        <div key={index} className="grid grid-cols-12 gap-2 items-center">
-                          <input
-                            type="text"
-                            placeholder="Client (e.g., Bride)"
-                            value={item.clientType}
-                            onChange={(e) => {
-                              const newItems = [...formData.serviceItems];
-                              newItems[index].clientType = e.target.value;
-                              setFormData(prev => ({ ...prev, serviceItems: newItems }));
-                            }}
-                            className="col-span-3 border border-black/20 rounded px-2 py-1 text-xs"
-                          />
-                          <input
-                            type="number"
-                            placeholder="Qty"
-                            min="1"
-                            value={item.qty}
-                            onChange={(e) => {
-                              const newItems = [...formData.serviceItems];
-                              const qty = parseInt(e.target.value) || 1;
-                              newItems[index].qty = qty;
-                              newItems[index].total = qty * newItems[index].price;
-                              setFormData(prev => ({ ...prev, serviceItems: newItems }));
-                            }}
-                            className="col-span-1 border border-black/20 rounded px-2 py-1 text-xs text-center"
-                          />
-                          <input
-                            type="text"
-                            placeholder="Service"
-                            value={item.service}
-                            onChange={(e) => {
-                              const newItems = [...formData.serviceItems];
-                              newItems[index].service = e.target.value;
-                              setFormData(prev => ({ ...prev, serviceItems: newItems }));
-                            }}
-                            className="col-span-4 border border-black/20 rounded px-2 py-1 text-xs"
-                          />
-                          <input
-                            type="number"
-                            placeholder="Price"
-                            value={item.price / 100}
-                            onChange={(e) => {
-                              const newItems = [...formData.serviceItems];
-                              const price = (parseFloat(e.target.value) || 0) * 100;
-                              newItems[index].price = price;
-                              newItems[index].total = newItems[index].qty * price;
-                              setFormData(prev => ({ ...prev, serviceItems: newItems }));
-                            }}
-                            className="col-span-2 border border-black/20 rounded px-2 py-1 text-xs"
-                          />
-                          <span className="col-span-1 text-xs text-right">${(item.total / 100).toFixed(0)}</span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newItems = formData.serviceItems.filter((_, i) => i !== index);
-                              setFormData(prev => ({ ...prev, serviceItems: newItems }));
-                            }}
-                            className="col-span-1 text-red-500 hover:text-red-700"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ))}
-                      <div className="flex gap-2 flex-wrap">
-                        {artistServices.length > 0 && (
-                          <select
-                            onChange={(e) => {
-                              const serviceId = e.target.value;
-                              if (!serviceId) return;
-                              const service = artistServices.find((s: any) => s.id === serviceId);
-                              if (service) {
-                                const price = service.price || 0;
-                                setFormData(prev => ({
-                                  ...prev,
-                                  serviceItems: [...prev.serviceItems, {
-                                    clientType: 'Bride',
-                                    qty: 1,
-                                    service: service.name,
-                                    price: price,
-                                    total: price
-                                  }]
-                                }));
-                              }
-                              e.target.value = '';
-                            }}
-                            className="text-xs border border-black/20 rounded px-2 py-1 bg-white"
-                          >
-                            <option value="">+ Add from your services...</option>
-                            {artistServices.filter((s: any) => s.isActive !== false).map((service: any) => (
-                              <option key={service.id} value={service.id}>
-                                {service.name} - ${((service.price || 0) / 100).toFixed(0)}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setFormData(prev => ({
-                              ...prev,
-                              serviceItems: [...prev.serviceItems, { clientType: '', qty: 1, service: '', price: 0, total: 0 }]
-                            }));
-                          }}
-                          className="flex items-center gap-1 text-xs text-plum hover:text-plum/80"
-                        >
-                          <Plus size={12} /> Add custom line
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">Balance Due Date</label>
-                    <input
-                      type="text"
-                      value={formData.balanceDueDate}
-                      onChange={(e) => setFormData(prev => ({ ...prev, balanceDueDate: e.target.value }))}
-                      className="w-full border border-black/20 rounded px-2 py-2 text-sm"
-                      placeholder="Two weeks before event date"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="card-frame rounded-lg p-5">
-                <h2 className="font-header text-lg ink-main mb-4 flex items-center gap-2">
-                  <Users size={18} /> Additional Info
-                </h2>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">Client Contact Info</label>
-                      <input
-                        type="text"
-                        value={formData.clientContact}
-                        onChange={(e) => setFormData(prev => ({ ...prev, clientContact: e.target.value }))}
-                        className="w-full border border-black/20 rounded px-2 py-2 text-sm"
-                        placeholder="Phone or email"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">Photographer</label>
-                      <input
-                        type="text"
-                        value={formData.photographerInfo}
-                        onChange={(e) => setFormData(prev => ({ ...prev, photographerInfo: e.target.value }))}
-                        className="w-full border border-black/20 rounded px-2 py-2 text-sm"
-                        placeholder="Photographer name/contact"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="card-frame rounded-lg p-5">
-                <h2 className="font-header text-lg ink-main mb-4 flex items-center gap-2">
-                  <Building size={18} /> Business Information
-                </h2>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">Business Name</label>
-                    <input
-                      type="text"
-                      value={formData.businessName}
-                      onChange={(e) => setFormData(prev => ({ ...prev, businessName: e.target.value }))}
-                      className="w-full border border-black/20 bg-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
-                      placeholder="Your business name"
-                      data-testid="input-business-name"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">Artist/Provider Name</label>
-                    <input
-                      type="text"
-                      value={formData.artistName}
-                      onChange={(e) => setFormData(prev => ({ ...prev, artistName: e.target.value }))}
-                      className="w-full border border-black/20 bg-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
-                      placeholder="Your name"
-                      data-testid="input-artist-name"
-                    />
-                  </div>
-                </div>
-              </div>
+              <label className="block text-sm font-medium mb-2">Select Client *</label>
+              <select
+                value={selectedBookingId}
+                onChange={(e) => setSelectedBookingId(e.target.value)}
+                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="">-- Choose a client --</option>
+                {bookings.map((booking: any) => (
+                  <option key={booking.id} value={booking.id}>
+                    {booking.clientName} - {booking.location}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <div className="space-y-4">
-              <div className="card-frame rounded-lg p-5">
-                <h3 className="font-header text-md ink-main mb-3">Your Contracts</h3>
-                <div className="space-y-2 max-h-[250px] overflow-y-auto">
-                  {existingContracts.length === 0 ? (
-                    <p className="text-xs text-black/50 text-center py-4">No contracts yet</p>
-                  ) : (
-                    existingContracts.map((contract: any, index: number) => (
-                      <button
-                        key={contract.id || index}
-                        onClick={() => setSelectedContractId(contract.id)}
-                        className={`w-full text-left p-2 text-xs border rounded transition-colors ${
-                          selectedContractId === contract.id 
-                            ? 'border-black bg-white' 
-                            : 'border-black/10 hover:border-black hover:bg-white'
-                        }`}
-                        data-testid={`button-select-contract-${index}`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <p className="font-medium">{contract.clientName || 'Unnamed'}</p>
-                          <span className={`text-[0.6rem] px-1.5 py-0.5 rounded ${
-                            contract.status === 'signed' ? 'bg-green-100 text-green-700' : 
-                            contract.status === 'sent' ? 'bg-blue-100 text-blue-700' :
-                            'bg-gray-100 text-gray-600'
-                          }`}>
-                            {contract.status || 'draft'}
-                          </span>
-                        </div>
-                        <p className="text-black/50">{contract.eventDate ? new Date(contract.eventDate).toLocaleDateString() : 'No date'}</p>
-                        <p className="text-black/40 text-[0.65rem]">${contract.totalAmount ? (contract.totalAmount / 100).toLocaleString() : 0}</p>
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-              
-              <div className="card-frame rounded-lg p-5 border-2 border-blue-300">
-                <h3 className="font-header text-md ink-main mb-1">Step 1: Select Client</h3>
-                <p className="text-[0.65rem] text-black/50 mb-3">Choose a booking to auto-fill contract details</p>
-                <div className="space-y-2 max-h-[150px] overflow-y-auto">
-                  {clients.length === 0 ? (
-                    <p className="text-xs text-black/50 text-center py-4">No clients with bookings</p>
-                  ) : (
-                    clients.map((client: any, index: number) => (
-                      <button
-                        key={`${client.bookingId}-${index}`}
-                        onClick={() => selectClient(client)}
-                        className={`w-full text-left p-2 text-xs border rounded transition-colors ${
-                          selectedBookingId === client.bookingId 
-                            ? 'border-black bg-white font-semibold' 
-                            : 'border-black/10 hover:border-black hover:bg-white'
-                        }`}
-                        data-testid={`button-select-client-${index}`}
-                      >
-                        <p className="font-medium">{client.name}</p>
-                        <p className="text-black/50">{client.eventDate ? new Date(client.eventDate).toLocaleDateString() : ''} - {client.location || 'No location'}</p>
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Upload Contract File *</label>
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx,.html"
+                onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
+                className="w-full border border-gray-300 rounded px-3 py-2"
+                required
+              />
+              {uploadedFile && (
+                <p className="text-sm text-green-600 mt-1">
+                  File selected: {uploadedFile.name}
+                </p>
+              )}
+            </div>
 
-              <div className="card-frame rounded-lg p-5">
-                <h3 className="font-header text-md ink-main mb-1">Or: Upload Your Own Contract</h3>
-                <p className="text-[0.65rem] text-black/50 mb-3">Already have a PDF? Upload it here</p>
-                <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed border-black/20 rounded-lg cursor-pointer hover:border-black transition-colors bg-white">
-                  <Upload size={16} />
-                  <span className="text-sm">Upload PDF</span>
-                  <input 
-                    type="file" 
-                    accept=".pdf,application/pdf" 
-                    className="sr-only" 
-                    onChange={handlePdfUpload}
-                    data-testid="input-upload-pdf"
-                  />
-                </label>
-                {uploadedPdf && (
-                  <div className="mt-2 space-y-2">
-                    <div className="p-2 bg-green-50 border border-green-200 rounded text-xs flex items-center gap-2">
-                      <Check size={14} className="text-green-600" />
-                      <span>{uploadedPdf.name}</span>
-                    </div>
-                    <button
-                      onClick={handleSavePdfToBooking}
-                      disabled={!selectedBookingId || isSaving}
-                      className="w-full bg-black text-white py-2 rounded text-xs hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                      data-testid="button-save-pdf-to-booking"
-                    >
-                      {isSaving ? (
-                        <div className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full" />
-                      ) : (
-                        <Save size={12} />
-                      )}
-                      Save to Booking
-                    </button>
-                    {!selectedBookingId && (
-                      <p className="text-[0.6rem] text-center text-red-500">Select a client from a booking first</p>
+            <button
+              type="submit"
+              disabled={isUploading || !selectedBookingId || !uploadedFile}
+              className="w-full bg-blue-600 text-white py-2 rounded font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <Upload size={18} />
+              {isUploading ? "Uploading..." : "Upload Contract"}
+            </button>
+          </form>
+        </div>
+
+        {/* Contracts List */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-2xl font-bold mb-4">Your Contracts</h2>
+          
+          {contracts.length === 0 ? (
+            <p className="text-gray-500">No contracts yet. Upload one to get started!</p>
+          ) : (
+            <div className="space-y-3">
+              {contracts.map((contract: any) => (
+                <div key={contract.id} className="border border-gray-200 rounded p-4 flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">{contract.clientName}</p>
+                    <p className="text-sm text-gray-600">
+                      Status: <span className="font-semibold capitalize">{contract.status}</span>
+                    </p>
+                    {contract.eventLocation && (
+                      <p className="text-sm text-gray-600">{contract.eventLocation}</p>
                     )}
                   </div>
-                )}
-              </div>
-
-              <div className="space-y-2 p-4 bg-green-50 border border-green-200 rounded-lg">
-                <h3 className="font-header text-sm ink-main text-center mb-2">Step 3: Download & Send</h3>
-                <button
-                  onClick={generateContract}
-                  disabled={!isFormValid()}
-                  className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  data-testid="button-generate-contract"
-                >
-                  <Download size={16} />
-                  Download Contract
-                </button>
-                {!isFormValid() && (
-                  <p className="text-[0.65rem] text-center text-red-500">
-                    Please fill in client name, event date, and total amount
-                  </p>
-                )}
-                <p className="text-[0.65rem] text-center text-black/60">
-                  After downloading, upload to DocuSign to send for signature
-                </p>
-              </div>
+                  
+                  {contract.status === 'draft' && (
+                    <button
+                      onClick={() => handleSend(contract.id)}
+                      disabled={isSending}
+                      className="bg-green-600 text-white px-4 py-2 rounded font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      <Send size={16} />
+                      {isSending ? "Sending..." : "Send for Signing"}
+                    </button>
+                  )}
+                  
+                  {contract.status === 'sent' && (
+                    <div className="text-orange-600 font-medium">Awaiting Signature</div>
+                  )}
+                  
+                  {contract.status === 'signed' && (
+                    <div className="text-green-600 font-medium">Signed</div>
+                  )}
+                </div>
+              ))}
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
