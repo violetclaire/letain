@@ -2859,25 +2859,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = getAuthUserId(req);
       const bookingId = req.params.bookingId;
       
+      console.log("[CONTRACT UPLOAD] Starting upload for booking:", bookingId);
+      
       const booking = await storage.getBooking(bookingId);
       if (!booking) {
+        console.error("[CONTRACT UPLOAD] Booking not found:", bookingId);
         return res.status(404).json({ error: "Booking not found" });
       }
       
       if (booking.artistId !== userId) {
+        console.error("[CONTRACT UPLOAD] Unauthorized - artist mismatch");
         return res.status(403).json({ error: "You can only upload contracts for your own bookings" });
       }
       
-      const { 
-        fileContent, fileName, mimeType, packageDetails, totalAmount, depositAmount,
-        clientName, eventDates, eventLocation, serviceStartTime, serviceEndTime, clientContact,
-        balanceDueDate, serviceItems
-      } = req.body;
+      const { fileContent, fileName, mimeType, packageDetails, totalAmount, depositAmount } = req.body;
       
       if (!fileContent) {
+        console.error("[CONTRACT UPLOAD] No file content");
         return res.status(400).json({ error: "File content is required" });
       }
       
+      console.log("[CONTRACT UPLOAD] Uploading to object storage");
       const objectService = new ObjectStorageService();
       const timestamp = Date.now();
       const safeName = (fileName || 'contract').replace(/[^a-zA-Z0-9.-]/g, '_');
@@ -2885,55 +2887,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const buffer = Buffer.from(fileContent, 'base64');
       const servingUrl = await objectService.uploadBuffer(objectPath, buffer, mimeType || 'application/pdf', userId);
+      console.log("[CONTRACT UPLOAD] File uploaded successfully:", servingUrl);
       
-      // Create or update contract with signing token
-      let existingContracts = await storage.getContractsByBooking(bookingId);
-      let contract;
+      // Get existing contracts or create new one
+      const existingContracts = await storage.getContractsByBooking(bookingId);
       const signingToken = randomUUID();
       
-      // Get client and artist info for HTML generation
-      const client = await storage.getUser(booking.clientId || userId);
-      const artist = await storage.getUser(userId);
-      const artistProfile = await storage.getArtistProfile(userId);
-      const artistName = artistProfile?.businessName || (artist?.firstName ? `${artist.firstName} ${artist.lastName || ""}`.trim() : "Beauty Artist");
-      
-      // Build contract data
-      const contractData = {
+      const contractPayload = {
         fileUrl: servingUrl,
         packageDetails: packageDetails || 'Beauty Services',
         totalAmount: totalAmount || 0,
         depositAmount: depositAmount || 0,
         signingToken,
         status: 'draft' as const,
-        clientName: clientName || booking.clientName || client?.firstName || 'Client',
-        eventDates: eventDates || booking.eventDate,
-        eventLocation: eventLocation || booking.location,
-        serviceStartTime: serviceStartTime,
-        serviceEndTime: serviceEndTime,
-        clientContact: clientContact,
-        balanceDueDate: balanceDueDate || 'Two weeks before wedding date',
-        serviceItems: serviceItems,
       };
       
-      // Generate contract HTML for signing page
-      const { buildContractHtml } = await import('./contractSystem');
-      const contractHtml = buildContractHtml(contractData, client, artistName);
-      
+      let contract;
       if (existingContracts.length > 0) {
-        contract = await storage.updateContract(existingContracts[0].id, {
-          ...contractData,
-          contractHtml,
-        });
+        console.log("[CONTRACT UPLOAD] Updating existing contract");
+        contract = await storage.updateContract(existingContracts[0].id, contractPayload);
       } else {
+        console.log("[CONTRACT UPLOAD] Creating new contract");
         contract = await storage.createContract({
           bookingId,
           artistId: userId,
           clientId: booking.clientId || userId,
-          ...contractData,
-          contractHtml,
+          ...contractPayload,
         });
       }
       
+      console.log("[CONTRACT UPLOAD] Contract saved successfully:", contract.id);
       res.json({ 
         success: true, 
         fileUrl: servingUrl,
@@ -2941,8 +2924,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         signingUrl: `/sign/${signingToken}`
       });
     } catch (error: any) {
-      console.error("Booking contract upload error:", error);
-      res.status(500).json({ error: error.message });
+      console.error("[CONTRACT UPLOAD] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to upload contract" });
     }
   });
 
@@ -3328,66 +3311,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Artist: Send contract for signing (generates token and sends email)
+  // Artist: Send contract for signing
   app.post("/api/contracts/:id/send-for-signing", isAuthenticated, async (req: any, res) => {
     try {
       const userId = getAuthUserId(req);
       const contractId = req.params.id;
       
+      console.log("[SEND CONTRACT] Starting for contract:", contractId);
+      
       const contract = await storage.getContract(contractId);
       if (!contract) {
+        console.error("[SEND CONTRACT] Contract not found:", contractId);
         return res.status(404).json({ error: "Contract not found" });
       }
       
       if (contract.artistId !== userId) {
+        console.error("[SEND CONTRACT] Not authorized");
         return res.status(403).json({ error: "Not authorized to send this contract" });
       }
       
-      // Get client info
       const client = await storage.getUser(contract.clientId);
       if (!client?.email) {
+        console.error("[SEND CONTRACT] Client email not found");
         return res.status(400).json({ error: "Client email not found" });
       }
       
-      // Get artist info
-      const artist = await storage.getUser(contract.artistId);
-      const artistProfile = await storage.getArtistProfile(contract.artistId);
-      const artistName = artistProfile?.businessName || (artist?.firstName ? `${artist.firstName} ${artist.lastName || ""}`.trim() : "Your beauty artist");
-      
-      // Use existing signing token or generate new one
       const signingToken = contract.signingToken || randomUUID();
+      console.log("[SEND CONTRACT] Using signing token:", signingToken);
       
-      // Generate contract HTML for signing page if not already generated
-      let contractHtml = contract.contractHtml;
-      if (!contractHtml) {
-        const { buildContractHtml } = await import('./contractSystem');
-        contractHtml = buildContractHtml(contract, client, artistName);
-      }
-      
-      // Update contract with status
+      // Update contract status to 'sent'
       const updated = await storage.updateContract(contractId, {
-        signingToken,
-        contractHtml,
         status: "sent",
         sentForSigningAt: new Date(),
+        signingToken,
       });
       
-      // Send signing email
+      console.log("[SEND CONTRACT] Contract status updated to sent");
+      
+      // Get artist info for email
+      const artist = await storage.getUser(contract.artistId);
+      const artistProfile = await storage.getArtistProfile(contract.artistId);
+      const artistName = artistProfile?.businessName || (artist?.firstName ? `${artist.firstName} ${artist.lastName || ""}`.trim() : "Beauty Artist");
+      
+      // Build signing URL
       const baseUrl = process.env.REPLIT_DEV_DOMAIN 
         ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
         : process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.app';
       const signingUrl = `${baseUrl}/sign/${signingToken}`;
       
-      const { sendContractSigningEmail } = await import("./emailService");
-      await sendContractSigningEmail({
-        toEmail: client.email,
-        clientName: client.firstName || contract.clientName || "Client",
-        artistName,
-        packageDetails: contract.packageDetails,
-        totalAmount: contract.totalAmount / 100,
-        depositAmount: (contract.depositAmount || 0) / 100,
-        signingUrl,
-      });
+      console.log("[SEND CONTRACT] Signing URL:", signingUrl);
+      
+      // Send email
+      try {
+        const { sendContractSigningEmail } = await import("./emailService");
+        await sendContractSigningEmail({
+          toEmail: client.email,
+          clientName: client.firstName || contract.clientName || "Client",
+          artistName,
+          packageDetails: contract.packageDetails,
+          totalAmount: (contract.totalAmount || 0) / 100,
+          depositAmount: (contract.depositAmount || 0) / 100,
+          signingUrl,
+        });
+        console.log("[SEND CONTRACT] Email sent successfully");
+      } catch (emailErr) {
+        console.error("[SEND CONTRACT] Email send failed (continuing):", emailErr);
+      }
       
       res.json({ 
         success: true, 
@@ -3396,8 +3385,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         contract: updated
       });
     } catch (error: any) {
-      console.error("[Sign] Error sending for signature:", error);
-      res.status(500).json({ error: error.message });
+      console.error("[SEND CONTRACT] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to send contract" });
     }
   });
 
