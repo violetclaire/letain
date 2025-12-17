@@ -403,6 +403,7 @@ export default function ContractSigning({ token }: ContractSigningProps) {
                   <div className="flex gap-2 mb-3">
                     <button
                       onClick={() => setSignatureMode("type")}
+                      data-testid="button-signature-type"
                       className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border text-sm transition-all ${
                         signatureMode === "type" 
                           ? "bg-[#6B4A55] text-white border-[#6B4A55]" 
@@ -414,6 +415,7 @@ export default function ContractSigning({ token }: ContractSigningProps) {
                     </button>
                     <button
                       onClick={() => setSignatureMode("draw")}
+                      data-testid="button-signature-draw"
                       className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border text-sm transition-all ${
                         signatureMode === "draw" 
                           ? "bg-[#6B4A55] text-white border-[#6B4A55]" 
@@ -480,6 +482,7 @@ export default function ContractSigning({ token }: ContractSigningProps) {
                         {drawnSignature && (
                           <button
                             onClick={clearCanvas}
+                            data-testid="button-clear-signature"
                             className="mt-2 text-xs text-gray-500 hover:text-gray-700 underline"
                           >
                             Clear signature
