@@ -110,11 +110,9 @@ export default function VendorProfile() {
 
     setSubmitting(true);
     try {
-      // Format date as YYYY-MM-DD to avoid timezone issues
-      const year = bookingDate.getFullYear();
-      const month = String(bookingDate.getMonth() + 1).padStart(2, '0');
-      const day = String(bookingDate.getDate()).padStart(2, '0');
-      const formattedDate = `${year}-${month}-${day}T12:00:00.000Z`;
+      // Use noon local time to avoid timezone shifts
+      const localNoon = new Date(bookingDate.getFullYear(), bookingDate.getMonth(), bookingDate.getDate(), 12, 0, 0);
+      const formattedDate = localNoon.toISOString();
       
       const response = await fetch("/api/bookings", {
         method: "POST",

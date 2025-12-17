@@ -64,11 +64,10 @@ export default function ManageBookings() {
   };
 
   const normalizeEventDate = (dateStr: string): string => {
+    // Parse and create a noon local time to avoid timezone shifts
     const date = new Date(dateStr);
-    const year = date.getUTCFullYear();
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    return `${year}-${month}-${day}T12:00:00.000Z`;
+    const localNoon = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
+    return localNoon.toISOString();
   };
 
   const handleEdit = (booking: Booking) => {
@@ -222,16 +221,17 @@ export default function ManageBookings() {
                             type="date"
                             value={editFormData.eventDate ? (() => {
                               const d = new Date(editFormData.eventDate);
-                              const year = d.getUTCFullYear();
-                              const month = String(d.getUTCMonth() + 1).padStart(2, '0');
-                              const day = String(d.getUTCDate()).padStart(2, '0');
+                              const year = d.getFullYear();
+                              const month = String(d.getMonth() + 1).padStart(2, '0');
+                              const day = String(d.getDate()).padStart(2, '0');
                               return `${year}-${month}-${day}`;
                             })() : ""}
                             onChange={(e) => {
                               const dateValue = e.target.value;
                               if (dateValue) {
-                                const formattedDate = `${dateValue}T12:00:00.000Z`;
-                                setEditFormData(prev => ({ ...prev, eventDate: formattedDate }));
+                                const [year, month, day] = dateValue.split('-').map(Number);
+                                const localNoon = new Date(year, month - 1, day, 12, 0, 0);
+                                setEditFormData(prev => ({ ...prev, eventDate: localNoon.toISOString() }));
                               }
                             }}
                             className="h-8 text-sm"
