@@ -327,6 +327,7 @@ export const contracts = pgTable("contracts", {
   clientSignature: text("client_signature"), // Typed signature text
   signedByName: text("signed_by_name"), // Name entered when signing
   signedByEmail: text("signed_by_email"), // Email entered when signing
+  signedOnBehalfOf: text("signed_on_behalf_of"), // Optional: if signing on behalf of someone else
   contractHtml: text("contract_html"), // Rendered contract HTML for signing page
   sentForSigningAt: timestamp("sent_for_signing_at"), // When the signing link was sent
   createdAt: timestamp("created_at").defaultNow().notNull(),

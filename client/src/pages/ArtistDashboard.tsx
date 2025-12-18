@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useState, useEffect, useRef } from "react";
-import { Folder, ArrowLeft, Calendar, Clock, FileText, DollarSign, Image as ImageIcon, Check, X, AlertCircle, Plus, Search, CreditCard, Send, Instagram, Globe, MessageCircle, MessageSquare, UserPlus, LogOut, Upload, Settings, User, Wallet, BookUser, Info, ChevronDown, ChevronUp, Camera, Paperclip, Mic, Loader2, Eye, ShieldAlert, ThumbsUp, ThumbsDown, Flag, Mail, XCircle, Copy } from "lucide-react";
+import { Folder, ArrowLeft, Calendar, Clock, FileText, DollarSign, Image as ImageIcon, Check, X, AlertCircle, Plus, Search, CreditCard, Send, Instagram, Globe, MessageCircle, MessageSquare, UserPlus, LogOut, Upload, Settings, User, Wallet, BookUser, Info, ChevronDown, ChevronUp, Camera, Paperclip, Mic, Loader2, Eye, ShieldAlert, ThumbsUp, ThumbsDown, Flag, Mail, XCircle, Copy, RefreshCw } from "lucide-react";
 import VoiceDictation from "../components/VoiceDictation";
 import AvailabilityCalendar from "../components/AvailabilityCalendar";
 import AIChatPanel from "../components/AIChatPanel";
@@ -1500,6 +1500,44 @@ export default function ArtistDashboard() {
       });
     } finally {
       setSendingContractForSignature(null);
+    }
+  };
+
+  const [cancellingContract, setCancellingContract] = useState<string | null>(null);
+  
+  const cancelContract = async (contractId: string) => {
+    setCancellingContract(contractId);
+    try {
+      const res = await fetch(`/api/contracts/${contractId}/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+      
+      if (res.ok) {
+        toast({
+          title: "Contract Cancelled",
+          description: "The contract has been cancelled. You can now create a new one.",
+        });
+        if (selectedBooking?.id) {
+          fetchBookingContracts(selectedBooking.id);
+        }
+      } else {
+        const error = await res.json();
+        toast({
+          title: "Cancel Failed",
+          description: error.error || "Failed to cancel contract",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to cancel contract",
+        variant: "destructive",
+      });
+    } finally {
+      setCancellingContract(null);
     }
   };
 
@@ -3443,18 +3481,45 @@ export default function ArtistDashboard() {
                                     )}
                                   </button>
                                 )}
-                                {contract.signingToken && !contract.signedAt && (
-                                  <button
-                                    onClick={() => {
-                                      const link = `${window.location.origin}/sign/${contract.signingToken}`;
-                                      navigator.clipboard.writeText(link);
-                                      toast({ title: "Link Copied", description: "Signing link copied to clipboard" });
-                                    }}
-                                    className="flex items-center gap-1 px-2 py-1 text-[0.65rem] text-gray-600 hover:text-black"
-                                    data-testid={`button-copy-signing-link-${contract.id}`}
-                                  >
-                                    <Copy size={10} /> Copy Link
-                                  </button>
+                                {contract.signingToken && !contract.signedAt && contract.status !== 'cancelled' && (
+                                  <>
+                                    <button
+                                      onClick={() => {
+                                        const link = `${window.location.origin}/sign/${contract.signingToken}`;
+                                        navigator.clipboard.writeText(link);
+                                        toast({ title: "Link Copied", description: "Signing link copied to clipboard" });
+                                      }}
+                                      className="flex items-center gap-1 px-2 py-1 text-[0.65rem] text-gray-600 hover:text-black"
+                                      data-testid={`button-copy-signing-link-${contract.id}`}
+                                    >
+                                      <Copy size={10} /> Copy Link
+                                    </button>
+                                    <button
+                                      onClick={() => sendContractForSignature(
+                                        contract.id, 
+                                        contract.clientEmail || selectedBooking?.clientEmail,
+                                        contract.clientName || selectedBooking?.name
+                                      )}
+                                      disabled={sendingContractForSignature === contract.id}
+                                      className="flex items-center gap-1 px-2 py-1 text-[0.65rem] text-blue-600 hover:text-blue-800"
+                                      data-testid={`button-resend-contract-${contract.id}`}
+                                    >
+                                      <RefreshCw size={10} /> Resend
+                                    </button>
+                                    <button
+                                      onClick={() => cancelContract(contract.id)}
+                                      disabled={cancellingContract === contract.id}
+                                      className="flex items-center gap-1 px-2 py-1 text-[0.65rem] text-red-500 hover:text-red-700"
+                                      data-testid={`button-cancel-contract-${contract.id}`}
+                                    >
+                                      {cancellingContract === contract.id ? (
+                                        <Loader2 size={10} className="animate-spin" />
+                                      ) : (
+                                        <X size={10} />
+                                      )}
+                                      Cancel
+                                    </button>
+                                  </>
                                 )}
                               </div>
                             </div>

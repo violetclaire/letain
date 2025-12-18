@@ -3452,7 +3452,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         depositAmount: contract.depositAmount,
         signedAt: contract.signedAt,
         signedByName: contract.signedByName,
+        signedOnBehalfOf: contract.signedOnBehalfOf,
         clientSignature: contract.clientSignature,
+        eventDates: contract.eventDates,
+        eventLocation: contract.eventLocation,
       });
     } catch (error: any) {
       console.error("[Sign] Error fetching contract:", error);
@@ -3464,7 +3467,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/contracts/sign/:token", async (req, res) => {
     try {
       const { token } = req.params;
-      const { signedByName, signedByEmail, clientSignature } = req.body;
+      const { signedByName, signedByEmail, clientSignature, signedOnBehalfOf } = req.body;
       
       if (!signedByName || !signedByEmail || !clientSignature) {
         return res.status(400).json({ message: "Name, email, and signature are required" });
@@ -3479,6 +3482,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "This contract has already been signed" });
       }
       
+      if (contract.status === "cancelled") {
+        return res.status(400).json({ message: "This contract has been cancelled" });
+      }
+      
       // Update contract with signature
       await storage.updateContract(contract.id, {
         status: "signed",
@@ -3486,6 +3493,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         signedByName,
         signedByEmail,
         clientSignature,
+        signedOnBehalfOf: signedOnBehalfOf || null,
       });
       
       // Notify artist via email
@@ -3535,6 +3543,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Artist: Cancel a contract
+  app.post("/api/contracts/:id/cancel", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const contractId = req.params.id;
+      
+      const contract = await storage.getContract(contractId);
+      if (!contract) {
+        return res.status(404).json({ error: "Contract not found" });
+      }
+      
+      if (contract.artistId !== userId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      if (contract.status === "signed") {
+        return res.status(400).json({ error: "Cannot cancel a signed contract" });
+      }
+      
+      await storage.updateContract(contractId, {
+        status: "cancelled",
+      });
+      
+      res.json({ success: true, message: "Contract cancelled" });
+    } catch (error: any) {
+      console.error("[Contract] Error cancelling contract:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Artist: Send contract for signing
   app.post("/api/contracts/:id/send-for-signing", isAuthenticated, async (req: any, res) => {
     try {

@@ -16,6 +16,7 @@ export default function ContractSigning({ token }: ContractSigningProps) {
   const queryClient = useQueryClient();
   const [signatureName, setSignatureName] = useState("");
   const [signatureEmail, setSignatureEmail] = useState("");
+  const [signingOnBehalfOf, setSigningOnBehalfOf] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [typedSignature, setTypedSignature] = useState("");
   const [signatureMode, setSignatureMode] = useState<"type" | "draw">("type");
@@ -47,6 +48,7 @@ export default function ContractSigning({ token }: ContractSigningProps) {
           signedByName: signatureName,
           signedByEmail: signatureEmail,
           clientSignature: signature,
+          signedOnBehalfOf: signingOnBehalfOf || null,
         }),
       });
       if (!res.ok) {
@@ -209,6 +211,9 @@ export default function ContractSigning({ token }: ContractSigningProps) {
                   <div>
                     <p className="text-xs text-gray-500">Signed by</p>
                     <p className="font-medium">{contract.signedByName}</p>
+                    {contract.signedOnBehalfOf && (
+                      <p className="text-xs text-gray-500">on behalf of {contract.signedOnBehalfOf}</p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -394,6 +399,20 @@ export default function ContractSigning({ token }: ContractSigningProps) {
                       placeholder="Enter your email"
                       className="mt-1"
                     />
+                  </div>
+                  <div>
+                    <Label htmlFor="signingOnBehalfOf" className="text-sm font-medium">
+                      Signing on Behalf of <span className="text-gray-400 font-normal">(optional)</span>
+                    </Label>
+                    <Input
+                      id="signingOnBehalfOf"
+                      data-testid="input-signing-on-behalf-of"
+                      value={signingOnBehalfOf}
+                      onChange={(e) => setSigningOnBehalfOf(e.target.value)}
+                      placeholder="e.g., Laura Fiche (if signing for someone else)"
+                      className="mt-1"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Leave blank if signing for yourself</p>
                   </div>
                 </div>
 
