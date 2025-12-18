@@ -1844,6 +1844,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public planner view endpoint - allows planners to view shared booking details
+  app.get("/api/bookings/:id/planner-view", async (req, res) => {
+    try {
+      const booking = await storage.getBooking(req.params.id);
+      if (!booking) {
+        return res.status(404).json({ error: "Booking not found" });
+      }
+      
+      // Get client info
+      let clientName = "Client";
+      let clientEmail = "";
+      let clientPhone = "";
+      
+      if (booking.clientId) {
+        const client = await storage.getUser(booking.clientId);
+        if (client) {
+          clientName = `${client.firstName || ""} ${client.lastName || ""}`.trim() || "Client";
+          clientEmail = client.email || "";
+          clientPhone = client.phone || "";
+        }
+      }
+      
+      if (booking.clientContactId) {
+        const contact = await storage.getClientContact(booking.clientContactId);
+        if (contact) {
+          clientName = contact.name || clientName;
+          clientEmail = contact.email || clientEmail;
+          clientPhone = contact.phone || clientPhone;
+        }
+      }
+      
+      // Get artist info
+      let artistName = "Beauty Artist";
+      if (booking.artistId) {
+        const artist = await storage.getUser(booking.artistId);
+        const artistProfile = await storage.getArtistProfile(booking.artistId);
+        if (artistProfile?.businessName) {
+          artistName = artistProfile.businessName;
+        } else if (artist) {
+          artistName = `${artist.firstName || ""} ${artist.lastName || ""}`.trim() || "Beauty Artist";
+        }
+      }
+      
+      // Return sanitized booking info for planner view
+      res.json({
+        id: booking.id,
+        clientName,
+        clientEmail,
+        clientPhone,
+        artistName,
+        eventDate: booking.eventDate,
+        eventTime: booking.eventDate ? new Date(booking.eventDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : null,
+        eventLocation: booking.eventLocation,
+        eventType: booking.eventType,
+        packageType: booking.serviceType || booking.packageType,
+        notes: booking.notes,
+        totalAmount: booking.totalAmount,
+        depositAmount: booking.depositAmount,
+        status: booking.status,
+      });
+    } catch (error: any) {
+      console.error("[PlannerView] Error:", error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   app.patch("/api/bookings/:id", isAuthenticated, async (req: any, res) => {
     try {
       const previousBooking = await storage.getBooking(req.params.id);

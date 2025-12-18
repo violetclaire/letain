@@ -52,6 +52,7 @@ import Privacy from "@/pages/Privacy";
 import ChatInvite from "@/pages/ChatInvite";
 import ClientMessages from "@/pages/ClientMessages";
 import ContractSigning from "@/pages/ContractSigning";
+import PlannerView from "@/pages/PlannerView";
 
 function InviteRedirectHandler() {
   const [location, setLocation] = useLocation();
@@ -136,6 +137,11 @@ function Router() {
       {/* Contract Signing Route (public - no auth required) */}
       <Route path="/sign/:token">
         {(params) => <ContractSigning token={params.token} />}
+      </Route>
+      
+      {/* Planner View Route (shared booking view for planners) */}
+      <Route path="/planner-view/:bookingId">
+        {(params) => <PlannerView bookingId={params.bookingId} />}
       </Route>
       
       {/* Public Routes */}
