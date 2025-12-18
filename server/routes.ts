@@ -3863,8 +3863,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/ai/chat", isAuthenticated, async (req: any, res) => {
+    console.log("[AI Chat] Received request");
     try {
       const userId = getAuthUserId(req);
+      console.log("[AI Chat] User:", userId, "Message:", req.body?.message?.substring(0, 50));
       const { message, attachments, conversationId } = req.body;
       
       if (!message && (!attachments || attachments.length === 0)) {
