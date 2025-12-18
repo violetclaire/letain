@@ -236,6 +236,7 @@ export default function ArtistDashboard() {
   
   // Contract Creation Modal state
   const [showContractCreationModal, setShowContractCreationModal] = useState(false);
+  const [viewingContract, setViewingContract] = useState<any | null>(null);
   const [contractServiceItems, setContractServiceItems] = useState<Array<{
     id: string;
     clientType: string;
@@ -3447,17 +3448,13 @@ export default function ArtistDashboard() {
                                 </div>
                               </div>
                               <div className="flex items-center gap-1 flex-shrink-0">
-                                {contract.fileUrl && (
-                                  <a
-                                    href={contract.fileUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-1 px-2 py-1 text-[0.65rem] text-blue-600 hover:underline"
-                                    data-testid={`button-download-contract-${contract.id}`}
-                                  >
-                                    <Eye size={12} /> View
-                                  </a>
-                                )}
+                                <button
+                                  onClick={() => setViewingContract(contract)}
+                                  className="flex items-center gap-1 px-2 py-1 text-[0.65rem] text-blue-600 hover:underline"
+                                  data-testid={`button-view-contract-${contract.id}`}
+                                >
+                                  <Eye size={12} /> View
+                                </button>
                                 {!contract.signedAt && !contract.signingToken && (
                                   <button
                                     onClick={() => sendContractForSignature(
@@ -4047,6 +4044,183 @@ export default function ArtistDashboard() {
                   </>
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Contract Modal */}
+      {viewingContract && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full shadow-xl my-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-100 rounded-full">
+                  <FileText size={20} className="text-green-700" />
+                </div>
+                <div>
+                  <h3 className="font-header text-lg ink-main">Contract Details</h3>
+                  <p className="text-xs ink-soft">
+                    {viewingContract.signedAt ? (
+                      <span className="text-green-600">Signed on {new Date(viewingContract.signedAt).toLocaleDateString()}</span>
+                    ) : viewingContract.signingToken ? (
+                      <span className="text-amber-600">Awaiting signature</span>
+                    ) : (
+                      <span className="text-gray-500">Draft</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setViewingContract(null)}
+                className="p-1 hover:bg-gray-100 rounded"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            {/* Contract Summary */}
+            <div className="space-y-4">
+              <div className="bg-[#fbfcff] border border-[#e5e8f2] rounded p-4">
+                <h4 className="text-xs uppercase tracking-wide ink-soft font-semibold mb-2">Summary</h4>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-xs text-gray-500">Client</p>
+                    <p className="font-medium">{viewingContract.clientName || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Email</p>
+                    <p className="font-medium">{viewingContract.clientEmail || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Event Date</p>
+                    <p className="font-medium">{viewingContract.eventDates || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Location</p>
+                    <p className="font-medium">{viewingContract.eventLocation || 'Not specified'}</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Service Items */}
+              {viewingContract.serviceItems && viewingContract.serviceItems.length > 0 && (
+                <div className="bg-[#fbfcff] border border-[#e5e8f2] rounded p-4">
+                  <h4 className="text-xs uppercase tracking-wide ink-soft font-semibold mb-2">Services</h4>
+                  <div className="space-y-2">
+                    {viewingContract.serviceItems.map((item: any, idx: number) => (
+                      <div key={idx} className="flex justify-between text-sm border-b border-gray-100 pb-2 last:border-0 last:pb-0">
+                        <div>
+                          <span className="font-medium">{item.clientType}</span>
+                          <span className="text-gray-500"> - {item.service}</span>
+                          <span className="text-gray-400 text-xs ml-2">x{item.qty}</span>
+                        </div>
+                        <span className="font-medium">${((item.price || 0) / 100).toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Amounts */}
+              <div className="bg-[#fbfcff] border border-[#e5e8f2] rounded p-4">
+                <h4 className="text-xs uppercase tracking-wide ink-soft font-semibold mb-2">Payment Details</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Total Amount</span>
+                    <span className="font-semibold">${((viewingContract.totalAmount || 0) / 100).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Deposit Required</span>
+                    <span className="font-medium">${((viewingContract.depositAmount || 0) / 100).toFixed(2)}</span>
+                  </div>
+                  {viewingContract.depositPaidAt && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Deposit Paid</span>
+                      <span>{new Date(viewingContract.depositPaidAt).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Signature Info */}
+              {viewingContract.signedAt && (
+                <div className="bg-green-50 border border-green-200 rounded p-4">
+                  <h4 className="text-xs uppercase tracking-wide text-green-700 font-semibold mb-2">Signature</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Signed By</span>
+                      <span className="font-medium">{viewingContract.signedByName || 'Client'}</span>
+                    </div>
+                    {viewingContract.signedOnBehalfOf && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">On Behalf Of</span>
+                        <span className="font-medium">{viewingContract.signedOnBehalfOf}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Signed At</span>
+                      <span className="font-medium">{new Date(viewingContract.signedAt).toLocaleString()}</span>
+                    </div>
+                    {viewingContract.clientSignature && (
+                      <div className="mt-3 pt-3 border-t border-green-200">
+                        <p className="text-xs text-gray-500 mb-2">Signature</p>
+                        <img 
+                          src={viewingContract.clientSignature} 
+                          alt="Client Signature" 
+                          className="max-h-16 border border-gray-200 rounded bg-white p-2"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Contract HTML Content */}
+              {viewingContract.contractHtml && (
+                <div className="border border-[#e5e8f2] rounded p-4">
+                  <h4 className="text-xs uppercase tracking-wide ink-soft font-semibold mb-2">Contract Terms</h4>
+                  <div 
+                    className="prose prose-sm max-w-none text-xs"
+                    dangerouslySetInnerHTML={{ __html: viewingContract.contractHtml }}
+                  />
+                </div>
+              )}
+              
+              {/* File URL */}
+              {viewingContract.fileUrl && (
+                <div className="flex justify-center">
+                  <a
+                    href={viewingContract.fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    <Eye size={16} /> Open Contract File
+                  </a>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
+              <button
+                onClick={() => setViewingContract(null)}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-black"
+              >
+                Close
+              </button>
+              {!viewingContract.signedAt && viewingContract.signingToken && (
+                <button
+                  onClick={() => {
+                    const link = `${window.location.origin}/sign/${viewingContract.signingToken}`;
+                    navigator.clipboard.writeText(link);
+                    toast({ title: "Link Copied", description: "Signing link copied to clipboard" });
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-black text-white rounded hover:bg-gray-800"
+                >
+                  <Copy size={14} /> Copy Signing Link
+                </button>
+              )}
             </div>
           </div>
         </div>
