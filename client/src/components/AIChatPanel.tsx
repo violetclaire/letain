@@ -234,11 +234,14 @@ export default function AIChatPanel({ userId, userName, onAvailabilityUpdate, on
   const sendMessage = async () => {
     if (!input.trim() && attachments.length === 0) return;
 
+    const messageToSend = input.trim();
+    const attachmentsToSend = [...attachmentPreviews];
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input,
-      attachments: attachmentPreviews.map((url, i) => ({
+      content: messageToSend,
+      attachments: attachmentsToSend.map((url, i) => ({
         type: "image",
         url,
         name: attachments[i]?.name || `Image ${i + 1}`
@@ -252,7 +255,7 @@ export default function AIChatPanel({ userId, userName, onAvailabilityUpdate, on
 
     try {
       const imageData: { mimeType: string; data: string }[] = [];
-      for (const preview of attachmentPreviews) {
+      for (const preview of attachmentsToSend) {
         const base64Match = preview.match(/^data:([^;]+);base64,(.+)$/);
         if (base64Match) {
           imageData.push({
@@ -262,12 +265,13 @@ export default function AIChatPanel({ userId, userName, onAvailabilityUpdate, on
         }
       }
 
+      console.log("[AI Chat] Sending message:", messageToSend.substring(0, 50));
       const response = await fetch("/api/ai/chat", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: input,
+          message: messageToSend,
           attachments: imageData
         })
       });
