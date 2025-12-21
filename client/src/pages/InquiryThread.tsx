@@ -3,6 +3,7 @@ import { useRoute, useLocation } from "wouter";
 import { format } from "date-fns";
 import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
+import { Loader2 } from "lucide-react";
 
 interface Inquiry {
   id: string;
@@ -98,18 +99,22 @@ export default function InquiryThread() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-sm tracking-widest uppercase text-gray-500">Loading...</div>
+      <div className="min-h-screen bg-[#F9F8F6] flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-[#2D2D2D]/30" />
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+      <div className="min-h-screen bg-[#F9F8F6] flex items-center justify-center px-8">
         <div className="text-center">
-          <p className="text-sm tracking-widest uppercase text-gray-500 mb-4">Inquiry not found</p>
-          <a href="/" className="text-xs underline text-gray-400">Return home</a>
+          <p className="text-sm text-[#2D2D2D]/50 mb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
+            Inquiry not found
+          </p>
+          <a href="/" className="text-xs underline text-[#2D2D2D]/40 hover:text-[#2D2D2D]">
+            Return home
+          </a>
         </div>
       </div>
     );
@@ -119,301 +124,297 @@ export default function InquiryThread() {
   const onboardingComplete = artist?.onboardingCompleted;
   const slug = artist?.artistSlug;
 
-  const getStatusColor = (status: string) => {
-    switch (status.toUpperCase()) {
-      case "PENDING": return "bg-yellow-900 text-yellow-200";
-      case "ACCEPTED": return "bg-green-900 text-green-200";
-      case "DEPOSIT_PAID": return "bg-emerald-900 text-emerald-200";
-      case "REFERRED": return "bg-blue-900 text-blue-200";
-      case "DECLINED": return "bg-red-900 text-red-200";
-      default: return "bg-gray-800 text-gray-400";
+  const getStatusStyle = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "pending": return "text-[#2D2D2D]/60";
+      case "accepted": return "text-[#2D2D2D]";
+      case "referred": return "text-[#2D2D2D]/50";
+      case "declined": return "text-[#2D2D2D]/40";
+      default: return "text-[#2D2D2D]/50";
     }
   };
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <header className="flex justify-between items-center px-8 py-6 border-b border-gray-900">
+    <div className="min-h-screen bg-[#F9F8F6] text-[#2D2D2D]" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <header className="flex justify-between items-center px-8 md:px-16 py-8 border-b border-[#2D2D2D]/10">
         <a href="/">
-          <h1 className="text-sm tracking-[0.3em] font-light lowercase" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <h1 className="text-sm tracking-[0.2em] text-[#2D2D2D]/70" style={{ fontFamily: "'Playfair Display', serif" }}>
             {artist?.businessName || "Artist"}
           </h1>
         </a>
-        <div className="flex items-center gap-6">
-          <span className="text-[10px] tracking-widest text-gray-500 uppercase">
-            {inquiry.status}
-          </span>
-          {slug && (
-            <a href={`/admin/${slug}`} className="text-xs tracking-widest uppercase text-gray-400 hover:text-white">
-              Dashboard
-            </a>
-          )}
-        </div>
+        <span className={`text-[10px] tracking-[0.3em] uppercase ${getStatusStyle(inquiry.status)}`}>
+          {inquiry.status}
+        </span>
       </header>
 
-      <main className="max-w-2xl mx-auto px-8 py-12">
-        <div className="mb-10 pb-8 border-b border-gray-900">
+      <main className="max-w-xl mx-auto px-8 md:px-16 py-16 md:py-24">
+        <div className="mb-16 pb-12 border-b border-[#2D2D2D]/10">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs tracking-[0.3em] uppercase text-gray-500 mb-2">inquiry from</p>
-              <h2 className="text-2xl" style={{ fontFamily: "'Playfair Display', serif" }}>
+              <p className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/40 mb-3">from</p>
+              <h2 className="text-2xl text-[#2D2D2D] mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
                 {inquiry.clientName}
               </h2>
-              <p className="text-sm text-gray-400 mt-2">{inquiry.clientEmail}</p>
-              {inquiry.clientPhone && (
-                <p className="text-sm text-gray-500 mt-1">{inquiry.clientPhone}</p>
-              )}
+              <p className="text-sm text-[#2D2D2D]/50">{inquiry.clientEmail}</p>
             </div>
             <div className="text-right">
-              <p className="text-xs tracking-[0.2em] uppercase text-gray-500 mb-2">event date</p>
-              <p className="text-lg">{format(new Date(inquiry.eventDate), "MMM d, yyyy")}</p>
-              <span className={`inline-block mt-2 px-3 py-1 text-[10px] tracking-widest uppercase ${getStatusColor(inquiry.status)}`}>
-                {inquiry.status}
-              </span>
+              <p className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/40 mb-3">date</p>
+              <p className="text-lg text-[#2D2D2D]" style={{ fontFamily: "'Playfair Display', serif" }}>
+                {format(new Date(inquiry.eventDate), "MMM d, yyyy")}
+              </p>
             </div>
           </div>
 
           {inquiry.message && (
-            <div className="mt-6 p-4 bg-gray-900 border-l-2 border-gray-700">
-              <p className="text-[10px] tracking-widest uppercase text-gray-500 mb-2">Client Message</p>
-              <p className="text-sm text-gray-300 leading-relaxed">{inquiry.message}</p>
+            <div className="mt-10 pl-6 border-l border-[#2D2D2D]/10">
+              <p className="text-sm text-[#2D2D2D]/70 leading-relaxed italic">
+                "{inquiry.message}"
+              </p>
             </div>
           )}
         </div>
 
         {inquiry.status.toLowerCase() === "pending" && (
-          <div className="mb-10">
-            <p className="text-[10px] tracking-[0.2em] uppercase text-gray-500 mb-4">Accept & Send Info Sheet</p>
-            <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="space-y-6">
+            <div className="grid grid-cols-3 gap-4">
               <button
                 onClick={() => actionMutation.mutate({ action: "accept-client" })}
                 disabled={actionMutation.isPending}
-                className="block p-6 border border-green-800 bg-green-900/20 hover:border-white hover:bg-white hover:text-black transition-all text-center"
+                className="py-6 border border-[#2D2D2D] hover:bg-[#2D2D2D] hover:text-[#F9F8F6] transition-all duration-500 text-center disabled:opacity-50"
+                data-testid="button-accept"
               >
-                <p className="text-xs tracking-widest uppercase mb-1">Client</p>
-                <p className="text-[10px] text-gray-400">Direct booking inquiry</p>
+                <p className="text-xs tracking-[0.2em] uppercase">Accept</p>
               </button>
-              <button
-                onClick={() => actionMutation.mutate({ action: "accept-planner" })}
-                disabled={actionMutation.isPending}
-                className="block p-6 border border-purple-800 bg-purple-900/20 hover:border-white hover:bg-white hover:text-black transition-all text-center"
-              >
-                <p className="text-xs tracking-widest uppercase mb-1">Wedding Planner</p>
-                <p className="text-[10px] text-gray-400">Planner inquiry</p>
-              </button>
-            </div>
-            <p className="text-[10px] tracking-[0.2em] uppercase text-gray-500 mb-4">Other Actions</p>
-            <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => actionMutation.mutate({ action: "refer" })}
                 disabled={actionMutation.isPending}
-                className="block p-4 border border-gray-800 hover:border-white hover:bg-white hover:text-black transition-all text-center"
+                className="group py-6 border border-[#2D2D2D]/30 hover:border-[#2D2D2D] hover:bg-[#2D2D2D] transition-all duration-500 text-center disabled:opacity-50"
+                data-testid="button-refer"
               >
-                <p className="text-xs tracking-widest uppercase mb-1">Unavailable</p>
-                <p className="text-[10px] text-gray-500">& Refer</p>
+                <p className="text-xs tracking-[0.2em] uppercase text-[#2D2D2D]/70 group-hover:text-[#F9F8F6]">Refer</p>
               </button>
               <button
                 onClick={() => actionMutation.mutate({ action: "decline" })}
                 disabled={actionMutation.isPending}
-                className="block p-4 border border-gray-800 hover:border-white hover:bg-white hover:text-black transition-all text-center"
+                className="group py-6 border border-[#2D2D2D]/20 hover:border-[#2D2D2D] hover:bg-[#2D2D2D] transition-all duration-500 text-center disabled:opacity-50"
+                data-testid="button-decline"
               >
-                <p className="text-xs tracking-widest uppercase mb-1">Polite</p>
-                <p className="text-[10px] text-gray-500">Decline</p>
+                <p className="text-xs tracking-[0.2em] uppercase text-[#2D2D2D]/50 group-hover:text-[#F9F8F6]">Decline</p>
               </button>
             </div>
           </div>
         )}
 
         {inquiry.status.toLowerCase() === "accepted" && (
-          <div className="mb-10 space-y-3">
+          <div className="space-y-8">
             {!onboardingComplete ? (
-              <div className="border border-amber-600 bg-amber-900/20 p-6 mb-4">
-                <p className="text-xs tracking-[0.2em] uppercase text-amber-400 mb-3">First Booking Setup</p>
-                <p className="text-sm text-gray-300 mb-4">Before you can send contracts and collect payments, let's get you set up:</p>
+              <div className="p-8 border border-[#2D2D2D]/10">
+                <p className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/40 mb-6">Complete Setup</p>
                 
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <a
                     href={`/setup/${slug}/square`}
-                    className={`flex items-center gap-3 p-4 border ${artist?.squareAccessToken ? "border-green-700 bg-green-900/20" : "border-gray-700 hover:border-white"} transition-all`}
+                    className={`flex items-center gap-4 p-5 border ${artist?.squareAccessToken ? "border-[#2D2D2D]/30" : "border-[#2D2D2D]/10 hover:border-[#2D2D2D]/30"} transition-all`}
                   >
-                    <div className={`w-8 h-8 rounded-full ${artist?.squareAccessToken ? "bg-green-800" : "bg-gray-800"} flex items-center justify-center text-xs`}>
+                    <div className={`w-8 h-8 rounded-full ${artist?.squareAccessToken ? "bg-[#2D2D2D] text-[#F9F8F6]" : "border border-[#2D2D2D]/20"} flex items-center justify-center text-xs`}>
                       {artist?.squareAccessToken ? "✓" : "1"}
                     </div>
                     <div>
-                      <p className="text-sm">Connect Square</p>
-                      <p className="text-[10px] text-gray-500">{artist?.squareAccessToken ? "Connected" : "Accept payments"}</p>
+                      <p className="text-sm text-[#2D2D2D]">Connect Square</p>
+                      <p className="text-[10px] text-[#2D2D2D]/40 mt-1">{artist?.squareAccessToken ? "Connected" : "Accept payments"}</p>
                     </div>
                   </a>
                   
                   <a
                     href={`/setup/${slug}/contract`}
-                    className={`flex items-center gap-3 p-4 border ${artist?.contractTemplate ? "border-green-700 bg-green-900/20" : "border-gray-700 hover:border-white"} transition-all`}
+                    className={`flex items-center gap-4 p-5 border ${artist?.contractTemplate ? "border-[#2D2D2D]/30" : "border-[#2D2D2D]/10 hover:border-[#2D2D2D]/30"} transition-all`}
                   >
-                    <div className={`w-8 h-8 rounded-full ${artist?.contractTemplate ? "bg-green-800" : "bg-gray-800"} flex items-center justify-center text-xs`}>
+                    <div className={`w-8 h-8 rounded-full ${artist?.contractTemplate ? "bg-[#2D2D2D] text-[#F9F8F6]" : "border border-[#2D2D2D]/20"} flex items-center justify-center text-xs`}>
                       {artist?.contractTemplate ? "✓" : "2"}
                     </div>
                     <div>
-                      <p className="text-sm">Upload Contract Template</p>
-                      <p className="text-[10px] text-gray-500">{artist?.contractTemplate ? "Template saved" : "Your service agreement"}</p>
+                      <p className="text-sm text-[#2D2D2D]">Contract Template</p>
+                      <p className="text-[10px] text-[#2D2D2D]/40 mt-1">{artist?.contractTemplate ? "Template saved" : "Your service agreement"}</p>
                     </div>
                   </a>
                   
                   <a
                     href={`/setup/${slug}/links`}
-                    className={`flex items-center gap-3 p-4 border ${artist?.prettyLinks ? "border-green-700 bg-green-900/20" : "border-gray-700 hover:border-white"} transition-all`}
+                    className={`flex items-center gap-4 p-5 border ${artist?.prettyLinks ? "border-[#2D2D2D]/30" : "border-[#2D2D2D]/10 hover:border-[#2D2D2D]/30"} transition-all`}
                   >
-                    <div className={`w-8 h-8 rounded-full ${artist?.prettyLinks ? "bg-green-800" : "bg-gray-800"} flex items-center justify-center text-xs`}>
+                    <div className={`w-8 h-8 rounded-full ${artist?.prettyLinks ? "bg-[#2D2D2D] text-[#F9F8F6]" : "border border-[#2D2D2D]/20"} flex items-center justify-center text-xs`}>
                       {artist?.prettyLinks ? "✓" : "3"}
                     </div>
                     <div>
-                      <p className="text-sm">Add Your Links</p>
-                      <p className="text-[10px] text-gray-500">{artist?.prettyLinks ? "Links added" : "Instagram, website, etc."}</p>
+                      <p className="text-sm text-[#2D2D2D]">Your Links</p>
+                      <p className="text-[10px] text-[#2D2D2D]/40 mt-1">{artist?.prettyLinks ? "Links added" : "Instagram, website, etc."}</p>
                     </div>
                   </a>
                 </div>
               </div>
             ) : (
               <>
-                <p className="text-[10px] tracking-[0.2em] uppercase text-gray-500 mb-2">Booking Actions</p>
-                
                 <button
                   onClick={() => setShowContractForm(!showContractForm)}
-                  className="block w-full p-4 border border-[#6B4A55] bg-[#6B4A55]/20 hover:bg-[#6B4A55] transition-all text-center"
+                  className="w-full py-5 border border-[#2D2D2D] hover:bg-[#2D2D2D] hover:text-[#F9F8F6] transition-all duration-500 text-center"
                 >
-                  <p className="text-xs tracking-widest uppercase">Send Contract</p>
-                  <p className="text-[10px] text-gray-400 mt-1">Create & send for signing</p>
+                  <p className="text-xs tracking-[0.2em] uppercase">Send Contract</p>
                 </button>
 
                 {showContractForm && (
-                  <div className="p-6 border border-gray-800 bg-gray-900/50">
+                  <div className="p-8 border border-[#2D2D2D]/10">
                     <form
                       onSubmit={(e) => {
                         e.preventDefault();
                         contractMutation.mutate(contractData);
                       }}
+                      className="space-y-8"
                     >
-                      <div className="space-y-4">
-                        <div>
-                          <label className="text-xs text-gray-400 block mb-1">Package Description</label>
-                          <textarea
-                            value={contractData.packageDetails}
-                            onChange={(e) => setContractData({ ...contractData, packageDetails: e.target.value })}
-                            rows={3}
-                            className="w-full bg-transparent border border-gray-700 p-3 text-sm focus:border-white focus:outline-none"
-                            placeholder="Bridal hair & makeup, 3 bridesmaids..."
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-xs text-gray-400 block mb-1">Total Amount ($)</label>
-                            <input
-                              type="number"
-                              value={contractData.totalAmount}
-                              onChange={(e) => setContractData({ ...contractData, totalAmount: e.target.value })}
-                              step="0.01"
-                              required
-                              className="w-full bg-transparent border border-gray-700 p-3 text-sm focus:border-white focus:outline-none"
-                              placeholder="1500.00"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs text-gray-400 block mb-1">Deposit Amount ($)</label>
-                            <input
-                              type="number"
-                              value={contractData.depositAmount}
-                              onChange={(e) => setContractData({ ...contractData, depositAmount: e.target.value })}
-                              step="0.01"
-                              required
-                              className="w-full bg-transparent border border-gray-700 p-3 text-sm focus:border-white focus:outline-none"
-                              placeholder="500.00"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-xs text-gray-400 block mb-1">Event Location</label>
-                          <input
-                            type="text"
-                            value={contractData.eventLocation}
-                            onChange={(e) => setContractData({ ...contractData, eventLocation: e.target.value })}
-                            className="w-full bg-transparent border border-gray-700 p-3 text-sm focus:border-white focus:outline-none"
-                            placeholder="Hotel name, address..."
-                          />
-                        </div>
-                        <button
-                          type="submit"
-                          disabled={contractMutation.isPending}
-                          className="w-full border border-white py-3 text-xs tracking-widest uppercase hover:bg-white hover:text-black transition-all disabled:opacity-50"
-                        >
-                          {contractMutation.isPending ? "Sending..." : "Create & Send Contract"}
-                        </button>
+                      <div>
+                        <label className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/40 block mb-4">
+                          Package Description
+                        </label>
+                        <textarea
+                          value={contractData.packageDetails}
+                          onChange={(e) => setContractData({ ...contractData, packageDetails: e.target.value })}
+                          rows={3}
+                          className="w-full bg-transparent border-0 border-b border-[#2D2D2D]/20 text-[#2D2D2D] focus:border-[#2D2D2D]/50 focus:outline-none px-0 py-3 text-sm resize-none"
+                          placeholder="Bridal hair & makeup, bridesmaids..."
+                        />
                       </div>
+                      <div className="grid grid-cols-2 gap-8">
+                        <div>
+                          <label className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/40 block mb-4">
+                            Total ($)
+                          </label>
+                          <input
+                            type="number"
+                            value={contractData.totalAmount}
+                            onChange={(e) => setContractData({ ...contractData, totalAmount: e.target.value })}
+                            step="0.01"
+                            required
+                            className="w-full bg-transparent border-0 border-b border-[#2D2D2D]/20 text-[#2D2D2D] focus:border-[#2D2D2D]/50 focus:outline-none px-0 py-3 text-sm"
+                            placeholder="1500"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/40 block mb-4">
+                            Deposit ($)
+                          </label>
+                          <input
+                            type="number"
+                            value={contractData.depositAmount}
+                            onChange={(e) => setContractData({ ...contractData, depositAmount: e.target.value })}
+                            step="0.01"
+                            required
+                            className="w-full bg-transparent border-0 border-b border-[#2D2D2D]/20 text-[#2D2D2D] focus:border-[#2D2D2D]/50 focus:outline-none px-0 py-3 text-sm"
+                            placeholder="500"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/40 block mb-4">
+                          Location
+                        </label>
+                        <input
+                          type="text"
+                          value={contractData.eventLocation}
+                          onChange={(e) => setContractData({ ...contractData, eventLocation: e.target.value })}
+                          className="w-full bg-transparent border-0 border-b border-[#2D2D2D]/20 text-[#2D2D2D] focus:border-[#2D2D2D]/50 focus:outline-none px-0 py-3 text-sm"
+                          placeholder="Venue name, address..."
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={contractMutation.isPending}
+                        className="w-full border border-[#2D2D2D] py-4 text-xs tracking-[0.2em] uppercase hover:bg-[#2D2D2D] hover:text-[#F9F8F6] transition-all duration-500 disabled:opacity-50"
+                      >
+                        {contractMutation.isPending ? "Sending..." : "Create & Send"}
+                      </button>
                     </form>
                   </div>
                 )}
 
                 <button
                   onClick={() => setShowInvoiceForm(!showInvoiceForm)}
-                  className="block w-full p-4 border border-amber-700 bg-amber-900/20 hover:bg-amber-800 transition-all text-center"
+                  className="group w-full py-5 border border-[#2D2D2D]/30 hover:border-[#2D2D2D] hover:bg-[#2D2D2D] transition-all duration-500 text-center"
                 >
-                  <p className="text-xs tracking-widest uppercase">Send Invoice</p>
-                  <p className="text-[10px] text-gray-400 mt-1">Collect deposit or balance</p>
+                  <p className="text-xs tracking-[0.2em] uppercase text-[#2D2D2D]/70 group-hover:text-[#F9F8F6]">Send Invoice</p>
                 </button>
 
                 {showInvoiceForm && (
-                  <div className="p-6 border border-gray-800 bg-gray-900/50">
+                  <div className="p-8 border border-[#2D2D2D]/10">
                     <form
                       onSubmit={(e) => {
                         e.preventDefault();
                         invoiceMutation.mutate(invoiceData);
                       }}
+                      className="space-y-8"
                     >
-                      <div className="space-y-4">
-                        <div>
-                          <label className="text-xs text-gray-400 block mb-1">Invoice Type</label>
-                          <select
-                            value={invoiceData.type}
-                            onChange={(e) => setInvoiceData({ ...invoiceData, type: e.target.value })}
-                            className="w-full bg-black border border-gray-700 p-3 text-sm focus:border-white focus:outline-none"
-                          >
-                            <option value="deposit">Deposit / Retainer</option>
-                            <option value="balance">Final Balance</option>
-                            <option value="custom">Custom Amount</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-xs text-gray-400 block mb-1">Amount ($)</label>
-                          <input
-                            type="number"
-                            value={invoiceData.amount}
-                            onChange={(e) => setInvoiceData({ ...invoiceData, amount: e.target.value })}
-                            step="0.01"
-                            required
-                            className="w-full bg-transparent border border-gray-700 p-3 text-sm focus:border-white focus:outline-none"
-                            placeholder="500.00"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs text-gray-400 block mb-1">Description (Optional)</label>
-                          <textarea
-                            value={invoiceData.description}
-                            onChange={(e) => setInvoiceData({ ...invoiceData, description: e.target.value })}
-                            rows={2}
-                            className="w-full bg-transparent border border-gray-700 p-3 text-sm focus:border-white focus:outline-none"
-                            placeholder="Deposit for bridal services..."
-                          />
-                        </div>
-                        <button
-                          type="submit"
-                          disabled={invoiceMutation.isPending}
-                          className="w-full border border-white py-3 text-xs tracking-widest uppercase hover:bg-white hover:text-black transition-all disabled:opacity-50"
+                      <div>
+                        <label className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/40 block mb-4">
+                          Type
+                        </label>
+                        <select
+                          value={invoiceData.type}
+                          onChange={(e) => setInvoiceData({ ...invoiceData, type: e.target.value })}
+                          className="w-full bg-transparent border-0 border-b border-[#2D2D2D]/20 text-[#2D2D2D] focus:border-[#2D2D2D]/50 focus:outline-none px-0 py-3 text-sm"
                         >
-                          {invoiceMutation.isPending ? "Sending..." : "Send Invoice"}
-                        </button>
+                          <option value="deposit">Deposit</option>
+                          <option value="balance">Final Balance</option>
+                          <option value="custom">Custom</option>
+                        </select>
                       </div>
+                      <div>
+                        <label className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/40 block mb-4">
+                          Amount ($)
+                        </label>
+                        <input
+                          type="number"
+                          value={invoiceData.amount}
+                          onChange={(e) => setInvoiceData({ ...invoiceData, amount: e.target.value })}
+                          step="0.01"
+                          required
+                          className="w-full bg-transparent border-0 border-b border-[#2D2D2D]/20 text-[#2D2D2D] focus:border-[#2D2D2D]/50 focus:outline-none px-0 py-3 text-sm"
+                          placeholder="500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/40 block mb-4">
+                          Description
+                        </label>
+                        <textarea
+                          value={invoiceData.description}
+                          onChange={(e) => setInvoiceData({ ...invoiceData, description: e.target.value })}
+                          rows={2}
+                          className="w-full bg-transparent border-0 border-b border-[#2D2D2D]/20 text-[#2D2D2D] focus:border-[#2D2D2D]/50 focus:outline-none px-0 py-3 text-sm resize-none"
+                          placeholder="Deposit for bridal services..."
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={invoiceMutation.isPending}
+                        className="w-full border border-[#2D2D2D] py-4 text-xs tracking-[0.2em] uppercase hover:bg-[#2D2D2D] hover:text-[#F9F8F6] transition-all duration-500 disabled:opacity-50"
+                      >
+                        {invoiceMutation.isPending ? "Sending..." : "Send Invoice"}
+                      </button>
                     </form>
                   </div>
                 )}
               </>
             )}
+          </div>
+        )}
+
+        {inquiry.status.toLowerCase() === "referred" && (
+          <div className="text-center py-8">
+            <p className="text-sm text-[#2D2D2D]/50 italic">This inquiry has been referred.</p>
+          </div>
+        )}
+
+        {inquiry.status.toLowerCase() === "declined" && (
+          <div className="text-center py-8">
+            <p className="text-sm text-[#2D2D2D]/50 italic">This inquiry has been declined.</p>
           </div>
         )}
       </main>

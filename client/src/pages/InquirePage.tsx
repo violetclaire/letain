@@ -69,135 +69,140 @@ export default function InquirePage() {
 
   if (isLoading) {
     return (
-      <div className="bg-black text-white min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-white/50" />
+      <div className="bg-[#F9F8F6] min-h-screen flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-[#2D2D2D]/30" />
       </div>
     );
   }
 
   if (error || !artist) {
     return (
-      <div className="bg-black text-white min-h-screen flex items-center justify-center">
+      <div className="bg-[#F9F8F6] min-h-screen flex items-center justify-center px-8">
         <div className="text-center">
-          <h1 className="text-2xl mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>Artist not found</h1>
-          <p className="text-gray-500">This inquiry link may no longer be active.</p>
+          <h1 className="text-2xl text-[#2D2D2D] mb-3" style={{ fontFamily: "'Playfair Display', serif" }}>
+            Artist not found
+          </h1>
+          <p className="text-[#2D2D2D]/50 text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>
+            This inquiry link may no longer be active.
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-black text-white min-h-screen">
-      <div className="max-w-4xl mx-auto px-6 py-12">
-        <div className="grid md:grid-cols-2 gap-16">
-          <div>
-            <h1 className="text-white/90 text-sm tracking-[0.15em] lowercase mb-2">
-              {artist.businessName || artist.name}
-            </h1>
-            <p className="text-white/60 text-xs tracking-[0.15em] lowercase mb-10">
-              {artist.instagramHandle ? `@${artist.instagramHandle}` : 'hair | makeup'}
-            </p>
-            
-            <p className="text-white/70 text-sm leading-relaxed">
-              Thank you so much for considering me for your day. Every event is a unique choreography. 
-              To ensure we can provide the highest standard of care and artistry for your date, 
-              please share the details of your vision below.
+    <div className="bg-[#F9F8F6] text-[#2D2D2D] min-h-screen" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <div className="max-w-2xl mx-auto px-8 md:px-16 py-20 md:py-32">
+        
+        <header className="text-center mb-20">
+          <p className="text-[10px] tracking-[0.4em] uppercase text-[#2D2D2D]/40 mb-6">
+            {artist.businessName || artist.name}
+          </p>
+          <h1 className="text-3xl md:text-4xl text-[#2D2D2D] mb-8" style={{ fontFamily: "'Playfair Display', serif" }}>
+            Inquiry Atelier
+          </h1>
+          <p className="text-sm text-[#2D2D2D]/60 leading-relaxed max-w-md mx-auto">
+            Thank you for considering us. Every event is a unique choreography. 
+            Please share your vision below.
+          </p>
+        </header>
+
+        {success ? (
+          <div className="text-center py-16">
+            <h2 className="text-2xl text-[#2D2D2D] mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>
+              Vision Received
+            </h2>
+            <p className="text-sm text-[#2D2D2D]/60">
+              We'll be in touch soon to discuss your special day.
             </p>
           </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-12">
+            <div>
+              <label className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/50 block mb-4">
+                Name
+              </label>
+              <input 
+                type="text" 
+                name="name" 
+                required
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full bg-transparent border-0 border-b border-[#2D2D2D]/20 text-[#2D2D2D] placeholder:text-[#2D2D2D]/30 focus:border-[#2D2D2D]/50 focus:outline-none focus:ring-0 px-0 py-4 text-base"
+                placeholder="Your name"
+                data-testid="input-client-name"
+                style={{ fontFamily: "'Inter', sans-serif" }}
+              />
+            </div>
 
-          <div>
-            {success ? (
-              <div className="py-8">
-                <p className="text-white/90 text-lg mb-2">
-                  {artist.businessName || artist.name} has received your vision.
-                </p>
-                <p className="text-white/60 text-sm">
-                  We'll be in touch soon to discuss your special day.
-                </p>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label className="text-white/60 text-xs tracking-[0.2em] uppercase block mb-2">
-                    Name
-                  </label>
-                  <input 
-                    type="text" 
-                    name="name" 
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none px-4 py-3 text-sm rounded-none"
-                    placeholder="Your name"
-                    data-testid="input-client-name"
-                  />
-                </div>
+            <div>
+              <label className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/50 block mb-4">
+                Email
+              </label>
+              <input 
+                type="email" 
+                name="email" 
+                required
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full bg-transparent border-0 border-b border-[#2D2D2D]/20 text-[#2D2D2D] placeholder:text-[#2D2D2D]/30 focus:border-[#2D2D2D]/50 focus:outline-none focus:ring-0 px-0 py-4 text-base"
+                placeholder="your@email.com"
+                data-testid="input-client-email"
+                style={{ fontFamily: "'Inter', sans-serif" }}
+              />
+            </div>
 
-                <div>
-                  <label className="text-white/60 text-xs tracking-[0.2em] uppercase block mb-2">
-                    Email
-                  </label>
-                  <input 
-                    type="email" 
-                    name="email" 
-                    required
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none px-4 py-3 text-sm rounded-none"
-                    placeholder="your@email.com"
-                    data-testid="input-client-email"
-                  />
-                </div>
+            <div>
+              <label className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/50 block mb-4">
+                Event Date
+              </label>
+              <input 
+                type="date" 
+                name="date" 
+                required
+                value={formData.date}
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                className="w-full bg-transparent border-0 border-b border-[#2D2D2D]/20 text-[#2D2D2D] placeholder:text-[#2D2D2D]/30 focus:border-[#2D2D2D]/50 focus:outline-none focus:ring-0 px-0 py-4 text-base"
+                data-testid="input-event-date"
+                style={{ fontFamily: "'Inter', sans-serif" }}
+              />
+            </div>
 
-                <div>
-                  <label className="text-white/60 text-xs tracking-[0.2em] uppercase block mb-2">
-                    Event Date
-                  </label>
-                  <input 
-                    type="date" 
-                    name="date" 
-                    required
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none px-4 py-3 text-sm rounded-none"
-                    data-testid="input-event-date"
-                  />
-                </div>
+            <div>
+              <label className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/50 block mb-4">
+                Your Vision
+              </label>
+              <textarea 
+                name="message" 
+                rows={4}
+                value={formData.message}
+                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                className="w-full bg-transparent border-0 border-b border-[#2D2D2D]/20 text-[#2D2D2D] placeholder:text-[#2D2D2D]/30 focus:border-[#2D2D2D]/50 focus:outline-none focus:ring-0 px-0 py-4 text-base resize-none"
+                placeholder="Share details about your special day..."
+                data-testid="input-message"
+                style={{ fontFamily: "'Inter', sans-serif" }}
+              />
+            </div>
 
-                <div>
-                  <label className="text-white/60 text-xs tracking-[0.2em] uppercase block mb-2">
-                    Tell us about your event
-                  </label>
-                  <textarea 
-                    name="message" 
-                    rows={4}
-                    value={formData.message}
-                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none px-4 py-3 text-sm resize-none rounded-none"
-                    placeholder="Share details about your special day..."
-                    data-testid="input-message"
-                  />
-                </div>
-
-                <button 
-                  type="submit"
-                  disabled={submitInquiry.isPending}
-                  className="w-full border border-white/20 hover:border-white/40 bg-white/10 hover:bg-white/20 backdrop-blur-md py-4 text-sm tracking-[0.2em] uppercase transition-all duration-300 disabled:opacity-50"
-                  data-testid="button-send-inquiry"
-                >
-                  {submitInquiry.isPending ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Sending...
-                    </span>
-                  ) : (
-                    "Send Inquiry"
-                  )}
-                </button>
-              </form>
-            )}
-          </div>
-        </div>
+            <div className="pt-8">
+              <button 
+                type="submit"
+                disabled={submitInquiry.isPending}
+                className="w-full border border-[#2D2D2D] hover:bg-[#2D2D2D] hover:text-[#F9F8F6] py-5 text-xs tracking-[0.3em] uppercase transition-all duration-500 disabled:opacity-50"
+                data-testid="button-send-inquiry"
+              >
+                {submitInquiry.isPending ? (
+                  <span className="flex items-center justify-center gap-3">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Sending...
+                  </span>
+                ) : (
+                  "Send Vision"
+                )}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );
