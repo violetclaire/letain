@@ -1,48 +1,93 @@
-# Beauvette (Toile Platform)
+# Beauvette Secretary
 
 ## Overview
 
-Beauvette is a beauty services marketplace connecting clients, beauty vendors/artists, wedding planners, and administrators for special event bookings. The platform aims to facilitate service booking, manage vendor profiles, coordinate schedules, and enable communication. It also focuses on converting "invisible labor" into structured reputation and ensuring safe, reliable interactions through a dual-layer AI architecture.
+Beauvette Secretary is a white-label booking system where bridal artists get their own contact forms without needing to build websites. It's designed to give beauty artists real independence by handling admin work while keeping them in control.
+
+**Core Philosophy:** "We were taught to do it all ourselves. That was never independence, it was exhaustion. This is real independence."
 
 ## User Preferences
 
-Preferred communication style: Simple, everyday language.
+- Preferred communication style: Simple, everyday language
+- Design aesthetic: "Quiet Luxury" - cream (#F9F8F6) background, charcoal (#2D2D2D) or garnet (#5A1F2B) text
+- Typography: Playfair Display for titles, Inter for forms
+- No em dashes, minimal UI, letterhead feel with double frame borders
 
-## System Architecture
+## The Secretary Architecture
 
-### UI/UX Decisions
+### Core Flow
+1. Artist signs up → gets a unique slug (business name becomes URL)
+2. Gets two things:
+   - **Direct Link:** beauvette.app/inquire/their-business-name (for emails)
+   - **Embed Code:** A form action URL they add to their existing website (invisible, keeps their branding)
+3. All inquiries route to their dashboard
 
-The platform uses a design language inspired by Marie Antoinette aesthetics. The color palette is based on "Plum Check" by Claremont (from Lily Allen's NYC apartment), featuring: Ivory/Cream (#F7F4EF, #FAF8F5), Dusty Plum (#5A1F2B), Sage/Olive Green (#9A9472), and Brown/Taupe (#6B5A50). Typography combines Playfair Display (serif for headers) and Inter (sans-serif for body text). The landing page features an elevator-style split panel animation with a plum check pattern.
+### Zero-Login Architecture
+- Clients never create accounts
+- Everything uses tokenized URLs (thread links, contract signing, invoice payment)
+- Client clicks link in email → web form → done
 
-### Technical Implementations
+### The Triple Flywheel (Trusted Circle)
+- Artist A is booked → refers client to Artist B
+- Artist B gets new client → signs up for Secretary → invites Artist C
+- Network grows: More artists → More referrals → More bookings → More artists
 
-Beauvette is a full-stack TypeScript application. The frontend uses React 18 with Vite, Wouter for routing, TanStack Query for data fetching, Tailwind CSS with shadcn/ui for styling, and Framer Motion for animations. The backend is built with Express.js and Node.js. PostgreSQL is used for data persistence via Drizzle ORM, with Neon Database as the serverless provider.
+### What Each Artist Gets
+- `/inquire/{slug}` - Their branded inquiry form
+- `/inquiry/{threadToken}` - Private thread for managing each inquiry (tokenized, magic link)
+- `/admin/{slug}` - Their dashboard
+- `/admin/{slug}/settings` - Auto-responder, info sheet, pricing
+- `/admin/{slug}/calendar` - Block dates
+- `/admin/{slug}/circle` - Manage referral network
 
-**Key Features:**
+### Progressive Onboarding
+When artist gets first booking, they see in-thread setup for:
+- Connect Square (OAuth)
+- Contract template
+- Pretty links
 
-*   **Toile Architecture Philosophy:**
-    *   **Memory Layer:** Captures raw coordination events (episodic memory) and transforms them into vendor-specific trust signals (semantic memory) to quantify "invisible labor." This includes AI-powered analysis of business chat and tracking coordination events.
-    *   **Safety Layer:** Implements a Mental Loop Simulation using CDI (Choreography Depth Index) scores to predict coordination failure, detect risk, and ensure safe agent behavior in multi-party workflows. It utilizes the HACO (Human-AI Collaborative Uncertainty Quantification) framework for sentiment analysis and IQS (Interaction Quality Scoring) for early warning detection of problematic client patterns.
-*   **Authentication:** Replit Auth (OpenID Connect) with role-based access control (client, artist, planner, admin) and a PostgreSQL session store.
-*   **Booking Management:** Facilitates booking services, managing vendor availability, and provides editing functionality for existing bookings.
-*   **Messaging:** Includes direct messaging between parties and AI-powered chat assistants for vendors (Gemini AI integration).
-*   **Platform Safety:** Vendor verification, chat restrictions (only between confirmed bookings), and a profile reporting system.
-*   **Choreography Depth Index (CDI):** A system to measure coordination complexity and detect workflow risk based on various events (negative messages, late payments, cancellations, support cases, response delays), scoring from 0-100 (higher = more coordination depth/complexity) with defined risk levels.
-*   **Admin Dashboard:** Provides tools for managing users, bookings, and monitoring CDI scores.
+### Data Isolation
+All queries scoped by artist_id - artists only see their own data.
 
-### System Design Choices
+## Technical Architecture
 
-*   **API Design:** RESTful API with conventional CRUD endpoints organized by resource.
-*   **Data Storage:** PostgreSQL database with Drizzle ORM for type-safe queries. Uses UUID v4 for primary keys and JSONB columns for flexible data storage (e.g., specialties, portfolio URLs).
-*   **Multi-tenant architecture** with a role-based user model.
-*   **Environment Variables:** Relies on `DATABASE_URL`, `SESSION_SECRET`, and `REPL_ID`, along with PostgreSQL-specific variables.
+### Frontend
+- React 18 with Vite
+- Wouter for routing
+- TanStack Query for data fetching
+- Tailwind CSS with shadcn/ui for styling
+- Framer Motion for animations
+
+### Backend
+- Express.js and Node.js
+- PostgreSQL via Drizzle ORM
+- Neon Database (serverless provider)
+
+### Key Routes
+- Thread token acts as bearer token (magic link) - sent only to artist's email for inquiry access
+- State transitions: Can't modify terminal states (declined, completed, expired); accept only works from pending
 
 ## External Dependencies
 
-*   **Payment Processing:** Stripe for handling payments.
-*   **SMS Messaging:** Twilio for sending SMS notifications (booking reminders, confirmations, etc.).
-*   **AI Integration:** Google Gemini AI (via Replit AI Integrations) for chat assistants and sentiment analysis within the CDI system.
-*   **Authentication:** Replit Auth (OpenID Connect) for user authentication.
-*   **Database:** Neon Database (serverless PostgreSQL provider).
-*   **Voice Input:** Browser Web Speech API (client-side only).
-*   **E-Signature:** OpenSign API for electronic contract signing (requires OPENSIGN_API_TOKEN environment variable). Service at `server/openSignService.ts` with routes at `/api/bookings/:bookingId/send-for-signing`. Supports mock mode when API token is not configured.
+- **Payment Processing:** Square (1% platform fee via appFeeMoney)
+- **AI Integration:** Google Gemini AI for chat assistants
+- **E-Signature:** OpenSign API (requires OPENSIGN_API_TOKEN)
+- **Email:** Resend for notifications
+- **Database:** Neon Database (serverless PostgreSQL)
+
+## Design System
+
+### Colors
+- Cream background: #F9F8F6
+- Charcoal text: #2D2D2D
+- Garnet accent: #5A1F2B
+
+### Typography
+- Titles: Playfair Display (serif)
+- Body/Forms: Inter (sans-serif)
+
+### UI Patterns
+- Bottom-line-only inputs (no borders)
+- Generous margins and whitespace
+- Chateau Marmont double frame borders for letterhead feel
+- Quiet, elegant, professional

@@ -23,31 +23,31 @@ const CONTENT = {
     steps: [
       {
         number: "01",
-        title: "Get your custom inquiry link",
-        body: "Enter your business name and get your personal link: beauvette.app/inquire/your-business-name",
-        subBody: "This is your new front door for bookings."
+        title: "Sign up and get your link",
+        body: "Enter your business name. Your name becomes your URL: beauvette.app/inquire/your-business-name",
+        subBody: "Share it in emails, DMs, or your Instagram bio."
       },
       {
         number: "02",
-        title: "Add it to your website",
-        body: "Replace your current contact form with a simple embed code, or just link directly to your inquiry page.",
-        subBody: "Works with any website. No tech skills required."
+        title: "Embed it on your website",
+        body: "Add our form action URL to your existing contact form. Invisible to clients, keeps your branding.",
+        subBody: "No new website needed. Works with what you have."
       },
       {
         number: "03",
-        title: "Use it in your emails",
-        body: "When someone emails asking about booking, send them your link. All inquiries flow through your secretary.",
-        subBody: "One link. Every inquiry. Organized."
+        title: "All inquiries in one place",
+        body: "Every inquiry routes to your dashboard. Accept, refer, or decline. Your clients never need to create an account.",
+        subBody: "Zero friction. Just tokenized links that work."
       }
     ]
   },
   artists: {
     title: "For Beauty Artists",
     bullets: [
-      "One link for all your bookings",
-      "Contracts sent automatically",
-      "Deposits collected via Square",
-      "Refer trusted artists when you're booked"
+      "Your own inquiry link and embed code",
+      "Works with your existing website",
+      "Zero-login for clients, tokenized links",
+      "Refer to your trusted circle when booked"
     ],
     primaryCta: "Get your secretary",
   },
