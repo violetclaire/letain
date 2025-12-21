@@ -12,9 +12,9 @@ const CONTENT = {
   },
   hero: {
     h1: "Beauvette",
-    h2: "Works like you.",
-    h3: "For you.",
-    subhead: "We were taught to do it all ourselves. That was never independence, it was exhaustion. This is real independence.",
+    h2: "Think of Beauvette as your secretary.",
+    h3: "",
+    subhead: "We were taught to do it all ourselves. That was never independence, it was exhaustion. We deserve an assistant. Now you can have one.",
     supporting: "A smart link that takes bookings, sends contracts, and collects deposits — so you don't have to.",
     primaryCta: "Get your secretary link",
   },
@@ -219,12 +219,9 @@ export default function Landing() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.8 }}
           >
-            <h2 className="text-xl md:text-2xl text-[#5A1F2B]/80 font-light tracking-wide mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <h2 className="text-xl md:text-2xl text-[#5A1F2B]/80 font-light tracking-wide mb-12" style={{ fontFamily: "'Playfair Display', serif" }}>
               {CONTENT.hero.h2}
             </h2>
-            <h3 className="text-xl md:text-2xl text-[#5A1F2B]/80 font-light tracking-wide mb-12" style={{ fontFamily: "'Playfair Display', serif" }}>
-              {CONTENT.hero.h3}
-            </h3>
           </motion.div>
           
           <motion.p 
