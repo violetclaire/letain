@@ -14,7 +14,7 @@ const CONTENT = {
     h1: "Beauvette",
     h2: "Works like you.",
     h3: "For you.",
-    subhead: "We were taught to do it all ourselves. That was never independence — it was exhaustion. This is real independence.",
+    subhead: "We were taught to do it all ourselves. That was never independence, it was exhaustion. This is real independence.",
     supporting: "A smart link that takes bookings, sends contracts, and collects deposits — so you don't have to.",
     primaryCta: "Get your secretary link",
   },
@@ -206,8 +206,7 @@ export default function Landing() {
       <section className="min-h-screen flex items-center justify-center bg-[#F9F8F6] pt-20">
         <div className="max-w-3xl mx-auto px-8 text-center">
           <motion.h1 
-            className="font-serif text-6xl md:text-7xl lg:text-8xl text-[#2D2D2D] font-light tracking-wide mb-8"
-            style={{ fontFamily: "'Playfair Display', serif" }}
+            className="font-script text-6xl md:text-7xl lg:text-8xl text-[#5A1F2B] tracking-wide mb-8"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
@@ -220,16 +219,16 @@ export default function Landing() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.8 }}
           >
-            <h2 className="text-xl md:text-2xl text-[#2D2D2D]/70 font-light tracking-wide mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <h2 className="text-xl md:text-2xl text-[#5A1F2B]/80 font-light tracking-wide mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
               {CONTENT.hero.h2}
             </h2>
-            <h3 className="text-xl md:text-2xl text-[#2D2D2D]/70 font-light tracking-wide mb-12" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <h3 className="text-xl md:text-2xl text-[#5A1F2B]/80 font-light tracking-wide mb-12" style={{ fontFamily: "'Playfair Display', serif" }}>
               {CONTENT.hero.h3}
             </h3>
           </motion.div>
           
           <motion.p 
-            className="text-base md:text-lg text-[#2D2D2D]/60 leading-relaxed max-w-xl mx-auto mb-6"
+            className="text-base md:text-lg text-[#5A1F2B]/70 leading-relaxed max-w-xl mx-auto mb-6"
             style={{ fontFamily: "'Inter', sans-serif" }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -239,7 +238,7 @@ export default function Landing() {
           </motion.p>
 
           <motion.p 
-            className="text-xs tracking-[0.2em] uppercase text-[#2D2D2D]/40 mb-12"
+            className="text-xs tracking-[0.2em] uppercase text-[#5A1F2B]/50 mb-12"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6, duration: 0.8 }}
@@ -249,7 +248,7 @@ export default function Landing() {
           
           <motion.button
             onClick={() => setLocation("/secretary")}
-            className="px-10 py-5 border border-[#2D2D2D] text-[#2D2D2D] text-xs uppercase tracking-[0.2em] hover:bg-[#2D2D2D] hover:text-[#F9F8F6] transition-all duration-500"
+            className="px-10 py-5 border border-[#5A1F2B] text-[#5A1F2B] text-xs uppercase tracking-[0.2em] hover:bg-[#5A1F2B] hover:text-[#F9F8F6] transition-all duration-500"
             data-testid="button-hero-primary"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
