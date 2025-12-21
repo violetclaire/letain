@@ -11,9 +11,9 @@ const CONTENT = {
     cta: "Get your secretary"
   },
   hero: {
-    h1: "Beauvette Secretary",
-    h2: "Your assistant answers.",
-    subhead: "Create your availability.",
+    h1: "Beauvette",
+    h2: "Works like you. For you.",
+    subhead: "Behind the scenes, so you don't have to be.",
     supporting: "A smart link that takes bookings, sends contracts, and collects deposits — so you don't have to.",
     primaryCta: "Get your secretary link",
   },
@@ -147,9 +147,6 @@ export default function Landing() {
                   <h1 className="font-script text-4xl md:text-5xl text-[#5A1F2B]">
                     Beauvette
                   </h1>
-                  <p className="text-xs uppercase tracking-[0.3em] text-[#5A1F2B]/70 mt-2">
-                    Secretary
-                  </p>
                 </div>
               </div>
             </motion.div>
