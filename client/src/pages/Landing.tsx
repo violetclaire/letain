@@ -105,6 +105,10 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-[#F9F8F6] text-[#2D2D2D] font-sans antialiased relative">
+      {/* Chateau Marmont Double Frame Border */}
+      <div className="fixed inset-4 md:inset-8 pointer-events-none z-30 border border-[#5A1F2B]/20" />
+      <div className="fixed inset-6 md:inset-10 pointer-events-none z-30 border border-[#5A1F2B]/15" />
+      
       {/* Top Navigation with Login/Logout */}
       <TopNav />
 
@@ -112,13 +116,7 @@ export default function Landing() {
       <nav className="fixed top-0 left-0 right-0 z-40 bg-[#F9F8F6]/95 backdrop-blur-md border-b border-[#2D2D2D]/5">
         <div className="max-w-7xl mx-auto px-8 lg:px-16">
           <div className="flex items-center justify-between h-20">
-            <a 
-              href="/" 
-              className="font-script text-2xl tracking-wide text-[#5A1F2B]"
-              data-testid="link-brand"
-            >
-              {CONTENT.nav.brand}
-            </a>
+            <div className="w-24" />
 
             {/* Desktop Nav */}
             <div className="hidden md:flex items-center gap-12">
