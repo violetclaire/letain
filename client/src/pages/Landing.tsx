@@ -14,7 +14,7 @@ const CONTENT = {
     h1: "Beauvette",
     h2: "Works like you.",
     h3: "For you.",
-    subhead: "Behind the scenes, so you don't have to be.",
+    subhead: "Stay independent with your own contact form and booking link.",
     supporting: "A smart link that takes bookings, sends contracts, and collects deposits — so you don't have to.",
     primaryCta: "Get your secretary link",
   },
