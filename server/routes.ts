@@ -9479,6 +9479,119 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
 
   // ========== PUBLIC ROUTES (No Auth Required) ==========
   
+  // Secretary link creation - simplified artist onboarding
+  app.post("/api/public/secretary", async (req, res) => {
+    try {
+      const { businessName, email, instagram } = req.body;
+      
+      if (!businessName || !email) {
+        return res.status(400).json({ error: "Business name and email are required" });
+      }
+      
+      // Generate URL-safe slug from business name
+      function generateSlug(name: string): string {
+        let slug = name.toLowerCase().trim();
+        slug = slug.replace(/'/g, "").replace(/\s+/g, "-");
+        slug = slug.replace(/[^a-z0-9-]/g, "");
+        slug = slug.replace(/-+/g, "-").replace(/^-|-$/g, "");
+        return slug;
+      }
+      
+      const artistSlug = generateSlug(businessName);
+      
+      if (!artistSlug) {
+        return res.status(400).json({ error: "Could not generate a valid slug from business name" });
+      }
+      
+      // Check if slug already exists
+      const existingProfile = await storage.getArtistProfileBySlug(artistSlug);
+      if (existingProfile) {
+        return res.status(400).json({ error: "This business name is already taken. Please try a different name." });
+      }
+      
+      // Check if email already exists
+      const existingUser = await storage.getUserByEmail(email);
+      let user;
+      
+      if (existingUser) {
+        // User exists - check if they have an artist profile
+        const existingArtistProfile = await storage.getArtistProfile(existingUser.id);
+        if (existingArtistProfile) {
+          const baseUrl = process.env.PUBLIC_BASE_URL || 'https://beauvette.app';
+          return res.json({
+            secretaryLink: `${baseUrl}/inquire/${existingArtistProfile.artistSlug}`,
+            artistSlug: existingArtistProfile.artistSlug,
+            message: "You already have an account! Here's your existing secretary link."
+          });
+        }
+        // User exists but no artist profile - reuse the existing user
+        user = existingUser;
+      } else {
+        // Create new user
+        user = await storage.createPublicArtistUser({
+          firstName: businessName.split(' ')[0],
+          lastName: businessName.split(' ').slice(1).join(' ') || null,
+          email,
+          role: 'artist',
+        });
+      }
+      
+      // Generate edit token for settings access
+      const editToken = randomUUID();
+      
+      // Clean instagram handle
+      const cleanInstagram = instagram ? instagram.replace('@', '').trim() : null;
+      
+      // Create artist profile with auto_responder off by default
+      await storage.createArtistProfile({
+        userId: user.id,
+        businessName,
+        instagramHandle: cleanInstagram,
+        artistSlug,
+        verificationStatus: 'approved',
+        editToken,
+      });
+      
+      // Track analytics event
+      await storage.createAnalyticsEvent({
+        eventType: 'secretary_link_created',
+        artistId: user.id,
+        metadata: { artistSlug, businessName }
+      });
+      
+      // Build the secretary link
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://beauvette.app';
+      const secretaryLink = `${baseUrl}/inquire/${artistSlug}`;
+      
+      // Send welcome email
+      try {
+        const { sendArtistWelcomeEmail } = await import('./emailService');
+        const settingsUrl = `${baseUrl}/${artistSlug}/settings?token=${editToken}`;
+        await sendArtistWelcomeEmail({
+          toEmail: email,
+          artistName: businessName,
+          businessName,
+          calendarUrl: secretaryLink,
+          settingsUrl
+        });
+        console.log(`[Secretary] Welcome email sent to ${email}`);
+      } catch (emailError) {
+        console.error("[Secretary] Failed to send welcome email:", emailError);
+      }
+      
+      res.json({
+        success: true,
+        secretaryLink,
+        artistSlug,
+        editToken,
+        message: "Your secretary link has been created!"
+      });
+    } catch (error: any) {
+      console.error("[Secretary] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to create secretary link" });
+    }
+  });
+  
   // Public artist onboarding
   app.post("/api/public/artists/onboard", async (req, res) => {
     try {

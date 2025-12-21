@@ -53,6 +53,7 @@ import ChatInvite from "@/pages/ChatInvite";
 import ClientMessages from "@/pages/ClientMessages";
 import ContractSigning from "@/pages/ContractSigning";
 import PlannerView from "@/pages/PlannerView";
+import SecretaryOnboarding from "@/pages/SecretaryOnboarding";
 
 function InviteRedirectHandler() {
   const [location, setLocation] = useLocation();
@@ -142,6 +143,14 @@ function Router() {
       {/* Planner View Route (shared booking view for planners) */}
       <Route path="/planner-view/:bookingId">
         {(params) => <PlannerView bookingId={params.bookingId} />}
+      </Route>
+      
+      {/* Secretary Onboarding (public) */}
+      <Route path="/secretary" component={SecretaryOnboarding} />
+      
+      {/* Inquire route (public booking page) */}
+      <Route path="/inquire/:artistSlug">
+        {(params) => <PublicArtistCalendar />}
       </Route>
       
       {/* Public Routes */}
