@@ -8,60 +8,60 @@ const CONTENT = {
   nav: {
     brand: "Beauvette",
     links: ["How it works", "For Artists", "For Clients"],
-    cta: "Get started"
+    cta: "Get your secretary"
   },
   hero: {
-    h1: "Beauvette",
-    h2: "Are you available?",
-    subhead: "If not, who do you trust?",
-    supporting: "Your operational assistant for availability and inquiries.",
-    primaryCta: "Create your availability link",
+    h1: "Beauvette Secretary",
+    h2: "Your 24/7 booking assistant",
+    subhead: "Handle inquiries while you sleep.",
+    supporting: "A smart link that takes bookings, sends contracts, and collects deposits — so you don't have to.",
+    primaryCta: "Get your secretary link",
   },
   howItWorks: {
     title: "How it works",
     steps: [
       {
         number: "01",
-        title: "Share your Beauvette availability link",
-        body: "Artists create a custom Beauvette link and share it on their social media.",
-        subBody: "Clients can view availability and request information in one place."
+        title: "Create your secretary link in 60 seconds",
+        body: "Enter your business name, connect Square, and get a custom link like beauvette.app/inquire/your-name.",
+        subBody: "Share it in your Instagram bio, website, or DMs."
       },
       {
         number: "02",
-        title: "Requests and pricing are sent clearly",
-        body: "When a client requests a date, they receive your pricing and details without repeated back-and-forth.",
-        subBody: "Everything starts in one structured inquiry."
+        title: "Clients inquire, you approve",
+        body: "When someone wants to book, they fill out a simple form. You get notified and can accept, decline, or refer with one tap.",
+        subBody: "No more back-and-forth DMs asking about availability."
       },
       {
         number: "03",
-        title: "Continue the conversation if needed",
-        body: "If the client wants to move forward or ask questions, they can chat with you directly inside Beauvette.",
-        subBody: "Bookings, messages, referrals, and client details stay organized in one place."
+        title: "Contracts and deposits on autopilot",
+        body: "Once you accept, your secretary sends the contract for e-signature and collects the deposit via Square.",
+        subBody: "You get paid while focusing on your craft."
       }
     ]
   },
   artists: {
-    title: "For Artists",
+    title: "For Beauty Artists",
     bullets: [
-      "Availability link for your bio",
-      "Auto-send pricing & details",
-      "Smart referrals when you're booked",
-      "One place for clients, photos, and chat"
+      "One link for all your bookings",
+      "Contracts sent automatically",
+      "Deposits collected via Square",
+      "Refer trusted artists when you're booked"
     ],
-    primaryCta: "Get started",
+    primaryCta: "Get your secretary",
   },
   clients: {
     title: "For Clients",
-    tagline: "Discover artists by date, availability, and trust.",
+    tagline: "Book your artist with confidence.",
     bullets: [
-      "Request information clearly.",
-      "Move forward with confidence."
+      "Simple inquiry form — no DM chaos.",
+      "Clear pricing and contracts upfront."
     ],
-    cta: "Join the client waitlist"
+    cta: "Find an artist"
   },
   footer: {
     links: ["Instagram", "Contact", "Privacy", "Terms"],
-    copyright: "© 2025 Beauvette"
+    copyright: "© 2025 Beauvette Secretary"
   }
 };
 
@@ -143,10 +143,13 @@ export default function Landing() {
               transition={{ duration: 0.3 }}
             >
               <div className="bg-[#FCF9F4] p-1 border border-[#5A1F2B]">
-                <div className="border border-[#5A1F2B] px-16 py-10">
-                  <h1 className="font-script text-5xl text-[#5A1F2B]">
+                <div className="border border-[#5A1F2B] px-12 py-8">
+                  <h1 className="font-script text-4xl md:text-5xl text-[#5A1F2B]">
                     Beauvette
                   </h1>
+                  <p className="text-xs uppercase tracking-[0.3em] text-[#5A1F2B]/70 mt-2">
+                    Secretary
+                  </p>
                 </div>
               </div>
             </motion.div>
@@ -190,7 +193,7 @@ export default function Landing() {
                 For Clients
               </button>
               <button
-                onClick={() => setLocation("/onboarding")}
+                onClick={() => setLocation("/secretary")}
                 className="px-6 py-3 bg-[#5A1F2B] text-[#FAF9F6] text-xs uppercase tracking-[0.15em] hover:bg-[#4a1923] transition-all duration-300"
                 data-testid="button-nav-cta"
               >
@@ -286,7 +289,7 @@ export default function Landing() {
           </p>
           
           <button
-            onClick={() => setLocation("/onboarding")}
+            onClick={() => setLocation("/secretary")}
             className="group relative px-6 py-3 bg-[#5A1F2B] text-[#FAF9F6] text-xs uppercase tracking-[0.15em] font-medium overflow-hidden transition-all duration-500 hover:bg-[#FAF9F6] hover:text-[#5A1F2B] border border-[#5A1F2B]"
             data-testid="button-hero-primary"
           >
@@ -391,7 +394,7 @@ export default function Landing() {
             className="text-center"
           >
             <button
-              onClick={() => setLocation("/onboarding")}
+              onClick={() => setLocation("/secretary")}
               className="px-10 py-5 bg-[#FAF9F6] text-[#5A1F2B] text-xs uppercase tracking-[0.2em] font-medium hover:bg-transparent hover:text-[#FAF9F6] border border-[#FAF9F6] transition-all duration-500"
               data-testid="button-artists-primary"
             >
