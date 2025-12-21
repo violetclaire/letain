@@ -14,7 +14,7 @@ const CONTENT = {
     h1: "Beauvette",
     h2: "Works like you.",
     h3: "For you.",
-    subhead: "We were taught to do it all ourselves. That was never independence — it was exhaustion. This is real independence. Built by an artist, for artists and their clients.",
+    subhead: "We were taught to do it all ourselves. That was never independence — it was exhaustion. This is real independence.",
     supporting: "A smart link that takes bookings, sends contracts, and collects deposits — so you don't have to.",
     primaryCta: "Get your secretary link",
   },
@@ -83,14 +83,9 @@ const staggerContainer = {
 export default function Landing() {
   const [, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
-
-  const openElevator = () => {
-    setIsOpen(true);
-  };
 
   useEffect(() => {
-    if (mobileMenuOpen || !isOpen) {
+    if (mobileMenuOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
@@ -98,7 +93,7 @@ export default function Landing() {
     return () => {
       document.body.style.overflow = "";
     };
-  }, [mobileMenuOpen, isOpen]);
+  }, [mobileMenuOpen]);
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -109,54 +104,12 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F2EC] text-[#1A1A1A] font-sans antialiased relative">
+    <div className="min-h-screen bg-[#F9F8F6] text-[#2D2D2D] font-sans antialiased relative">
       {/* Top Navigation with Login/Logout */}
       <TopNav />
-      {/* Subtle Gingham Background */}
-      <div className="fixed inset-0 gingham-check opacity-[0.08] pointer-events-none z-0" />
-      {/* Gingham Elevator Doors */}
-      <AnimatePresence>
-        {!isOpen && (
-          <motion.div 
-            className="fixed inset-0 z-50 flex items-center justify-center cursor-pointer"
-            onClick={openElevator}
-            exit={{ opacity: 0, pointerEvents: "none" }}
-            transition={{ duration: 0.5, delay: 1 }}
-          >
-            {/* Left Door */}
-            <motion.div
-              className="absolute left-0 top-0 w-1/2 h-full border-r border-[#5A1F2B]/20 overflow-hidden gingham-check"
-              initial={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
-            />
-            {/* Right Door */}
-            <motion.div
-              className="absolute right-0 top-0 w-1/2 h-full border-l border-[#5A1F2B]/20 overflow-hidden gingham-check"
-              initial={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
-            />
-            {/* Center Logo Card */}
-            <motion.div 
-              className="relative z-10 flex flex-col items-center justify-center text-center pointer-events-none"
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="bg-[#FCF9F4] p-1 border border-[#5A1F2B]">
-                <div className="border border-[#5A1F2B] px-12 py-8">
-                  <h1 className="font-script text-4xl md:text-5xl text-[#5A1F2B]">
-                    Beauvette
-                  </h1>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Navigation - Minimal & Refined */}
-      <nav className="fixed top-0 left-0 right-0 z-40 bg-[#F4F2EC]/95 backdrop-blur-md border-b border-[#5A1F2B]/5">
+      <nav className="fixed top-0 left-0 right-0 z-40 bg-[#F9F8F6]/95 backdrop-blur-md border-b border-[#2D2D2D]/5">
         <div className="max-w-7xl mx-auto px-8 lg:px-16">
           <div className="flex items-center justify-between h-20">
             <a 
@@ -249,54 +202,62 @@ export default function Landing() {
         </AnimatePresence>
       </nav>
 
-      {/* Hero Section - Full Height, Cinematic */}
-      <section 
-        className="relative min-h-screen flex items-center justify-center"
-      >
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('/attached_assets/hero-flatlay.png')" }}
-        />
-        {/* Garnet gradient at top */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#5A1F2B] via-[#5A1F2B]/50 to-transparent" style={{ height: '40%' }} />
-        <div className="absolute inset-0 bg-[#1c1a18]/10" />
-        
-        {/* Beauvette at top */}
-        <motion.h1 
-          className="absolute top-28 left-1/2 -translate-x-1/2 z-10 font-script text-7xl md:text-8xl lg:text-9xl text-[#FAF9F6]"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-        >
-          {CONTENT.hero.h1}
-        </motion.h1>
+      {/* Hero Section - Clean, Editorial */}
+      <section className="min-h-screen flex items-center justify-center bg-[#F9F8F6] pt-20">
+        <div className="max-w-3xl mx-auto px-8 text-center">
+          <motion.h1 
+            className="font-serif text-6xl md:text-7xl lg:text-8xl text-[#2D2D2D] font-light tracking-wide mb-8"
+            style={{ fontFamily: "'Playfair Display', serif" }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            {CONTENT.hero.h1}
+          </motion.h1>
 
-        {/* CTA section at bottom with "Are you available?" above button */}
-        <motion.div 
-          className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10 text-center"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.8 }}
-        >
-          <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-[#FAF9F6] font-light tracking-wide mb-1">
-            {CONTENT.hero.h2}
-          </h2>
-          <h3 className="font-serif text-3xl md:text-4xl lg:text-5xl text-[#FAF9F6] font-light tracking-wide mb-4">
-            {CONTENT.hero.h3}
-          </h3>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.8 }}
+          >
+            <h2 className="text-xl md:text-2xl text-[#2D2D2D]/70 font-light tracking-wide mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
+              {CONTENT.hero.h2}
+            </h2>
+            <h3 className="text-xl md:text-2xl text-[#2D2D2D]/70 font-light tracking-wide mb-12" style={{ fontFamily: "'Playfair Display', serif" }}>
+              {CONTENT.hero.h3}
+            </h3>
+          </motion.div>
           
-          <p className="font-serif text-lg md:text-xl text-[#FAF9F6]/80 italic mb-6">
+          <motion.p 
+            className="text-base md:text-lg text-[#2D2D2D]/60 leading-relaxed max-w-xl mx-auto mb-6"
+            style={{ fontFamily: "'Inter', sans-serif" }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5, duration: 0.8 }}
+          >
             {CONTENT.hero.subhead}
-          </p>
+          </motion.p>
+
+          <motion.p 
+            className="text-xs tracking-[0.2em] uppercase text-[#2D2D2D]/40 mb-12"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6, duration: 0.8 }}
+          >
+            Built by an artist, for artists and their clients.
+          </motion.p>
           
-          <button
+          <motion.button
             onClick={() => setLocation("/secretary")}
-            className="group relative px-6 py-3 bg-[#5A1F2B] text-[#FAF9F6] text-xs uppercase tracking-[0.15em] font-medium overflow-hidden transition-all duration-500 hover:bg-[#FAF9F6] hover:text-[#5A1F2B] border border-[#5A1F2B]"
+            className="px-10 py-5 border border-[#2D2D2D] text-[#2D2D2D] text-xs uppercase tracking-[0.2em] hover:bg-[#2D2D2D] hover:text-[#F9F8F6] transition-all duration-500"
             data-testid="button-hero-primary"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7, duration: 0.8 }}
           >
             {CONTENT.hero.primaryCta}
-          </button>
-        </motion.div>
+          </motion.button>
+        </div>
       </section>
 
       {/* How It Works - Generous Whitespace */}
