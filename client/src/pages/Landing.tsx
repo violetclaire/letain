@@ -106,8 +106,8 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-[#F9F8F6] text-[#2D2D2D] font-sans antialiased relative">
       {/* Chateau Marmont Double Frame Border */}
-      <div className="fixed inset-4 md:inset-8 pointer-events-none z-30 border border-[#5A1F2B]/20" />
-      <div className="fixed inset-6 md:inset-10 pointer-events-none z-30 border border-[#5A1F2B]/15" />
+      <div className="fixed inset-4 md:inset-8 pointer-events-none z-30 border border-[#5A1F2B]" />
+      <div className="fixed inset-6 md:inset-10 pointer-events-none z-30 border border-[#5A1F2B]" />
       
       {/* Top Navigation with Login/Logout */}
       <TopNav />
