@@ -12,8 +12,8 @@ const CONTENT = {
   },
   hero: {
     h1: "Beauvette Secretary",
-    h2: "Your 24/7 booking assistant",
-    subhead: "Handle inquiries while you sleep.",
+    h2: "Your assistant answers.",
+    subhead: "Create your availability.",
     supporting: "A smart link that takes bookings, sends contracts, and collects deposits — so you don't have to.",
     primaryCta: "Get your secretary link",
   },
