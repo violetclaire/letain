@@ -1,4 +1,4 @@
-import { Link, useLocation } from "wouter";
+ import { Link, useLocation } from "wouter";
 import { useState, useEffect, useRef } from "react";
 import { Folder, ArrowLeft, Calendar, Clock, FileText, DollarSign, Image as ImageIcon, Check, X, AlertCircle, Plus, Search, CreditCard, Send, Instagram, Globe, MessageCircle, MessageSquare, UserPlus, LogOut, Upload, Settings, User, Wallet, BookUser, Info, ChevronDown, ChevronUp, Camera, Paperclip, Mic, Loader2, Eye, ShieldAlert, ThumbsUp, ThumbsDown, Flag, Mail, XCircle, Copy, RefreshCw } from "lucide-react";
 import VoiceDictation from "../components/VoiceDictation";
@@ -1839,8 +1839,7 @@ export default function ArtistDashboard() {
       return;
     }
 
-    const vendorName = user?.firstName && user?.lastName 
-      ? `${user.firstName} ${user.lastName}` 
+    const vendorName = user?.firstName &&` 
       : user?.firstName || 'Your Vendor';
 
     setSendingInvoiceEmail(true);
