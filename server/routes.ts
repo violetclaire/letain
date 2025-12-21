@@ -9591,6 +9591,78 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       res.status(500).json({ error: error.message || "Failed to create secretary link" });
     }
   });
+
+  // Setup flow - Step 1: Connect Square
+  app.post("/api/public/setup/:artistSlug/square", async (req, res) => {
+    try {
+      const { artistSlug } = req.params;
+      const { accessToken, locationId, environment } = req.body;
+      
+      const profile = await storage.getArtistProfileBySlug(artistSlug);
+      if (!profile) {
+        return res.status(404).json({ error: "Artist not found" });
+      }
+      
+      // Update artist profile with Square settings using storage layer
+      await storage.updateArtistProfile(profile.userId, {
+        squareAccessToken: accessToken,
+        squareLocationId: locationId,
+        squareEnvironment: environment || 'sandbox',
+      });
+      
+      res.json({ success: true, message: "Square settings saved" });
+    } catch (error: any) {
+      console.error("[Setup Square] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to save Square settings" });
+    }
+  });
+
+  // Setup flow - Step 2: Contract Template
+  app.post("/api/public/setup/:artistSlug/contract", async (req, res) => {
+    try {
+      const { artistSlug } = req.params;
+      const { contractTemplate } = req.body;
+      
+      const profile = await storage.getArtistProfileBySlug(artistSlug);
+      if (!profile) {
+        return res.status(404).json({ error: "Artist not found" });
+      }
+      
+      // Update artist profile with contract template using storage layer
+      await storage.updateArtistProfile(profile.userId, {
+        contractTemplate,
+      });
+      
+      res.json({ success: true, message: "Contract template saved" });
+    } catch (error: any) {
+      console.error("[Setup Contract] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to save contract template" });
+    }
+  });
+
+  // Setup flow - Step 3: Pretty Links
+  app.post("/api/public/setup/:artistSlug/links", async (req, res) => {
+    try {
+      const { artistSlug } = req.params;
+      const { prettyLinks } = req.body;
+      
+      const profile = await storage.getArtistProfileBySlug(artistSlug);
+      if (!profile) {
+        return res.status(404).json({ error: "Artist not found" });
+      }
+      
+      // Update artist profile with pretty links and mark onboarding complete using storage layer
+      await storage.updateArtistProfile(profile.userId, {
+        prettyLinks,
+        onboardingCompleted: true,
+      });
+      
+      res.json({ success: true, message: "Setup complete" });
+    } catch (error: any) {
+      console.error("[Setup Links] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to save links" });
+    }
+  });
   
   // Public artist onboarding
   app.post("/api/public/artists/onboard", async (req, res) => {

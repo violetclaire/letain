@@ -54,6 +54,11 @@ import ClientMessages from "@/pages/ClientMessages";
 import ContractSigning from "@/pages/ContractSigning";
 import PlannerView from "@/pages/PlannerView";
 import SecretaryOnboarding from "@/pages/SecretaryOnboarding";
+import InquirePage from "@/pages/InquirePage";
+import SetupSquare from "@/pages/SetupSquare";
+import SetupContract from "@/pages/SetupContract";
+import SetupLinks from "@/pages/SetupLinks";
+import SetupComplete from "@/pages/SetupComplete";
 
 function InviteRedirectHandler() {
   const [location, setLocation] = useLocation();
@@ -149,9 +154,13 @@ function Router() {
       <Route path="/secretary" component={SecretaryOnboarding} />
       
       {/* Inquire route (public booking page) */}
-      <Route path="/inquire/:artistSlug">
-        {(params) => <PublicArtistCalendar />}
-      </Route>
+      <Route path="/inquire/:artistSlug" component={InquirePage} />
+      
+      {/* Setup flow routes */}
+      <Route path="/setup/:artistSlug/square" component={SetupSquare} />
+      <Route path="/setup/:artistSlug/contract" component={SetupContract} />
+      <Route path="/setup/:artistSlug/links" component={SetupLinks} />
+      <Route path="/setup/:artistSlug/complete" component={SetupComplete} />
       
       {/* Public Routes */}
       <Route path="/onboarding" component={PublicOnboarding} />
