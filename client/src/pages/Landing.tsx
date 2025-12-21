@@ -23,21 +23,21 @@ const CONTENT = {
     steps: [
       {
         number: "01",
-        title: "Create your secretary link in 60 seconds",
-        body: "Enter your business name, connect Square, and get a custom link like beauvette.app/inquire/your-name.",
-        subBody: "Share it in your Instagram bio, website, or DMs."
+        title: "Get your custom inquiry link",
+        body: "Enter your business name and get your personal link: beauvette.app/inquire/your-business-name",
+        subBody: "This is your new front door for bookings."
       },
       {
         number: "02",
-        title: "Clients inquire, you approve",
-        body: "When someone wants to book, they fill out a simple form. You get notified and can accept, decline, or refer with one tap.",
-        subBody: "No more back-and-forth DMs asking about availability."
+        title: "Add it to your website",
+        body: "Replace your current contact form with a simple embed code, or just link directly to your inquiry page.",
+        subBody: "Works with any website. No tech skills required."
       },
       {
         number: "03",
-        title: "Contracts and deposits on autopilot",
-        body: "Once you accept, your secretary sends the contract for e-signature and collects the deposit via Square.",
-        subBody: "You get paid while focusing on your craft."
+        title: "Use it in your emails",
+        body: "When someone emails asking about booking, send them your link. All inquiries flow through your secretary.",
+        subBody: "One link. Every inquiry. Organized."
       }
     ]
   },
