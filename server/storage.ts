@@ -479,6 +479,7 @@ export interface IStorage {
   // Inquiries
   createInquiry(data: InsertInquiry): Promise<Inquiry>;
   getInquiry(id: string): Promise<Inquiry | undefined>;
+  getInquiryByThreadToken(threadToken: string): Promise<Inquiry | undefined>;
   getInquiriesByVendor(vendorId: string): Promise<Inquiry[]>;
   getInquiriesByClient(clientEmail: string): Promise<Inquiry[]>;
   updateInquiry(id: string, data: Partial<InsertInquiry>): Promise<Inquiry | undefined>;
@@ -2390,6 +2391,11 @@ export class DatabaseStorage implements IStorage {
   
   async getInquiry(id: string): Promise<Inquiry | undefined> {
     const [inquiry] = await db.select().from(inquiries).where(eq(inquiries.id, id));
+    return inquiry || undefined;
+  }
+  
+  async getInquiryByThreadToken(threadToken: string): Promise<Inquiry | undefined> {
+    const [inquiry] = await db.select().from(inquiries).where(eq(inquiries.threadToken, threadToken));
     return inquiry || undefined;
   }
   

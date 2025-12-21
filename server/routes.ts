@@ -9592,6 +9592,212 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // ===== INQUIRY THREAD ROUTES =====
+  
+  // Get inquiry by thread token (public - for artist viewing inquiry details)
+  app.get("/api/public/inquiry/:threadToken", async (req, res) => {
+    try {
+      const { threadToken } = req.params;
+      
+      const inquiry = await storage.getInquiryByThreadToken(threadToken);
+      if (!inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+      
+      const artist = await storage.getArtistProfile(inquiry.vendorId);
+      
+      res.json({
+        inquiry: {
+          id: inquiry.id,
+          threadToken: inquiry.threadToken,
+          clientName: inquiry.clientName,
+          clientEmail: inquiry.clientEmail,
+          clientPhone: inquiry.clientPhone,
+          eventDate: inquiry.eventDate,
+          eventType: inquiry.eventType,
+          eventLocation: inquiry.eventLocation,
+          message: inquiry.message,
+          status: inquiry.status,
+          createdAt: inquiry.createdAt,
+        },
+        artist: artist ? {
+          id: artist.id,
+          userId: artist.userId,
+          businessName: artist.businessName,
+          artistSlug: artist.artistSlug,
+          squareAccessToken: artist.squareAccessToken ? true : false, // Don't expose token
+          contractTemplate: artist.contractTemplate ? true : false, // Just indicate presence
+          prettyLinks: artist.prettyLinks,
+          onboardingCompleted: artist.onboardingCompleted,
+        } : null,
+      });
+    } catch (error: any) {
+      console.error("[Inquiry Thread] Error fetching inquiry:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch inquiry" });
+    }
+  });
+
+  // Inquiry action (accept-client, accept-planner, refer, decline)
+  // Note: Thread token acts as bearer token (magic link) - sent only to artist's email
+  app.post("/api/public/inquiry/:threadToken/action/:action", async (req, res) => {
+    try {
+      const { threadToken, action } = req.params;
+      
+      const inquiry = await storage.getInquiryByThreadToken(threadToken);
+      if (!inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+      
+      // State transition validation - prevent invalid transitions
+      const terminalStates = ['declined', 'completed', 'expired'];
+      if (terminalStates.includes(inquiry.status)) {
+        return res.status(400).json({ error: `Cannot modify inquiry in ${inquiry.status} state` });
+      }
+      
+      let newStatus = inquiry.status;
+      let statusReason = "";
+      
+      switch (action) {
+        case "accept-client":
+          if (inquiry.status !== 'pending') {
+            return res.status(400).json({ error: "Can only accept pending inquiries" });
+          }
+          newStatus = "accepted";
+          statusReason = "Accepted as direct client";
+          break;
+        case "accept-planner":
+          if (inquiry.status !== 'pending') {
+            return res.status(400).json({ error: "Can only accept pending inquiries" });
+          }
+          newStatus = "accepted";
+          statusReason = "Accepted as planner inquiry";
+          break;
+        case "refer":
+          newStatus = "referred";
+          statusReason = "Vendor unavailable - referred";
+          break;
+        case "decline":
+          newStatus = "declined";
+          statusReason = "Politely declined";
+          break;
+        default:
+          return res.status(400).json({ error: "Invalid action" });
+      }
+      
+      await storage.updateInquiry(inquiry.id, {
+        status: newStatus,
+        statusReason,
+        lastActionAt: new Date(),
+      });
+      
+      // Log activity
+      try {
+        await logActivity({
+          type: 'inquiry_action',
+          entityType: 'inquiry',
+          entityId: inquiry.id,
+          userId: inquiry.vendorId,
+          metadata: {
+            action,
+            clientName: inquiry.clientName,
+            clientEmail: inquiry.clientEmail,
+          },
+        });
+      } catch (e) {
+        console.error("[Inquiry Thread] Activity log error:", e);
+      }
+      
+      res.json({ success: true, message: `Inquiry ${action} successfully`, status: newStatus });
+    } catch (error: any) {
+      console.error("[Inquiry Thread] Error processing action:", error);
+      res.status(500).json({ error: error.message || "Failed to process action" });
+    }
+  });
+
+  // Create contract from inquiry thread
+  app.post("/api/public/inquiry/:threadToken/create-contract", async (req, res) => {
+    try {
+      const { threadToken } = req.params;
+      const { packageDetails, totalAmount, depositAmount, eventLocation } = req.body;
+      
+      const inquiry = await storage.getInquiryByThreadToken(threadToken);
+      if (!inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+      
+      const artist = await storage.getArtistProfile(inquiry.vendorId);
+      if (!artist) {
+        return res.status(404).json({ error: "Artist not found" });
+      }
+      
+      // Create a contract
+      const contract = await storage.createContract({
+        bookingId: inquiry.bookingId || inquiry.id,
+        clientId: inquiry.clientId || inquiry.vendorId,
+        artistId: inquiry.vendorId,
+        totalAmount: parseFloat(totalAmount) || 0,
+        depositAmount: parseFloat(depositAmount) || 0,
+        status: "pending",
+        packageDetails: packageDetails || artist.contractTemplate || "",
+        eventLocation: eventLocation || inquiry.eventLocation || "",
+        eventDate: inquiry.eventDate,
+        clientName: inquiry.clientName,
+        clientEmail: inquiry.clientEmail,
+      });
+      
+      // Update inquiry status
+      await storage.updateInquiry(inquiry.id, {
+        status: "contract_sent",
+        convertedToContractId: contract.id,
+        lastActionAt: new Date(),
+      });
+      
+      res.json({ success: true, contractId: contract.id, message: "Contract created successfully" });
+    } catch (error: any) {
+      console.error("[Inquiry Thread] Error creating contract:", error);
+      res.status(500).json({ error: error.message || "Failed to create contract" });
+    }
+  });
+
+  // Create invoice from inquiry thread
+  app.post("/api/public/inquiry/:threadToken/create-invoice", async (req, res) => {
+    try {
+      const { threadToken } = req.params;
+      const { type, amount, description } = req.body;
+      
+      const inquiry = await storage.getInquiryByThreadToken(threadToken);
+      if (!inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+      
+      const artist = await storage.getArtistProfile(inquiry.vendorId);
+      if (!artist) {
+        return res.status(404).json({ error: "Artist not found" });
+      }
+      
+      // Create a payment record
+      const payment = await storage.createPayment({
+        bookingId: inquiry.bookingId || inquiry.id,
+        amount: parseFloat(amount) || 0,
+        type: type === "deposit" ? "deposit" : type === "balance" ? "final" : "custom",
+        status: "pending",
+        method: "square",
+        description: description || `${type === "deposit" ? "Deposit" : type === "balance" ? "Final Balance" : "Invoice"} for ${inquiry.clientName}`,
+      });
+      
+      // Update inquiry status
+      await storage.updateInquiry(inquiry.id, {
+        status: "invoice_sent",
+        lastActionAt: new Date(),
+      });
+      
+      res.json({ success: true, paymentId: payment.id, message: "Invoice created successfully" });
+    } catch (error: any) {
+      console.error("[Inquiry Thread] Error creating invoice:", error);
+      res.status(500).json({ error: error.message || "Failed to create invoice" });
+    }
+  });
+
   // Setup flow - Step 1: Connect Square
   app.post("/api/public/setup/:artistSlug/square", async (req, res) => {
     try {

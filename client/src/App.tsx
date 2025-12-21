@@ -55,6 +55,7 @@ import ContractSigning from "@/pages/ContractSigning";
 import PlannerView from "@/pages/PlannerView";
 import SecretaryOnboarding from "@/pages/SecretaryOnboarding";
 import InquirePage from "@/pages/InquirePage";
+import InquiryThread from "@/pages/InquiryThread";
 import SetupSquare from "@/pages/SetupSquare";
 import SetupContract from "@/pages/SetupContract";
 import SetupLinks from "@/pages/SetupLinks";
@@ -155,6 +156,9 @@ function Router() {
       
       {/* Inquire route (public booking page) */}
       <Route path="/inquire/:artistSlug" component={InquirePage} />
+      
+      {/* Inquiry Thread (artist view of individual inquiry) */}
+      <Route path="/inquiry/:threadToken" component={InquiryThread} />
       
       {/* Setup flow routes */}
       <Route path="/setup/:artistSlug/square" component={SetupSquare} />
