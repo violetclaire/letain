@@ -116,7 +116,13 @@ export default function Landing() {
       <nav className="fixed top-0 left-0 right-0 z-40 bg-[#F9F8F6]/95 backdrop-blur-md border-b border-[#2D2D2D]/5">
         <div className="max-w-7xl mx-auto px-8 lg:px-16">
           <div className="flex items-center justify-between h-20">
-            <div className="w-24" />
+            <button 
+              onClick={() => scrollToSection("how-it-works")}
+              className="text-xs uppercase tracking-[0.2em] text-[#5A1F2B] hover:text-[#5A1F2B]/70 transition-colors duration-300"
+              data-testid="link-how-it-works-left"
+            >
+              How it works
+            </button>
 
             {/* Desktop Nav */}
             <div className="hidden md:flex items-center gap-12">
