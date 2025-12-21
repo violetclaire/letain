@@ -23,21 +23,21 @@ const CONTENT = {
     steps: [
       {
         number: "01",
-        title: "Sign up and get your link",
-        body: "Enter your business name. Your name becomes your URL: beauvette.app/inquire/your-business-name",
-        subBody: "Share it in emails, DMs, or your Instagram bio."
+        title: "Get your embed code",
+        body: "Sign up with your business name. Get a form action URL to add to your existing website contact form.",
+        subBody: "Invisible to clients. Your branding stays intact."
       },
       {
         number: "02",
-        title: "Embed it on your website",
-        body: "Add our form action URL to your existing contact form. Invisible to clients, keeps your branding.",
-        subBody: "No new website needed. Works with what you have."
+        title: "Get your email link",
+        body: "When someone emails you about booking, send them your direct inquiry link.",
+        subBody: "One link. Every conversation. Organized."
       },
       {
         number: "03",
-        title: "All inquiries in one place",
-        body: "Every inquiry routes to your dashboard. Accept, refer, or decline. Your clients never need to create an account.",
-        subBody: "Zero friction. Just tokenized links that work."
+        title: "Manage from your dashboard",
+        body: "All inquiries flow to one place. Accept, refer, or decline. Clients never create accounts.",
+        subBody: "Tokenized links handle everything."
       }
     ]
   },
