@@ -158,7 +158,11 @@ export const artistProfiles = pgTable("artist_profiles", {
   squareAccessToken: text("square_access_token"),
   squareRefreshToken: text("square_refresh_token"),
   squareTokenExpiresAt: timestamp("square_token_expires_at"),
+  squareLocationId: text("square_location_id"),
+  squareEnvironment: text("square_environment").default("sandbox"), // 'sandbox' or 'production'
   servicesMenuUrl: text("services_menu_url"),
+  contractTemplate: text("contract_template"), // Custom contract template for this artist
+  prettyLinks: jsonb("pretty_links").$type<Record<string, string>>(), // Custom branded links
   logoUrl: text("logo_url"), // Business logo for branded emails/communications
   // Info sheet content - auto-sent to clients on inquiry
   infoSheetType: text("info_sheet_type").default("template"), // 'template', 'custom', or 'pdf'
