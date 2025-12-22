@@ -154,7 +154,7 @@ export default function Landing() {
           style={{
             backgroundImage: 'url(/attached_assets/u4728191363_seamless_repeating_pinstripe_suiting_fabric_textu__1766382482762.png)',
             backgroundRepeat: 'repeat',
-            backgroundSize: '200px'
+            backgroundSize: '500px'
           }} 
         />
         {/* Film grain overlay */}
