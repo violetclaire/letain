@@ -9,9 +9,9 @@ const CONTENT = {
     cta: "Get your private link"
   },
   hero: {
-    label: "Built by an artist, for artists.",
+    label: "Built by a professional, for professionals",
     h1: "The invisible layer behind your business.",
-    subline: "We were taught to do it all ourselves. That was never independence—it was exhaustion.",
+    subline: "This is how we've worked for decades. Now it's programmable infrastructure for the modern era.",
     notList: [
       "Your clients only see your brand.",
       "Never ours.",
