@@ -117,26 +117,48 @@ document.getElementById('inquiry-form').addEventListener('submit', async (e) => 
               {result.businessName}
             </h1>
             <p className="text-sm text-[#2D2D2D]/60 leading-relaxed">
-              Your secretary is ready. Here's your inquiry link.
+              Your secretary is ready. Add the form to your page.
             </p>
           </div>
 
           <div className="space-y-6 mb-12">
-            <div className="p-6 border border-[#2D2D2D]/10 group relative text-left">
-              <p className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/40 mb-3">Your Inquiry Link</p>
-              <p className="text-xs text-[#2D2D2D]/60 mb-2">
-                Share this in your email signature and social bios:
+            <div className="p-6 border border-[#2D2D2D]/10 text-left">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/40">Embed Code</p>
+                <button 
+                  onClick={() => copyToClipboard(result.embedCode)}
+                  className="flex items-center gap-2 text-xs text-[#2D2D2D]/50 hover:text-[#2D2D2D] transition-colors"
+                  data-testid="button-copy-embed-code"
+                >
+                  <Copy size={14} />
+                  Copy Code
+                </button>
+              </div>
+              <p className="text-xs text-[#2D2D2D]/60 mb-3">
+                Add this to your website's contact page. Share YOUR website link with clients.
               </p>
-              <p className="text-[#2D2D2D] text-sm break-all font-medium">
-                {`https://beauvette.app/inquire/${result.artistSlug}`}
+              <pre className="text-[#2D2D2D] text-[10px] bg-[#2D2D2D]/5 p-4 overflow-x-auto max-h-32 overflow-y-auto rounded font-mono">
+                {result.embedCode}
+              </pre>
+            </div>
+
+            <div className="p-6 border border-dashed border-[#2D2D2D]/20 text-left">
+              <p className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/40 mb-3">Don't have a website?</p>
+              <p className="text-xs text-[#2D2D2D]/60 mb-4">
+                Create a free page in 5 minutes. Your clients will see YOUR name, not ours.
               </p>
-              <button 
-                onClick={() => copyToClipboard(`https://beauvette.app/inquire/${result.artistSlug}`)}
-                className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity"
-                data-testid="button-copy-inquiry-link"
+              <a 
+                href="https://carrd.co" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-block border border-[#2D2D2D]/30 px-4 py-2 text-xs tracking-[0.1em] uppercase text-[#2D2D2D]/70 hover:border-[#2D2D2D] hover:text-[#2D2D2D] transition-all"
+                data-testid="link-create-free-page"
               >
-                <Copy size={14} className="text-[#2D2D2D]/30 hover:text-[#2D2D2D]" />
-              </button>
+                Create Free Page (Carrd)
+              </a>
+              <p className="text-[10px] text-[#2D2D2D]/40 mt-3">
+                Paste the embed code above on your new page. Link looks like: {result.artistSlug}.carrd.co
+              </p>
             </div>
 
             <div className="p-6 border border-[#2D2D2D]/10 group relative text-left">
@@ -153,28 +175,6 @@ document.getElementById('inquiry-form').addEventListener('submit', async (e) => 
               </button>
               <p className="text-[10px] text-[#2D2D2D]/40 mt-2">Bookmark this to manage inquiries</p>
             </div>
-
-            <details className="p-6 border border-[#2D2D2D]/10 text-left">
-              <summary className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/40 cursor-pointer">
-                Have Your Own Website? Get Embed Code
-              </summary>
-              <div className="mt-4">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs text-[#2D2D2D]/60">Paste on your contact page for full white-label</p>
-                  <button 
-                    onClick={() => copyToClipboard(result.embedCode)}
-                    className="flex items-center gap-2 text-xs text-[#2D2D2D]/50 hover:text-[#2D2D2D] transition-colors"
-                    data-testid="button-copy-embed-code"
-                  >
-                    <Copy size={14} />
-                    Copy
-                  </button>
-                </div>
-                <pre className="text-[#2D2D2D] text-[10px] bg-[#2D2D2D]/5 p-4 overflow-x-auto max-h-32 overflow-y-auto rounded font-mono">
-                  {result.embedCode}
-                </pre>
-              </div>
-            </details>
           </div>
 
           <div className="space-y-4">
