@@ -7,10 +7,10 @@ export default function SecretaryOnboarding() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [result, setResult] = useState<{
-    secretaryLink: string;
     adminLink: string;
     businessName: string;
     artistSlug: string;
+    embedCode: string;
   } | null>(null);
   
   const [formData, setFormData] = useState({
@@ -42,11 +42,54 @@ export default function SecretaryOnboarding() {
         throw new Error(data.error || "Failed to create your secretary link");
       }
       
+      const escapeHtml = (str: string) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      const successMessage = "Thank you! We'll be in touch soon.";
+      const embedCode = `<!-- ${escapeHtml(formData.businessName)} Inquiry Form -->
+<form id="inquiry-form">
+  <input type="text" name="clientName" placeholder="Your Name" required />
+  <input type="email" name="clientEmail" placeholder="Your Email" required />
+  <input type="date" name="eventDate" required />
+  <textarea name="message" placeholder="Tell us about your event"></textarea>
+  <button type="submit">Submit Inquiry</button>
+</form>
+<div id="form-success" style="display:none;">${escapeHtml(successMessage)}</div>
+<script>
+document.getElementById('inquiry-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const btn = form.querySelector('button');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  try {
+    const res = await fetch('https://beauvette.app/api/inquiries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        artistSlug: '${data.artistSlug}',
+        source: 'website',
+        clientName: form.clientName.value,
+        clientEmail: form.clientEmail.value,
+        eventDate: form.eventDate.value,
+        message: form.message.value
+      })
+    });
+    if (res.ok) {
+      form.style.display = 'none';
+      document.getElementById('form-success').style.display = 'block';
+    } else { throw new Error('Failed'); }
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Submit Inquiry';
+    alert('Something went wrong. Please try again.');
+  }
+});
+<\/script>`;
+      
       setResult({
-        secretaryLink: data.secretaryLink,
         adminLink: `https://beauvette.app/admin/${data.artistSlug}`,
         businessName: formData.businessName,
         artistSlug: data.artistSlug,
+        embedCode,
       });
       setSuccess(true);
     } catch (err: any) {
@@ -74,37 +117,29 @@ export default function SecretaryOnboarding() {
               {result.businessName}
             </h1>
             <p className="text-sm text-[#2D2D2D]/60 leading-relaxed">
-              Your secretary is ready. Share the inquiry link with clients.
+              Your secretary is ready. Add this code to your website's contact page.
             </p>
           </div>
 
           <div className="space-y-8 mb-16">
-            <div className="p-8 border border-[#2D2D2D]/10 group relative text-left">
-              <p className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/40 mb-4">Client Inquiry Link</p>
-              <p className="text-[#2D2D2D] text-sm break-all">
-                {result.secretaryLink}
+            <div className="p-6 border border-[#2D2D2D]/10 group relative text-left">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/40">Embed Code for Your Website</p>
+                <button 
+                  onClick={() => copyToClipboard(result.embedCode)}
+                  className="flex items-center gap-2 text-xs text-[#2D2D2D]/50 hover:text-[#2D2D2D] transition-colors"
+                  data-testid="button-copy-embed-code"
+                >
+                  <Copy size={14} />
+                  Copy
+                </button>
+              </div>
+              <pre className="text-[#2D2D2D] text-xs bg-[#2D2D2D]/5 p-4 overflow-x-auto max-h-48 overflow-y-auto rounded">
+                {result.embedCode}
+              </pre>
+              <p className="text-[10px] text-[#2D2D2D]/40 mt-4">
+                Paste this on your website's contact page. Clients fill out the form on YOUR site. They never see Beauvette.
               </p>
-              <button 
-                onClick={() => copyToClipboard(result.secretaryLink)}
-                className="absolute right-6 top-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                data-testid="button-copy-inquiry-link"
-              >
-                <Copy size={16} className="text-[#2D2D2D]/30 hover:text-[#2D2D2D]" />
-              </button>
-            </div>
-
-            <div className="p-8 border border-[#2D2D2D]/10 group relative text-left">
-              <p className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/40 mb-4">Your Dashboard</p>
-              <p className="text-[#2D2D2D] text-sm break-all">
-                {result.adminLink}
-              </p>
-              <button 
-                onClick={() => copyToClipboard(result.adminLink)}
-                className="absolute right-6 top-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                data-testid="button-copy-admin-link"
-              >
-                <Copy size={16} className="text-[#2D2D2D]/30 hover:text-[#2D2D2D]" />
-              </button>
             </div>
           </div>
 
@@ -115,13 +150,6 @@ export default function SecretaryOnboarding() {
               data-testid="button-go-to-dashboard"
             >
               Continue Setup
-            </a>
-            <a 
-              href={result.secretaryLink}
-              className="block w-full border border-[#2D2D2D]/20 py-5 text-xs tracking-[0.2em] uppercase text-[#2D2D2D]/60 hover:border-[#2D2D2D]/50 hover:text-[#2D2D2D] transition-all duration-500"
-              data-testid="button-preview-form"
-            >
-              Preview Inquiry Form
             </a>
           </div>
 
