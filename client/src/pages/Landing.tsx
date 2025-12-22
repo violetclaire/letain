@@ -55,10 +55,7 @@ const CONTENT = {
     title: "For Those Seeking Excellence",
     tagline: "Thank you for your patience.",
     subTagline: "You're working with real artists, not algorithms. They're building something new here. Your grace gives them room to create.",
-    bullets: [
-      "Simple inquiry form — no DM chaos.",
-      "Clear pricing and contracts upfront."
-    ],
+    bullets: [],
     cta: "Find an artist"
   },
   footer: {
@@ -146,7 +143,7 @@ export default function Landing() {
                 className="text-xs uppercase tracking-[0.2em] text-[#1A1A1A]/60 hover:text-[#5A1F2B] transition-colors duration-300"
                 data-testid="link-for-clients"
               >
-                For Clients
+                For Those Seeking
               </button>
               <button
                 onClick={() => setLocation("/secretary")}
