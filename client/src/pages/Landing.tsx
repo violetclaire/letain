@@ -92,8 +92,6 @@ export default function Landing() {
     <div className="min-h-screen bg-bg text-ink">
       {/* Pinstripe texture overlay */}
       <div className="estate-pinstripe" />
-      {/* Brass frame border - letterhead style */}
-      <div className="fixed inset-6 pointer-events-none z-40 border border-brass/50" />
       {/* Top Bar */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-bg/95 backdrop-blur-sm">
         <div className="estate-container flex items-center justify-between py-8">
@@ -147,7 +145,7 @@ export default function Landing() {
       </header>
 
       {/* Hero Section - Dark Pinstripe */}
-      <section className="relative min-h-screen flex flex-col justify-center bg-[#0a0a0a] text-[#f5f3ef] -mx-6 md:-mx-12 px-6 md:px-12">
+      <section className="relative min-h-screen flex flex-col justify-center bg-[#1a1a1a] text-[#f5f3ef] -mx-6 md:-mx-12 px-6 md:px-12">
         {/* Pinstripe fabric texture */}
         <div 
           className="absolute inset-0 pointer-events-none opacity-35"
