@@ -26,7 +26,7 @@ const CONTENT = {
       {
         num: "01",
         title: "Your link, your brand",
-        body: "Embed our form on your contact page—clients fill it out without leaving your site. Or when someone emails or DMs you, paste your magic link. That thread becomes your secretary. Your choice, your control."
+        body: "Add our invisible code to your website's contact page. Clients fill out inquiries on your site and see your confirmation—never leave your domain, never see our name. Share your own website link on Instagram, in emails, anywhere. Your brand only."
       },
       {
         num: "02",
