@@ -9,9 +9,9 @@ Beauvette Secretary is a white-label booking system where bridal artists get the
 ## User Preferences
 
 - Preferred communication style: Simple, everyday language
-- Design aesthetic: "Quiet Luxury" - cream (#F9F8F6) background, charcoal (#2D2D2D) or garnet (#5A1F2B) text
-- Typography: Playfair Display for titles, Inter for forms
-- No em dashes, minimal UI, letterhead feel with double frame borders
+- Design aesthetic: "Private Secretary Office" - parchment backgrounds, ink text, brass/oxblood accents
+- Typography: Fraunces for headlines, Inter for body
+- No em dashes, minimal UI, editorial single-column layout, underlined links
 
 ## The Secretary Architecture
 
@@ -75,19 +75,35 @@ All queries scoped by artist_id - artists only see their own data.
 - **Email:** Resend for notifications
 - **Database:** Neon Database (serverless PostgreSQL)
 
-## Design System
+## Design System - Private Secretary Office Theme
 
-### Colors
-- Cream background: #F9F8F6
-- Charcoal text: #2D2D2D
-- Garnet accent: #5A1F2B
+### Color Palette (CSS Variables)
+- `--bg`: hsl(36 24% 95%) - Parchment/bone background
+- `--surface`: hsl(36 18% 93%) - Deeper parchment for cards
+- `--surface-2`: hsl(36 14% 90%) - Panels
+- `--ink`: hsl(0 0% 10%) - Near-black ink text
+- `--muted-ink`: hsl(0 0% 23%) - Warm charcoal
+- `--faint-ink`: hsl(0 0% 35%) - Subtle text
+- `--brass`: hsl(42 33% 57%) - Aged brass accent
+- `--oxblood`: hsl(0 50% 24%) - Focus rings only
+- `--hairline`: hsl(36 10% 84%) - Borders
 
 ### Typography
-- Titles: Playfair Display (serif)
+- Headlines: Fraunces (serif) with tracking-tight
 - Body/Forms: Inter (sans-serif)
 
 ### UI Patterns
-- Bottom-line-only inputs (no borders)
-- Generous margins and whitespace
-- Chateau Marmont double frame borders for letterhead feel
-- Quiet, elegant, professional
+- Estate container: max-width 1100px, px-6 sm:px-10
+- Estate prose: max-width 70ch, editorial width
+- Hairline borders, no heavy shadows
+- Underlined links by default (editorial style)
+- No SaaS grids, no gradient backgrounds
+- Motion: Only opacity + translateY 6-8px, duration 0.25-0.35s, easeOut
+
+### Button Variants
+- Primary: bg-ink text-bg (dark on light)
+- Secondary: border border-hairline hover:bg-surface
+- Quiet: text-ink underline (private office feel)
+
+### Focus Style
+- focus-visible:ring-1 ring-oxblood/70 (keyboard only)
