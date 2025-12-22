@@ -10087,6 +10087,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         infoSheetContent: profile.infoSheetContent,
         infoSheetPdfUrl: profile.infoSheetPdfUrl,
         infoSheetEnabled: profile.infoSheetEnabled ?? true,
+        formSuccessMessage: profile.formSuccessMessage,
       });
     } catch (error: any) {
       console.error("[Artist Settings Get] Error:", error);
@@ -10107,13 +10108,14 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(404).json({ error: "Invalid or expired token" });
       }
       
-      const { infoSheetType, infoSheetContent, infoSheetPdfUrl, infoSheetEnabled } = req.body;
+      const { infoSheetType, infoSheetContent, infoSheetPdfUrl, infoSheetEnabled, formSuccessMessage } = req.body;
       
       const updateData: any = {};
       if (infoSheetType !== undefined) updateData.infoSheetType = infoSheetType;
       if (infoSheetContent !== undefined) updateData.infoSheetContent = infoSheetContent;
       if (infoSheetPdfUrl !== undefined) updateData.infoSheetPdfUrl = infoSheetPdfUrl;
       if (infoSheetEnabled !== undefined) updateData.infoSheetEnabled = infoSheetEnabled;
+      if (formSuccessMessage !== undefined) updateData.formSuccessMessage = formSuccessMessage;
       
       const updatedProfile = await storage.updateArtistProfile(profile.id, updateData);
       
@@ -10122,6 +10124,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         infoSheetType: updatedProfile?.infoSheetType,
         infoSheetPdfUrl: updatedProfile?.infoSheetPdfUrl,
         infoSheetEnabled: updatedProfile?.infoSheetEnabled,
+        formSuccessMessage: updatedProfile?.formSuccessMessage,
       });
     } catch (error: any) {
       console.error("[Artist Settings Update] Error:", error);

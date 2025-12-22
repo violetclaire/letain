@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
@@ -8,6 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 interface ArtistSettingsData {
   artistSlug: string;
   businessName: string;
@@ -16,6 +25,7 @@ interface ArtistSettingsData {
   infoSheetContent?: string;
   infoSheetPdfUrl?: string;
   infoSheetEnabled: boolean;
+  formSuccessMessage?: string;
 }
 
 export default function ArtistSettings() {
@@ -35,6 +45,8 @@ export default function ArtistSettings() {
   const embedApiUrl = 'https://beauvette.app';
 
   const [uploading, setUploading] = useState(false);
+  const [localSuccessMessage, setLocalSuccessMessage] = useState<string | null>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const { data: settings, isLoading, error } = useQuery<ArtistSettingsData>({
     queryKey: ["/api/public/artists/settings", token],
@@ -291,6 +303,26 @@ export default function ArtistSettings() {
             </p>
             
             <div className="space-y-4">
+                <div className="mb-4">
+                  <Label className="text-sm text-gray-700 mb-2 block">Success Message (shown after client submits)</Label>
+                  <input
+                    type="text"
+                    value={localSuccessMessage !== null ? localSuccessMessage : (settings.formSuccessMessage || "Thank you! I'll respond shortly.")}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setLocalSuccessMessage(value);
+                      if (debounceRef.current) clearTimeout(debounceRef.current);
+                      debounceRef.current = setTimeout(() => {
+                        updateSettings.mutate({ formSuccessMessage: value });
+                        setLocalSuccessMessage(null);
+                      }, 800);
+                    }}
+                    placeholder="Thank you! I'll respond shortly."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6B4A55]/20 focus:border-[#6B4A55]"
+                    data-testid="input-success-message"
+                  />
+                </div>
+                
                 <div className="bg-[#1a1a1a] rounded-lg p-4 overflow-x-auto">
                   <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap break-all">
 {`<!-- Contact Form - Style however you want! -->
@@ -302,7 +334,7 @@ export default function ArtistSettings() {
   <button type="submit">Submit Inquiry</button>
 </form>
 <div id="form-success" style="display:none;">
-  Thank you! I'll respond shortly.
+  ${escapeHtml(settings.formSuccessMessage || "Thank you! I'll respond shortly.")}
 </div>
 
 <script>
@@ -347,6 +379,7 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
                     variant="outline"
                     size="sm"
                     onClick={() => {
+                      const successMsg = escapeHtml(settings.formSuccessMessage || "Thank you! I'll respond shortly.");
                       const embedCode = `<!-- Contact Form - Style however you want! -->
 <form id="contact-form">
   <input type="text" name="clientName" placeholder="Your name" required />
@@ -356,7 +389,7 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
   <button type="submit">Submit Inquiry</button>
 </form>
 <div id="form-success" style="display:none;">
-  Thank you! I'll respond shortly.
+  ${successMsg}
 </div>
 
 <script>
@@ -407,6 +440,14 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
                 <p className="text-xs text-gray-500 mt-3">
                   Style the form and success message however you want. Client never leaves your site, never sees any redirect.
                 </p>
+                
+                <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-xs text-amber-800 font-medium mb-1">For Instagram / Social Media:</p>
+                  <p className="text-xs text-amber-700">
+                    Share your own website's contact page URL (e.g., themakeupdolls.com/contact). 
+                    Clients see only your brand, never ours.
+                  </p>
+                </div>
             </div>
           </section>
         </motion.div>
