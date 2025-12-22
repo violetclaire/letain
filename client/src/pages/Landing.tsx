@@ -7,60 +7,112 @@ import { TopNav } from "@/components/TopNav";
 const CONTENT = {
   nav: {
     brand: "Beauvette",
-    links: ["How it works", "For Artists", "For Clients"],
-    cta: "Get your secretary"
+    cta: "Get your private link"
   },
   hero: {
     h1: "Beauvette",
-    h2: "Think of Beauvette as your secretary.",
-    h3: "",
-    subhead: "We were taught to do it all ourselves. That was never independence, it was exhaustion. We deserve an assistant. Now you can have one.",
-    supporting: "A smart link that takes bookings, sends contracts, and collects deposits — so you don't have to.",
-    primaryCta: "Get your secretary link",
+    subtitle: "The private operating layer for independent beauty businesses.",
+    notList: [
+      "Not a booking app.",
+      "Not a marketplace.",
+      "Not software your clients ever see."
+    ],
+    body: "Beauvette handles inquiries, decisions, and follow-through—so artists can work with intention instead of urgency.",
+    tagline: "Built by an artist. Designed for independence.",
+    primaryCta: "Get your private link",
+  },
+  problem: {
+    headline: "Independence was sold as freedom.",
+    subhead: "In practice, it became constant availability.",
+    body: "Independent artists don't lack talent. They lack infrastructure built for how they actually work.",
+    painPoints: [
+      "Inquiries arrive everywhere.",
+      "Every response is manual.",
+      "Boundaries feel rude instead of professional.",
+      "Saying no costs relationships."
+    ],
+    resolution: "Beauvette was built to solve that exact tension."
+  },
+  role: {
+    headline: "Beauvette is not a tool.",
+    subhead: "It's a role.",
+    body: "Think of Beauvette as your secretary.",
+    description: "A calm, consistent presence that receives inquiries, organizes conversations, enforces your rules, and carries decisions forward.",
+    clientNote: "All without asking your clients to download anything, create accounts, or learn a system."
+  },
+  invisible: {
+    headline: "The best systems disappear.",
+    lines: [
+      "Your clients never see Beauvette.",
+      "They see you—organized, responsive, and intentional.",
+      "Your brand stays intact.",
+      "Your website stays the same.",
+      "Your voice stays yours."
+    ],
+    tagline: "Beauvette lives quietly underneath, doing the work."
   },
   howItWorks: {
-    title: "How it works",
+    title: "How Beauvette fits into your business",
     steps: [
       {
-        number: "01",
-        title: "Get your embed code",
-        body: "Sign up with your business name. Get a form action URL to add to your existing website contact form.",
-        subBody: "Invisible to clients. Your branding stays intact."
+        title: "One private entry point",
+        body: "Add your Beauvette link to your site, email, or replies.",
+        subBody: "Every inquiry starts in the same place."
       },
       {
-        number: "02",
-        title: "Get your email link",
-        body: "When someone emails you about booking, send them your direct inquiry link.",
-        subBody: "One link. Every conversation. Organized."
+        title: "Everything stays together",
+        body: "Messages, details, and decisions—organized automatically.",
+        subBody: ""
       },
       {
-        number: "03",
-        title: "Manage from your dashboard",
-        body: "All inquiries flow to one place. Accept, refer, or decline. Clients never create accounts.",
-        subBody: "Private links do the work for you."
+        title: "You decide once",
+        body: "Accept, refer, or decline.",
+        subBody: "Beauvette handles the follow-through."
       }
+    ],
+    footer: "No back-and-forth. No emotional labor disguised as politeness."
+  },
+  network: {
+    headline: "Independence doesn't mean isolation.",
+    body: "When you're booked, Beauvette lets you refer clients to artists you trust—without losing the relationship.",
+    description: "A private, artist-led network designed around reputation, reciprocity, and long-term independence.",
+    notList: [
+      "Not rankings.",
+      "Not bidding.",
+      "Not a race to the bottom."
     ]
   },
-  artists: {
-    title: "For Beauty Artists",
-    bullets: [
-      "Your own inquiry link and embed code",
-      "Works with your existing website",
-      "No accounts for clients to create",
-      "Refer to your trusted circle when booked"
-    ],
-    primaryCta: "Get your secretary",
+  forIndependents: {
+    headline: "Independent artists power the beauty economy.",
+    subhead: "Until now, they've been treated like an afterthought.",
+    body: "Most platforms are built for salons, agencies, or mass consumer flow.",
+    resolution: "Beauvette was built for solo operators, small teams, high-touch services, and reputation-based work.",
+    tagline: "This is infrastructure for the modern independent."
   },
-  clients: {
-    title: "Clients",
-    tagline: "Thank you for your patience.",
-    subTagline: "This is the first platform for artists and their clients. Please add your name to the waitlist when we are ready to launch Volume II.",
-    bullets: [],
-    cta: "Join the waitlist"
+  privacy: {
+    headline: "Your data stays yours.",
+    points: [
+      "No client accounts.",
+      "No resale of data.",
+      "No cross-pollination of clients."
+    ],
+    body: "Beauvette is scoped, private, and consent-based by design.",
+    tagline: "Because independence only works if ownership is real."
+  },
+  pricing: {
+    headline: "Start free.",
+    body: "Beauvette earns when you do.",
+    description: "A small percentage, only when transactions happen.",
+    tagline: "No subscription required to begin."
+  },
+  finalCta: {
+    headline: "You don't need to work harder.",
+    subhead: "You need the right structure.",
+    cta: "Get your private Beauvette link"
   },
   footer: {
     links: ["Instagram", "Contact", "Privacy", "Terms"],
-    copyright: "© 2025 Beauvette Secretary"
+    copyright: "© 2025 Beauvette"
   }
 };
 
@@ -93,71 +145,32 @@ export default function Landing() {
     };
   }, [mobileMenuOpen]);
 
-  const scrollToSection = (id: string) => {
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
-    }
-    setMobileMenuOpen(false);
-  };
-
   return (
-    <div className="min-h-screen bg-[#F9F8F6] text-[#2D2D2D] font-sans antialiased relative">
+    <div className="min-h-screen bg-[#F9F8F6] text-[#2D2D2D] font-sans antialiased">
       {/* Chateau Marmont Double Frame Border */}
-      <div className="fixed inset-4 md:inset-8 pointer-events-none z-30 border border-[#5A1F2B]" />
-      <div className="fixed inset-6 md:inset-10 pointer-events-none z-30 border border-[#5A1F2B]" />
+      <div className="fixed inset-4 md:inset-8 pointer-events-none z-30 border border-[#5A1F2B]/20" />
+      <div className="fixed inset-6 md:inset-10 pointer-events-none z-30 border border-[#5A1F2B]/20" />
       
-      {/* Top Navigation with Login/Logout */}
+      {/* Top Navigation */}
       <TopNav />
 
-      {/* Navigation - Minimal & Refined */}
-      <nav className="fixed top-0 left-0 right-0 z-40 bg-[#F9F8F6]/95 backdrop-blur-md border-b border-[#2D2D2D]/5">
-        <div className="max-w-7xl mx-auto px-8 lg:px-16">
-          <div className="flex items-center justify-between h-20">
-            <button 
-              onClick={() => scrollToSection("how-it-works")}
-              className="text-xs uppercase tracking-[0.2em] text-[#5A1F2B] hover:text-[#5A1F2B]/70 transition-colors duration-300"
-              data-testid="link-how-it-works-left"
+      {/* Minimal Nav */}
+      <nav className="fixed top-0 left-0 right-0 z-40 bg-[#F9F8F6]/95 backdrop-blur-md">
+        <div className="max-w-4xl mx-auto px-8 lg:px-16">
+          <div className="flex items-center justify-between h-16">
+            <a href="/" className="font-script text-2xl text-[#5A1F2B]">
+              Beauvette
+            </a>
+            <button
+              onClick={() => setLocation("/secretary")}
+              className="hidden md:block text-xs uppercase tracking-[0.15em] text-[#5A1F2B] hover:text-[#5A1F2B]/70 transition-colors"
+              data-testid="button-nav-cta"
             >
-              How it works
+              {CONTENT.nav.cta}
             </button>
-
-            {/* Desktop Nav */}
-            <div className="hidden md:flex items-center gap-12">
-              <button 
-                onClick={() => scrollToSection("how-it-works")}
-                className="text-xs uppercase tracking-[0.2em] text-[#1A1A1A]/60 hover:text-[#5A1F2B] transition-colors duration-300"
-                data-testid="link-how-it-works"
-              >
-                How it works
-              </button>
-              <button 
-                onClick={() => scrollToSection("for-artists")}
-                className="text-xs uppercase tracking-[0.2em] text-[#1A1A1A]/60 hover:text-[#5A1F2B] transition-colors duration-300"
-                data-testid="link-for-artists"
-              >
-                For Artists
-              </button>
-              <button 
-                onClick={() => scrollToSection("for-clients")}
-                className="text-xs uppercase tracking-[0.2em] text-[#1A1A1A]/60 hover:text-[#5A1F2B] transition-colors duration-300"
-                data-testid="link-for-clients"
-              >
-                Clients
-              </button>
-              <button
-                onClick={() => setLocation("/secretary")}
-                className="px-6 py-3 bg-[#5A1F2B] text-[#FAF9F6] text-xs uppercase tracking-[0.15em] hover:bg-[#4a1923] transition-all duration-300"
-                data-testid="button-nav-cta"
-              >
-                {CONTENT.nav.cta}
-              </button>
-            </div>
-
-            {/* Mobile Menu Button */}
             <button 
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 -mr-2 text-[#1A1A1A]"
+              className="md:hidden p-2 -mr-2 text-[#5A1F2B]"
               aria-label="Toggle menu"
               data-testid="button-mobile-menu"
             >
@@ -170,33 +183,23 @@ export default function Landing() {
         <AnimatePresence>
           {mobileMenuOpen && (
             <motion.div 
-              className="md:hidden fixed inset-0 top-20 bg-[#F4F2EC] z-40"
+              className="md:hidden fixed inset-0 top-16 bg-[#F9F8F6] z-40"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              <div className="flex flex-col items-center justify-center h-full gap-6">
-                <p className="text-xs uppercase tracking-[0.2em] text-[#1A1A1A]/50 mb-2">Login as</p>
+              <div className="flex flex-col items-center justify-center h-full gap-8">
                 <button
-                  onClick={() => { setMobileMenuOpen(false); setLocation("/login?role=artist"); }}
-                  className="px-8 py-3 bg-[#5A1F2B] text-[#FAF9F6] text-sm uppercase tracking-[0.15em] w-48 text-center"
-                  data-testid="mobile-login-artist"
+                  onClick={() => { setMobileMenuOpen(false); setLocation("/secretary"); }}
+                  className="text-lg text-[#5A1F2B]"
                 >
-                  Artist
+                  Get your private link
                 </button>
                 <button
-                  onClick={() => { setMobileMenuOpen(false); setLocation("/login?role=client"); }}
-                  className="px-8 py-3 bg-[#5A1F2B] text-[#FAF9F6] text-sm uppercase tracking-[0.15em] w-48 text-center"
-                  data-testid="mobile-login-client"
+                  onClick={() => { setMobileMenuOpen(false); setLocation("/login"); }}
+                  className="text-lg text-[#5A1F2B]/60"
                 >
-                  Client
-                </button>
-                <button
-                  onClick={() => { setMobileMenuOpen(false); setLocation("/login?role=planner"); }}
-                  className="px-8 py-3 bg-[#5A1F2B] text-[#FAF9F6] text-sm uppercase tracking-[0.15em] w-48 text-center"
-                  data-testid="mobile-login-planner"
-                >
-                  Planner
+                  Sign in
                 </button>
               </div>
             </motion.div>
@@ -204,11 +207,11 @@ export default function Landing() {
         </AnimatePresence>
       </nav>
 
-      {/* Hero Section - Clean, Editorial */}
-      <section className="min-h-screen flex items-center justify-center bg-[#F9F8F6] pt-20">
-        <div className="max-w-3xl mx-auto px-8 text-center">
+      {/* Hero Section */}
+      <section className="min-h-screen flex items-center justify-center pt-16 px-8">
+        <div className="max-w-2xl mx-auto text-center">
           <motion.h1 
-            className="font-script text-6xl md:text-7xl lg:text-8xl text-[#5A1F2B] tracking-wide mb-8"
+            className="font-script text-6xl md:text-7xl text-[#5A1F2B] mb-8"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
@@ -216,38 +219,47 @@ export default function Landing() {
             {CONTENT.hero.h1}
           </motion.h1>
 
-          <motion.div
+          <motion.p
+            className="text-lg md:text-xl text-[#2D2D2D] mb-8 leading-relaxed"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.8 }}
+            transition={{ delay: 0.2, duration: 0.8 }}
           >
-            <h2 className="text-xl md:text-2xl text-[#5A1F2B]/80 font-light tracking-wide mb-12" style={{ fontFamily: "'Playfair Display', serif" }}>
-              {CONTENT.hero.h2}
-            </h2>
+            {CONTENT.hero.subtitle}
+          </motion.p>
+
+          <motion.div 
+            className="space-y-2 mb-10"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.8 }}
+          >
+            {CONTENT.hero.notList.map((line, i) => (
+              <p key={i} className="text-[#2D2D2D]/60 text-sm">{line}</p>
+            ))}
           </motion.div>
-          
-          <motion.p 
-            className="text-base md:text-lg text-[#5A1F2B]/70 leading-relaxed max-w-xl mx-auto mb-6"
-            style={{ fontFamily: "'Inter', sans-serif" }}
+
+          <motion.p
+            className="text-base text-[#2D2D2D]/80 mb-6 max-w-lg mx-auto leading-relaxed"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.8 }}
           >
-            {CONTENT.hero.subhead}
+            {CONTENT.hero.body}
           </motion.p>
 
-          <motion.p 
-            className="text-xs tracking-[0.2em] uppercase text-[#5A1F2B]/50 mb-12"
+          <motion.p
+            className="text-sm text-[#5A1F2B]/70 italic mb-12"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6, duration: 0.8 }}
           >
-            Built by an artist, for artists and their clients.
+            {CONTENT.hero.tagline}
           </motion.p>
           
           <motion.button
             onClick={() => setLocation("/secretary")}
-            className="px-10 py-5 border border-[#5A1F2B] text-[#5A1F2B] text-xs uppercase tracking-[0.2em] hover:bg-[#5A1F2B] hover:text-[#F9F8F6] transition-all duration-500"
+            className="px-8 py-4 bg-[#5A1F2B] text-[#F9F8F6] text-xs uppercase tracking-[0.2em] hover:bg-[#4a1923] transition-all duration-300"
             data-testid="button-hero-primary"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -258,197 +270,282 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* How It Works - Generous Whitespace */}
-      <section id="how-it-works" className="px-8 lg:px-16 py-32 md:py-48 bg-[#F4F2EC] relative z-10">
-        <div className="max-w-6xl mx-auto">
+      {/* Problem Section */}
+      <section className="px-8 py-24 md:py-32 bg-[#F9F8F6]">
+        <div className="max-w-2xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-24"
-          >
-            <span className="text-xs uppercase tracking-[0.3em] text-[#5A1F2B]/60 mb-4 block">
-              The Experience
-            </span>
-            <h2 className="font-serif text-4xl md:text-5xl lg:text-6xl text-[#1A1A1A] font-light">
-              {CONTENT.howItWorks.title}
-            </h2>
-          </motion.div>
-          
-          <div className="space-y-24 md:space-y-32">
-            {CONTENT.howItWorks.steps.map((step, index) => (
-              <motion.div 
-                key={index}
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ duration: 0.8, delay: index * 0.1 }}
-                className="grid md:grid-cols-12 gap-8 items-start"
-              >
-                <div className="md:col-span-2">
-                  <span className="font-serif text-6xl md:text-7xl text-[#5A1F2B]/20">
-                    {step.number}
-                  </span>
-                </div>
-                <div className="md:col-span-10 md:pt-4">
-                  <h3 className="font-serif text-2xl md:text-3xl text-[#1A1A1A] mb-6 font-light">
-                    {step.title}
-                  </h3>
-                  <p className="text-[#1A1A1A]/70 text-lg leading-relaxed mb-4 max-w-2xl">
-                    {step.body}
-                  </p>
-                  <p className="text-[#1A1A1A]/50 text-base leading-relaxed max-w-2xl">
-                    {step.subBody}
-                  </p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Divider */}
-      <div className="max-w-6xl mx-auto px-8 relative z-10 bg-[#F4F2EC]">
-        <div className="h-[1px] bg-gradient-to-r from-transparent via-[#5A1F2B]/20 to-transparent" />
-      </div>
-
-      {/* For Artists - Dark, Atmospheric */}
-      <section id="for-artists" className="px-8 lg:px-16 py-32 md:py-48 bg-[#5A1F2B] relative z-10">
-        <div className="max-w-4xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-20"
-          >
-            <span className="text-xs uppercase tracking-[0.3em] text-[#FAF9F6]/40 mb-4 block">
-              For Professionals
-            </span>
-            <h2 className="font-serif text-4xl md:text-5xl lg:text-6xl text-[#FAF9F6] font-light">
-              {CONTENT.artists.title}
-            </h2>
-          </motion.div>
-          
-          <motion.ul 
-            className="space-y-8 mb-16 max-w-xl mx-auto"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-          >
-            {CONTENT.artists.bullets.map((bullet, index) => (
-              <li key={index} className="flex items-center gap-6">
-                <span className="w-12 h-[1px] bg-[#FAF9F6]/30 flex-shrink-0" />
-                <span className="text-[#FAF9F6]/80 text-lg tracking-wide">{bullet}</span>
-              </li>
-            ))}
-          </motion.ul>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="text-center"
-          >
-            <button
-              onClick={() => setLocation("/secretary")}
-              className="px-10 py-5 bg-[#FAF9F6] text-[#5A1F2B] text-xs uppercase tracking-[0.2em] font-medium hover:bg-transparent hover:text-[#FAF9F6] border border-[#FAF9F6] transition-all duration-500"
-              data-testid="button-artists-primary"
-            >
-              {CONTENT.artists.primaryCta}
-            </button>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* For Clients - Light, Elegant */}
-      <section id="for-clients" className="px-8 lg:px-16 py-32 md:py-48 bg-[#F4F2EC] relative z-10">
-        <div className="max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.8 }}
           >
-            <h2 className="font-serif text-4xl md:text-5xl lg:text-6xl text-[#1A1A1A] font-light mb-6">
-              {CONTENT.clients.title}
+            <h2 className="font-serif text-3xl md:text-4xl text-[#2D2D2D] mb-4">
+              {CONTENT.problem.headline}
             </h2>
-            <p className="font-serif text-2xl md:text-3xl text-[#5A1F2B] mb-4 italic">
-              {CONTENT.clients.tagline}
+            <p className="text-lg text-[#2D2D2D]/70 mb-8">
+              {CONTENT.problem.subhead}
+            </p>
+            <p className="text-base text-[#2D2D2D]/80 mb-8 leading-relaxed">
+              {CONTENT.problem.body}
+            </p>
+            <div className="space-y-3 mb-8">
+              {CONTENT.problem.painPoints.map((point, i) => (
+                <p key={i} className="text-[#2D2D2D]/60">{point}</p>
+              ))}
+            </div>
+            <p className="text-base text-[#5A1F2B] font-medium">
+              {CONTENT.problem.resolution}
             </p>
           </motion.div>
+        </div>
+      </section>
 
-          <motion.p 
-            className="text-lg md:text-xl text-[#1A1A1A]/70 mb-12 max-w-2xl mx-auto leading-relaxed"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-          >
-            {CONTENT.clients.subTagline}
-          </motion.p>
-
-          <motion.div 
-            className="space-y-4 mb-16"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-          >
-            {CONTENT.clients.bullets.map((bullet, index) => (
-              <p key={index} className="text-lg text-[#1A1A1A]/60 tracking-wide">
-                {bullet}
-              </p>
-            ))}
-          </motion.div>
-
+      {/* Role Section */}
+      <section className="px-8 py-24 md:py-32 bg-[#5A1F2B]">
+        <div className="max-w-2xl mx-auto text-center">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.4 }}
+            transition={{ duration: 0.8 }}
           >
+            <h2 className="font-serif text-3xl md:text-4xl text-[#F9F8F6] mb-2">
+              {CONTENT.role.headline}
+            </h2>
+            <p className="text-xl text-[#F9F8F6]/80 mb-8">
+              {CONTENT.role.subhead}
+            </p>
+            <p className="text-2xl md:text-3xl text-[#F9F8F6] font-serif italic mb-8">
+              {CONTENT.role.body}
+            </p>
+            <p className="text-base text-[#F9F8F6]/70 mb-6 leading-relaxed max-w-lg mx-auto">
+              {CONTENT.role.description}
+            </p>
+            <p className="text-sm text-[#F9F8F6]/50">
+              {CONTENT.role.clientNote}
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Invisible Section */}
+      <section className="px-8 py-24 md:py-32 bg-[#F9F8F6]">
+        <div className="max-w-2xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
+            <h2 className="font-serif text-3xl md:text-4xl text-[#2D2D2D] mb-10">
+              {CONTENT.invisible.headline}
+            </h2>
+            <div className="space-y-4 mb-10">
+              {CONTENT.invisible.lines.map((line, i) => (
+                <p key={i} className="text-[#2D2D2D]/70">{line}</p>
+              ))}
+            </div>
+            <p className="text-base text-[#5A1F2B] italic">
+              {CONTENT.invisible.tagline}
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section id="how-it-works" className="px-8 py-24 md:py-32 bg-[#F4F2EC]">
+        <div className="max-w-2xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
+            <h2 className="font-serif text-3xl md:text-4xl text-[#2D2D2D] mb-12 text-center">
+              {CONTENT.howItWorks.title}
+            </h2>
+            
+            <div className="space-y-12">
+              {CONTENT.howItWorks.steps.map((step, index) => (
+                <div key={index}>
+                  <h3 className="text-lg font-medium text-[#2D2D2D] mb-2">
+                    {step.title}
+                  </h3>
+                  <p className="text-[#2D2D2D]/70 mb-1">{step.body}</p>
+                  {step.subBody && (
+                    <p className="text-[#2D2D2D]/50 text-sm">{step.subBody}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <p className="text-center text-[#5A1F2B]/70 mt-12 italic">
+              {CONTENT.howItWorks.footer}
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Network Section */}
+      <section className="px-8 py-24 md:py-32 bg-[#F9F8F6]">
+        <div className="max-w-2xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
+            <h2 className="font-serif text-3xl md:text-4xl text-[#2D2D2D] mb-6">
+              {CONTENT.network.headline}
+            </h2>
+            <p className="text-base text-[#2D2D2D]/80 mb-6 leading-relaxed">
+              {CONTENT.network.body}
+            </p>
+            <p className="text-base text-[#2D2D2D]/70 mb-8 leading-relaxed">
+              {CONTENT.network.description}
+            </p>
+            <div className="space-y-2">
+              {CONTENT.network.notList.map((line, i) => (
+                <p key={i} className="text-[#2D2D2D]/50 text-sm">{line}</p>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* For Independents Section */}
+      <section className="px-8 py-24 md:py-32 bg-[#5A1F2B]">
+        <div className="max-w-2xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
+            <h2 className="font-serif text-3xl md:text-4xl text-[#F9F8F6] mb-4">
+              {CONTENT.forIndependents.headline}
+            </h2>
+            <p className="text-lg text-[#F9F8F6]/70 mb-8">
+              {CONTENT.forIndependents.subhead}
+            </p>
+            <p className="text-base text-[#F9F8F6]/60 mb-6">
+              {CONTENT.forIndependents.body}
+            </p>
+            <p className="text-base text-[#F9F8F6]/80 mb-8">
+              {CONTENT.forIndependents.resolution}
+            </p>
+            <p className="text-lg text-[#F9F8F6] italic">
+              {CONTENT.forIndependents.tagline}
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Privacy Section */}
+      <section className="px-8 py-24 md:py-32 bg-[#F9F8F6]">
+        <div className="max-w-2xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
+            <h2 className="font-serif text-3xl md:text-4xl text-[#2D2D2D] mb-8">
+              {CONTENT.privacy.headline}
+            </h2>
+            <div className="space-y-3 mb-8">
+              {CONTENT.privacy.points.map((point, i) => (
+                <p key={i} className="text-[#2D2D2D]/60">{point}</p>
+              ))}
+            </div>
+            <p className="text-base text-[#2D2D2D]/70 mb-6">
+              {CONTENT.privacy.body}
+            </p>
+            <p className="text-base text-[#5A1F2B] italic">
+              {CONTENT.privacy.tagline}
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section className="px-8 py-24 md:py-32 bg-[#F4F2EC]">
+        <div className="max-w-2xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
+            <h2 className="font-serif text-3xl md:text-4xl text-[#2D2D2D] mb-4">
+              {CONTENT.pricing.headline}
+            </h2>
+            <p className="text-lg text-[#2D2D2D]/70 mb-4">
+              {CONTENT.pricing.body}
+            </p>
+            <p className="text-base text-[#2D2D2D]/60 mb-6">
+              {CONTENT.pricing.description}
+            </p>
+            <p className="text-sm text-[#5A1F2B]">
+              {CONTENT.pricing.tagline}
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Final CTA Section */}
+      <section className="px-8 py-24 md:py-32 bg-[#F9F8F6]">
+        <div className="max-w-2xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
+            <h2 className="font-serif text-3xl md:text-4xl text-[#2D2D2D] mb-4">
+              {CONTENT.finalCta.headline}
+            </h2>
+            <p className="text-lg text-[#2D2D2D]/70 mb-10">
+              {CONTENT.finalCta.subhead}
+            </p>
             <button
-              onClick={() => setLocation("/waitlist")}
-              className="px-10 py-5 border border-[#5A1F2B] text-[#5A1F2B] text-xs uppercase tracking-[0.2em] font-medium hover:bg-[#5A1F2B] hover:text-[#FAF9F6] transition-all duration-500"
-              data-testid="button-clients-cta"
+              onClick={() => setLocation("/secretary")}
+              className="px-8 py-4 bg-[#5A1F2B] text-[#F9F8F6] text-xs uppercase tracking-[0.2em] hover:bg-[#4a1923] transition-all duration-300"
+              data-testid="button-final-cta"
             >
-              {CONTENT.clients.cta}
+              {CONTENT.finalCta.cta}
             </button>
           </motion.div>
         </div>
       </section>
 
-      {/* Footer - Minimal & Refined */}
-      <footer className="px-8 lg:px-16 py-16 bg-[#5A1F2B] relative z-10">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-12">
-            <a href="/" className="font-script text-2xl text-[#F4F2EC]/80">
+      {/* Footer */}
+      <footer className="px-8 py-12 bg-[#5A1F2B]">
+        <div className="max-w-2xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
+            <a href="/" className="font-script text-xl text-[#F9F8F6]/80">
               Beauvette
             </a>
-            <div className="flex items-center gap-8">
+            <div className="flex items-center gap-6">
               <a
-                href="https://www.instagram.com/beauvetteapp?igsh=NTc4MTIwNjQ2YQ%3D%3D&utm_source=qr"
+                href="https://www.instagram.com/beauvetteapp"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs uppercase tracking-[0.15em] text-[#F4F2EC]/40 hover:text-[#F4F2EC] transition-colors duration-300"
+                className="text-xs uppercase tracking-[0.15em] text-[#F9F8F6]/40 hover:text-[#F9F8F6] transition-colors"
                 data-testid="link-footer-instagram"
               >
                 Instagram
               </a>
               <a
                 href="mailto:violet@beauvette.com"
-                className="text-xs uppercase tracking-[0.15em] text-[#F4F2EC]/40 hover:text-[#F4F2EC] transition-colors duration-300"
+                className="text-xs uppercase tracking-[0.15em] text-[#F9F8F6]/40 hover:text-[#F9F8F6] transition-colors"
                 data-testid="link-footer-contact"
               >
                 Contact
               </a>
               <button
                 onClick={() => setLocation("/privacy")}
-                className="text-xs uppercase tracking-[0.15em] text-[#F4F2EC]/40 hover:text-[#F4F2EC] transition-colors duration-300"
+                className="text-xs uppercase tracking-[0.15em] text-[#F9F8F6]/40 hover:text-[#F9F8F6] transition-colors"
                 data-testid="link-footer-privacy"
               >
                 Privacy
@@ -456,15 +553,15 @@ export default function Landing() {
             </div>
           </div>
 
-          <div className="h-[1px] bg-[#F4F2EC]/10 mb-8" />
+          <div className="h-[1px] bg-[#F9F8F6]/10 mb-6" />
 
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-xs text-[#F4F2EC]/30 tracking-wide">
+            <p className="text-xs text-[#F9F8F6]/30">
               {CONTENT.footer.copyright}
             </p>
             <button
               onClick={() => setLocation("/login")}
-              className="text-xs text-[#F4F2EC]/30 hover:text-[#F4F2EC] transition-colors duration-300"
+              className="text-xs text-[#F9F8F6]/30 hover:text-[#F9F8F6] transition-colors"
               data-testid="button-sign-in"
             >
               Sign in
