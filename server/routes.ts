@@ -10683,10 +10683,24 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
 
   // ============================================================
   // PUBLIC WEBHOOK - External Contact Form Submissions
-  // This endpoint allows external websites (like The Makeup Dolls)
-  // to submit contact forms directly to Beauvette as inquiries
+  // This endpoint allows external websites to submit contact forms
+  // directly to Beauvette as inquiries. The "invisible secretary."
   // ============================================================
+  
+  // CORS preflight for external form submissions
+  app.options("/api/public/contact-webhook", (req, res) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setHeader("Access-Control-Max-Age", "86400");
+    res.status(204).end();
+  });
+  
   app.post("/api/public/contact-webhook", async (req, res) => {
+    // Allow cross-origin requests from artist websites
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     try {
       const { 
         artistSlug,         // Required: identifies which artist receives the inquiry
