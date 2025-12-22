@@ -26,23 +26,24 @@ const CONTENT = {
       {
         num: "01",
         title: "Your link, your brand",
-        body: "Embed our form on your contact page—clients fill it out without leaving your site. Or share your link when someone emails or DMs you. Either way: clients see your name, your form—never ours."
+        body: "Embed our form on your contact page—clients fill it out without leaving your site. Or when someone emails or DMs you, paste your magic link. That thread becomes your secretary. Your choice, your control."
       },
       {
         num: "02",
-        title: "Everything stays together",
-        body: "Inquiries, contracts, payments, organized automatically. You respond from your inbox. We handle execution."
+        title: "Your availability, answered",
+        body: "Block the dates you're booked. The rest stay open for inquiries. No instant booking—that's not how we run our business. We work on the most important days of people's lives. Auto-reply with your info sheet? One click."
       },
       {
         num: "03",
-        title: "You decide once",
+        title: "You decide once. We execute.",
         decisions: [
-          { action: "Accept", result: "Contract and invoice sent automatically" },
-          { action: "Refer", result: "Client introduced to artist you trust" },
-          { action: "Decline", result: "Professional response handled for you" }
+          { action: "Accept", result: "Contract generated (your terms), invoice sent, calendar blocked, client notified" },
+          { action: "Refer", result: "Client introduced to trusted artist, you stay copied, referral tracked" },
+          { action: "Decline", result: "Professional response sent, inquiry archived, relationship maintained" }
         ]
       }
-    ]
+    ],
+    tagline: "High-stakes coordination executed flawlessly. Every time."
   },
   network: {
     headline: "Independence doesn't mean isolation.",
@@ -268,6 +269,18 @@ export default function Landing() {
             </motion.div>
           ))}
         </div>
+        
+        {CONTENT.howItWorks.tagline && (
+          <motion.p 
+            className="mt-12 font-serif text-xl text-ink tracking-tight"
+            initial={{ opacity: 0, y: 8 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.4, duration: 0.3, ease: "easeOut" }}
+          >
+            {CONTENT.howItWorks.tagline}
+          </motion.p>
+        )}
       </section>
 
       {/* Network Section */}
