@@ -146,16 +146,21 @@ export default function Landing() {
         </AnimatePresence>
       </header>
 
-      {/* Hero Section */}
-      <section className="estate-prose pt-32 pb-16 md:pt-40 md:pb-20">
+      {/* Hero Section - Dark Pinstripe */}
+      <section className="relative min-h-screen flex flex-col justify-center bg-[#0a0a0a] text-[#f5f3ef] -mx-6 md:-mx-12 px-6 md:px-12">
+        {/* Pinstripe overlay for hero */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          backgroundImage: 'repeating-linear-gradient(90deg, rgba(255,255,255,0.08) 0px, rgba(255,255,255,0.08) 1px, transparent 1px, transparent 20px)'
+        }} />
+        <div className="estate-prose relative z-10 py-32 md:py-40">
         <motion.p 
-          className="text-sm tracking-[0.12em] uppercase text-mutedink"
+          className="text-sm tracking-[0.12em] uppercase text-[#f5f3ef]/50"
           {...fadeIn}
         >
           {CONTENT.hero.label}
         </motion.p>
         <motion.h1 
-          className="mt-6 text-4xl sm:text-5xl leading-[1.05] tracking-tight"
+          className="mt-6 text-4xl sm:text-5xl leading-[1.05] tracking-tight text-[#f5f3ef]"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.3, ease: "easeOut" }}
@@ -163,7 +168,7 @@ export default function Landing() {
           {CONTENT.hero.h1}
         </motion.h1>
         <motion.p 
-          className="mt-6 text-lg leading-relaxed text-mutedink"
+          className="mt-6 text-lg leading-relaxed text-[#f5f3ef]/60"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.3, ease: "easeOut" }}
@@ -178,18 +183,19 @@ export default function Landing() {
         >
           <button
             onClick={() => setLocation("/secretary")}
-            className="bg-ink px-4 py-2.5 text-sm font-medium text-bg hover:bg-ink/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70 transition-colors"
+            className="bg-[#f5f3ef] px-4 py-2.5 text-sm font-medium text-[#0a0a0a] hover:bg-[#f5f3ef]/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brass transition-colors"
             data-testid="button-hero-primary"
           >
             {CONTENT.hero.primaryCta}
           </button>
           <a 
             href="#how" 
-            className="self-center text-sm underline hover:text-mutedink transition-colors"
+            className="self-center text-sm underline text-[#f5f3ef]/70 hover:text-[#f5f3ef] transition-colors"
           >
             {CONTENT.hero.secondaryCta}
           </a>
         </motion.div>
+        </div>
       </section>
 
       {/* How It Works */}
