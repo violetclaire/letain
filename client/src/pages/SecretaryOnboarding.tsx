@@ -87,7 +87,7 @@ document.getElementById('inquiry-form').addEventListener('submit', async (e) => 
 });
 <\/script>`;
       
-      const inviteLink = `${baseUrl}/new?artist=${data.artistSlug}`;
+      const inviteLink = `${baseUrl}/${data.artistSlug}`;
       
       setResult({
         adminLink: `${baseUrl}/admin/${data.artistSlug}`,
@@ -151,7 +151,7 @@ document.getElementById('inquiry-form').addEventListener('submit', async (e) => 
             </div>
 
             <div className="p-6 border border-[#2D2D2D]/10 group relative text-left">
-              <p className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/40 mb-3">Quick Invite Link</p>
+              <p className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/40 mb-3">Your Inquiry Link</p>
               <p className="text-[#2D2D2D] text-sm break-all">
                 {result.inviteLink}
               </p>
@@ -162,7 +162,7 @@ document.getElementById('inquiry-form').addEventListener('submit', async (e) => 
               >
                 <Copy size={14} className="text-[#2D2D2D]/30 hover:text-[#2D2D2D]" />
               </button>
-              <p className="text-[10px] text-[#2D2D2D]/40 mt-2">Share in DMs or emails. Clients never see our name.</p>
+              <p className="text-[10px] text-[#2D2D2D]/40 mt-2">Share in your bio, DMs, or emails. Simple and clean.</p>
             </div>
 
             <div className="p-6 border border-[#2D2D2D]/10 group relative text-left">

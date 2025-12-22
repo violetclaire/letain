@@ -157,9 +157,6 @@ function Router() {
       {/* Secretary Onboarding (public) */}
       <Route path="/secretary" component={SecretaryOnboarding} />
       
-      {/* Inquire route (public booking page) */}
-      <Route path="/inquire/:artistSlug" component={InquirePage} />
-      
       {/* Inquiry Thread (artist view of individual inquiry) */}
       <Route path="/inquiry/:threadToken" component={InquiryThread} />
       
@@ -176,9 +173,10 @@ function Router() {
       <Route path="/onboarding" component={PublicOnboarding} />
       <Route path="/analytics" component={PublicAnalytics} />
       <Route path="/:artistSlug/settings" component={ArtistSettings} />
-      <Route path="/:artistSlug">
-        {(params) => <PublicArtistCalendar />}
-      </Route>
+      <Route path="/:artistSlug/calendar" component={PublicArtistCalendar} />
+      
+      {/* Primary inquiry route - clean URL for sharing (dateinquiry.com/business-name) */}
+      <Route path="/:artistSlug" component={InquirePage} />
       
       <Route component={NotFound} />
     </Switch>
