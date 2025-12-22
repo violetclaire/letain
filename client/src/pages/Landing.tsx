@@ -92,15 +92,15 @@ export default function Landing() {
     <div className="min-h-screen bg-bg text-ink">
       {/* Pinstripe texture overlay */}
       <div className="estate-pinstripe" />
-      {/* Brass frame border */}
-      <div className="fixed inset-4 md:inset-8 pointer-events-none z-40 border border-brass/40" />
+      {/* Brass frame border - letterhead style */}
+      <div className="fixed inset-6 pointer-events-none z-40 border border-brass/50" />
       {/* Top Bar */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-bg/95 backdrop-blur-sm">
         <div className="estate-container flex items-center justify-between py-8">
           <div className="font-serif text-xl tracking-tight">Beauvette</div>
           <button
             onClick={() => setLocation("/secretary")}
-            className="hidden md:block rounded-md border border-hairline px-4 py-2 text-sm hover:bg-surface focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70 transition-colors"
+            className="hidden md:block border border-hairline px-3 py-1.5 text-sm hover:bg-surface focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70 transition-colors"
             data-testid="button-nav-cta"
           >
             {CONTENT.nav.cta}
@@ -178,7 +178,7 @@ export default function Landing() {
         >
           <button
             onClick={() => setLocation("/secretary")}
-            className="rounded-md bg-ink px-5 py-3 text-sm font-medium text-bg hover:bg-ink/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70 transition-colors"
+            className="bg-ink px-4 py-2.5 text-sm font-medium text-bg hover:bg-ink/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70 transition-colors"
             data-testid="button-hero-primary"
           >
             {CONTENT.hero.primaryCta}
