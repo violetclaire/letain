@@ -148,10 +148,24 @@ export default function Landing() {
 
       {/* Hero Section - Dark Pinstripe */}
       <section className="relative min-h-screen flex flex-col justify-center bg-[#0a0a0a] text-[#f5f3ef] -mx-6 md:-mx-12 px-6 md:px-12">
-        {/* Pinstripe overlay for hero */}
-        <div className="absolute inset-0 pointer-events-none" style={{
-          backgroundImage: 'repeating-linear-gradient(90deg, rgba(255,255,255,0.08) 0px, rgba(255,255,255,0.08) 1px, transparent 1px, transparent 20px)'
-        }} />
+        {/* Pinstripe fabric texture */}
+        <div 
+          className="absolute inset-0 pointer-events-none opacity-35"
+          style={{
+            backgroundImage: 'url(/attached_assets/u4728191363_seamless_repeating_pinstripe_suiting_fabric_textu__1766382482762.png)',
+            backgroundRepeat: 'repeat',
+            backgroundSize: '200px'
+          }} 
+        />
+        {/* Film grain overlay */}
+        <div 
+          className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay"
+          style={{
+            backgroundImage: 'url(/attached_assets/u4728191363_seamless_film_grain_texture_velvet_like_monochrom__1766382482759.png)',
+            backgroundRepeat: 'repeat',
+            backgroundSize: '300px'
+          }} 
+        />
         <div className="estate-prose relative z-10 py-32 md:py-40">
         <motion.p 
           className="text-sm tracking-[0.12em] uppercase text-[#f5f3ef]/50"
