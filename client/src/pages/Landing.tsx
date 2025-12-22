@@ -26,12 +26,12 @@ const CONTENT = {
       {
         num: "01",
         title: "Your link, your brand",
-        body: "Add our invisible code to your website's contact page. Clients fill out inquiries on your site and see your confirmation—never leave your domain, never see our name. Share your own website link on Instagram, in emails, anywhere. Your brand only."
+        body: "Add our invisible code to your website's contact page. Clients fill out inquiries on your site and see your confirmation. Never leave your domain, never see our name. Share your own website link on Instagram, in emails, anywhere. Your brand only."
       },
       {
         num: "02",
         title: "Your availability, answered",
-        body: "Block the dates you're booked. The rest stay open for inquiries. No instant booking—that's not how we run our business. We work on the most important days of people's lives. Auto-reply with your info sheet? One click."
+        body: "Block the dates you're booked. The rest stay open for inquiries. No instant booking. That's not how we run our business. We work on the most important days of people's lives. Auto-reply with your info sheet? One click."
       },
       {
         num: "03",
@@ -47,7 +47,7 @@ const CONTENT = {
   },
   network: {
     headline: "Independence doesn't mean isolation.",
-    body: "When you're booked, refer clients to artists you trust—without losing the relationship.",
+    body: "When you're booked, refer clients to artists you trust. Without losing the relationship.",
     description: "A private, artist-led network built on reputation and reciprocity.",
     tagline: "Real independence.",
     notList: [
@@ -78,11 +78,11 @@ const CONTENT = {
     stat: "$6,000 processed last week.",
     details: "2 contracts signed. 2 invoices paid. Zero client logins required.",
     narrative: [
-      "This is how trusted professionals have coordinated for decades—inquiry, assessment, response, execution.",
+      "This is how trusted professionals have coordinated for decades. Inquiry, assessment, response, execution.",
       "Now it's programmable infrastructure.",
       "Built by a professional who did this manually for 16 years in the beauty industry. $1M+ coordinated the old way. Now deployed as infrastructure for the modern era."
     ],
-    volExplainer: "Volume I is for artists. You're the foundation—the trusted professionals clients are looking for. Volume II brings client search to you. But first, we build the network that deserves them.",
+    volExplainer: "Volume I is for artists. You're the foundation, the trusted professionals clients are looking for. Volume II brings client search to you. But first, we build the network that deserves them.",
     cta: "Get your private link"
   },
   footer: {
