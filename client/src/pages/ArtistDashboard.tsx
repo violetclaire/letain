@@ -2236,7 +2236,7 @@ export default function ArtistDashboard() {
                   Beauvette
                 </h1>
                 <p className="mt-1 text-[0.7rem] uppercase tracking-[0.22em] ink-soft">
-                  For Life's Most Important Days
+                  Your Private Secretary
                 </p>
                 <p className="mt-2 font-script text-xl ink-main">
                   Bonjour, {user?.firstName || 'there'}

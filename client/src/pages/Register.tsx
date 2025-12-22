@@ -138,7 +138,7 @@ export default function Register() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-sm text-[#6B4A55]/70 tracking-[0.3em] uppercase"
           >
-            For Life's Most Important Days
+            Your Private Secretary
           </motion.p>
         </div>
       </div>
@@ -154,7 +154,7 @@ export default function Register() {
             Beauvette
           </h1>
           <p className="text-xs text-[#6B4A55]/70 tracking-[0.2em] uppercase">
-            For Life's Most Important Days
+            Your Private Secretary
           </p>
         </div>
 

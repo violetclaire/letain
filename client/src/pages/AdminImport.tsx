@@ -176,7 +176,7 @@ I can't wait to help make you feel absolutely radiant!
 
 With love,
 Violet
-Beauvette - For Life's Most Important Days`;
+Beauvette | Your Private Secretary`;
   };
 
   const generatePlannerEmail = (firstName: string, clientName: string, inviteLink: string, eventDate: string) => {
@@ -201,7 +201,7 @@ Looking forward to creating something beautiful together!
 
 Best,
 Violet
-Beauvette - For Life's Most Important Days`;
+Beauvette | Your Private Secretary`;
   };
 
   const processBatchImport = async () => {

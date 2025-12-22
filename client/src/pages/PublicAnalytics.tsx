@@ -249,7 +249,7 @@ export default function PublicAnalytics() {
 
       <footer className="px-6 py-4 bg-[#FFFEF9] border-t border-[#2C2C2C] text-center">
         <p className="text-xs text-[#666] mb-2">
-          © 2025 Beauvette. For life's most important days.
+          © 2025 Beauvette. Your Private Secretary.
         </p>
         <div className="flex items-center justify-center gap-4">
           <a href="/" className="text-xs text-[#2C2C2C] hover:underline">Home</a>

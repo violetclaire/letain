@@ -686,7 +686,7 @@ export default function ProfileSettings() {
       </div>
     </div>
   `).join('')}
-  <div class="footer">Beauvette | For Life's Most Important Days</div>
+  <div class="footer">Beauvette | Your Private Secretary</div>
 </body>
 </html>`;
     const blob = new Blob([menuHtml], { type: 'text/html' });
