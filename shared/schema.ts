@@ -1660,6 +1660,82 @@ export const waitlistSignups = pgTable("waitlist_signups", {
 
 export const insertWaitlistSignupSchema = createInsertSchema(waitlistSignups).omit({ id: true, createdAt: true });
 
+// ============================================
+// PRIVATE COORDINATION THREADS (White-Label)
+// ============================================
+
+// Thread Status enum
+export const ThreadStatus = {
+  INQUIRY: 'inquiry',
+  PROCEEDING: 'proceeding',
+  REFERRED: 'referred',
+  DECLINED: 'declined',
+  CLOSED: 'closed',
+} as const;
+export type ThreadStatusType = typeof ThreadStatus[keyof typeof ThreadStatus];
+
+// Threads - private coordination workspaces (magic link access, no client accounts)
+export const threads = pgTable("threads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  threadPublicToken: varchar("thread_public_token").notNull().unique(), // Opaque, unguessable token for client access
+  artistProfileId: varchar("artist_profile_id").notNull().references(() => artistProfiles.id),
+  // Client identity - no auth user required
+  clientName: text("client_name").notNull(),
+  clientEmail: text("client_email").notNull(),
+  clientPhone: text("client_phone"),
+  // Thread status
+  status: text("status").notNull().default("inquiry"), // inquiry, proceeding, referred, declined, closed
+  // Intake metadata
+  eventDate: timestamp("event_date"),
+  eventType: text("event_type"), // wedding, engagement, etc.
+  serviceType: text("service_type"), // hair, makeup, both
+  message: text("message"), // Initial inquiry message
+  source: text("source").default("embed"), // embed, invite_link, email
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_threads_token").on(table.threadPublicToken),
+  index("idx_threads_artist").on(table.artistProfileId),
+]);
+
+// Thread Messages - conversation history within a thread
+export const threadMessages = pgTable("thread_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  threadId: varchar("thread_id").notNull().references(() => threads.id, { onDelete: 'cascade' }),
+  actorType: text("actor_type").notNull(), // artist, client, system
+  body: text("body").notNull(),
+  attachmentUrls: jsonb("attachment_urls").$type<string[]>(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Thread Referrals - when artist refers to another artist
+export const threadReferrals = pgTable("thread_referrals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  threadId: varchar("thread_id").notNull().references(() => threads.id),
+  referredArtistProfileId: varchar("referred_artist_profile_id").notNull().references(() => artistProfiles.id),
+  note: text("note"),
+  status: text("status").default("pending"), // pending, accepted, declined
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Insert schemas for Threads
+export const insertThreadSchema = createInsertSchema(threads).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertThreadMessageSchema = createInsertSchema(threadMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertThreadReferralSchema = createInsertSchema(threadReferrals).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types for Replit Auth
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -1829,3 +1905,13 @@ export type Proposal = typeof proposals.$inferSelect;
 
 export type InsertWaitlistSignup = z.infer<typeof insertWaitlistSignupSchema>;
 export type WaitlistSignup = typeof waitlistSignups.$inferSelect;
+
+// Thread Types
+export type InsertThread = z.infer<typeof insertThreadSchema>;
+export type Thread = typeof threads.$inferSelect;
+
+export type InsertThreadMessage = z.infer<typeof insertThreadMessageSchema>;
+export type ThreadMessage = typeof threadMessages.$inferSelect;
+
+export type InsertThreadReferral = z.infer<typeof insertThreadReferralSchema>;
+export type ThreadReferral = typeof threadReferrals.$inferSelect;

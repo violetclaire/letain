@@ -42,6 +42,9 @@ import {
   aiChatConversations,
   aiChatMessages,
   analyticsEvents,
+  threads,
+  threadMessages,
+  threadReferrals,
   type AnalyticsEvent,
   type InsertAnalyticsEvent,
   type User,
@@ -160,6 +163,12 @@ import {
   type InsertProposal,
   waitlistSignups,
   type WaitlistSignup,
+  type Thread,
+  type InsertThread,
+  type ThreadMessage,
+  type InsertThreadMessage,
+  type ThreadReferral,
+  type InsertThreadReferral,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc, or, sql, inArray } from "drizzle-orm";
@@ -459,6 +468,18 @@ export interface IStorage {
   createWaitlistSignup(data: { email: string; source?: string; eventDate?: Date; location?: string; servicesNeeded?: string[]; inspirationImages?: string[]; notes?: string }): Promise<WaitlistSignup>;
   upsertWaitlistSignup(data: { email: string; source?: string; eventDate?: Date; location?: string; servicesNeeded?: string[]; inspirationImages?: string[]; notes?: string }): Promise<WaitlistSignup>;
   getAllWaitlistSignups(): Promise<WaitlistSignup[]>;
+  
+  // Private Coordination Threads
+  createThread(data: Omit<InsertThread, 'id'>): Promise<Thread>;
+  getThreadByToken(token: string): Promise<Thread | undefined>;
+  getThreadsByArtist(artistProfileId: string): Promise<Thread[]>;
+  updateThread(id: string, data: Partial<InsertThread>): Promise<Thread | undefined>;
+  createThreadMessage(data: { threadId: string; actorType: string; body: string }): Promise<ThreadMessage>;
+  getThreadMessages(threadId: string): Promise<ThreadMessage[]>;
+  createThreadReferral(data: InsertThreadReferral): Promise<ThreadReferral>;
+  getThreadReferrals(threadId: string): Promise<ThreadReferral[]>;
+  getArtistProfileById(id: string): Promise<ArtistProfile | undefined>;
+  getArtistProfileBySlug(slug: string): Promise<ArtistProfile | undefined>;
   
   // Communication Logs
   createCommunicationLog(log: InsertCommunicationLog): Promise<CommunicationLog>;
@@ -2816,6 +2837,91 @@ export class DatabaseStorage implements IStorage {
   
   async getAllWaitlistSignups(): Promise<WaitlistSignup[]> {
     return await db.select().from(waitlistSignups).orderBy(desc(waitlistSignups.createdAt));
+  }
+  
+  // Private Coordination Threads
+  async createThread(data: Omit<InsertThread, 'id'>): Promise<Thread> {
+    const [thread] = await db
+      .insert(threads)
+      .values(data as InsertThread)
+      .returning();
+    return thread;
+  }
+  
+  async getThreadByToken(token: string): Promise<Thread | undefined> {
+    const [thread] = await db
+      .select()
+      .from(threads)
+      .where(eq(threads.threadPublicToken, token));
+    return thread;
+  }
+  
+  async getThreadsByArtist(artistProfileId: string): Promise<Thread[]> {
+    return await db
+      .select()
+      .from(threads)
+      .where(eq(threads.artistProfileId, artistProfileId))
+      .orderBy(desc(threads.createdAt));
+  }
+  
+  async updateThread(id: string, data: Partial<InsertThread>): Promise<Thread | undefined> {
+    const [thread] = await db
+      .update(threads)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(threads.id, id))
+      .returning();
+    return thread;
+  }
+  
+  async createThreadMessage(data: { threadId: string; actorType: string; body: string }): Promise<ThreadMessage> {
+    const [message] = await db
+      .insert(threadMessages)
+      .values({
+        threadId: data.threadId,
+        actorType: data.actorType,
+        body: data.body,
+      })
+      .returning();
+    return message;
+  }
+  
+  async getThreadMessages(threadId: string): Promise<ThreadMessage[]> {
+    return await db
+      .select()
+      .from(threadMessages)
+      .where(eq(threadMessages.threadId, threadId))
+      .orderBy(threadMessages.createdAt);
+  }
+  
+  async createThreadReferral(data: InsertThreadReferral): Promise<ThreadReferral> {
+    const [referral] = await db
+      .insert(threadReferrals)
+      .values(data)
+      .returning();
+    return referral;
+  }
+  
+  async getThreadReferrals(threadId: string): Promise<ThreadReferral[]> {
+    return await db
+      .select()
+      .from(threadReferrals)
+      .where(eq(threadReferrals.threadId, threadId));
+  }
+  
+  async getArtistProfileById(id: string): Promise<ArtistProfile | undefined> {
+    const [profile] = await db
+      .select()
+      .from(artistProfiles)
+      .where(eq(artistProfiles.id, id));
+    return profile;
+  }
+  
+  async getArtistProfileBySlug(slug: string): Promise<ArtistProfile | undefined> {
+    const [profile] = await db
+      .select()
+      .from(artistProfiles)
+      .where(eq(artistProfiles.artistSlug, slug));
+    return profile;
   }
 }
 

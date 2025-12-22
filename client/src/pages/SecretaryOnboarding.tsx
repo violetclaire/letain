@@ -11,6 +11,7 @@ export default function SecretaryOnboarding() {
     businessName: string;
     artistSlug: string;
     embedCode: string;
+    inviteLink: string;
   } | null>(null);
   
   const [formData, setFormData] = useState({
@@ -44,6 +45,7 @@ export default function SecretaryOnboarding() {
       
       const escapeHtml = (str: string) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
       const successMessage = "Thank you! We'll be in touch soon.";
+      const baseUrl = data.baseUrl || window.location.origin;
       const embedCode = `<!-- ${escapeHtml(formData.businessName)} Inquiry Form -->
 <form id="inquiry-form">
   <input type="text" name="clientName" placeholder="Your Name" required />
@@ -61,19 +63,19 @@ document.getElementById('inquiry-form').addEventListener('submit', async (e) => 
   btn.disabled = true;
   btn.textContent = 'Sending...';
   try {
-    const res = await fetch('https://beauvette.app/api/inquiries', {
+    const res = await fetch('${baseUrl}/api/intake', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         artistSlug: '${data.artistSlug}',
-        source: 'website',
         clientName: form.clientName.value,
         clientEmail: form.clientEmail.value,
         eventDate: form.eventDate.value,
         message: form.message.value
       })
     });
-    if (res.ok) {
+    const result = await res.json();
+    if (res.ok && result.success) {
       form.style.display = 'none';
       document.getElementById('form-success').style.display = 'block';
     } else { throw new Error('Failed'); }
@@ -85,11 +87,14 @@ document.getElementById('inquiry-form').addEventListener('submit', async (e) => 
 });
 <\/script>`;
       
+      const inviteLink = `${baseUrl}/new?artist=${data.artistSlug}`;
+      
       setResult({
-        adminLink: `https://beauvette.app/admin/${data.artistSlug}`,
+        adminLink: `${baseUrl}/admin/${data.artistSlug}`,
         businessName: formData.businessName,
         artistSlug: data.artistSlug,
         embedCode,
+        inviteLink,
       });
       setSuccess(true);
     } catch (err: any) {
@@ -146,6 +151,21 @@ document.getElementById('inquiry-form').addEventListener('submit', async (e) => 
             </div>
 
             <div className="p-6 border border-[#2D2D2D]/10 group relative text-left">
+              <p className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/40 mb-3">Quick Invite Link</p>
+              <p className="text-[#2D2D2D] text-sm break-all">
+                {result.inviteLink}
+              </p>
+              <button 
+                onClick={() => copyToClipboard(result.inviteLink)}
+                className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity"
+                data-testid="button-copy-invite-link"
+              >
+                <Copy size={14} className="text-[#2D2D2D]/30 hover:text-[#2D2D2D]" />
+              </button>
+              <p className="text-[10px] text-[#2D2D2D]/40 mt-2">Share in DMs or emails. Clients never see our name.</p>
+            </div>
+
+            <div className="p-6 border border-[#2D2D2D]/10 group relative text-left">
               <p className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/40 mb-3">Your Dashboard</p>
               <p className="text-[#2D2D2D] text-sm break-all">
                 {result.adminLink}
@@ -179,9 +199,9 @@ document.getElementById('inquiry-form').addEventListener('submit', async (e) => 
     <div className="bg-[#F9F8F6] text-[#2D2D2D] min-h-screen flex items-center justify-center" style={{ fontFamily: "'Inter', sans-serif" }}>
       <div className="max-w-lg w-full mx-auto px-8 md:px-16 py-20">
         <div className="mb-16 text-center">
-          <p className="text-[10px] tracking-[0.4em] uppercase text-[#2D2D2D]/40 mb-4">beauvette</p>
+          <p className="text-[10px] tracking-[0.4em] uppercase text-[#2D2D2D]/40 mb-4">your private</p>
           <h1 className="text-3xl text-[#2D2D2D] mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
-            The Secretary
+            Secretary
           </h1>
           <p className="text-sm text-[#2D2D2D]/60 leading-relaxed">
             Create your inquiry link. Simple, elegant, yours.

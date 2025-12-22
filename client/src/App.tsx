@@ -61,6 +61,7 @@ import SetupSquare from "@/pages/SetupSquare";
 import SetupContract from "@/pages/SetupContract";
 import SetupLinks from "@/pages/SetupLinks";
 import SetupComplete from "@/pages/SetupComplete";
+import ThreadPage from "@/pages/ThreadPage";
 
 function InviteRedirectHandler() {
   const [location, setLocation] = useLocation();
@@ -161,6 +162,9 @@ function Router() {
       
       {/* Inquiry Thread (artist view of individual inquiry) */}
       <Route path="/inquiry/:threadToken" component={InquiryThread} />
+      
+      {/* Private Coordination Thread (white-label client view) */}
+      <Route path="/t/:token" component={ThreadPage} />
       
       {/* Setup flow routes */}
       <Route path="/setup/:artistSlug/square" component={SetupSquare} />

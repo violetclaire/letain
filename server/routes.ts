@@ -9584,6 +9584,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         secretaryLink,
         artistSlug,
         editToken,
+        baseUrl,
         message: "Your secretary link has been created!"
       });
     } catch (error: any) {
@@ -10957,6 +10958,165 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       res.json(signups);
     } catch (error: any) {
       console.error("[Admin Waitlist] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============================================================
+  // PRIVATE COORDINATION THREADS (White-Label)
+  // ============================================================
+  
+  // POST /api/intake - Create a new thread from embedded form
+  app.post("/api/intake", async (req, res) => {
+    try {
+      const { artistSlug, clientName, clientEmail, clientPhone, eventDate, eventType, serviceType, message } = req.body;
+      
+      if (!artistSlug || !clientName || !clientEmail) {
+        return res.status(400).json({ error: "Artist slug, client name, and email are required" });
+      }
+      
+      // Find artist by slug
+      const artistProfile = await storage.getArtistProfileBySlug(artistSlug);
+      if (!artistProfile) {
+        return res.status(404).json({ error: "Artist not found" });
+      }
+      
+      // Generate unique thread token (128-bit entropy)
+      const threadPublicToken = randomUUID() + randomUUID().slice(0, 8);
+      
+      // Create thread
+      const thread = await storage.createThread({
+        threadPublicToken,
+        artistProfileId: artistProfile.id,
+        clientName,
+        clientEmail,
+        clientPhone: clientPhone || null,
+        eventDate: eventDate ? new Date(eventDate) : null,
+        eventType: eventType || null,
+        serviceType: serviceType || null,
+        message: message || null,
+        source: 'embed',
+        status: 'inquiry',
+      });
+      
+      // Create system message
+      await storage.createThreadMessage({
+        threadId: thread.id,
+        actorType: 'system',
+        body: 'Inquiry received. The artist will respond shortly.',
+      });
+      
+      // TODO: Send notification email to artist
+      
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://beauvette.app';
+      
+      res.json({
+        success: true,
+        threadUrl: `${baseUrl}/t/${threadPublicToken}`,
+        message: artistProfile.formSuccessMessage || "Thank you! We'll be in touch soon.",
+      });
+    } catch (error: any) {
+      console.error("[Intake] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to submit inquiry" });
+    }
+  });
+  
+  // GET /new - Create thread from invite link and redirect
+  app.get("/new", async (req, res) => {
+    try {
+      const artistSlug = req.query.artist as string;
+      
+      if (!artistSlug) {
+        return res.status(400).send("Artist parameter is required");
+      }
+      
+      // Find artist by slug
+      const artistProfile = await storage.getArtistProfileBySlug(artistSlug);
+      if (!artistProfile) {
+        return res.status(404).send("Artist not found");
+      }
+      
+      // Generate unique thread token
+      const threadPublicToken = randomUUID() + randomUUID().slice(0, 8);
+      
+      // Create thread with minimal info (client will fill in details)
+      const thread = await storage.createThread({
+        threadPublicToken,
+        artistProfileId: artistProfile.id,
+        clientName: 'Guest',
+        clientEmail: 'pending@example.com',
+        source: 'invite_link',
+        status: 'inquiry',
+      });
+      
+      // Create system message
+      await storage.createThreadMessage({
+        threadId: thread.id,
+        actorType: 'system',
+        body: 'Thread created from invite link.',
+      });
+      
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://beauvette.app';
+      res.redirect(`${baseUrl}/t/${threadPublicToken}`);
+    } catch (error: any) {
+      console.error("[New Thread] Error:", error);
+      res.status(500).send("Failed to create thread");
+    }
+  });
+  
+  // GET /api/threads/:token - Get thread by public token
+  app.get("/api/threads/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      
+      const thread = await storage.getThreadByToken(token);
+      if (!thread) {
+        return res.status(404).json({ error: "Thread not found" });
+      }
+      
+      const messages = await storage.getThreadMessages(thread.id);
+      const artistProfile = await storage.getArtistProfileById(thread.artistProfileId);
+      
+      res.json({
+        thread,
+        messages,
+        artist: {
+          businessName: artistProfile?.businessName || 'Artist',
+          logoUrl: artistProfile?.logoUrl || null,
+        },
+      });
+    } catch (error: any) {
+      console.error("[Thread] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // POST /api/threads/:token/messages - Add message to thread (public endpoint - client only)
+  app.post("/api/threads/:token/messages", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { body } = req.body;
+      
+      if (!body || typeof body !== 'string' || !body.trim()) {
+        return res.status(400).json({ error: "Message body is required" });
+      }
+      
+      const thread = await storage.getThreadByToken(token);
+      if (!thread) {
+        return res.status(404).json({ error: "Thread not found" });
+      }
+      
+      // Security: This is a public endpoint - only allow client messages
+      // Artist messages require authentication via a separate endpoint
+      const message = await storage.createThreadMessage({
+        threadId: thread.id,
+        actorType: 'client',
+        body: body.trim(),
+      });
+      
+      res.json(message);
+    } catch (error: any) {
+      console.error("[Thread Message] Error:", error);
       res.status(500).json({ error: error.message });
     }
   });
