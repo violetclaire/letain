@@ -22,16 +22,16 @@ const CONTENT = {
     primaryCta: "Get your private link",
   },
   problem: {
-    headline: "Independence was sold as freedom.",
-    subhead: "In practice, it became constant availability.",
-    body: "Independent artists don't lack talent. They lack infrastructure built for how they actually work.",
+    headline: "Independent doesn't mean alone.",
+    subhead: "You deserve help.",
+    body: "You built something real. Now it's time to build the structure around it.",
     painPoints: [
-      "Inquiries arrive everywhere.",
-      "Every response is manual.",
-      "Boundaries feel rude instead of professional.",
-      "Saying no costs relationships."
+      "One place for every inquiry.",
+      "Boundaries that feel professional, not personal.",
+      "Decisions that carry themselves forward.",
+      "Referrals that strengthen relationships."
     ],
-    resolution: "Beauvette was built to solve that exact tension."
+    resolution: "Beauvette was built so you can work with intention."
   },
   role: {
     headline: "Beauvette is not a tool.",
