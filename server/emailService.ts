@@ -103,6 +103,11 @@ export async function sendScheduleEmail({
   const { client, fromEmail } = await getResendClient();
   console.log("Resend client ready, fromEmail:", fromEmail);
 
+  const safeSenderName = escapeHtml(senderName);
+  const safeEventName = escapeHtml(eventName);
+  const safeEventDates = escapeHtml(eventDates);
+  const safePersonalMessage = personalMessage ? escapeHtml(personalMessage) : '';
+
   const htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -112,15 +117,11 @@ export async function sendScheduleEmail({
         .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .header { 
           background-color: #FAF7F2;
-          background-image:
-            repeating-linear-gradient(0deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px),
-            repeating-linear-gradient(90deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px);
           padding: 28px; 
           text-align: center;
           border-bottom: 1px solid rgba(107, 74, 85, 0.2);
         }
-        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55; }
-        .header p { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin: 8px 0 0 0; color: #6B4A55; opacity: 0.8; }
+        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55; }
         .content { padding: 32px; }
         .event-name { font-size: 20px; color: #6B4A55; margin-bottom: 8px; }
         .event-dates { color: #666; font-size: 14px; margin-bottom: 20px; }
@@ -133,17 +134,16 @@ export async function sendScheduleEmail({
     <body>
       <div class="container">
         <div class="header">
-          <h1>Beauvette</h1>
-          <p>For Life's Most Important Days</p>
+          <h1>${safeSenderName}</h1>
         </div>
         <div class="content">
           <p style="margin-bottom: 24px;">Hi there,</p>
-          <p style="margin-bottom: 16px;"><strong>${senderName}</strong> has shared a day-of schedule with you:</p>
+          <p style="margin-bottom: 16px;">Here is your day-of schedule:</p>
           
-          <div class="event-name">${eventName}</div>
-          <div class="event-dates">${eventDates}</div>
+          <div class="event-name">${safeEventName}</div>
+          <div class="event-dates">${safeEventDates}</div>
           
-          ${personalMessage ? `<div class="message">"${personalMessage}"</div>` : ''}
+          ${safePersonalMessage ? `<div class="message">"${safePersonalMessage}"</div>` : ''}
           
           <p style="margin-bottom: 24px;">Click below to view the detailed timeline for the event:</p>
           
@@ -154,7 +154,7 @@ export async function sendScheduleEmail({
           <p style="color: #888; font-size: 13px;">Or copy this link: <a href="${scheduleLink}" style="color: #E8B4B8;">${scheduleLink}</a></p>
         </div>
         <div class="footer">
-          Sent via Beauvette - Beauty services for life's most important days
+          ${safeSenderName}
         </div>
       </div>
     </body>
@@ -163,8 +163,7 @@ export async function sendScheduleEmail({
 
   console.log("=== SENDING EMAILS ===");
   console.log("To:", toEmails);
-  // Domain verified! Using beauvette.com
-  const senderEmail = 'Violet from Beauvette <violet@beauvette.com>';
+  const senderEmail = `${sanitizeSenderName(senderName)} <violet@beauvette.com>`;
   console.log("From:", senderEmail);
   
   const results = await Promise.allSettled(
@@ -174,7 +173,7 @@ export async function sendScheduleEmail({
         const result = await client.emails.send({
           from: senderEmail,
           to: email.trim(),
-          subject: `${senderName} shared a schedule with you: ${eventName}`,
+          subject: sanitizeSubject(`${senderName} shared a schedule with you: ${eventName}`),
           html: htmlContent
         });
         console.log("Resend API response for", email, ":", JSON.stringify(result));
@@ -237,11 +236,11 @@ export async function sendInfoSheetEmail({
   console.log("Getting Resend client for info sheet email...");
   const { client, fromEmail } = await getResendClient();
   
-  // Convert plain text info sheet to HTML with line breaks preserved
+  // Convert plain text info sheet to HTML with line breaks preserved - escape HTML to prevent injection
   const formattedContent = infoSheetContent
     ? infoSheetContent
         .split('\n\n')
-        .map(paragraph => `<p style="margin-bottom: 16px;">${paragraph.replace(/\n/g, '<br>')}</p>`)
+        .map(paragraph => `<p style="margin-bottom: 16px;">${escapeHtml(paragraph).replace(/\n/g, '<br>')}</p>`)
         .join('')
     : '';
   
@@ -293,16 +292,15 @@ export async function sendInfoSheetEmail({
     <body>
       <div class="container">
         <div class="header">
-          <h1>Beauvette</h1>
-          <p>For Life's Most Important Days</p>
+          <h1>${escapeHtml(vendorName)}</h1>
         </div>
         <div class="content">
-          <p style="margin-bottom: 24px;">Thank you for your inquiry! Here's important information from <strong>${vendorName}</strong>:</p>
+          <p style="margin-bottom: 24px;">Thank you for your inquiry! Here's important information:</p>
           
           <div class="inquiry-details">
             <strong>Your Inquiry Details:</strong><br>
-            Service: ${serviceType}<br>
-            Date: ${eventDate}
+            Service: ${escapeHtml(serviceType)}<br>
+            Date: ${escapeHtml(eventDate)}
           </div>
           
           <div class="info-sheet">
@@ -315,7 +313,7 @@ export async function sendInfoSheetEmail({
                   </a>
                 </p>
                 <p style="text-align: center; color: #666; font-size: 13px;">
-                  Click above to view the full pricing and information sheet from ${vendorName}
+                  Click above to view the full pricing and information sheet
                 </p>`
               : formattedContent
             }
@@ -323,24 +321,24 @@ export async function sendInfoSheetEmail({
           
           ${chatLink ? `
           <div style="text-align: center; margin: 32px 0; padding: 24px; background: linear-gradient(135deg, #6B4A55 0%, #5A1F2B 100%); border-radius: 8px;">
-            <p style="color: white; margin: 0 0 16px 0; font-size: 16px;">Have questions? Chat directly with ${vendorName}:</p>
+            <p style="color: white; margin: 0 0 16px 0; font-size: 16px;">Have questions? Chat directly:</p>
             <a href="${chatLink}" 
                style="display: inline-block; padding: 14px 32px; background: white; color: #5A1F2B; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
-              💬 Chat with ${vendorName}
+              Continue Conversation
             </a>
           </div>
           ` : ''}
           ${vendorEmail && !chatLink ? `<p style="margin-top: 24px; color: #666; font-size: 14px;">To continue the conversation, reply directly to <a href="mailto:${vendorEmail}" style="color: #E8B4B8;">${vendorEmail}</a></p>` : ''}
         </div>
         <div class="footer">
-          Sent via Beauvette - Beauty services for life's most important days
+          ${escapeHtml(vendorName)}
         </div>
       </div>
     </body>
     </html>
   `;
 
-  const senderEmail = 'Beauvette <violet@beauvette.com>';
+  const senderEmail = `${sanitizeSenderName(vendorName)} <violet@beauvette.com>`;
   
   try {
     console.log("Sending info sheet email to:", toEmail);
@@ -348,7 +346,7 @@ export async function sendInfoSheetEmail({
       from: senderEmail,
       to: toEmail.trim(),
       replyTo: vendorEmail,
-      subject: `Inquiry Received - Info from ${vendorName}`,
+      subject: sanitizeSubject(`Info from ${vendorName}`),
       html: htmlContent
     });
     console.log("Info sheet email sent:", JSON.stringify(result));
@@ -390,15 +388,11 @@ export async function sendInvoiceEmail({
         .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .header { 
           background-color: #FAF7F2;
-          background-image:
-            repeating-linear-gradient(0deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px),
-            repeating-linear-gradient(90deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px);
           padding: 28px; 
           text-align: center;
           border-bottom: 1px solid rgba(107, 74, 85, 0.2);
         }
-        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55; }
-        .header p { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin: 8px 0 0 0; color: #6B4A55; opacity: 0.8; }
+        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55; }
         .content { padding: 32px; }
         .amount { font-size: 32px; color: #3D5A3B; font-weight: bold; text-align: center; margin: 24px 0; }
         .description { text-align: center; color: #666; font-size: 14px; margin-bottom: 24px; }
@@ -412,41 +406,40 @@ export async function sendInvoiceEmail({
     <body>
       <div class="container">
         <div class="header">
-          <h1>Beauvette</h1>
-          <p>For Life's Most Important Days</p>
+          <h1>${escapeHtml(vendorName)}</h1>
         </div>
         <div class="content">
-          <p style="margin-bottom: 16px;">Hi ${clientName},</p>
-          <p style="margin-bottom: 24px;"><strong>${vendorName}</strong> has sent you an invoice:</p>
+          <p style="margin-bottom: 16px;">Hi ${escapeHtml(clientName)},</p>
+          <p style="margin-bottom: 24px;">Here's your invoice:</p>
           
           <div class="amount">${formattedAmount}</div>
-          <div class="description">${description}</div>
-          ${eventDate ? `<div class="event-date">Event Date: ${eventDate}</div>` : ''}
+          <div class="description">${escapeHtml(description)}</div>
+          ${eventDate ? `<div class="event-date">Event Date: ${escapeHtml(eventDate)}</div>` : ''}
           
           <p style="text-align: center; margin: 32px 0;">
             <a href="${paymentLink}" class="button">Pay Now</a>
           </p>
           
-          <p class="secure">Secure payment powered by Square. Accept Apple Pay, cards & more.</p>
+          <p class="secure">Secure payment powered by Square.</p>
           
           <p style="color: #888; font-size: 13px; margin-top: 24px;">Or copy this link: <a href="${paymentLink}" style="color: #E8B4B8;">${paymentLink}</a></p>
         </div>
         <div class="footer">
-          Sent via Beauvette - Beauty services for life's most important days
+          ${escapeHtml(vendorName)}
         </div>
       </div>
     </body>
     </html>
   `;
 
-  const senderEmail = 'Beauvette <violet@beauvette.com>';
+  const senderEmail = `${sanitizeSenderName(vendorName)} <violet@beauvette.com>`;
   
   try {
     console.log("Sending invoice email to:", toEmail);
     const result = await client.emails.send({
       from: senderEmail,
       to: toEmail.trim(),
-      subject: `Invoice from ${vendorName} - ${formattedAmount}`,
+      subject: sanitizeSubject(`Invoice from ${vendorName} - ${formattedAmount}`),
       html: htmlContent
     });
     console.log("Invoice email sent:", JSON.stringify(result));
@@ -483,15 +476,11 @@ export async function sendContractEmail({
         .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .header { 
           background-color: #FAF7F2;
-          background-image:
-            repeating-linear-gradient(0deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px),
-            repeating-linear-gradient(90deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px);
           padding: 28px; 
           text-align: center;
           border-bottom: 1px solid rgba(107, 74, 85, 0.2);
         }
-        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55; }
-        .header p { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin: 8px 0 0 0; color: #6B4A55; opacity: 0.8; }
+        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55; }
         .content { padding: 32px; }
         .contract-title { font-size: 18px; color: #6B4A55; margin-bottom: 20px; font-weight: bold; }
         .details { background: #f5f1e8; padding: 16px; border-radius: 6px; margin-bottom: 24px; }
@@ -507,19 +496,18 @@ export async function sendContractEmail({
     <body>
       <div class="container">
         <div class="header">
-          <h1>Beauvette</h1>
-          <p>For Life's Most Important Days</p>
+          <h1>${escapeHtml(senderName)}</h1>
         </div>
         <div class="content">
-          <p style="margin-bottom: 24px;">Hi ${clientName},</p>
-          <p style="margin-bottom: 16px;"><strong>${senderName}</strong> has sent you a service contract:</p>
+          <p style="margin-bottom: 24px;">Hi ${escapeHtml(clientName)},</p>
+          <p style="margin-bottom: 16px;">Here is your service contract:</p>
           
-          <div class="contract-title">Beauty Services Contract</div>
+          <div class="contract-title">Service Contract</div>
           
           <div class="details">
             <div class="detail-row">
               <span class="detail-label">Services</span>
-              <span class="detail-value">${packageDetails}</span>
+              <span class="detail-value">${escapeHtml(packageDetails)}</span>
             </div>
             <div class="detail-row">
               <span class="detail-label">Total Amount</span>
@@ -531,25 +519,25 @@ export async function sendContractEmail({
             </div>
           </div>
           
-          <p style="color: #666; font-size: 14px; margin-bottom: 24px;">Please review the attached contract details. Contact ${senderName} if you have any questions about the services or payment terms.</p>
+          <p style="color: #666; font-size: 14px; margin-bottom: 24px;">Please review the contract details. Contact me if you have any questions.</p>
           
                   </div>
         <div class="footer">
-          Sent via Beauvette - Beauty services for life's most important days
+          ${escapeHtml(senderName)}
         </div>
       </div>
     </body>
     </html>
   `;
 
-  const senderEmail = 'Beauvette <violet@beauvette.com>';
+  const senderEmail = `${sanitizeSenderName(senderName)} <violet@beauvette.com>`;
   
   try {
     console.log("Sending contract email to:", toEmail);
     const result = await client.emails.send({
       from: senderEmail,
       to: toEmail.trim(),
-      subject: `Contract for ${packageDetails} - ${clientName}`,
+      subject: sanitizeSubject(`Contract for ${packageDetails} - ${clientName}`),
       html: htmlContent
     });
     console.log("Contract email sent:", JSON.stringify(result));
@@ -588,15 +576,11 @@ export async function sendContractWithSigningLink({
         .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .header { 
           background-color: #FAF7F2;
-          background-image:
-            repeating-linear-gradient(0deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px),
-            repeating-linear-gradient(90deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px);
           padding: 28px; 
           text-align: center;
           border-bottom: 1px solid rgba(107, 74, 85, 0.2);
         }
-        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55; }
-        .header p { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin: 8px 0 0 0; color: #6B4A55; opacity: 0.8; }
+        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55; }
         .content { padding: 32px; }
         .contract-title { font-size: 18px; color: #6B4A55; margin-bottom: 20px; font-weight: bold; }
         .details { background: #f5f1e8; padding: 16px; border-radius: 6px; margin-bottom: 24px; }
@@ -613,19 +597,18 @@ export async function sendContractWithSigningLink({
     <body>
       <div class="container">
         <div class="header">
-          <h1>Beauvette</h1>
-          <p>For Life's Most Important Days</p>
+          <h1>${escapeHtml(senderName)}</h1>
         </div>
         <div class="content">
-          <p style="margin-bottom: 24px;">Hi ${clientName},</p>
-          <p style="margin-bottom: 16px;"><strong>${senderName}</strong> has sent you a service contract for signature:</p>
+          <p style="margin-bottom: 24px;">Hi ${escapeHtml(clientName)},</p>
+          <p style="margin-bottom: 16px;">Here is your service contract for signature:</p>
           
-          <div class="contract-title">Beauty Services Contract</div>
+          <div class="contract-title">Service Contract</div>
           
           <div class="details">
             <div class="detail-row">
               <span class="detail-label">Services</span>
-              <span class="detail-value">${packageDetails}</span>
+              <span class="detail-value">${escapeHtml(packageDetails)}</span>
             </div>
             <div class="detail-row">
               <span class="detail-label">Total Amount</span>
@@ -643,24 +626,24 @@ export async function sendContractWithSigningLink({
             <a href="${signingUrl}" class="button">Sign Contract Now</a>
           </div>
           
-          <p style="color: #888; font-size: 12px; text-align: center;">If you have any questions, please contact ${senderName}.</p>
+          <p style="color: #888; font-size: 12px; text-align: center;">If you have any questions, please contact me.</p>
         </div>
         <div class="footer">
-          Sent via Beauvette - Beauty services for life's most important days
+          ${escapeHtml(senderName)}
         </div>
       </div>
     </body>
     </html>
   `;
 
-  const senderEmail = 'Beauvette <violet@beauvette.com>';
+  const senderEmail = `${sanitizeSenderName(senderName)} <violet@beauvette.com>`;
   
   try {
     console.log("Sending contract with signing link to:", toEmail);
     const result = await client.emails.send({
       from: senderEmail,
       to: toEmail.trim(),
-      subject: `Contract Ready for Signature: ${packageDetails}`,
+      subject: sanitizeSubject(`Contract Ready for Signature: ${packageDetails}`),
       html: htmlContent
     });
     console.log("Contract signing email sent:", JSON.stringify(result));
@@ -699,15 +682,11 @@ export async function sendContractSigningEmail({
         .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .header { 
           background-color: #FAF7F2;
-          background-image:
-            repeating-linear-gradient(0deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px),
-            repeating-linear-gradient(90deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px);
           padding: 28px; 
           text-align: center;
           border-bottom: 1px solid rgba(107, 74, 85, 0.2);
         }
-        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55; }
-        .header p { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin: 8px 0 0 0; color: #6B4A55; opacity: 0.8; }
+        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55; }
         .content { padding: 32px; }
         .contract-title { font-size: 18px; color: #6B4A55; margin-bottom: 20px; font-weight: bold; text-align: center; }
         .details { background: #f5f1e8; padding: 20px; border-radius: 8px; margin-bottom: 24px; }
@@ -725,14 +704,13 @@ export async function sendContractSigningEmail({
     <body>
       <div class="container">
         <div class="header">
-          <h1>Beauvette</h1>
-          <p>For Life's Most Important Days</p>
+          <h1>${escapeHtml(artistName)}</h1>
         </div>
         <div class="content">
           <p style="margin-bottom: 24px;">Hi ${escapeHtml(clientName)},</p>
-          <p style="margin-bottom: 16px;"><strong>${escapeHtml(artistName)}</strong> has sent you a service contract for your upcoming beauty services:</p>
+          <p style="margin-bottom: 16px;">Here is your service contract for your upcoming services:</p>
           
-          <div class="contract-title">Beauty Services Contract</div>
+          <div class="contract-title">Service Contract</div>
           
           <div class="details">
             <div class="detail-row">
@@ -760,18 +738,18 @@ export async function sendContractSigningEmail({
           </div>
           
           <p style="color: #888; font-size: 13px; text-align: center; margin-top: 20px;">
-            If you have any questions about the contract, please contact ${escapeHtml(artistName)} before signing.
+            If you have any questions about the contract, please contact me before signing.
           </p>
         </div>
         <div class="footer">
-          Sent via Beauvette - Beauty services for life's most important days
+          ${escapeHtml(artistName)}
         </div>
       </div>
     </body>
     </html>
   `;
 
-  const senderEmail = 'Beauvette <violet@beauvette.com>';
+  const senderEmail = `${sanitizeSenderName(artistName)} <violet@beauvette.com>`;
   
   try {
     console.log("Sending contract signing email to:", toEmail);
@@ -1001,14 +979,14 @@ export async function sendAppointmentConfirmationEmail({
           <p style="margin-top: 32px;">Warmly,<br><strong>${artistBusinessName}</strong></p>
         </div>
         <div class="footer">
-          <p>Sent via <a href="${getBaseUrl()}">Beauvette</a> - Beauty services for life's most important days</p>
+          <p>${artistBusinessName}</p>
         </div>
       </div>
     </body>
     </html>
   `;
 
-  const senderEmail = `${artistBusinessName} via Beauvette <violet@beauvette.com>`;
+  const senderEmail = `${sanitizeSenderName(artistBusinessName)} <violet@beauvette.com>`;
   
   try {
     console.log("Sending appointment confirmation email to:", toEmail);
@@ -1079,12 +1057,11 @@ export async function sendChatInviteEmail({
     <body>
       <div class="container">
         <div class="header">
-          <h1>Beauvette</h1>
-          <p>For Life's Most Important Days</p>
+          <h1>${escapeHtml(vendorName)}</h1>
         </div>
         <div class="content">
-          <p style="margin-bottom: 24px;">Hi ${clientName},</p>
-          <p style="margin-bottom: 20px;"><strong>${vendorName}</strong> would like to connect with you to discuss your upcoming event!</p>
+          <p style="margin-bottom: 24px;">Hi ${escapeHtml(clientName)},</p>
+          <p style="margin-bottom: 20px;">I would like to connect with you to discuss your upcoming event!</p>
           
           ${eventDate || serviceType ? `
           <div class="highlight-box">
@@ -1094,7 +1071,7 @@ export async function sendChatInviteEmail({
           </div>
           ` : ''}
           
-          <p style="margin-bottom: 16px;">Click below to create your Beauvette account and start chatting with ${vendorName} about your event:</p>
+          <p style="margin-bottom: 16px;">Click below to start our conversation:</p>
           
           <p style="text-align: center; margin: 32px 0;">
             <a href="${chatLink}" class="button">Start Chat</a>
@@ -1105,21 +1082,21 @@ export async function sendChatInviteEmail({
           <p style="color: #888; font-size: 13px;">Or copy this link: <a href="${chatLink}" style="color: #C9A961;">${chatLink}</a></p>
         </div>
         <div class="footer">
-          Sent via <a href="${getBaseUrl()}">Beauvette</a> - Beauty services for life's most important days
+          ${escapeHtml(vendorName)}
         </div>
       </div>
     </body>
     </html>
   `;
 
-  const senderEmail = 'Beauvette <violet@beauvette.com>';
+  const senderEmail = `${sanitizeSenderName(vendorName)} <violet@beauvette.com>`;
   
   try {
     console.log("Sending chat invite email to:", toEmail);
     const result = await client.emails.send({
       from: senderEmail,
       to: toEmail.trim(),
-      subject: `${vendorName} wants to connect with you on Beauvette`,
+      subject: sanitizeSubject(`${vendorName} wants to connect with you`),
       html: htmlContent
     });
     console.log("Chat invite email sent:", JSON.stringify(result));
@@ -1181,22 +1158,21 @@ export async function sendGeneralEmail({
     <body>
       <div class="container">
         <div class="header">
-          <h1>Beauvette</h1>
-          <p>For Life's Most Important Days</p>
+          <h1>${safeSenderName}</h1>
         </div>
         <div class="content">
           ${safeBody}
           ${chatButtonHtml}
         </div>
         <div class="footer">
-          Sent by ${safeSenderName} via <a href="${baseUrl}" style="color: #C9A961;">Beauvette</a>
+          ${safeSenderName}
         </div>
       </div>
     </body>
     </html>
   `;
 
-  const senderEmail = `${safeSenderName} via Beauvette <violet@beauvette.com>`;
+  const senderEmail = `${safeSenderName} <violet@beauvette.com>`;
   
   console.log("Sending general email to:", to);
   const result = await client.emails.send({
@@ -1359,7 +1335,7 @@ export async function sendProposalEmail({
             `}
           </div>
           <div class="footer">
-            Sent by ${safeArtistName} via <a href="${getBaseUrl()}" style="color: #2C2C2C;">Beauvette</a>
+            ${safeBusinessName}
           </div>
         </div>
       </div>
@@ -1367,7 +1343,7 @@ export async function sendProposalEmail({
     </html>
   `;
 
-  const senderEmail = `${safeArtistName} via Beauvette <violet@beauvette.com>`;
+  const senderEmail = `${safeArtistName} <violet@beauvette.com>`;
   
   try {
     console.log("Sending proposal email to:", toEmail);
@@ -1526,36 +1502,35 @@ export async function sendReferralNotificationEmail({
     <body>
       <div class="container">
         <div class="header">
-          <h1>Beauvette</h1>
-          <p>For Life's Most Important Days</p>
+          <h1>${safeReferrerName}</h1>
         </div>
         <div class="content">
           <p>Dear ${safeClientName},</p>
           
-          <p>Unfortunately, ${safeReferrerName} is not available for your event${safeDeclineReason ? ` (${safeDeclineReason})` : ''}.</p>
+          <p>Unfortunately, I am not available for your event${safeDeclineReason ? ` (${safeDeclineReason})` : ''}.</p>
           
           ${safeMessage ? `<div class="message">${safeMessage}</div>` : ''}
           
-          <p>However, they've recommended some wonderful colleagues who may be able to help:</p>
+          <p>However, I've recommended some wonderful colleagues who may be able to help:</p>
           
           <div class="referrals">
             <h3>Recommended Vendors</h3>
             <ul>${vendorList}</ul>
           </div>
           
-          <p>These vendors will be reaching out to you shortly. You can also expect inquiries directly in your inbox.</p>
+          <p>These artists will be reaching out to you shortly.</p>
           
-          <p>Warm regards,<br>The Beauvette Team</p>
+          <p>Warm regards,<br>${safeReferrerName}</p>
         </div>
         <div class="footer">
-          <a href="${getBaseUrl()}" style="color: #6B4A55;">Beauvette</a> - For Life's Most Important Days
+          ${safeReferrerName}
         </div>
       </div>
     </body>
     </html>
   `;
 
-  const senderEmail = 'Beauvette <violet@beauvette.com>';
+  const senderEmail = `${sanitizeSenderName(referrerName)} <violet@beauvette.com>`;
   
   try {
     console.log("Sending referral notification email to:", toEmail);

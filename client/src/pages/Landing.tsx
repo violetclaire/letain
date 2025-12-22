@@ -9,40 +9,41 @@ const CONTENT = {
     cta: "Get your private link"
   },
   hero: {
-    label: "Private operating layer",
-    h1: "Beauvette is the operating layer for independent beauty businesses.",
+    label: "Built by an artist, for artists",
+    h1: "The invisible layer behind your business.",
+    subline: "We were taught to do it all ourselves. That was never independence—it was exhaustion.",
     notList: [
-      "Not a booking app.",
-      "Not a marketplace.",
-      "Not software your clients ever see."
+      "Your clients only see your brand.",
+      "Never ours.",
+      "That's the point."
     ],
     primaryCta: "Get your private link",
     secondaryCta: "How it works"
   },
   howItWorks: {
-    title: "How Beauvette fits into your business",
+    title: "How it fits into your business",
     steps: [
       {
         num: "01",
-        title: "One private entry point",
-        body: "Add your Beauvette link to your site, email, or replies. Every inquiry starts in the same place."
+        title: "Your link, your brand",
+        body: "Add your link to your site, email, or replies. Clients see your name, your form—never ours."
       },
       {
         num: "02",
         title: "Everything stays together",
-        body: "Messages, details, and decisions—organized automatically."
+        body: "Inquiries, contracts, payments—organized automatically. You focus on the work."
       },
       {
         num: "03",
         title: "You decide once",
-        body: "Accept, refer, or decline. Beauvette handles the follow-through."
+        body: "Accept, refer, or decline. We handle the follow-through."
       }
     ]
   },
   network: {
     headline: "Independence doesn't mean isolation.",
-    body: "When you're booked, Beauvette lets you refer clients to artists you trust—without losing the relationship.",
-    description: "A private, artist-led network designed around reputation, reciprocity, and long-term independence.",
+    body: "When you're booked, refer clients to artists you trust—without losing the relationship.",
+    description: "A private, artist-led network designed around reputation, reciprocity, and real independence.",
     notList: [
       "Not rankings.",
       "Not bidding.",
@@ -50,20 +51,20 @@ const CONTENT = {
     ]
   },
   privacy: {
-    headline: "Your data stays yours.",
+    headline: "Your clients. Your data.",
     points: [
-      "No client accounts.",
+      "No client accounts to create.",
       "No resale of data.",
-      "No cross-pollination of clients."
+      "No competing brand in their inbox."
     ]
   },
   pricing: {
-    headline: "Start free. Earns when you do.",
+    headline: "Start free. Earn when you do.",
     body: "1% only when transactions happen."
   },
   footer: {
     links: ["Instagram", "Contact", "Privacy"],
-    copyright: "© 2025 Beauvette Secretary"
+    copyright: "© 2025 Beauvette"
   }
 };
 
@@ -180,7 +181,15 @@ export default function Landing() {
           {CONTENT.hero.h1}
         </motion.h1>
         <motion.p 
-          className="mt-6 text-lg leading-relaxed text-[#f5f3ef]/60"
+          className="mt-6 text-xl leading-relaxed text-[#f5f3ef]/80 italic"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15, duration: 0.3, ease: "easeOut" }}
+        >
+          {CONTENT.hero.subline}
+        </motion.p>
+        <motion.p 
+          className="mt-4 text-lg leading-relaxed text-[#f5f3ef]/60"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.3, ease: "easeOut" }}

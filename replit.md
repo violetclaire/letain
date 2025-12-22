@@ -2,9 +2,11 @@
 
 ## Overview
 
-Beauvette Secretary is a white-label booking system where bridal artists get their own contact forms without needing to build websites. It's designed to give beauty artists real independence by handling admin work while keeping them in control.
+Beauvette Secretary is a completely white-label booking system where bridal artists get their own contact forms without needing to build websites. It's designed to give beauty artists real independence by handling admin work while keeping them in control.
 
-**Core Philosophy:** "We were taught to do it all ourselves. That was never independence, it was exhaustion. This is real independence."
+**Core Philosophy:** "We were taught to do it all ourselves. That was never independence—it was exhaustion. This is real independence."
+
+**White-Label Mandate:** Zero Beauvette branding visible to clients. All client-facing emails, forms, and communications show ONLY the artist's brand. The embed code approach keeps artists' existing website branding intact. Beauvette is the invisible infrastructure—clients never see our name.
 
 ## User Preferences
 

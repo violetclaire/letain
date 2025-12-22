@@ -48,6 +48,7 @@ import ArtistSettings from "@/pages/ArtistSettings";
 import Proposals from "@/pages/Proposals";
 import VendorOnboarding from "@/pages/VendorOnboarding";
 import Waitlist from "@/pages/Waitlist";
+import ClientWaitlist from "@/pages/ClientWaitlist";
 import Privacy from "@/pages/Privacy";
 import ChatInvite from "@/pages/ChatInvite";
 import ClientMessages from "@/pages/ClientMessages";
@@ -101,6 +102,7 @@ function Router() {
       <Route path="/planner" component={PlannerDashboard} />
       <Route path="/browse" component={Waitlist} />
       <Route path="/waitlist" component={Waitlist} />
+      <Route path="/clients" component={ClientWaitlist} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/import" component={AdminImport} />
