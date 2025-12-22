@@ -203,13 +203,13 @@ export default function InviteAccept() {
           ) : (
             <div className="space-y-4">
               <p className="text-center text-sm text-[#262329]/60">
-                Sign in with your Replit account to accept this invitation
+                Sign in to accept this invitation
               </p>
               <Button
                 className="w-full bg-[#262329] hover:bg-[#262329]/90 text-white py-6"
                 onClick={() => {
                   sessionStorage.setItem('inviteToken', token || '');
-                  window.location.href = '/api/login';
+                  window.location.href = '/login';
                 }}
                 data-testid="button-login-to-accept"
               >

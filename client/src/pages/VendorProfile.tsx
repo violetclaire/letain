@@ -89,7 +89,7 @@ export default function VendorProfile() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = "/login";
       }, 1500);
       return;
     }
@@ -338,7 +338,7 @@ export default function VendorProfile() {
                 variant: "destructive",
               });
               setTimeout(() => {
-                window.location.href = "/api/login";
+                window.location.href = "/login";
               }, 1500);
               return;
             }
