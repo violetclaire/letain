@@ -90,8 +90,10 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-bg text-ink">
+      {/* Pinstripe texture overlay */}
+      <div className="estate-pinstripe" />
       {/* Brass frame border */}
-      <div className="fixed inset-4 md:inset-8 pointer-events-none z-30 border border-brass/40" />
+      <div className="fixed inset-4 md:inset-8 pointer-events-none z-40 border border-brass/40" />
       {/* Top Bar */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-bg/95 backdrop-blur-sm">
         <div className="estate-container flex items-center justify-between py-8">
