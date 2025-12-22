@@ -59,19 +59,31 @@ const CONTENT = {
   privacy: {
     headline: "Your clients. Your data.",
     points: [
-      "Clients never create accounts",
       "We never contact your clients",
       "Your business name on every contract and invoice",
-      "No competing brand in their inbox"
+      "No competing brand in their inbox",
+      "Infrastructure that disappears"
     ]
   },
   pricing: {
     headline: "We earn when you do.",
-    fee: "1% infrastructure fee on completed bookings.",
+    fee: "1% infrastructure fee on top of what we already pay to process payments.",
     noSubscription: "No subscriptions. No monthly charges.",
     example: "$500 booking = $5 Beauvette fee",
-    keepLine: "You keep the relationship, the data, and 99% of revenue.",
-    comparison: "Compare to marketplace platforms: 70-80% after their 20-30% cut."
+    keepLine: "Founding professionals lock in 1% forever.",
+    comparison: ""
+  },
+  proof: {
+    headline: "Volume I: Live in production",
+    stat: "$6,000 processed last week.",
+    details: "2 contracts signed. 2 invoices paid. Zero client logins required.",
+    narrative: [
+      "This is how trusted professionals have coordinated for decades—inquiry, assessment, response, execution.",
+      "Now it's programmable infrastructure.",
+      "Built by a professional who did this manually for 16 years in the beauty industry. $1M+ coordinated the old way. Now deployed as infrastructure for the modern era."
+    ],
+    volExplainer: "Volume I is for artists. You're the foundation—the trusted professionals clients are looking for. Volume II brings client search to you. But first, we build the network that deserves them.",
+    cta: "Get your private link"
   },
   footer: {
     links: ["Instagram", "Contact", "Privacy"],
@@ -414,15 +426,86 @@ export default function Landing() {
         >
           {CONTENT.pricing.keepLine}
         </motion.p>
-        <motion.p 
-          className="mt-6 text-faintink text-sm"
+        {CONTENT.pricing.comparison && (
+          <motion.p 
+            className="mt-6 text-faintink text-sm"
+            initial={{ opacity: 0, y: 8 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.3, duration: 0.3, ease: "easeOut" }}
+          >
+            {CONTENT.pricing.comparison}
+          </motion.p>
+        )}
+      </section>
+
+      {/* Proof Section */}
+      <section className="estate-prose py-16 md:py-20 border-t border-hairline">
+        <motion.h2 
+          className="text-2xl sm:text-3xl tracking-tight"
           initial={{ opacity: 0, y: 8 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ delay: 0.3, duration: 0.3, ease: "easeOut" }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
         >
-          {CONTENT.pricing.comparison}
+          {CONTENT.proof.headline}
+        </motion.h2>
+        <motion.p 
+          className="mt-6 font-serif text-2xl text-ink"
+          initial={{ opacity: 0, y: 8 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.1, duration: 0.3, ease: "easeOut" }}
+        >
+          {CONTENT.proof.stat}
         </motion.p>
+        <motion.p 
+          className="mt-2 text-mutedink"
+          initial={{ opacity: 0, y: 8 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.15, duration: 0.3, ease: "easeOut" }}
+        >
+          {CONTENT.proof.details}
+        </motion.p>
+        <div className="mt-8 space-y-4">
+          {CONTENT.proof.narrative.map((line, i) => (
+            <motion.p 
+              key={i}
+              className="text-mutedink leading-relaxed"
+              initial={{ opacity: 0, y: 8 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 + i * 0.05, duration: 0.3, ease: "easeOut" }}
+            >
+              {line}
+            </motion.p>
+          ))}
+        </div>
+        <motion.p 
+          className="mt-8 text-ink font-medium leading-relaxed"
+          initial={{ opacity: 0, y: 8 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.4, duration: 0.3, ease: "easeOut" }}
+        >
+          {CONTENT.proof.volExplainer}
+        </motion.p>
+        <motion.div 
+          className="mt-8"
+          initial={{ opacity: 0, y: 8 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.5, duration: 0.3, ease: "easeOut" }}
+        >
+          <button
+            onClick={() => setLocation("/secretary")}
+            className="bg-ink text-bg px-5 py-3 text-sm font-medium hover:bg-ink/90 transition-colors"
+            data-testid="button-proof-cta"
+          >
+            {CONTENT.proof.cta}
+          </button>
+        </motion.div>
       </section>
 
       {/* Footer */}
