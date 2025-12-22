@@ -10330,7 +10330,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
               weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
             }),
             message: message || 'No message provided',
-            inquiryLink: `${prodUrl}/artist`
+            inquiryLink: `${prodUrl}/inquiry/${inquiry.threadToken}`
           });
         } catch (emailError) {
           console.error("[Public Inquiry] Email send failed:", emailError);
@@ -10783,7 +10783,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
             weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
           }) || 'Date TBD',
           message: message || `New ${serviceType || 'beauty'} inquiry from ${source || 'external form'}`,
-          inquiryLink: `${baseUrl}/artist`
+          inquiryLink: `${baseUrl}/inquiry/${inquiry.threadToken}`
         }).catch((err: any) => {
           console.error('[Public Webhook] Email notification error:', err);
         });
