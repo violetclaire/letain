@@ -2,6 +2,19 @@
 @import "tw-animate-css";
 
 @theme inline {
+  /* Estate Theme Colors */
+  --color-bg: hsl(var(--bg));
+  --color-surface: hsl(var(--surface));
+  --color-surface2: hsl(var(--surface-2));
+  --color-ink: hsl(var(--ink));
+  --color-mutedink: hsl(var(--muted-ink));
+  --color-faintink: hsl(var(--faint-ink));
+  --color-brass: hsl(var(--brass));
+  --color-oxblood: hsl(var(--oxblood));
+  --color-hairline: hsl(var(--hairline));
+  --color-hairline2: hsl(var(--hairline-2));
+  
+  /* Legacy colors for compatibility */
   --color-powder-blue: var(--powder-blue);
   --color-cream: var(--cream);
   --color-black: var(--black);
@@ -10,10 +23,10 @@
   --color-forest: var(--forest);
   
   --font-sans: "Inter", sans-serif;
-  --font-serif: "Playfair Display", serif;
+  --font-serif: "Fraunces", Georgia, serif;
 
   --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
@@ -39,68 +52,126 @@
 }
 
 :root {
-  /* Brand Colors - Plum Check by Claremont palette */
-  --powder-blue: #F4F2EC;  /* True cream background */
-  --cream: #FAF9F5;        /* Lighter cream */
-  --black: #4A3F42;        /* Warm dark text */
-  --pink: #B8A5B0;         /* Soft lilac */
-  --gold: #B8D4E3;         /* Powder blue accent */
-  --forest: #6E5A54;       /* Plum brown reddish */
+  /* Estate Theme - Private Secretary Office */
+  --bg: 36 24% 95%;           /* parchment / bone */
+  --surface: 36 18% 93%;      /* slightly deeper parchment */
+  --surface-2: 36 14% 90%;    /* cards / panels */
+  
+  --ink: 0 0% 10%;            /* near-black ink */
+  --muted-ink: 0 0% 23%;      /* warm charcoal */
+  --faint-ink: 0 0% 35%;      /* subtle */
+  
+  --brass: 42 33% 57%;        /* aged brass */
+  --oxblood: 0 50% 24%;       /* focus-only */
+  
+  --hairline: 36 10% 84%;     /* borders */
+  --hairline-2: 36 8% 78%;    /* stronger borders */
+  
+  --tracking-tight: -0.02em;
+  --radius: 6px;
+  
+  /* Legacy colors for compatibility */
+  --powder-blue: hsl(36 24% 95%);
+  --cream: hsl(36 18% 93%);
+  --black: hsl(0 0% 10%);
+  --pink: hsl(42 33% 57%);
+  --gold: hsl(42 33% 57%);
+  --forest: hsl(0 50% 24%);
 
-  /* Mapped to shadcn/ui variables where appropriate */
-  --background: #F4F2EC;   /* True cream background */
-  --foreground: #4A3F42;   /* Warm dark text */
+  /* Shadcn/ui mapped variables */
+  --background: hsl(36 24% 95%);
+  --foreground: hsl(0 0% 10%);
 
-  --card: #FDFCF9;
-  --card-foreground: #4A3F42;
+  --card: hsl(36 18% 93%);
+  --card-foreground: hsl(0 0% 10%);
 
-  --popover: #FDFCF9;
-  --popover-foreground: #4A3F42;
+  --popover: hsl(36 18% 93%);
+  --popover-foreground: hsl(0 0% 10%);
 
-  --primary: #6E5A54;
-  --primary-foreground: #FAF9F5;
+  --primary: hsl(0 0% 10%);
+  --primary-foreground: hsl(36 24% 95%);
 
-  --secondary: #F4F2EC;
-  --secondary-foreground: #4A3F42;
+  --secondary: hsl(36 14% 90%);
+  --secondary-foreground: hsl(0 0% 10%);
 
-  --muted: #FAF9F5;
-  --muted-foreground: #7A6E70;
+  --muted: hsl(36 14% 90%);
+  --muted-foreground: hsl(0 0% 35%);
 
-  --accent: #B8A5B0;
-  --accent-foreground: #4A3F42;
+  --accent: hsl(42 33% 57%);
+  --accent-foreground: hsl(0 0% 10%);
 
-  --destructive: #C45B5B;
-  --destructive-foreground: #ffffff;
+  --destructive: hsl(0 50% 24%);
+  --destructive-foreground: hsl(36 24% 95%);
 
-  --border: #DDD9D0;
-  --input: #FAF9F5;
-  --ring: #B8A5B0;
-
-  --radius: 0.5rem;
+  --border: hsl(36 10% 84%);
+  --input: hsl(36 18% 93%);
+  --ring: hsl(0 50% 24%);
 }
 
 @layer base {
+  html { scroll-behavior: smooth; }
   * {
     border-color: var(--border);
   }
   body {
-    @apply font-sans antialiased bg-powder-blue text-black;
+    background: hsl(var(--bg));
+    color: hsl(var(--ink));
+    font-family: "Inter", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Fraunces", Georgia, serif;
+    letter-spacing: var(--tracking-tight);
+  }
+  a {
+    text-underline-offset: 4px;
+    text-decoration-thickness: 1px;
   }
 }
 
 @layer utilities {
+  /* Estate theme utilities */
+  .estate-container { 
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    max-width: 1100px;
+  }
+  @media (min-width: 640px) {
+    .estate-container {
+      padding-left: 2.5rem;
+      padding-right: 2.5rem;
+    }
+  }
+  
+  .estate-prose { 
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 70ch;
+  }
+  
+  .hairline { 
+    box-shadow: 0 1px 0 hsl(var(--hairline) / 0.7);
+  }
+  
+  .shadow-estate {
+    box-shadow: 0 10px 30px hsl(var(--ink) / 0.06);
+  }
+
   .font-script {
     font-family: 'Pinyon Script', cursive;
     font-style: normal;
   }
   
   .font-elegant {
-    font-family: 'Libre Baskerville', serif;
+    font-family: 'Fraunces', Georgia, serif;
     font-weight: 400;
   }
 
   .font-header {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Fraunces', Georgia, serif;
   }
   
   .silk-texture {
