@@ -24,7 +24,7 @@ Beauvette Secretary is a white-label booking system where bridal artists get the
 
 ### Zero-Login Architecture
 - Clients never create accounts
-- Everything uses tokenized URLs (thread links, contract signing, invoice payment)
+- Everything uses private links (thread links, contract signing, invoice payment)
 - Client clicks link in email → web form → done
 
 ### The Triple Flywheel (Trusted Circle)
@@ -34,7 +34,7 @@ Beauvette Secretary is a white-label booking system where bridal artists get the
 
 ### What Each Artist Gets
 - `/inquire/{slug}` - Their branded inquiry form
-- `/inquiry/{threadToken}` - Private thread for managing each inquiry (tokenized, magic link)
+- `/inquiry/{threadToken}` - Private thread for managing each inquiry (magic link)
 - `/admin/{slug}` - Their dashboard
 - `/admin/{slug}/settings` - Auto-responder, info sheet, pricing
 - `/admin/{slug}/calendar` - Block dates

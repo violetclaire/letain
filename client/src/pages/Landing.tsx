@@ -37,7 +37,7 @@ const CONTENT = {
         number: "03",
         title: "Manage from your dashboard",
         body: "All inquiries flow to one place. Accept, refer, or decline. Clients never create accounts.",
-        subBody: "Tokenized links handle everything."
+        subBody: "Private links do the work for you."
       }
     ]
   },
@@ -46,7 +46,7 @@ const CONTENT = {
     bullets: [
       "Your own inquiry link and embed code",
       "Works with your existing website",
-      "Zero-login for clients, tokenized links",
+      "No accounts for clients to create",
       "Refer to your trusted circle when booked"
     ],
     primaryCta: "Get your secretary",
