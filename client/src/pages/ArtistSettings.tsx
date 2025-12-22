@@ -29,8 +29,10 @@ export default function ArtistSettings() {
   const searchParams = new URLSearchParams(window.location.search);
   const token = searchParams.get("token") || "";
   
-  // Use current origin for links - works in dev and production
+  // Use current origin for internal links
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://beauvette.app';
+  // Production URL for embed code (artists paste this into their external website)
+  const embedApiUrl = 'https://beauvette.app';
 
   const [uploading, setUploading] = useState(false);
 
@@ -285,23 +287,59 @@ export default function ArtistSettings() {
               <h2 className="text-lg font-serif text-[#6B4A55]">Your Contact Form</h2>
             </div>
             <p className="text-gray-600 text-sm mb-6">
-              Add this to your website's contact page. Clients stay on your site, see your brand. We handle everything invisibly.
+              Add this to your website's contact page. Clients stay on your site, see your brand. No redirects, no Beauvette branding visible anywhere.
             </p>
             
             <div className="space-y-4">
                 <div className="bg-[#1a1a1a] rounded-lg p-4 overflow-x-auto">
                   <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap break-all">
-{`<form action="${baseUrl}/api/public/contact-webhook" method="POST">
-  <input type="hidden" name="artistSlug" value="${settings.artistSlug}" />
-  <input type="hidden" name="source" value="website" />
-  
+{`<!-- Contact Form - Style however you want! -->
+<form id="contact-form">
   <input type="text" name="clientName" placeholder="Your name" required />
   <input type="email" name="clientEmail" placeholder="Email" required />
   <input type="date" name="eventDate" />
   <textarea name="message" placeholder="Tell me about your event"></textarea>
-  
   <button type="submit">Submit Inquiry</button>
-</form>`}
+</form>
+<div id="form-success" style="display:none;">
+  Thank you! I'll respond shortly.
+</div>
+
+<script>
+document.getElementById('contact-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const btn = form.querySelector('button[type="submit"]');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  
+  try {
+    const res = await fetch('${embedApiUrl}/api/public/contact-webhook', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        artistSlug: '${settings.artistSlug}',
+        source: 'website',
+        clientName: form.clientName.value,
+        clientEmail: form.clientEmail.value,
+        eventDate: form.eventDate.value,
+        message: form.message.value
+      })
+    });
+    
+    if (res.ok) {
+      form.style.display = 'none';
+      document.getElementById('form-success').style.display = 'block';
+    } else {
+      throw new Error('Failed');
+    }
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Submit Inquiry';
+    alert('Something went wrong. Please try again.');
+  }
+});
+</script>`}
                   </pre>
                 </div>
                 <div className="flex items-center gap-2 mt-3">
@@ -309,17 +347,53 @@ export default function ArtistSettings() {
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      const embedCode = `<form action="${baseUrl}/api/public/contact-webhook" method="POST">
-  <input type="hidden" name="artistSlug" value="${settings.artistSlug}" />
-  <input type="hidden" name="source" value="website" />
-  
+                      const embedCode = `<!-- Contact Form - Style however you want! -->
+<form id="contact-form">
   <input type="text" name="clientName" placeholder="Your name" required />
   <input type="email" name="clientEmail" placeholder="Email" required />
   <input type="date" name="eventDate" />
   <textarea name="message" placeholder="Tell me about your event"></textarea>
-  
   <button type="submit">Submit Inquiry</button>
-</form>`;
+</form>
+<div id="form-success" style="display:none;">
+  Thank you! I'll respond shortly.
+</div>
+
+<script>
+document.getElementById('contact-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const btn = form.querySelector('button[type="submit"]');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  
+  try {
+    const res = await fetch('${embedApiUrl}/api/public/contact-webhook', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        artistSlug: '${settings.artistSlug}',
+        source: 'website',
+        clientName: form.clientName.value,
+        clientEmail: form.clientEmail.value,
+        eventDate: form.eventDate.value,
+        message: form.message.value
+      })
+    });
+    
+    if (res.ok) {
+      form.style.display = 'none';
+      document.getElementById('form-success').style.display = 'block';
+    } else {
+      throw new Error('Failed');
+    }
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Submit Inquiry';
+    alert('Something went wrong. Please try again.');
+  }
+});
+<\/script>`;
                       navigator.clipboard.writeText(embedCode);
                       toast({ title: "Embed code copied!" });
                     }}
@@ -331,7 +405,7 @@ export default function ArtistSettings() {
                   </Button>
                 </div>
                 <p className="text-xs text-gray-500 mt-3">
-                  Style this form however you want. Just keep the hidden fields and form action URL.
+                  Style the form and success message however you want. Client never leaves your site, never sees any redirect.
                 </p>
             </div>
           </section>

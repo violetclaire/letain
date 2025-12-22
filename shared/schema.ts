@@ -189,6 +189,7 @@ export const artistProfiles = pgTable("artist_profiles", {
   slaTargets: jsonb("sla_targets").$type<VendorSlaTargets>(),
   onboardingPreferences: jsonb("onboarding_preferences").$type<VendorOnboardingPreferences>(),
   editToken: varchar("edit_token").unique(),
+  formSuccessMessage: text("form_success_message"), // Custom success message for embed form
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
