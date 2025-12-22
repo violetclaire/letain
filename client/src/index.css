@@ -150,6 +150,14 @@
     margin-left: auto;
     margin-right: auto;
     max-width: 70ch;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+  @media (min-width: 768px) {
+    .estate-prose {
+      padding-left: 3rem;
+      padding-right: 3rem;
+    }
   }
   
   .hairline { 

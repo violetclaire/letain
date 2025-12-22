@@ -70,7 +70,7 @@ const CONTENT = {
 const fadeIn = {
   initial: { opacity: 0, y: 8 },
   animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.3, ease: "easeOut" }
+  transition: { duration: 0.3, ease: [0, 0, 0.2, 1] as const }
 };
 
 export default function Landing() {
@@ -309,7 +309,7 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="estate-prose py-12 text-sm text-mutedink">
+      <footer className="estate-prose py-12 pb-20 md:pb-16 text-sm text-mutedink">
         <div className="flex gap-6">
           <a 
             href="https://www.instagram.com/beauvetteapp" 
