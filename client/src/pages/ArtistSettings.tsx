@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Upload, FileText, Check, ArrowLeft, Image, ExternalLink, Loader2, Copy, Link, Code } from "lucide-react";
+import { Upload, FileText, Check, ArrowLeft, Image, ExternalLink, Loader2, Copy, Code } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -281,50 +281,14 @@ export default function ArtistSettings() {
 
           <section className="bg-white rounded-xl p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
-              <Link className="w-5 h-5 text-[#6B4A55]" />
-              <h2 className="text-lg font-serif text-[#6B4A55]">Your Secretary Links</h2>
+              <Code className="w-5 h-5 text-[#6B4A55]" />
+              <h2 className="text-lg font-serif text-[#6B4A55]">Your Contact Form</h2>
             </div>
             <p className="text-gray-600 text-sm mb-6">
-              Two ways to connect your secretary to clients. Both are invisible to your clients.
+              Add this to your website's contact page. Clients stay on your site, see your brand. We handle everything invisibly.
             </p>
             
-            <div className="space-y-6">
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs font-medium uppercase tracking-wide text-[#6B4A55]">Direct Link</span>
-                  <span className="text-xs text-gray-400">for emails & DMs</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 text-[#6B4A55] font-mono text-sm bg-[#FAF8F5] px-3 py-2 rounded border break-all">
-                    {baseUrl}/inquire/{settings.artistSlug}
-                  </code>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${baseUrl}/inquire/${settings.artistSlug}`);
-                      toast({ title: "Link copied!" });
-                    }}
-                    className="flex-shrink-0"
-                    data-testid="button-copy-direct-link"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </Button>
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Paste this in emails or DMs. Clients fill out your form, you get notified.
-                </p>
-              </div>
-              
-              <div className="border-t border-gray-100 pt-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <Code className="w-4 h-4 text-[#6B4A55]" />
-                  <span className="text-xs font-medium uppercase tracking-wide text-[#6B4A55]">Embed Code</span>
-                  <span className="text-xs text-gray-400">for your website</span>
-                </div>
-                <p className="text-sm text-gray-600 mb-3">
-                  Add this to your contact page. Your clients never leave your site. They see your form, your brand. We handle everything behind the scenes.
-                </p>
+            <div className="space-y-4">
                 <div className="bg-[#1a1a1a] rounded-lg p-4 overflow-x-auto">
                   <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap break-all">
 {`<form action="${baseUrl}/api/public/contact-webhook" method="POST">
@@ -369,7 +333,6 @@ export default function ArtistSettings() {
                 <p className="text-xs text-gray-500 mt-3">
                   Style this form however you want. Just keep the hidden fields and form action URL.
                 </p>
-              </div>
             </div>
           </section>
         </motion.div>
