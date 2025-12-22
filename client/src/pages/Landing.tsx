@@ -52,11 +52,11 @@ const CONTENT = {
     primaryCta: "Get your secretary",
   },
   clients: {
-    title: "For Those Seeking Excellence",
+    title: "Clients",
     tagline: "Thank you for your patience.",
-    subTagline: "You're working with real artists, not algorithms. They're building something new here. Your grace gives them room to create.",
+    subTagline: "This is the first platform for artists and their clients. Please add your name to the waitlist when we are ready to launch Volume II.",
     bullets: [],
-    cta: "Find an artist"
+    cta: "Join the waitlist"
   },
   footer: {
     links: ["Instagram", "Contact", "Privacy", "Terms"],
@@ -143,7 +143,7 @@ export default function Landing() {
                 className="text-xs uppercase tracking-[0.2em] text-[#1A1A1A]/60 hover:text-[#5A1F2B] transition-colors duration-300"
                 data-testid="link-for-clients"
               >
-                For Those Seeking
+                Clients
               </button>
               <button
                 onClick={() => setLocation("/secretary")}
