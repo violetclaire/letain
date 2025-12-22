@@ -52,8 +52,9 @@ const CONTENT = {
     primaryCta: "Get your secretary",
   },
   clients: {
-    title: "For Clients",
-    tagline: "Book your artist with confidence.",
+    title: "For Those Seeking Excellence",
+    tagline: "Thank you for your patience.",
+    subTagline: "You're working with real artists, not algorithms. They're building something new here. Your grace gives them room to create.",
     bullets: [
       "Simple inquiry form — no DM chaos.",
       "Clear pricing and contracts upfront."
@@ -375,22 +376,22 @@ export default function Landing() {
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.8 }}
           >
-            <span className="text-xs uppercase tracking-[0.3em] text-[#5A1F2B]/60 mb-4 block">
-              For Those Seeking Excellence
-            </span>
-            <h2 className="font-serif text-4xl md:text-5xl lg:text-6xl text-[#1A1A1A] font-light mb-8">
+            <h2 className="font-serif text-4xl md:text-5xl lg:text-6xl text-[#1A1A1A] font-light mb-6">
               {CONTENT.clients.title}
             </h2>
+            <p className="font-serif text-2xl md:text-3xl text-[#5A1F2B] mb-4 italic">
+              {CONTENT.clients.tagline}
+            </p>
           </motion.div>
 
           <motion.p 
-            className="font-serif text-xl md:text-2xl text-[#1A1A1A]/70 mb-10 max-w-2xl mx-auto leading-relaxed"
+            className="text-lg md:text-xl text-[#1A1A1A]/70 mb-12 max-w-2xl mx-auto leading-relaxed"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
-            {CONTENT.clients.tagline}
+            {CONTENT.clients.subTagline}
           </motion.p>
 
           <motion.div 
