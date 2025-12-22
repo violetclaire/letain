@@ -9,7 +9,7 @@ const CONTENT = {
     cta: "Get your private link"
   },
   hero: {
-    label: "Built by an artist, for artists",
+    label: "Built by an artist, for artists.",
     h1: "The invisible layer behind your business.",
     subline: "We were taught to do it all ourselves. That was never independence—it was exhaustion.",
     notList: [
@@ -26,41 +26,51 @@ const CONTENT = {
       {
         num: "01",
         title: "Your link, your brand",
-        body: "Add your link to your site, email, or replies. Clients see your name, your form—never ours."
+        body: "Embed our form on your contact page—clients fill it out without leaving your site. Or share your link when someone emails or DMs you. Either way: clients see your name, your form—never ours."
       },
       {
         num: "02",
         title: "Everything stays together",
-        body: "Inquiries, contracts, payments—organized automatically. You focus on the work."
+        body: "Inquiries, contracts, payments, organized automatically. You respond from your inbox. We handle execution."
       },
       {
         num: "03",
         title: "You decide once",
-        body: "Accept, refer, or decline. We handle the follow-through."
+        decisions: [
+          { action: "Accept", result: "Contract and invoice sent automatically" },
+          { action: "Refer", result: "Client introduced to artist you trust" },
+          { action: "Decline", result: "Professional response handled for you" }
+        ]
       }
     ]
   },
   network: {
     headline: "Independence doesn't mean isolation.",
     body: "When you're booked, refer clients to artists you trust—without losing the relationship.",
-    description: "A private, artist-led network designed around reputation, reciprocity, and real independence.",
+    description: "A private, artist-led network built on reputation and reciprocity.",
+    tagline: "Real independence.",
     notList: [
-      "Not rankings.",
-      "Not bidding.",
-      "Not a race to the bottom."
+      "Not rankings",
+      "Not bidding",
+      "Not a race to the bottom"
     ]
   },
   privacy: {
     headline: "Your clients. Your data.",
     points: [
-      "No client accounts to create.",
-      "No resale of data.",
-      "No competing brand in their inbox."
+      "Clients never create accounts",
+      "We never contact your clients",
+      "Your business name on every contract and invoice",
+      "No competing brand in their inbox"
     ]
   },
   pricing: {
-    headline: "Start free. Earn when you do.",
-    body: "1% only when transactions happen."
+    headline: "We earn when you do.",
+    fee: "1% infrastructure fee on completed bookings.",
+    noSubscription: "No subscriptions. No monthly charges.",
+    example: "$500 booking = $5 Beauvette fee",
+    keepLine: "You keep the relationship, the data, and 99% of revenue.",
+    comparison: "Compare to marketplace platforms: 70-80% after their 20-30% cut."
   },
   footer: {
     links: ["Instagram", "Contact", "Privacy"],
@@ -243,7 +253,18 @@ export default function Landing() {
             >
               <div className="text-xs tracking-[0.16em] uppercase text-mutedink">{step.num}</div>
               <div className="mt-2 font-serif text-xl tracking-tight">{step.title}</div>
-              <p className="mt-3 text-mutedink leading-relaxed">{step.body}</p>
+              {'body' in step && <p className="mt-3 text-mutedink leading-relaxed">{step.body}</p>}
+              {'decisions' in step && step.decisions && (
+                <div className="mt-4 space-y-2">
+                  {step.decisions.map((decision: { action: string; result: string }, i: number) => (
+                    <div key={i} className="flex items-start gap-3 text-mutedink">
+                      <span className="font-medium text-ink min-w-[70px]">{decision.action}</span>
+                      <span className="text-faintink">→</span>
+                      <span>{decision.result}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </motion.div>
           ))}
         </div>
@@ -278,15 +299,24 @@ export default function Landing() {
         >
           {CONTENT.network.description}
         </motion.p>
-        <motion.ul 
-          className="mt-6 space-y-2 text-mutedink"
+        <motion.p 
+          className="mt-4 font-serif text-xl tracking-tight"
           initial={{ opacity: 0, y: 8 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.2, duration: 0.3, ease: "easeOut" }}
         >
+          {CONTENT.network.tagline}
+        </motion.p>
+        <motion.ul 
+          className="mt-8 space-y-1 text-mutedink"
+          initial={{ opacity: 0, y: 8 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.25, duration: 0.3, ease: "easeOut" }}
+        >
           {CONTENT.network.notList.map((line, i) => (
-            <li key={i}>{line}</li>
+            <li key={i} className="text-faintink">{line}</li>
           ))}
         </motion.ul>
       </section>
@@ -327,13 +357,49 @@ export default function Landing() {
           {CONTENT.pricing.headline}
         </motion.h2>
         <motion.p 
-          className="mt-4 text-mutedink"
+          className="mt-4 text-lg text-ink"
           initial={{ opacity: 0, y: 8 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.1, duration: 0.3, ease: "easeOut" }}
         >
-          {CONTENT.pricing.body}
+          {CONTENT.pricing.fee}
+        </motion.p>
+        <motion.p 
+          className="mt-2 text-mutedink"
+          initial={{ opacity: 0, y: 8 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.15, duration: 0.3, ease: "easeOut" }}
+        >
+          {CONTENT.pricing.noSubscription}
+        </motion.p>
+        <motion.p 
+          className="mt-6 font-serif text-xl text-ink"
+          initial={{ opacity: 0, y: 8 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.2, duration: 0.3, ease: "easeOut" }}
+        >
+          {CONTENT.pricing.example}
+        </motion.p>
+        <motion.p 
+          className="mt-4 text-mutedink leading-relaxed"
+          initial={{ opacity: 0, y: 8 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.25, duration: 0.3, ease: "easeOut" }}
+        >
+          {CONTENT.pricing.keepLine}
+        </motion.p>
+        <motion.p 
+          className="mt-6 text-faintink text-sm"
+          initial={{ opacity: 0, y: 8 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.3, duration: 0.3, ease: "easeOut" }}
+        >
+          {CONTENT.pricing.comparison}
         </motion.p>
       </section>
 
