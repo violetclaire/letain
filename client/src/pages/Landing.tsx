@@ -95,7 +95,7 @@ export default function Landing() {
       {/* Top Bar */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-bg/95 backdrop-blur-sm">
         <div className="estate-container flex items-center justify-between py-8">
-          <div className="font-script text-2xl">Beauvette</div>
+          <div className="font-serif text-xl tracking-tight">Beauvette</div>
           <button
             onClick={() => setLocation("/secretary")}
             className="hidden md:block border border-hairline px-3 py-1.5 text-sm hover:bg-surface focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70 transition-colors"
