@@ -100,10 +100,10 @@ const CONTENT = {
     tagline: "Because independence only works if ownership is real."
   },
   pricing: {
-    headline: "Start free.",
-    body: "Beauvette earns when you do.",
-    description: "A small percentage, only when transactions happen.",
-    tagline: "No subscription required to begin."
+    headline: "1% only when transactions happen.",
+    body: "The Beauvette Secretary learns over time, and just gets more efficient.",
+    description: "You're still in the loop, just making your life easier to be an artist and a business owner.",
+    tagline: ""
   },
   finalCta: {
     headline: "You don't need to work harder.",
