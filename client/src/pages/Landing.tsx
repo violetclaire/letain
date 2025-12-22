@@ -10,7 +10,7 @@ const CONTENT = {
   },
   hero: {
     label: "Private operating layer",
-    h1: "Beauvette is the private operating layer for independent beauty businesses.",
+    h1: "Beauvette is the operating layer for independent beauty businesses.",
     notList: [
       "Not a booking app.",
       "Not a marketplace.",
