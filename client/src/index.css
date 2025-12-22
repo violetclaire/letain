@@ -137,16 +137,15 @@
     position: fixed;
     inset: 0;
     pointer-events: none;
-    z-index: 30;
+    z-index: 10;
     background-image: repeating-linear-gradient(
       90deg,
-      rgba(0, 0, 0, 0.18) 0px,
-      rgba(0, 0, 0, 0.18) 1px,
-      rgba(0, 0, 0, 0) 8px,
-      rgba(0, 0, 0, 0) 16px
+      rgba(0, 0, 0, 0.12) 0px,
+      rgba(0, 0, 0, 0.12) 1px,
+      transparent 1px,
+      transparent 16px
     );
-    opacity: 0.025;
-    mix-blend-mode: soft-light;
+    opacity: 0.15;
   }
 
   .estate-container { 
