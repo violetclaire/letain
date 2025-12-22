@@ -159,7 +159,7 @@ export default function Landing() {
         />
         {/* Film grain overlay */}
         <div 
-          className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay"
+          className="absolute inset-0 pointer-events-none opacity-40 mix-blend-overlay"
           style={{
             backgroundImage: 'url(/attached_assets/u4728191363_seamless_film_grain_texture_velvet_like_monochrom__1766382482759.png)',
             backgroundRepeat: 'repeat',
