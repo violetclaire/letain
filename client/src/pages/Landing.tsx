@@ -108,13 +108,22 @@ export default function Landing() {
       <header className="fixed top-0 left-0 right-0 z-40 bg-bg/95 backdrop-blur-sm">
         <div className="estate-container flex items-center justify-between py-8">
           <div className="font-serif text-xl tracking-tight">Beauvette</div>
-          <button
-            onClick={() => setLocation("/secretary")}
-            className="hidden md:block border border-hairline px-3 py-1.5 text-sm hover:bg-surface focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70 transition-colors"
-            data-testid="button-nav-cta"
-          >
-            {CONTENT.nav.cta}
-          </button>
+          <nav className="hidden md:flex items-center gap-6">
+            <button
+              onClick={() => setLocation("/login")}
+              className="text-sm text-muted-ink hover:text-ink transition-colors"
+              data-testid="button-nav-login"
+            >
+              Log in
+            </button>
+            <button
+              onClick={() => setLocation("/secretary")}
+              className="bg-ink text-bg px-4 py-2 text-sm hover:bg-ink/90 transition-colors"
+              data-testid="button-nav-cta"
+            >
+              Get started
+            </button>
+          </nav>
           <button 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="md:hidden p-2 -mr-2"
@@ -137,18 +146,18 @@ export default function Landing() {
             >
               <div className="flex flex-col items-center justify-center h-full gap-8">
                 <button
-                  onClick={() => { setMobileMenuOpen(false); setLocation("/secretary"); }}
+                  onClick={() => { setMobileMenuOpen(false); setLocation("/login"); }}
                   className="text-lg"
-                  data-testid="button-mobile-get-link"
+                  data-testid="button-mobile-login"
                 >
-                  Get your private link
+                  Log in
                 </button>
                 <button
-                  onClick={() => { setMobileMenuOpen(false); setLocation("/login"); }}
-                  className="text-lg text-mutedink"
-                  data-testid="button-mobile-sign-in"
+                  onClick={() => { setMobileMenuOpen(false); setLocation("/secretary"); }}
+                  className="text-lg font-medium"
+                  data-testid="button-mobile-get-started"
                 >
-                  Sign in
+                  Get started
                 </button>
               </div>
             </motion.div>
