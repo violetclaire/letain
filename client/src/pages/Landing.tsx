@@ -145,7 +145,7 @@ export default function Landing() {
       </header>
 
       {/* Hero Section - Dark Pinstripe */}
-      <section className="relative min-h-screen flex flex-col justify-center bg-[#1a1a1a] text-[#f5f3ef] -mx-6 md:-mx-12 px-6 md:px-12">
+      <section className="relative min-h-screen flex flex-col justify-center bg-[#3d1a22] text-[#f5f3ef] -mx-6 md:-mx-12 px-6 md:px-12">
         {/* Pinstripe fabric texture */}
         <div 
           className="absolute inset-0 pointer-events-none opacity-35"
