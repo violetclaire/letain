@@ -10,15 +10,20 @@ let _pool: Pool | null = null;
 let _db: NeonDatabase<typeof schema> | null = null;
 let _initialized = false;
 
+function cleanDatabaseUrl(url: string): string {
+  // Clean up the URL if it has psql prefix or quotes
+  return url.replace(/^psql\s*/, '').replace(/^['"\s]+/, '').replace(/['"\s]+$/, '').trim();
+}
+
 function getDatabaseUrl(): string {
   const isProduction = process.env.NODE_ENV === 'production';
   
   if (isProduction && process.env.PRODUCTION_DATABASE_URL) {
-    return process.env.PRODUCTION_DATABASE_URL;
+    return cleanDatabaseUrl(process.env.PRODUCTION_DATABASE_URL);
   }
   
   if (process.env.DATABASE_URL) {
-    return process.env.DATABASE_URL;
+    return cleanDatabaseUrl(process.env.DATABASE_URL);
   }
   
   throw new Error(

@@ -5,6 +5,10 @@ import * as schema from "@shared/schema";
 
 neonConfig.webSocketConstructor = ws;
 
+function cleanDatabaseUrl(url: string): string {
+  return url.replace(/^psql\s*/, '').replace(/^['"\s]+/, '').replace(/['"\s]+$/, '').trim();
+}
+
 async function migrateData() {
   const devUrl = process.env.DATABASE_URL;
   const prodUrl = process.env.PRODUCTION_DATABASE_URL;
@@ -19,12 +23,15 @@ async function migrateData() {
     process.exit(1);
   }
 
+  const cleanDevUrl = cleanDatabaseUrl(devUrl);
+  const cleanProdUrl = cleanDatabaseUrl(prodUrl);
+
   console.log("Connecting to development database...");
-  const devPool = new Pool({ connectionString: devUrl });
+  const devPool = new Pool({ connectionString: cleanDevUrl });
   const devDb = drizzle({ client: devPool, schema });
 
   console.log("Connecting to production database...");
-  const prodPool = new Pool({ connectionString: prodUrl });
+  const prodPool = new Pool({ connectionString: cleanProdUrl });
   const prodDb = drizzle({ client: prodPool, schema });
 
   try {
