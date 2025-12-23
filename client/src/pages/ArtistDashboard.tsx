@@ -1180,7 +1180,7 @@ export default function ArtistDashboard() {
         setContractSigningUrl(data.signingUrl);
         toast({
           title: "Contract Tracked!",
-          description: "Your DocuSign contract is now being tracked in Beauvette.",
+          description: "Your DocuSign contract is now being tracked.",
         });
         setShowDocusignModal(false);
         setPendingBookingId(null);
@@ -2233,10 +2233,10 @@ export default function ArtistDashboard() {
               />
               <div>
                 <h1 className="font-script text-3xl ink-main">
-                  Beauvette
+                  Your Secretary
                 </h1>
                 <p className="mt-1 text-[0.7rem] uppercase tracking-[0.22em] ink-soft">
-                  Your Private Secretary
+                  Private Booking Assistant
                 </p>
                 <p className="mt-2 font-script text-xl ink-main">
                   Bonjour, {user?.firstName || 'there'}
@@ -2297,7 +2297,7 @@ export default function ArtistDashboard() {
                 )}
               </div>
               <div className="flex-1">
-                <h1 className="font-script text-2xl ink-main">Beauvette</h1>
+                <h1 className="font-script text-2xl ink-main">Your Secretary</h1>
                 <p className="font-script text-lg ink-main">Bonjour, {user?.firstName || 'there'}</p>
               </div>
               <button
@@ -2377,12 +2377,12 @@ export default function ArtistDashboard() {
                   </h2>
                   <p className="text-xs ink-soft mt-1">Share this link so clients can book with you directly</p>
                   <p className="text-xs font-mono bg-white px-2 py-1 rounded mt-2 border border-[#e5e8f2] inline-block" data-testid="text-schedule-url">
-                    beauvette.com/{user?.artistSlug || user?.id}
+                    dateinquiry.com/{user?.artistSlug || user?.id}
                   </p>
                 </div>
                 <button
                   onClick={() => {
-                    const url = `https://beauvette.com/${user?.artistSlug || user?.id}`;
+                    const url = `https://dateinquiry.com/${user?.artistSlug || user?.id}`;
                     navigator.clipboard.writeText(url);
                     toast({
                       title: "Link Copied!",
@@ -4237,7 +4237,7 @@ export default function ArtistDashboard() {
               <h3 className="font-header text-lg ink-main">DocuSign Contract</h3>
             </div>
             <p className="text-xs ink-soft mb-4">
-              Have you created and sent this envelope in DocuSign? Click "Confirm" to track this contract in Beauvette.
+              Have you created and sent this envelope in DocuSign? Click "Confirm" to track this contract.
             </p>
             <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-4">
               <p className="text-[0.65rem] text-blue-900">
@@ -4286,7 +4286,7 @@ export default function ArtistDashboard() {
               <h3 className="font-header text-lg ink-main">Invite Your Clients</h3>
             </div>
             <p className="text-xs ink-soft mb-4">
-              Invite your current clients to chat and collaborate on Beauvette. They'll receive an invite link to join and start chatting with you about their events.
+              Invite your current clients to chat and collaborate. They'll receive an invite link to join and start chatting with you about their events.
             </p>
             <div className="space-y-3 mb-4">
               <div>
@@ -4349,7 +4349,7 @@ export default function ArtistDashboard() {
                       const data = await res.json();
                       toast({
                         title: "Invite Sent!",
-                        description: `${inviteEmail} will receive an email with a link to chat and collaborate on Beauvette.`,
+                        description: `${inviteEmail} will receive an email with a link to chat and collaborate with you.`,
                       });
                       setInviteEmail("");
                       setInviteClientName("");
@@ -4669,7 +4669,7 @@ export default function ArtistDashboard() {
             {!invoiceLink ? (
               <>
                 <p className="text-xs ink-soft mb-4">
-                  Generate a payment link to send to your client. Beauvette takes 1%, Square processing fees are separate.
+                  Generate a payment link to send to your client. 1% platform fee applies, Square processing fees are separate.
                 </p>
                 
                 <div className="space-y-4">
