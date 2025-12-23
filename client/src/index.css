@@ -52,60 +52,60 @@
 }
 
 :root {
-  /* Estate Theme - Private Secretary Office */
-  --bg: 36 24% 95%;           /* parchment / bone */
-  --surface: 36 18% 93%;      /* slightly deeper parchment */
-  --surface-2: 36 14% 90%;    /* cards / panels */
+  /* Estate Theme - Private Secretary Office (Darker, Business Professional) */
+  --bg: 36 12% 88%;           /* deeper parchment - more business */
+  --surface: 36 10% 85%;      /* card backgrounds - professional */
+  --surface-2: 36 8% 82%;     /* panels - solid business feel */
   
-  --ink: 0 0% 10%;            /* near-black ink */
-  --muted-ink: 0 0% 23%;      /* warm charcoal */
-  --faint-ink: 0 0% 35%;      /* subtle */
+  --ink: 0 0% 8%;             /* deep ink - authoritative */
+  --muted-ink: 0 0% 18%;      /* warm charcoal - readable */
+  --faint-ink: 0 0% 30%;      /* subtle but visible */
   
-  --brass: 42 33% 57%;        /* aged brass */
-  --oxblood: 0 50% 24%;       /* focus-only */
+  --brass: 38 35% 45%;        /* darker aged brass - more serious */
+  --oxblood: 0 55% 20%;       /* deeper oxblood - focus-only */
   
-  --hairline: 36 10% 84%;     /* borders */
-  --hairline-2: 36 8% 78%;    /* stronger borders */
+  --hairline: 36 8% 75%;      /* stronger borders */
+  --hairline-2: 36 6% 68%;    /* even stronger borders */
   
   --tracking-tight: -0.02em;
   --radius: 6px;
   
   /* Legacy colors for compatibility */
-  --powder-blue: hsl(36 24% 95%);
-  --cream: hsl(36 18% 93%);
-  --black: hsl(0 0% 10%);
-  --pink: hsl(42 33% 57%);
-  --gold: hsl(42 33% 57%);
-  --forest: hsl(0 50% 24%);
+  --powder-blue: hsl(36 12% 88%);
+  --cream: hsl(36 10% 85%);
+  --black: hsl(0 0% 8%);
+  --pink: hsl(38 35% 45%);
+  --gold: hsl(38 35% 45%);
+  --forest: hsl(0 55% 20%);
 
-  /* Shadcn/ui mapped variables */
-  --background: hsl(36 24% 95%);
-  --foreground: hsl(0 0% 10%);
+  /* Shadcn/ui mapped variables - Darker Business Professional */
+  --background: hsl(36 12% 88%);
+  --foreground: hsl(0 0% 8%);
 
-  --card: hsl(36 18% 93%);
-  --card-foreground: hsl(0 0% 10%);
+  --card: hsl(36 10% 85%);
+  --card-foreground: hsl(0 0% 8%);
 
-  --popover: hsl(36 18% 93%);
-  --popover-foreground: hsl(0 0% 10%);
+  --popover: hsl(36 10% 85%);
+  --popover-foreground: hsl(0 0% 8%);
 
-  --primary: hsl(0 0% 10%);
-  --primary-foreground: hsl(36 24% 95%);
+  --primary: hsl(0 0% 8%);
+  --primary-foreground: hsl(36 12% 88%);
 
-  --secondary: hsl(36 14% 90%);
-  --secondary-foreground: hsl(0 0% 10%);
+  --secondary: hsl(36 8% 82%);
+  --secondary-foreground: hsl(0 0% 8%);
 
-  --muted: hsl(36 14% 90%);
-  --muted-foreground: hsl(0 0% 35%);
+  --muted: hsl(36 8% 82%);
+  --muted-foreground: hsl(0 0% 30%);
 
-  --accent: hsl(42 33% 57%);
-  --accent-foreground: hsl(0 0% 10%);
+  --accent: hsl(38 35% 45%);
+  --accent-foreground: hsl(0 0% 8%);
 
-  --destructive: hsl(0 50% 24%);
-  --destructive-foreground: hsl(36 24% 95%);
+  --destructive: hsl(0 55% 20%);
+  --destructive-foreground: hsl(36 12% 88%);
 
-  --border: hsl(36 10% 84%);
-  --input: hsl(36 18% 93%);
-  --ring: hsl(0 50% 24%);
+  --border: hsl(36 8% 75%);
+  --input: hsl(36 10% 85%);
+  --ring: hsl(0 55% 20%);
 }
 
 @layer base {
@@ -132,7 +132,7 @@
 
 @layer utilities {
   /* Estate theme utilities */
-  /* Pinstripe overlay */
+  /* Pinstripe overlay - Professional Business Feel */
   .estate-pinstripe {
     position: fixed;
     inset: 0;
@@ -140,12 +140,12 @@
     z-index: 10;
     background-image: repeating-linear-gradient(
       90deg,
-      rgba(0, 0, 0, 0.12) 0px,
-      rgba(0, 0, 0, 0.12) 1px,
+      rgba(0, 0, 0, 0.15) 0px,
+      rgba(0, 0, 0, 0.15) 1px,
       transparent 1px,
-      transparent 16px
+      transparent 14px
     );
-    opacity: 0.25;
+    opacity: 0.35;
   }
 
   .estate-container { 
