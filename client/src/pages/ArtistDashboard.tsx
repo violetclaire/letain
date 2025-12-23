@@ -2232,13 +2232,13 @@ export default function ArtistDashboard() {
                 className="hidden" 
               />
               <div>
-                <h1 className="font-script text-3xl ink-main">
+                <h1 className="font-serif text-3xl tracking-tight ink-main">
                   Your Secretary
                 </h1>
                 <p className="mt-1 text-[0.7rem] uppercase tracking-[0.22em] ink-soft">
                   Private Booking Assistant
                 </p>
-                <p className="mt-2 font-script text-xl ink-main">
+                <p className="mt-2 font-serif text-xl ink-main">
                   Bonjour, {user?.firstName || 'there'}
                 </p>
               </div>
@@ -2297,8 +2297,8 @@ export default function ArtistDashboard() {
                 )}
               </div>
               <div className="flex-1">
-                <h1 className="font-script text-2xl ink-main">Your Secretary</h1>
-                <p className="font-script text-lg ink-main">Bonjour, {user?.firstName || 'there'}</p>
+                <h1 className="font-serif text-2xl tracking-tight ink-main">Your Secretary</h1>
+                <p className="font-serif text-lg ink-main">Bonjour, {user?.firstName || 'there'}</p>
               </div>
               <button
                 onClick={() => setShowComposeEmail(true)}
