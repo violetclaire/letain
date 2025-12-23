@@ -9874,29 +9874,32 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // Public artist onboarding
   app.post("/api/public/artists/onboard", async (req, res) => {
     try {
-      const { name, email, businessName, instagramHandle, tiktokHandle, pinterestHandle, 
+      const { name, email, businessName, customSlug, instagramHandle, tiktokHandle, pinterestHandle, 
               websiteUrl, bookedDates, pendingDates, referralArtists } = req.body;
       
-      if (!name || !businessName || !instagramHandle) {
-        return res.status(400).json({ error: "Name, business name, and Instagram handle are required" });
+      if (!name || !businessName) {
+        return res.status(400).json({ error: "Name and business name are required" });
       }
       
-      // Generate artist slug from Instagram handle
-      let artistSlug = instagramHandle.toLowerCase().replace(/[^a-z0-9]/g, '');
+      // Use custom slug if provided, otherwise generate from business name or Instagram
+      let artistSlug = customSlug 
+        ? customSlug.toLowerCase().replace(/[^a-z0-9]/g, '')
+        : (instagramHandle 
+            ? instagramHandle.toLowerCase().replace(/[^a-z0-9]/g, '')
+            : businessName.toLowerCase().replace(/[^a-z0-9]/g, ''));
       
-      // Check if slug already exists, add number suffix if needed
-      let existingProfile = await storage.getArtistProfileBySlug(artistSlug);
+      // Validate slug is not empty and has valid length
+      if (!artistSlug || artistSlug.length < 3) {
+        return res.status(400).json({ error: "Your URL must be at least 3 characters long" });
+      }
+      if (artistSlug.length > 40) {
+        return res.status(400).json({ error: "Your URL must be 40 characters or less" });
+      }
+      
+      // Check if slug already exists
+      const existingProfile = await storage.getArtistProfileBySlug(artistSlug);
       if (existingProfile) {
-        let suffix = 2;
-        while (existingProfile) {
-          const candidateSlug = `${artistSlug}${suffix}`;
-          existingProfile = await storage.getArtistProfileBySlug(candidateSlug);
-          if (!existingProfile) {
-            artistSlug = candidateSlug;
-            break;
-          }
-          suffix++;
-        }
+        return res.status(400).json({ error: "This URL is already taken. Please choose a different one." });
       }
       
       // Create user and profile using the public artist method

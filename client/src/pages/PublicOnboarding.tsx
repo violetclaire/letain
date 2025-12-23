@@ -9,6 +9,7 @@ interface OnboardingData {
   name: string;
   email: string;
   businessName: string;
+  customSlug: string;
   instagramHandle: string;
   tiktokHandle: string;
   pinterestHandle: string;
@@ -34,6 +35,7 @@ export default function PublicOnboarding() {
     name: "",
     email: "",
     businessName: "",
+    customSlug: "",
     instagramHandle: "",
     tiktokHandle: "",
     pinterestHandle: "",
@@ -58,8 +60,8 @@ export default function PublicOnboarding() {
     switch (step) {
       case 1: return data.name.trim().length > 0;
       case 2: return data.email.trim().length > 0 && data.email.includes('@');
-      case 3: return data.businessName.trim().length > 0;
-      case 4: return data.instagramHandle.trim().length > 0;
+      case 3: return data.businessName.trim().length > 0 && data.customSlug.trim().length > 0;
+      case 4: return true; // Instagram is now optional
       case 5: return true;
       case 6: return true;
       case 7: return data.referralArtists.filter(a => a.trim()).length > 0;
@@ -107,6 +109,7 @@ export default function PublicOnboarding() {
           name: data.name,
           email: data.email.trim().toLowerCase(),
           businessName: data.businessName,
+          customSlug: data.customSlug,
           instagramHandle: data.instagramHandle.replace("@", ""),
           tiktokHandle: data.tiktokHandle.replace("@", ""),
           pinterestHandle: data.pinterestHandle.replace("@", ""),
@@ -117,11 +120,11 @@ export default function PublicOnboarding() {
         })
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to create profile");
-      }
-
       const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to create profile");
+      }
       
       // If there's an info sheet file, upload it
       if (data.infoSheetFile && result.artistId) {
@@ -145,10 +148,10 @@ export default function PublicOnboarding() {
         setReferralResults(result.referralResults);
       }
       setIsComplete(true);
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to create your profile. Please try again.",
+        description: error.message || "Failed to create your profile. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -250,12 +253,32 @@ export default function PublicOnboarding() {
             <input
               type="text"
               value={data.businessName}
-              onChange={(e) => updateData("businessName", e.target.value)}
+              onChange={(e) => {
+                updateData("businessName", e.target.value);
+                if (!data.customSlug) {
+                  updateData("customSlug", e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''));
+                }
+              }}
               placeholder="Your business name"
               className="w-full px-4 py-3 text-lg border border-[#2C2C2C] bg-[#FAF9F7] text-[#2C2C2C] focus:outline-none focus:ring-1 focus:ring-[#2C2C2C]"
               autoFocus
               data-testid="input-business-name"
             />
+            <div>
+              <label className="text-xs text-[#666] mb-1 block">Your personal link (you can customize this)</label>
+              <div className="flex items-center border border-[#2C2C2C] bg-[#FAF9F7]">
+                <span className="px-3 py-3 text-[#999] text-sm border-r border-[#2C2C2C]">dateinquiry.com/</span>
+                <input
+                  type="text"
+                  value={data.customSlug}
+                  onChange={(e) => updateData("customSlug", e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
+                  placeholder="yourbusiness"
+                  className="flex-1 px-3 py-3 text-lg bg-transparent text-[#2C2C2C] focus:outline-none"
+                  data-testid="input-custom-slug"
+                />
+              </div>
+              <p className="text-xs text-[#999] mt-1">Letters and numbers only, no spaces</p>
+            </div>
           </motion.div>
         );
 
