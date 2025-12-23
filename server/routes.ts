@@ -10966,8 +10966,18 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // PRIVATE COORDINATION THREADS (White-Label)
   // ============================================================
   
+  // CORS preflight for intake endpoint (allows external websites to submit)
+  app.options("/api/intake", (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type");
+    res.sendStatus(204);
+  });
+  
   // POST /api/intake - Create a new thread from embedded form
   app.post("/api/intake", async (req, res) => {
+    // Enable CORS for external website embeds
+    res.header("Access-Control-Allow-Origin", "*");
     try {
       const { artistSlug, clientName, clientEmail, clientPhone, eventDate, eventType, serviceType, message } = req.body;
       
