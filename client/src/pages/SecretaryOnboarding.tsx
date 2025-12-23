@@ -45,7 +45,7 @@ export default function SecretaryOnboarding() {
       
       const escapeHtml = (str: string) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
       const successMessage = "Thank you! We'll be in touch soon.";
-      const baseUrl = data.baseUrl || window.location.origin;
+      const whitelabelDomain = "https://dateinquiry.com";
       const embedCode = `<!-- ${escapeHtml(formData.businessName)} Inquiry Form -->
 <form id="inquiry-form">
   <input type="text" name="clientName" placeholder="Your Name" required />
@@ -63,7 +63,7 @@ document.getElementById('inquiry-form').addEventListener('submit', async (e) => 
   btn.disabled = true;
   btn.textContent = 'Sending...';
   try {
-    const res = await fetch('${baseUrl}/api/intake', {
+    const res = await fetch('${whitelabelDomain}/api/intake', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -87,10 +87,10 @@ document.getElementById('inquiry-form').addEventListener('submit', async (e) => 
 });
 <\/script>`;
       
-      const inviteLink = `${baseUrl}/${data.artistSlug}`;
+      const inviteLink = `https://dateinquiry.com/${data.artistSlug}`;
       
       setResult({
-        adminLink: `${baseUrl}/artist`,
+        adminLink: `https://dateinquiry.com/artist`,
         businessName: formData.businessName,
         artistSlug: data.artistSlug,
         embedCode,
