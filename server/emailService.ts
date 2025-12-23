@@ -4,8 +4,11 @@ let connectionSettings: any;
 
 // Get the base URL for email links - always use production URL for client-facing links
 function getBaseUrl(): string {
-  return process.env.PUBLIC_BASE_URL || 'https://beauvette.app';
+  return process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
 }
+
+// White-label email sender - never show Beauvette branding
+const WHITELABEL_EMAIL_DOMAIN = 'dateinquiry.com';
 
 function sanitizeSenderName(name: string): string {
   return name
@@ -163,7 +166,7 @@ export async function sendScheduleEmail({
 
   console.log("=== SENDING EMAILS ===");
   console.log("To:", toEmails);
-  const senderEmail = `${sanitizeSenderName(senderName)} <violet@beauvette.com>`;
+  const senderEmail = `${sanitizeSenderName(senderName)} <notifications@dateinquiry.com>`;
   console.log("From:", senderEmail);
   
   const results = await Promise.allSettled(
@@ -338,7 +341,7 @@ export async function sendInfoSheetEmail({
     </html>
   `;
 
-  const senderEmail = `${sanitizeSenderName(vendorName)} <violet@beauvette.com>`;
+  const senderEmail = `${sanitizeSenderName(vendorName)} <notifications@dateinquiry.com>`;
   
   try {
     console.log("Sending info sheet email to:", toEmail);
@@ -432,7 +435,7 @@ export async function sendInvoiceEmail({
     </html>
   `;
 
-  const senderEmail = `${sanitizeSenderName(vendorName)} <violet@beauvette.com>`;
+  const senderEmail = `${sanitizeSenderName(vendorName)} <notifications@dateinquiry.com>`;
   
   try {
     console.log("Sending invoice email to:", toEmail);
@@ -530,7 +533,7 @@ export async function sendContractEmail({
     </html>
   `;
 
-  const senderEmail = `${sanitizeSenderName(senderName)} <violet@beauvette.com>`;
+  const senderEmail = `${sanitizeSenderName(senderName)} <notifications@dateinquiry.com>`;
   
   try {
     console.log("Sending contract email to:", toEmail);
@@ -636,7 +639,7 @@ export async function sendContractWithSigningLink({
     </html>
   `;
 
-  const senderEmail = `${sanitizeSenderName(senderName)} <violet@beauvette.com>`;
+  const senderEmail = `${sanitizeSenderName(senderName)} <notifications@dateinquiry.com>`;
   
   try {
     console.log("Sending contract with signing link to:", toEmail);
@@ -749,7 +752,7 @@ export async function sendContractSigningEmail({
     </html>
   `;
 
-  const senderEmail = `${sanitizeSenderName(artistName)} <violet@beauvette.com>`;
+  const senderEmail = `${sanitizeSenderName(artistName)} <notifications@dateinquiry.com>`;
   
   try {
     console.log("Sending contract signing email to:", toEmail);
@@ -852,7 +855,7 @@ export async function sendContractSignedNotification({
     </html>
   `;
 
-  const senderEmail = 'Beauvette <violet@beauvette.com>';
+  const senderEmail = 'Beauvette <notifications@dateinquiry.com>';
   
   try {
     console.log("Sending contract signed notification to:", toEmail);
@@ -986,7 +989,7 @@ export async function sendAppointmentConfirmationEmail({
     </html>
   `;
 
-  const senderEmail = `${sanitizeSenderName(artistBusinessName)} <violet@beauvette.com>`;
+  const senderEmail = `${sanitizeSenderName(artistBusinessName)} <notifications@dateinquiry.com>`;
   
   try {
     console.log("Sending appointment confirmation email to:", toEmail);
@@ -1089,7 +1092,7 @@ export async function sendChatInviteEmail({
     </html>
   `;
 
-  const senderEmail = `${sanitizeSenderName(vendorName)} <violet@beauvette.com>`;
+  const senderEmail = `${sanitizeSenderName(vendorName)} <notifications@dateinquiry.com>`;
   
   try {
     console.log("Sending chat invite email to:", toEmail);
@@ -1172,7 +1175,7 @@ export async function sendGeneralEmail({
     </html>
   `;
 
-  const senderEmail = `${safeSenderName} <violet@beauvette.com>`;
+  const senderEmail = `${safeSenderName} <notifications@dateinquiry.com>`;
   
   console.log("Sending general email to:", to);
   const result = await client.emails.send({
@@ -1343,7 +1346,7 @@ export async function sendProposalEmail({
     </html>
   `;
 
-  const senderEmail = `${safeArtistName} <violet@beauvette.com>`;
+  const senderEmail = `${safeArtistName} <notifications@dateinquiry.com>`;
   
   try {
     console.log("Sending proposal email to:", toEmail);
@@ -1500,7 +1503,7 @@ export async function sendReferralNotificationEmail({
     </html>
   `;
 
-  const senderEmail = `${sanitizeSenderName(referrerName)} <violet@beauvette.com>`;
+  const senderEmail = `${sanitizeSenderName(referrerName)} <notifications@dateinquiry.com>`;
   
   try {
     console.log("Sending referral notification email to:", toEmail);
@@ -1582,7 +1585,7 @@ export async function sendPasswordResetEmail({
     </html>
   `;
 
-  const senderEmail = 'Beauvette <violet@beauvette.com>';
+  const senderEmail = 'Beauvette <notifications@dateinquiry.com>';
   
   try {
     console.log("Sending password reset email to:", toEmail);
@@ -1667,7 +1670,7 @@ export async function sendWaitlistConfirmationEmail({
           
           <p>We'll reach out as soon as we're ready to help you find the perfect beauty artists for your special day.</p>
           
-          <p>If you have any questions, please email <a href="mailto:violet@beauvette.com" style="color: #6B4A55;">violet@beauvette.com</a>.</p>
+          <p>If you have any questions, please email <a href="mailto:notifications@dateinquiry.com" style="color: #6B4A55;">notifications@dateinquiry.com</a>.</p>
           
           <p>Already working with a beauty artist you love? Send them this link to join Beauvette: <a href="https://beauvette.replit.app/onboarding" style="color: #6B4A55;">beauvette.replit.app/onboarding</a></p>
           
@@ -1683,7 +1686,7 @@ export async function sendWaitlistConfirmationEmail({
     </html>
   `;
 
-  const senderEmail = 'Beauvette <violet@beauvette.com>';
+  const senderEmail = 'Beauvette <notifications@dateinquiry.com>';
   
   try {
     console.log("Sending waitlist confirmation email to:", toEmail);
@@ -1794,7 +1797,7 @@ export async function sendArtistWelcomeEmail({
     </html>
   `;
 
-  const senderEmail = 'Beauvette <violet@beauvette.com>';
+  const senderEmail = 'Beauvette <notifications@dateinquiry.com>';
   
   try {
     console.log("Sending artist welcome email to:", toEmail);
