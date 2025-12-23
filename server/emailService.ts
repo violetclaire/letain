@@ -1387,61 +1387,31 @@ export async function sendInquiryNotificationEmail({
     <html>
     <head>
       <style>
-        body { font-family: 'Georgia', serif; background-color: #FAF9F7; margin: 0; padding: 20px; }
-        .container { max-width: 600px; margin: 0 auto; background: #FFFEF9; overflow: hidden; }
-        .header { 
-          background-color: #FAF9F7;
-          padding: 28px; 
-          text-align: center;
-          border-bottom: 1px solid #6B4A55;
-        }
-        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55; }
-        .header p { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin: 8px 0 0 0; color: #6B4A55; opacity: 0.8; }
-        .content { padding: 32px; }
-        .alert { background: #6B4A55; color: #FFFEF9; padding: 16px; text-align: center; margin-bottom: 24px; font-weight: bold; }
-        .client-info { background: #FAF9F7; padding: 20px; margin-bottom: 24px; border: 1px solid #6B4A55; }
-        .client-name { font-size: 18px; color: #6B4A55; margin-bottom: 8px; font-weight: bold; }
-        .event-date { color: #6B4A55; font-size: 14px; margin-bottom: 12px; }
-        .message { font-style: italic; color: #6B4A55; border-left: 2px solid #6B4A55; padding-left: 16px; }
-        .button { display: inline-block; background: #6B4A55; color: #FFFEF9 !important; padding: 14px 28px; text-decoration: none; font-size: 14px; letter-spacing: 1px; }
-        .footer { text-align: center; padding: 20px; color: #6B4A55; font-size: 12px; border-top: 1px solid #6B4A55; }
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: #ffffff; margin: 0; padding: 24px; color: #1a1a1a; }
+        h1 { font-size: 24px; font-weight: normal; margin: 0 0 24px 0; }
+        p { margin: 0 0 8px 0; line-height: 1.5; }
+        .button { display: inline-block; background: #1a1a1a; color: #ffffff !important; padding: 12px 24px; text-decoration: none; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; margin: 16px 0; }
+        .signature { margin-top: 24px; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; color: #666; }
       </style>
     </head>
     <body>
-      <div class="container">
-        <div class="header">
-          <h1>Beauvette</h1>
-          <p>For Life's Most Important Days</p>
-        </div>
-        <div class="content">
-          <div class="alert">New Inquiry!</div>
-          
-          <div class="client-info">
-            <div class="client-name">${safeClientName}</div>
-            <div class="event-date">Event Date: ${eventDate}</div>
-            <div class="message">${safeMessage || 'No message provided'}</div>
-          </div>
-          
-          <div style="text-align: center; margin-bottom: 24px;">
-            <a href="${inquiryLink}" class="button">Respond Now</a>
-          </div>
-        </div>
-        <div class="footer">
-          Sent to ${safeVendorName} via <a href="${getBaseUrl()}" style="color: #6B4A55;">Beauvette</a>
-        </div>
-      </div>
+      <h1>New Inquiry</h1>
+      <p><strong>${safeClientName}</strong> is interested in booking for <strong>${eventDate}</strong>.</p>
+      ${safeMessage && safeMessage !== 'No message provided' ? `<p style="margin-top: 16px; font-style: italic;">${safeMessage}</p>` : ''}
+      <a href="${inquiryLink}" class="button">Respond Now</a>
+      <p class="signature">${safeVendorName}</p>
     </body>
     </html>
   `;
 
-  const senderEmail = 'Beauvette <violet@beauvette.com>';
+  const senderEmail = 'notifications@dateinquiry.com';
   
   try {
     console.log("Sending inquiry notification email to:", toEmail);
     const result = await client.emails.send({
       from: senderEmail,
       to: toEmail.trim(),
-      subject: `New inquiry from ${safeClientName} for ${eventDate}`,
+      subject: `New Inquiry: ${safeClientName}`,
       html: htmlContent
     });
     console.log("Inquiry notification email sent:", JSON.stringify(result));
