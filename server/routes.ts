@@ -11013,7 +11013,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       res.json({
         success: true,
         threadUrl: `${baseUrl}/t/${threadPublicToken}`,
-        message: artistProfile.formSuccessMessage || "Thank you! We'll be in touch soon.",
+        message: (artistProfile as any).formSuccessMessage || "Thank you! We'll be in touch soon.",
       });
     } catch (error: any) {
       console.error("[Intake] Error:", error);
