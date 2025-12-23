@@ -11016,7 +11016,26 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         body: 'Inquiry received. The artist will respond shortly.',
       });
       
-      // TODO: Send notification email to artist
+      // Send notification email to artist
+      try {
+        const artistUser = await storage.getUser(artistProfile.userId);
+        if (artistUser?.email) {
+          const { sendInquiryNotificationEmail } = await import('./emailService');
+          const baseUrl = process.env.PUBLIC_BASE_URL || 'https://beauvette.app';
+          await sendInquiryNotificationEmail({
+            toEmail: artistUser.email,
+            vendorName: artistProfile.businessName || 'Artist',
+            clientName,
+            eventDate: eventDate ? new Date(eventDate).toLocaleDateString() : 'Not specified',
+            message: message || 'No message provided',
+            inquiryLink: `${baseUrl}/t/${threadPublicToken}`,
+          });
+          console.log(`[Intake] Sent notification email to ${artistUser.email}`);
+        }
+      } catch (emailError) {
+        console.error('[Intake] Failed to send notification email:', emailError);
+        // Don't fail the request if email fails
+      }
       
       const baseUrl = process.env.PUBLIC_BASE_URL || 'https://beauvette.app';
       
