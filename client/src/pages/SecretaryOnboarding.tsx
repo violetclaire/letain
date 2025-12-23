@@ -90,7 +90,7 @@ document.getElementById('inquiry-form').addEventListener('submit', async (e) => 
       const inviteLink = `${baseUrl}/${data.artistSlug}`;
       
       setResult({
-        adminLink: `${baseUrl}/admin/${data.artistSlug}`,
+        adminLink: `${baseUrl}/artist`,
         businessName: formData.businessName,
         artistSlug: data.artistSlug,
         embedCode,

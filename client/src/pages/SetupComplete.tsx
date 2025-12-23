@@ -16,7 +16,7 @@ export default function SetupComplete() {
     enabled: !!artistSlug
   });
 
-  const secretaryLink = `https://beauvette.app/inquire/${artistSlug}`;
+  const secretaryLink = `https://dateinquiry.com/${artistSlug}`;
 
   if (isLoading) {
     return (
@@ -42,7 +42,7 @@ export default function SetupComplete() {
         
         <div className="space-y-4">
           <a 
-            href={`/admin/${artistSlug}`}
+            href="/artist"
             className="block w-full border border-white py-4 text-xs tracking-[0.2em] uppercase hover:bg-white hover:text-black transition-all"
             data-testid="button-go-to-dashboard"
           >
