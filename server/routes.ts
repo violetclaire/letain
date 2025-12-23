@@ -9882,12 +9882,21 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       }
       
       // Generate artist slug from Instagram handle
-      const artistSlug = instagramHandle.toLowerCase().replace(/[^a-z0-9]/g, '');
+      let artistSlug = instagramHandle.toLowerCase().replace(/[^a-z0-9]/g, '');
       
-      // Check if slug already exists
-      const existingProfile = await storage.getArtistProfileBySlug(artistSlug);
+      // Check if slug already exists, add number suffix if needed
+      let existingProfile = await storage.getArtistProfileBySlug(artistSlug);
       if (existingProfile) {
-        return res.status(400).json({ error: "An artist with this Instagram handle already exists" });
+        let suffix = 2;
+        while (existingProfile) {
+          const candidateSlug = `${artistSlug}${suffix}`;
+          existingProfile = await storage.getArtistProfileBySlug(candidateSlug);
+          if (!existingProfile) {
+            artistSlug = candidateSlug;
+            break;
+          }
+          suffix++;
+        }
       }
       
       // Create user and profile using the public artist method
