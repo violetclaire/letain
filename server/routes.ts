@@ -1310,6 +1310,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // PUBLIC form config endpoint (for external form integrations by slug)
+  app.get("/api/public/form-config/:slug", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      
+      // Find artist profile by slug
+      const profile = await storage.getArtistProfileBySlug(slug);
+      if (!profile) {
+        return res.status(404).json({ error: "Artist not found" });
+      }
+      
+      // Get their form config
+      const configData = await storage.getArtistFormConfig(profile.userId);
+      
+      if (!configData) {
+        // Return default form config
+        return res.json({
+          fields: getDefaultFormConfig().fields
+        });
+      }
+      
+      // Return only fields (public info)
+      res.json({
+        fields: configData.config.fields
+      });
+    } catch (error: any) {
+      console.error("Error getting public form config:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ========== VENDOR ONBOARDING ==========
   
   // Get onboarding status and preferences

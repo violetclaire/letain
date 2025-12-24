@@ -1,5 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import helmet from "helmet";
+import cors from "cors";
 import path from "path";
 import { registerRoutes } from "./routes";
 import { startCronJobs } from "./cronJobs";
@@ -7,6 +8,41 @@ import { serveStatic } from "./static";
 import { startScheduledEmailJob } from './scheduledEmailJob';
 
 const app = express();
+
+// CORS configuration for external form submissions
+const allowedOrigins = [
+  'https://dateinquiry.com',
+  'https://www.dateinquiry.com',
+  'https://themakeupdolls.com',
+  'https://www.themakeupdolls.com',
+  // Allow localhost for development
+  'http://localhost:3000',
+  'http://localhost:5000',
+  'http://localhost:5173',
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    
+    // Check if origin is in allowed list or matches *.replit.dev or *.replit.app
+    if (
+      allowedOrigins.includes(origin) ||
+      origin.endsWith('.replit.dev') ||
+      origin.endsWith('.replit.app')
+    ) {
+      return callback(null, true);
+    }
+    
+    // Log rejected origins for debugging
+    console.log(`[CORS] Blocked origin: ${origin}`);
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 
 // Serve attached_assets as static files
 app.use('/attached_assets', express.static(path.join(process.cwd(), 'attached_assets')));
