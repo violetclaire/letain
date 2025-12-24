@@ -10276,6 +10276,47 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
   
+  // Resend settings link to artist (for when they forget their admin link)
+  app.post("/api/public/artists/resend-settings-link", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+      
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        // Don't reveal if email exists - always return success for security
+        return res.json({ success: true, message: "If this email is registered, you'll receive your settings link shortly." });
+      }
+      
+      // Get artist profile
+      const profile = await storage.getArtistProfile(user.id);
+      if (!profile || !profile.editToken) {
+        return res.json({ success: true, message: "If this email is registered, you'll receive your settings link shortly." });
+      }
+      
+      // Build settings URL
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
+      const settingsUrl = `${baseUrl}/${profile.artistSlug}/settings?token=${profile.editToken}`;
+      
+      // Send the email
+      const { sendSettingsLinkEmail } = await import('./emailService');
+      await sendSettingsLinkEmail({
+        toEmail: email,
+        artistName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'there',
+        businessName: profile.businessName || undefined,
+        settingsUrl
+      });
+      
+      res.json({ success: true, message: "If this email is registered, you'll receive your settings link shortly." });
+    } catch (error: any) {
+      console.error("[Resend Settings Link] Error:", error);
+      res.status(500).json({ error: "Failed to send settings link" });
+    }
+  });
+  
   // Get public artist profile (supports both artistSlug and username)
   app.get("/api/public/artists/:artistSlug", async (req, res) => {
     try {

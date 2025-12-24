@@ -62,6 +62,7 @@ import SetupContract from "@/pages/SetupContract";
 import SetupLinks from "@/pages/SetupLinks";
 import SetupComplete from "@/pages/SetupComplete";
 import ThreadPage from "@/pages/ThreadPage";
+import RecoverAccess from "@/pages/RecoverAccess";
 
 function InviteRedirectHandler() {
   const [location, setLocation] = useLocation();
@@ -92,6 +93,7 @@ function Router() {
       <Route path="/signup" component={Signup} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password" component={ResetPassword} />
+      <Route path="/recover-access" component={RecoverAccess} />
       <Route path="/register" component={Register} />
       <Route path="/intake/client" component={ServiceSelection} />
       <Route path="/intake/client/details" component={ClientDetails} />

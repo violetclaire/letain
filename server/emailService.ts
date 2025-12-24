@@ -1814,3 +1814,86 @@ export async function sendArtistWelcomeEmail({
     return { success: false, error: err.message };
   }
 }
+
+// Send settings link to artist (for when they forget their admin link)
+export async function sendSettingsLinkEmail({
+  toEmail,
+  artistName,
+  businessName,
+  settingsUrl
+}: {
+  toEmail: string;
+  artistName: string;
+  businessName?: string;
+  settingsUrl: string;
+}) {
+  const { client } = await getResendClient();
+  const baseUrl = getBaseUrl();
+  
+  const safeArtistName = sanitizeSenderName(artistName) || 'Your Business';
+  const safeBusinessName = businessName ? sanitizeSenderName(businessName) : safeArtistName;
+  
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Georgia', serif; background-color: #FAF9F7; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { 
+          background-color: #FAF7F2;
+          padding: 28px; 
+          text-align: center;
+          border-bottom: 1px solid rgba(107, 74, 85, 0.2);
+        }
+        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55; }
+        .content { padding: 32px; line-height: 1.6; color: #333; }
+        .button { display: inline-block; background: #6B4A55; color: white; padding: 14px 28px; text-decoration: none; border-radius: 4px; font-weight: 600; }
+        .footer { text-align: center; padding: 20px; color: #888; font-size: 12px; border-top: 1px solid #eee; }
+        .note { font-size: 13px; color: #666; margin-top: 24px; padding: 16px; background: #f9f9f9; border-radius: 4px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>${escapeHtml(safeBusinessName)}</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${escapeHtml(safeArtistName)},</p>
+          
+          <p>You requested access to your settings. Here's your private link:</p>
+          
+          <p style="text-align: center; margin: 32px 0;">
+            <a href="${settingsUrl}" class="button">Open My Settings</a>
+          </p>
+          
+          <div class="note">
+            <strong>Tip:</strong> Bookmark this link so you can find it easily! This is your private admin access - don't share it with clients.
+          </div>
+        </div>
+        <div class="footer">
+          ${escapeHtml(safeBusinessName)}
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  // White-label sender - use artist's business name
+  const senderEmail = `${safeBusinessName} <notifications@${WHITELABEL_EMAIL_DOMAIN}>`;
+  
+  try {
+    console.log("Sending settings link email to:", toEmail);
+    const result = await client.emails.send({
+      from: senderEmail,
+      to: toEmail.trim(),
+      subject: `Your private settings link`,
+      html: htmlContent
+    });
+    console.log("Settings link email sent:", JSON.stringify(result));
+    return { success: true, result };
+  } catch (err: any) {
+    console.error("Failed to send settings link email:", err.message);
+    return { success: false, error: err.message };
+  }
+}
