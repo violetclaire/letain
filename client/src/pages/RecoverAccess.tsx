@@ -72,8 +72,8 @@ export default function RecoverAccess() {
                 <Mail className="w-5 h-5 text-[#6B4A55]" />
               </div>
               <div>
-                <h1 className="text-xl font-serif text-[#2D2D2D]">Recover your settings link</h1>
-                <p className="text-gray-500 text-sm">We'll email it to you</p>
+                <h1 className="text-xl font-serif text-[#2D2D2D]">Lost your link?</h1>
+                <p className="text-gray-500 text-sm">No worries, we'll send it to you</p>
               </div>
             </div>
 
