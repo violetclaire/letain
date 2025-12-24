@@ -193,6 +193,39 @@ export const artistProfiles = pgTable("artist_profiles", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Form field configuration types
+export type FormFieldType = 'text' | 'textarea' | 'select' | 'checkbox' | 'date' | 'email' | 'phone';
+
+export type FormField = {
+  id: string;
+  type: FormFieldType;
+  label: string;
+  placeholder?: string;
+  required: boolean;
+  options?: string[]; // For select/checkbox fields
+  order: number;
+  isCore?: boolean; // Core fields cannot be deleted (name, email, date)
+};
+
+export type FormConfig = {
+  fields: FormField[];
+  submitButtonText: string;
+  successMessage: string;
+};
+
+// Artist form configurations - custom inquiry form settings
+export const artistFormConfigs = pgTable("artist_form_configs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  artistId: varchar("artist_id").notNull().references(() => users.id),
+  config: jsonb("config").$type<FormConfig>().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertArtistFormConfigSchema = createInsertSchema(artistFormConfigs).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertArtistFormConfig = z.infer<typeof insertArtistFormConfigSchema>;
+export type ArtistFormConfig = typeof artistFormConfigs.$inferSelect;
+
 // Profile reports - for flagging suspicious/inappropriate profiles
 export const profileReports = pgTable("profile_reports", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

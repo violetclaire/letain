@@ -169,6 +169,10 @@ import {
   type InsertThreadMessage,
   type ThreadReferral,
   type InsertThreadReferral,
+  artistFormConfigs,
+  type ArtistFormConfig,
+  type InsertArtistFormConfig,
+  type FormConfig,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc, or, sql, inArray } from "drizzle-orm";
@@ -538,6 +542,10 @@ export interface IStorage {
     confirmFailedCount: number;
     totalInquiries: number;
   }>>;
+  
+  // Artist Form Configs
+  getArtistFormConfig(artistId: string): Promise<ArtistFormConfig | undefined>;
+  upsertArtistFormConfig(artistId: string, config: FormConfig): Promise<ArtistFormConfig>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2922,6 +2930,32 @@ export class DatabaseStorage implements IStorage {
       .from(artistProfiles)
       .where(eq(artistProfiles.artistSlug, slug));
     return profile;
+  }
+  
+  // Artist Form Configs
+  async getArtistFormConfig(artistId: string): Promise<ArtistFormConfig | undefined> {
+    const [config] = await db
+      .select()
+      .from(artistFormConfigs)
+      .where(eq(artistFormConfigs.artistId, artistId));
+    return config;
+  }
+  
+  async upsertArtistFormConfig(artistId: string, config: FormConfig): Promise<ArtistFormConfig> {
+    const existing = await this.getArtistFormConfig(artistId);
+    if (existing) {
+      const [updated] = await db
+        .update(artistFormConfigs)
+        .set({ config, updatedAt: new Date() })
+        .where(eq(artistFormConfigs.artistId, artistId))
+        .returning();
+      return updated;
+    }
+    const [created] = await db
+      .insert(artistFormConfigs)
+      .values({ artistId, config })
+      .returning();
+    return created;
   }
 }
 

@@ -65,7 +65,26 @@ import {
   insertCdiThresholdSchema,
   insertCdiAdminOverrideSchema,
   insertInquirySchema,
+  type FormConfig,
 } from "@shared/schema";
+
+// Default form configuration for new artists
+function getDefaultFormConfig(): FormConfig {
+  return {
+    fields: [
+      { id: 'name', type: 'text', label: 'Your Name', placeholder: 'Full name', required: true, order: 0, isCore: true },
+      { id: 'email', type: 'email', label: 'Email', placeholder: 'your@email.com', required: true, order: 1, isCore: true },
+      { id: 'phone', type: 'phone', label: 'Phone Number', placeholder: '(555) 123-4567', required: false, order: 2 },
+      { id: 'eventDate', type: 'date', label: 'Event Date', required: true, order: 3, isCore: true },
+      { id: 'eventLocation', type: 'text', label: 'Event Location', placeholder: 'City, State or Venue', required: false, order: 4 },
+      { id: 'serviceType', type: 'select', label: 'Service Type', required: true, order: 5, options: ['Bridal Makeup', 'Bridal Hair', 'Both Hair & Makeup', 'Trial Session', 'Other'] },
+      { id: 'partySize', type: 'text', label: 'Wedding Party Size', placeholder: 'Number of people needing services', required: false, order: 6 },
+      { id: 'message', type: 'textarea', label: 'Tell me about your vision', placeholder: 'Share any details about your event, style preferences, or questions...', required: false, order: 7 },
+    ],
+    submitButtonText: 'Send Inquiry',
+    successMessage: 'Thank you! Your inquiry has been received. You will hear back within 24-48 hours.',
+  };
+}
 
 // Dynamic CDI imports to avoid bundling issues
 let cdiAgent: any = null;
@@ -1227,6 +1246,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Portfolio reorder error:", error);
       res.status(400).json({ error: error.message });
+    }
+  });
+
+  // ========== FORM DESIGNER ==========
+  
+  // Get artist form configuration
+  app.get("/api/artist-form-config/:artistId", async (req, res) => {
+    try {
+      const { artistId } = req.params;
+      const config = await storage.getArtistFormConfig(artistId);
+      
+      if (!config) {
+        // Return default form config
+        return res.json({
+          config: getDefaultFormConfig()
+        });
+      }
+      
+      res.json(config);
+    } catch (error: any) {
+      console.error("Error getting form config:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Update artist form configuration (supports both auth and magic link token)
+  app.put("/api/artist-form-config/:artistId", async (req: any, res) => {
+    try {
+      const { artistId } = req.params;
+      const token = req.query.token as string;
+      
+      // Authorize via token or session - derive artistId from token, not URL
+      let authorizedUserId: string | null = null;
+      
+      if (token) {
+        // Magic link token authentication - ignore URL artistId, use token owner
+        const profile = await storage.getArtistProfileByEditToken(token);
+        if (!profile) {
+          return res.status(403).json({ error: "Invalid or expired token" });
+        }
+        // Security: always use profile.userId from token, ignore URL parameter
+        authorizedUserId = profile.userId;
+      } else {
+        // Session-based authentication
+        const userId = getAuthUserId(req);
+        if (!userId || artistId !== userId) {
+          return res.status(403).json({ error: "Not authorized" });
+        }
+        authorizedUserId = userId;
+      }
+      
+      const { config } = req.body;
+      if (!config || !config.fields) {
+        return res.status(400).json({ error: "Invalid form configuration" });
+      }
+      
+      const result = await storage.upsertArtistFormConfig(authorizedUserId, config);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error updating form config:", error);
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -10093,6 +10173,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const user = await storage.getUser(profile.userId);
       
       res.json({
+        userId: profile.userId,
         artistSlug: profile.artistSlug,
         businessName: profile.businessName,
         artistName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : profile.businessName,

@@ -2,11 +2,12 @@ import { useState, useRef, useCallback } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Upload, FileText, Check, ArrowLeft, Image, ExternalLink, Loader2, Copy, Code } from "lucide-react";
+import { Upload, FileText, Check, ArrowLeft, Image, ExternalLink, Loader2, Copy, Code, Settings2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { FormDesigner } from "@/components/FormDesigner";
 
 function escapeHtml(str: string): string {
   return str
@@ -18,6 +19,7 @@ function escapeHtml(str: string): string {
 }
 
 interface ArtistSettingsData {
+  userId: string;
   artistSlug: string;
   businessName: string;
   artistName: string;
@@ -291,6 +293,18 @@ export default function ArtistSettings() {
                 )}
               </div>
             </div>
+          </section>
+
+          <section className="bg-white rounded-xl p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <Settings2 className="w-5 h-5 text-[#6B4A55]" />
+              <h2 className="text-lg font-serif text-[#6B4A55]">Customize Your Inquiry Form</h2>
+            </div>
+            <p className="text-gray-600 text-sm mb-6">
+              Add, remove, or reorder fields on your inquiry form. Core fields (name, email, date) cannot be removed but can be customized.
+            </p>
+            
+            <FormDesigner artistId={settings.userId} token={token} />
           </section>
 
           <section className="bg-white rounded-xl p-6 shadow-sm">
