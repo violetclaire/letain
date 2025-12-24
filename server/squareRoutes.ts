@@ -17,7 +17,7 @@ async function getMerchantAccessToken(userId: string): Promise<string | null> {
   return null;
 }
 
-const PLATFORM_FEE_PERCENT = 1;
+const PLATFORM_FEE_PERCENT = 1.5;
 // Always use production Square URLs since we're using production credentials
 const SQUARE_OAUTH_BASE = 'https://connect.squareup.com';
 
