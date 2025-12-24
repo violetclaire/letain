@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Instagram, Globe, ArrowRight, ArrowLeft, Calendar, Share2, Copy, ExternalLink, Upload, FileText, Loader2 } from "lucide-react";
+import { Check, Instagram, Globe, ArrowRight, ArrowLeft, Calendar, Share2, Copy, ExternalLink, Upload, FileText, Loader2, KeyRound, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import VintageCalendar from "@/components/VintageCalendar";
 
@@ -29,6 +29,7 @@ export default function PublicOnboarding() {
   const [isComplete, setIsComplete] = useState(false);
   const [hasShared, setHasShared] = useState(false);
   const [artistSlug, setArtistSlug] = useState("");
+  const [settingsUrl, setSettingsUrl] = useState("");
   const [referralResults, setReferralResults] = useState<Array<{ handle: string; isOnPlatform: boolean; inviteLink?: string }>>([]);
   
   const [data, setData] = useState<OnboardingData>({
@@ -144,6 +145,9 @@ export default function PublicOnboarding() {
       }
       
       setArtistSlug(result.artistSlug);
+      if (result.settingsUrl) {
+        setSettingsUrl(result.settingsUrl);
+      }
       if (result.referralResults) {
         setReferralResults(result.referralResults);
       }
@@ -538,6 +542,46 @@ export default function PublicOnboarding() {
                     I shared my link to Instagram
                   </span>
                 </label>
+
+                {settingsUrl && (
+                  <div className="mt-6 p-4 border-2 border-[#8B4513] bg-[#FFF8F0]">
+                    <div className="flex items-center gap-2 mb-3">
+                      <KeyRound size={18} className="text-[#8B4513]" />
+                      <h3 className="font-header text-sm text-[#8B4513] font-medium">Save your admin link</h3>
+                    </div>
+                    <p className="text-xs text-[#666] mb-3">
+                      This is your private link to manage bookings and settings. Save it somewhere safe or check your email.
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(settingsUrl);
+                          toast({
+                            title: "Admin link copied!",
+                            description: "Save this link in your notes or bookmarks"
+                          });
+                        }}
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-[#8B4513] text-white text-sm hover:bg-[#6B3510] transition-colors"
+                        data-testid="button-copy-admin-link"
+                      >
+                        <Copy size={14} />
+                        Copy Admin Link
+                      </button>
+                      <button
+                        onClick={() => window.open(settingsUrl, '_blank')}
+                        className="flex items-center justify-center gap-2 px-3 py-2 border border-[#8B4513] text-[#8B4513] text-sm hover:bg-[#FFF0E0] transition-colors"
+                        data-testid="button-open-settings"
+                      >
+                        <ExternalLink size={14} />
+                        Open
+                      </button>
+                    </div>
+                    <p className="text-xs text-[#666] mt-3 flex items-center gap-1">
+                      <Mail size={12} />
+                      We also sent this link to your email
+                    </p>
+                  </div>
+                )}
 
                 <div className="mt-6 text-center">
                   <a 

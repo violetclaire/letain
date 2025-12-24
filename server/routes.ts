@@ -10098,7 +10098,11 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         console.log(`[Public Onboarding] Referral check: ${referralResults.filter(r => r.isOnPlatform).length} on platform, ${referralResults.filter(r => !r.isOnPlatform).length} not on platform`);
       }
       
-      res.json({ artistSlug, userId: user.id, artistId: user.id, referralResults });
+      // Build settings URL for the response
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
+      const settingsUrl = `${baseUrl}/${artistSlug}/settings?token=${editToken}`;
+      
+      res.json({ artistSlug, userId: user.id, artistId: user.id, referralResults, settingsUrl });
     } catch (error: any) {
       console.error("[Public Onboarding] Error:", error);
       res.status(500).json({ error: error.message });
