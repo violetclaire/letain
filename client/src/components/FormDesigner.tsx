@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { GripVertical, Plus, Trash2, ChevronDown, ChevronUp, Settings2, Type, Mail, Phone, Calendar, AlignLeft, List, Lock } from "lucide-react";
+import { GripVertical, Plus, Trash2, ChevronDown, ChevronUp, Settings2, Type, Mail, Calendar, AlignLeft, List, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
-type FormFieldType = 'text' | 'textarea' | 'select' | 'checkbox' | 'date' | 'email' | 'phone';
+type FormFieldType = 'text' | 'textarea' | 'select' | 'checkbox' | 'date' | 'email';
 
 interface FormField {
   id: string;
@@ -31,7 +31,6 @@ interface FormConfig {
 const FIELD_TYPE_ICONS: Record<FormFieldType, React.ReactNode> = {
   text: <Type className="w-4 h-4" />,
   email: <Mail className="w-4 h-4" />,
-  phone: <Phone className="w-4 h-4" />,
   date: <Calendar className="w-4 h-4" />,
   textarea: <AlignLeft className="w-4 h-4" />,
   select: <List className="w-4 h-4" />,
@@ -41,7 +40,6 @@ const FIELD_TYPE_ICONS: Record<FormFieldType, React.ReactNode> = {
 const FIELD_TYPE_LABELS: Record<FormFieldType, string> = {
   text: 'Text',
   email: 'Email',
-  phone: 'Phone',
   date: 'Date',
   textarea: 'Long Text',
   select: 'Dropdown',
@@ -239,7 +237,7 @@ export function FormDesigner({ artistId, token }: FormDesignerProps) {
                         </div>
                       </div>
 
-                      {(field.type === 'text' || field.type === 'textarea' || field.type === 'email' || field.type === 'phone') && (
+                      {(field.type === 'text' || field.type === 'textarea' || field.type === 'email') && (
                         <div>
                           <Label className="text-xs text-gray-600">Placeholder</Label>
                           <Input
