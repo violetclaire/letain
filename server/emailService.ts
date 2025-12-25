@@ -1827,7 +1827,7 @@ export async function sendSettingsLinkEmail({
   businessName?: string;
   settingsUrl: string;
 }) {
-  const { client } = await getResendClient();
+  const { client, fromEmail } = await getResendClient();
   const baseUrl = getBaseUrl();
   
   const safeArtistName = sanitizeSenderName(artistName) || 'Your Business';
@@ -1879,8 +1879,8 @@ export async function sendSettingsLinkEmail({
     </html>
   `;
 
-  // White-label sender - use artist's business name
-  const senderEmail = `${safeBusinessName} <notifications@${WHITELABEL_EMAIL_DOMAIN}>`;
+  // Use configured Resend from email (verified domain)
+  const senderEmail = fromEmail || `${safeBusinessName} <notifications@${WHITELABEL_EMAIL_DOMAIN}>`;
   
   try {
     console.log("Sending settings link email to:", toEmail);
