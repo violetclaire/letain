@@ -73,6 +73,7 @@ app.use(helmet({
       imgSrc: ["'self'", "data:", "blob:", "https:"],
       connectSrc: ["'self'", "https:", "wss:"],
       frameSrc: ["'self'"],
+      frameAncestors: ["'self'", "https://themakeupdolls.com", "https://www.themakeupdolls.com", "https://beauvette.app", "https://dateinquiry.com"],
     },
   },
   crossOriginEmbedderPolicy: false, // Allow embedding external resources
