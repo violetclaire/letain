@@ -10431,7 +10431,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // Public inquiry submission (supports both artistSlug and username)
   app.post("/api/public/inquiries", async (req, res) => {
     try {
-      const { artistSlug, clientName, clientEmail, eventDate, message } = req.body;
+      const { artistSlug, clientName, clientEmail, eventDate, location, message } = req.body;
       
       if (!artistSlug || !clientName || !clientEmail || !eventDate) {
         return res.status(400).json({ error: "Artist, name, email, and event date are required" });
@@ -10458,6 +10458,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         clientName,
         clientEmail,
         eventDate: new Date(eventDate),
+        eventLocation: location || null,
         message: message || null,
         serviceType: 'beauty',
         status: 'pending',

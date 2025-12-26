@@ -21,6 +21,7 @@ export default function InquirePage() {
     name: "",
     email: "",
     date: "",
+    location: "",
     message: "",
   });
 
@@ -44,6 +45,7 @@ export default function InquirePage() {
           clientName: formData.name,
           clientEmail: formData.email,
           eventDate: formData.date,
+          location: formData.location,
           message: formData.message,
         })
       });
@@ -99,21 +101,20 @@ export default function InquirePage() {
             {artist.businessName || artist.name}
           </p>
           <h1 className="text-3xl md:text-4xl text-[#2D2D2D] mb-8" style={{ fontFamily: "'Playfair Display', serif" }}>
-            Inquiry Atelier
+            Inquire for Services
           </h1>
           <p className="text-sm text-[#2D2D2D]/60 leading-relaxed max-w-md mx-auto">
-            Thank you for considering us. Every event is a unique choreography. 
-            Please share your vision below.
+            We look forward to hearing about your details. Please enter them below and we will get back to you shortly.
           </p>
         </header>
 
         {success ? (
           <div className="text-center py-16">
             <h2 className="text-2xl text-[#2D2D2D] mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>
-              Vision Received
+              Thank You
             </h2>
             <p className="text-sm text-[#2D2D2D]/60">
-              We'll be in touch soon to discuss your special day.
+              We will get back to you shortly.
             </p>
           </div>
         ) : (
@@ -154,7 +155,7 @@ export default function InquirePage() {
 
             <div>
               <label className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/50 block mb-4">
-                Event Date
+                Event Day
               </label>
               <input 
                 type="date" 
@@ -170,7 +171,23 @@ export default function InquirePage() {
 
             <div>
               <label className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/50 block mb-4">
-                Your Vision
+                Location
+              </label>
+              <input 
+                type="text" 
+                name="location" 
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                className="w-full bg-transparent border-0 border-b border-[#2D2D2D]/20 text-[#2D2D2D] placeholder:text-[#2D2D2D]/30 focus:border-[#2D2D2D]/50 focus:outline-none focus:ring-0 px-0 py-4 text-base"
+                placeholder="Event location"
+                data-testid="input-location"
+                style={{ fontFamily: "'Inter', sans-serif" }}
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/50 block mb-4">
+                Message
               </label>
               <textarea 
                 name="message" 
@@ -178,7 +195,7 @@ export default function InquirePage() {
                 value={formData.message}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                 className="w-full bg-transparent border-0 border-b border-[#2D2D2D]/20 text-[#2D2D2D] placeholder:text-[#2D2D2D]/30 focus:border-[#2D2D2D]/50 focus:outline-none focus:ring-0 px-0 py-4 text-base resize-none"
-                placeholder="Share details about your special day..."
+                placeholder="Tell us about your event..."
                 data-testid="input-message"
                 style={{ fontFamily: "'Inter', sans-serif" }}
               />
