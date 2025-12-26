@@ -9731,6 +9731,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           message: inquiry.message,
           status: inquiry.status,
           createdAt: inquiry.createdAt,
+          depositPaidAt: (inquiry as any).depositPaidAt,
         },
         artist: artist ? {
           id: artist.id,
@@ -9792,15 +9793,28 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           newStatus = "declined";
           statusReason = "Politely declined";
           break;
+        case "deposit":
+          if (!['accepted', 'auto_responded'].includes(inquiry.status)) {
+            return res.status(400).json({ error: "Can only mark deposit for accepted inquiries" });
+          }
+          newStatus = "deposit_paid";
+          statusReason = "Deposit received";
+          break;
         default:
           return res.status(400).json({ error: "Invalid action" });
       }
       
-      await storage.updateInquiry(inquiry.id, {
+      const updateData: any = {
         status: newStatus,
         statusReason,
         lastActionAt: new Date(),
-      });
+      };
+      
+      if (action === 'deposit') {
+        updateData.depositPaidAt = new Date();
+      }
+      
+      await storage.updateInquiry(inquiry.id, updateData);
       
       // Log activity
       try {

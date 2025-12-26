@@ -17,6 +17,7 @@ interface Inquiry {
   message?: string;
   status: string;
   createdAt?: string;
+  depositPaidAt?: string;
 }
 
 interface ArtistProfile {
@@ -120,11 +121,28 @@ export default function InquiryThread() {
     switch (status.toLowerCase()) {
       case "pending": return "text-[#2D2D2D]/60";
       case "accepted": return "text-[#2D2D2D]";
+      case "deposit_paid": return "text-green-600";
       case "referred": return "text-[#2D2D2D]/50";
       case "declined": return "text-[#2D2D2D]/40";
       default: return "text-[#2D2D2D]/50";
     }
   };
+
+  const getVelocity = () => {
+    if (!inquiry.createdAt) return { text: "Active", color: "text-[#2D2D2D]/40" };
+    if (inquiry.depositPaidAt) {
+      const start = new Date(inquiry.createdAt);
+      const end = new Date(inquiry.depositPaidAt);
+      const hours = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60) * 10) / 10;
+      return {
+        text: `${hours}h`,
+        color: hours < 48 ? "text-green-600 font-bold" : "text-[#2D2D2D]/60"
+      };
+    }
+    return { text: "Active", color: "text-[#2D2D2D]/40" };
+  };
+
+  const velocity = getVelocity();
 
   return (
     <div className="min-h-screen bg-[#F9F8F6] text-[#2D2D2D]" style={{ fontFamily: "'Inter', sans-serif" }}>
@@ -134,9 +152,15 @@ export default function InquiryThread() {
             {artist?.businessName || "Artist"}
           </h1>
         </a>
-        <span className={`text-[10px] tracking-[0.3em] uppercase ${getStatusStyle(inquiry.status)}`}>
-          {inquiry.status}
-        </span>
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <p className="text-[10px] tracking-[0.2em] uppercase text-[#2D2D2D]/30">Velocity</p>
+            <p className={`text-sm ${velocity.color}`}>{velocity.text}</p>
+          </div>
+          <span className={`text-[10px] tracking-[0.3em] uppercase ${getStatusStyle(inquiry.status)}`}>
+            {inquiry.status.replace('_', ' ')}
+          </span>
+        </div>
       </header>
 
       <main className="max-w-xl mx-auto px-8 md:px-16 py-16 md:py-24">
@@ -177,7 +201,7 @@ export default function InquiryThread() {
 
         {inquiry.status.toLowerCase() === "pending" && (
           <div className="space-y-6">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => actionMutation.mutate({ action: "accept-client" })}
                 disabled={actionMutation.isPending}
@@ -185,7 +209,19 @@ export default function InquiryThread() {
                 data-testid="button-accept"
               >
                 <p className="text-xs tracking-[0.2em] uppercase">Accept</p>
+                <p className="text-[10px] text-[#2D2D2D]/50 mt-1">Send Info Sheet</p>
               </button>
+              <button
+                onClick={() => actionMutation.mutate({ action: "accept-planner" })}
+                disabled={actionMutation.isPending}
+                className="py-6 border border-[#2D2D2D]/70 hover:bg-[#2D2D2D] hover:text-[#F9F8F6] transition-all duration-500 text-center disabled:opacity-50"
+                data-testid="button-accept-planner"
+              >
+                <p className="text-xs tracking-[0.2em] uppercase">Accept</p>
+                <p className="text-[10px] text-[#2D2D2D]/50 mt-1">Planner Pricing</p>
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => actionMutation.mutate({ action: "refer" })}
                 disabled={actionMutation.isPending}
@@ -193,6 +229,7 @@ export default function InquiryThread() {
                 data-testid="button-refer"
               >
                 <p className="text-xs tracking-[0.2em] uppercase text-[#2D2D2D]/70 group-hover:text-[#F9F8F6]">Refer</p>
+                <p className="text-[10px] text-[#2D2D2D]/40 mt-1">Send Trusted Circle</p>
               </button>
               <button
                 onClick={() => actionMutation.mutate({ action: "decline" })}
@@ -201,13 +238,24 @@ export default function InquiryThread() {
                 data-testid="button-decline"
               >
                 <p className="text-xs tracking-[0.2em] uppercase text-[#2D2D2D]/50 group-hover:text-[#F9F8F6]">Decline</p>
+                <p className="text-[10px] text-[#2D2D2D]/30 mt-1">Polite message</p>
               </button>
             </div>
           </div>
         )}
 
-        {inquiry.status.toLowerCase() === "accepted" && (
+        {(inquiry.status.toLowerCase() === "accepted" || inquiry.status.toLowerCase() === "auto_responded") && (
           <div className="space-y-8">
+            <button
+              onClick={() => actionMutation.mutate({ action: "deposit" })}
+              disabled={actionMutation.isPending}
+              className="w-full py-5 bg-green-600 text-white hover:bg-green-700 transition-all duration-500 text-center disabled:opacity-50"
+              data-testid="button-deposit-paid"
+            >
+              <p className="text-xs tracking-[0.2em] uppercase">Mark Deposit Paid</p>
+              <p className="text-[10px] opacity-70 mt-1">Stops velocity clock</p>
+            </button>
+
             {!onboardingComplete ? (
               <div className="p-8 border border-[#2D2D2D]/10">
                 <p className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/40 mb-6">Complete Setup</p>
