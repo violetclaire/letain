@@ -10500,9 +10500,11 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
             toEmail: artist.email,
             vendorName: artistProfile?.businessName || artist.firstName || 'Artist',
             clientName,
+            clientEmail,
             eventDate: new Date(eventDate).toLocaleDateString('en-US', { 
               weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
             }),
+            location: location || undefined,
             message: message || 'No message provided',
             inquiryLink: `${prodUrl}/inquiry/${inquiry.threadToken}`
           });
@@ -10967,6 +10969,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           toEmail: artist.email,
           vendorName: artist.firstName || artistProfile.businessName || 'Artist',
           clientName,
+          clientEmail,
           eventDate: parsedEventDate?.toLocaleDateString('en-US', { 
             weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
           }) || 'Date TBD',
@@ -11196,6 +11199,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
             toEmail: artistUser.email,
             vendorName: artistProfile.businessName || 'Artist',
             clientName,
+            clientEmail,
             eventDate: eventDate ? new Date(eventDate).toLocaleDateString() : 'Not specified',
             message: message || 'No message provided',
             inquiryLink: `${baseUrl}/t/${threadPublicToken}`,

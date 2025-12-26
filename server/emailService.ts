@@ -1368,14 +1368,18 @@ export async function sendInquiryNotificationEmail({
   toEmail,
   vendorName,
   clientName,
+  clientEmail,
   eventDate,
+  location,
   message,
   inquiryLink
 }: {
   toEmail: string;
   vendorName: string;
   clientName: string;
+  clientEmail?: string;
   eventDate: string;
+  location?: string;
   message: string;
   inquiryLink: string;
 }) {
@@ -1383,6 +1387,8 @@ export async function sendInquiryNotificationEmail({
 
   const safeVendorName = sanitizeSenderName(vendorName) || 'Artist';
   const safeClientName = escapeHtml(clientName);
+  const safeClientEmail = clientEmail ? escapeHtml(clientEmail) : '';
+  const safeLocation = location ? escapeHtml(location) : '';
   const safeMessage = escapeHtml(message).replace(/\n/g, '<br>');
   
   const htmlContent = `
@@ -1393,14 +1399,23 @@ export async function sendInquiryNotificationEmail({
         body { font-family: system-ui, -apple-system, sans-serif; background-color: #ffffff; margin: 0; padding: 24px; color: #1a1a1a; }
         h1 { font-size: 24px; font-weight: normal; margin: 0 0 24px 0; }
         p { margin: 0 0 8px 0; line-height: 1.5; }
+        .details { background: #f9f9f9; padding: 16px; margin: 16px 0; border-left: 3px solid #1a1a1a; }
+        .detail-row { display: flex; margin-bottom: 8px; }
+        .detail-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #666; width: 80px; }
+        .detail-value { color: #1a1a1a; }
         .button { display: inline-block; background: #1a1a1a; color: #ffffff !important; padding: 12px 24px; text-decoration: none; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; margin: 16px 0; }
         .signature { margin-top: 24px; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; color: #666; }
       </style>
     </head>
     <body>
       <h1>New Inquiry</h1>
-      <p><strong>${safeClientName}</strong> is interested in booking for <strong>${eventDate}</strong>.</p>
-      ${safeMessage && safeMessage !== 'No message provided' ? `<p style="margin-top: 16px; font-style: italic;">${safeMessage}</p>` : ''}
+      <div class="details">
+        <p style="margin-bottom: 12px;"><strong>${safeClientName}</strong></p>
+        ${safeClientEmail ? `<p style="font-size: 14px; color: #666; margin-bottom: 8px;">${safeClientEmail}</p>` : ''}
+        <p style="margin-top: 12px;"><strong>Date:</strong> ${eventDate}</p>
+        ${safeLocation ? `<p><strong>Location:</strong> ${safeLocation}</p>` : ''}
+      </div>
+      ${safeMessage && safeMessage !== 'No message provided' ? `<p style="margin-top: 16px; font-style: italic; padding-left: 12px; border-left: 2px solid #ddd;">${safeMessage}</p>` : ''}
       <a href="${inquiryLink}" class="button">Respond Now</a>
       <p class="signature">${safeVendorName}</p>
     </body>

@@ -62,9 +62,7 @@ export default function InquiryThread() {
 
   const actionMutation = useMutation({
     mutationFn: async ({ action }: { action: string }) => {
-      return apiRequest(`/api/public/inquiry/${threadToken}/action/${action}`, {
-        method: "POST",
-      });
+      return apiRequest("POST", `/api/public/inquiry/${threadToken}/action/${action}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/public/inquiry/${threadToken}`] });
@@ -73,10 +71,7 @@ export default function InquiryThread() {
 
   const contractMutation = useMutation({
     mutationFn: async (data: typeof contractData) => {
-      return apiRequest(`/api/public/inquiry/${threadToken}/create-contract`, {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      return apiRequest("POST", `/api/public/inquiry/${threadToken}/create-contract`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/public/inquiry/${threadToken}`] });
@@ -86,10 +81,7 @@ export default function InquiryThread() {
 
   const invoiceMutation = useMutation({
     mutationFn: async (data: typeof invoiceData) => {
-      return apiRequest(`/api/public/inquiry/${threadToken}/create-invoice`, {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      return apiRequest("POST", `/api/public/inquiry/${threadToken}/create-invoice`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/public/inquiry/${threadToken}`] });
@@ -156,12 +148,21 @@ export default function InquiryThread() {
                 {inquiry.clientName}
               </h2>
               <p className="text-sm text-[#2D2D2D]/50">{inquiry.clientEmail}</p>
+              {inquiry.clientPhone && (
+                <p className="text-sm text-[#2D2D2D]/50 mt-1">{inquiry.clientPhone}</p>
+              )}
             </div>
             <div className="text-right">
-              <p className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/40 mb-3">date</p>
+              <p className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/40 mb-3">event</p>
               <p className="text-lg text-[#2D2D2D]" style={{ fontFamily: "'Playfair Display', serif" }}>
                 {format(new Date(inquiry.eventDate), "MMM d, yyyy")}
               </p>
+              {inquiry.eventLocation && (
+                <p className="text-sm text-[#2D2D2D]/50 mt-2">{inquiry.eventLocation}</p>
+              )}
+              {inquiry.eventType && (
+                <p className="text-xs text-[#2D2D2D]/40 mt-1">{inquiry.eventType}</p>
+              )}
             </div>
           </div>
 
