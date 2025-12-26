@@ -12,7 +12,7 @@ interface ArtistPublicProfile {
 }
 
 export default function InquirePage() {
-  const [, params] = useRoute("/inquire/:artistSlug");
+  const [, params] = useRoute("/:artistSlug");
   const artistSlug = params?.artistSlug || "";
   const { toast } = useToast();
   const [success, setSuccess] = useState(false);
