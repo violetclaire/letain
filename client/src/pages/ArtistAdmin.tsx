@@ -1,7 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, useSearch, Link } from "wouter";
 import { format } from "date-fns";
-import { Loader2, Settings, Calendar, Users, Copy, Check } from "lucide-react";
+import { Loader2, Settings, Calendar, Users, Copy, Check, Mail, CheckCircle } from "lucide-react";
 import { useState } from "react";
 
 interface Inquiry {
@@ -27,10 +27,32 @@ export default function ArtistAdmin() {
   const searchString = useSearch();
   const slug = params?.slug;
   const [copied, setCopied] = useState(false);
+  const [email, setEmail] = useState("");
+  const [emailSent, setEmailSent] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   
   // Extract token from query string
   const urlParams = new URLSearchParams(searchString);
   const token = urlParams.get('token');
+
+  const requestLink = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/public/artists/resend-settings-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (!res.ok) throw new Error("Failed to send");
+      return res.json();
+    },
+    onSuccess: () => setEmailSent(true),
+  });
+
+  const handleCopyInquiryLink = () => {
+    navigator.clipboard.writeText(`https://dateinquiry.com/${slug}`);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
   
   const handleCopyLink = () => {
     const link = `https://dateinquiry.com/${slug}`;
@@ -62,14 +84,77 @@ export default function ArtistAdmin() {
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-[#F9F8F6] flex items-center justify-center px-8">
-        <div className="text-center max-w-md">
-          <h2 className="text-xl mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>
-            Access Required
-          </h2>
-          <p className="text-sm text-[#2D2D2D]/50" style={{ fontFamily: "'Inter', sans-serif" }}>
-            This dashboard requires a secure link. Check your email for the admin link, or use the "Resend settings link" option on the settings page.
-          </p>
+      <div className="min-h-screen bg-[#3d1a22] flex items-center justify-center px-4">
+        <div className="w-full max-w-sm bg-[#f5f3ef] p-8 shadow-2xl">
+          {emailSent ? (
+            <div className="text-center">
+              <CheckCircle className="w-14 h-14 text-green-600 mx-auto mb-5" />
+              <h2 className="text-xl font-serif text-[#3d1a22] mb-2">Check Your Email</h2>
+              <p className="text-sm text-[#3d1a22]/60 mb-4">
+                Your dashboard link is on its way. Check your inbox (and spam folder).
+              </p>
+              <button
+                onClick={() => { setEmailSent(false); setEmail(""); }}
+                className="text-sm text-[#3d1a22] underline"
+              >
+                Try different email
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="text-center mb-6">
+                <Mail className="w-10 h-10 text-[#3d1a22]/60 mx-auto mb-3" />
+                <h2 className="text-xl font-serif text-[#3d1a22] mb-1">Artist Login</h2>
+                <p className="text-xs text-[#3d1a22]/50">Enter your email to access your dashboard</p>
+              </div>
+
+              <form onSubmit={(e) => { e.preventDefault(); if (email.trim()) requestLink.mutate(); }} className="space-y-4">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  required
+                  className="w-full border border-[#3d1a22]/20 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#3d1a22]/40"
+                  data-testid="input-admin-email"
+                />
+                <button
+                  type="submit"
+                  disabled={requestLink.isPending || !email.trim()}
+                  className="w-full bg-[#3d1a22] text-[#f5f3ef] py-3 text-sm uppercase tracking-wide hover:bg-[#2d1018] disabled:opacity-50 flex items-center justify-center gap-2"
+                  data-testid="button-send-dashboard-link"
+                >
+                  {requestLink.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    "Send My Dashboard Link"
+                  )}
+                </button>
+              </form>
+
+              {/* Inquiry Link Section */}
+              <div className="mt-6 pt-5 border-t border-[#3d1a22]/10">
+                <p className="text-[10px] uppercase tracking-wide text-[#3d1a22]/50 mb-2">Your Inquiry Link</p>
+                <div className="flex gap-2">
+                  <div className="flex-1 bg-[#3d1a22]/5 px-3 py-2 text-xs text-[#3d1a22]/70 rounded truncate">
+                    dateinquiry.com/{slug}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCopyInquiryLink}
+                    className="px-3 py-2 bg-[#3d1a22] text-[#f5f3ef] text-xs rounded flex items-center gap-1"
+                    data-testid="button-copy-inquiry-link"
+                  >
+                    {linkCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                  </button>
+                </div>
+                <p className="text-[10px] text-[#3d1a22]/40 mt-2">Share this link on social media</p>
+              </div>
+            </>
+          )}
         </div>
       </div>
     );
