@@ -269,7 +269,7 @@ export async function sendInfoSheetEmail({
       pdfLink = infoSheetPdfUrl;
     } else {
       // Object path - need to prepend base URL
-      const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.replit.app';
+      const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
       pdfLink = `${baseUrl}${infoSheetPdfUrl}`;
     }
   }
@@ -1696,7 +1696,7 @@ export async function sendWaitlistConfirmationEmail({
           
           <p>If you have any questions, please email <a href="mailto:notifications@dateinquiry.com" style="color: #6B4A55;">notifications@dateinquiry.com</a>.</p>
           
-          <p>Already working with a beauty artist you love? Send them this link to join Beauvette: <a href="https://beauvette.replit.app/onboarding" style="color: #6B4A55;">beauvette.replit.app/onboarding</a></p>
+          <p>Already working with a beauty artist you love? Send them this link to join: <a href="https://dateinquiry.com/onboarding" style="color: #6B4A55;">dateinquiry.com/onboarding</a></p>
           
           <p>In the meantime, save this email so you can easily find us when the time comes.</p>
           
@@ -1813,7 +1813,7 @@ export async function sendArtistWelcomeEmail({
           <p>With love,<br>The Beauvette Team</p>
         </div>
         <div class="footer">
-          <a href="https://beauvette.app" style="color: #6B4A55;">Beauvette</a>
+          <a href="https://dateinquiry.com" style="color: #6B4A55;">Beauvette</a>
         </div>
       </div>
     </body>

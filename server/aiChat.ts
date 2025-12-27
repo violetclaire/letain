@@ -837,7 +837,7 @@ export async function sendPaymentLinkFromAI(
     
     const square = getMerchantSquare(connection.accessToken);
     const amountInCents = payment.amount;
-    const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.replit.app';
+    const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
     
     // Create Square payment link
     const checkoutResponse = await (square.checkout as any).paymentLinks.create({
