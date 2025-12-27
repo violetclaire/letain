@@ -10971,6 +10971,155 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
   
+  // External form submission endpoint (slug in URL for HTML forms)
+  app.post("/api/public/inquiries/:artistSlug", async (req, res) => {
+    try {
+      const artistSlug = req.params.artistSlug;
+      const { clientName, clientEmail, clientPhone, eventDate, eventLocation, message, redirectUrl } = req.body;
+      
+      if (!clientName || !clientEmail || !eventDate) {
+        // If there's a redirect URL, redirect with error
+        if (redirectUrl) {
+          return res.redirect(`${redirectUrl}?error=missing_fields`);
+        }
+        return res.status(400).json({ error: "Name, email, and event date are required" });
+      }
+      
+      // Find artist by slug
+      let profile = await storage.getArtistProfileBySlug(artistSlug);
+      if (!profile) {
+        const userByUsername = await storage.getUserByUsername(artistSlug);
+        if (userByUsername && userByUsername.role === 'artist') {
+          profile = await storage.getArtistProfile(userByUsername.id);
+        }
+      }
+      
+      if (!profile) {
+        if (redirectUrl) {
+          return res.redirect(`${redirectUrl}?error=artist_not_found`);
+        }
+        return res.status(404).json({ error: "Artist not found" });
+      }
+      
+      // Create inquiry
+      const inquiry = await storage.createInquiry({
+        vendorId: profile.userId,
+        clientName,
+        clientEmail,
+        eventDate: new Date(eventDate),
+        eventLocation: eventLocation || null,
+        message: message || null,
+        serviceType: 'beauty',
+        status: 'pending',
+        metadata: { source: 'external_form', artistSlug }
+      });
+      
+      // Track analytics
+      await storage.createAnalyticsEvent({
+        eventType: 'chat_started',
+        artistId: profile.userId,
+        inquiryId: inquiry.id,
+        metadata: { clientEmail, artistSlug, source: 'external_form' }
+      });
+      
+      // Send notifications to artist
+      const artist = await storage.getUser(profile.userId);
+      const artistProfile = await storage.getArtistProfile(profile.userId);
+      const prodUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
+      
+      if (artist?.phone) {
+        try {
+          await smsService.sendSms(
+            artist.phone,
+            `${clientName} wants to chat about booking ${new Date(eventDate).toLocaleDateString()}. Respond here: ${prodUrl}/artist`
+          );
+        } catch (smsError) {
+          console.error("[External Form] SMS send failed:", smsError);
+        }
+      }
+      
+      if (artist?.email) {
+        try {
+          const { sendInquiryNotificationEmail } = await import('./emailService');
+          await sendInquiryNotificationEmail({
+            toEmail: artist.email,
+            vendorName: artistProfile?.businessName || artist.firstName || 'Artist',
+            clientName,
+            clientEmail,
+            eventDate: new Date(eventDate).toLocaleDateString('en-US', { 
+              weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+            }),
+            location: eventLocation || undefined,
+            message: message || 'No message provided',
+            inquiryLink: `${prodUrl}/inquiry/${inquiry.threadToken}`
+          });
+        } catch (emailError) {
+          console.error("[External Form] Email send failed:", emailError);
+        }
+      }
+      
+      // Auto-send info sheet if enabled
+      const hasInfoSheet = artistProfile?.infoSheetEnabled && (
+        artistProfile?.infoSheetContent || 
+        (artistProfile?.infoSheetType === 'pdf' && artistProfile?.infoSheetPdfUrl)
+      );
+      
+      if (hasInfoSheet) {
+        try {
+          const chatToken = randomUUID();
+          const chatExpiresAt = new Date();
+          chatExpiresAt.setDate(chatExpiresAt.getDate() + 30);
+          
+          await storage.createChatInvite({
+            senderId: profile.userId,
+            inviteeEmail: clientEmail,
+            status: 'pending',
+            inquiryId: inquiry.id,
+            token: chatToken,
+            expiresAt: chatExpiresAt,
+          });
+          
+          const chatLink = `${prodUrl}/chat-invite/${chatToken}`;
+          const vendorName = artistProfile?.businessName || artist?.firstName || 'Your Artist';
+          const formattedEventDate = new Date(eventDate).toLocaleDateString('en-US', { 
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+          });
+          
+          const { sendInfoSheetEmail } = await import('./emailService');
+          await sendInfoSheetEmail({
+            toEmail: clientEmail,
+            vendorName,
+            vendorEmail: artist?.email || undefined,
+            infoSheetContent: artistProfile?.infoSheetContent || undefined,
+            infoSheetPdfUrl: artistProfile?.infoSheetPdfUrl || undefined,
+            infoSheetType: (artistProfile?.infoSheetType as 'template' | 'custom' | 'pdf') || 'template',
+            eventDate: formattedEventDate,
+            serviceType: 'Beauty Services',
+            chatLink
+          });
+          
+          await storage.updateInquiry(inquiry.id, { infoSheetSentAt: new Date() } as any);
+        } catch (infoSheetError) {
+          console.error("[External Form] Info sheet send failed:", infoSheetError);
+        }
+      }
+      
+      // Redirect to thank you page or return JSON
+      if (redirectUrl) {
+        return res.redirect(`${redirectUrl}?success=true`);
+      }
+      
+      res.json({ success: true, inquiryId: inquiry.id });
+    } catch (error: any) {
+      console.error("[External Form Inquiry] Error:", error);
+      const redirectUrl = req.body.redirectUrl;
+      if (redirectUrl) {
+        return res.redirect(`${redirectUrl}?error=server_error`);
+      }
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
   // Public analytics metrics
   app.get("/api/public/analytics/metrics", async (req, res) => {
     try {
