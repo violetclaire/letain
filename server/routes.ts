@@ -11030,23 +11030,29 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       
       // Send email notification to artist
       if (artist?.email) {
-        const { sendInquiryNotificationEmail } = await import('./emailService');
-        // Always use production URL for email links so they work reliably
-        const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.replit.app';
-        
-        sendInquiryNotificationEmail({
-          toEmail: artist.email,
-          vendorName: artist.firstName || artistProfile.businessName || 'Artist',
-          clientName,
-          clientEmail,
-          eventDate: parsedEventDate?.toLocaleDateString('en-US', { 
-            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
-          }) || 'Date TBD',
-          message: message || `New ${serviceType || 'beauty'} inquiry from ${source || 'external form'}`,
-          inquiryLink: `${baseUrl}/inquiry/${inquiry.threadToken}`
-        }).catch((err: any) => {
-          console.error('[Public Webhook] Email notification error:', err);
-        });
+        console.log(`[Public Webhook] Sending email notification to ${artist.email}`);
+        try {
+          const { sendInquiryNotificationEmail } = await import('./emailService');
+          // Always use dateinquiry.com for white-label links
+          const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
+          
+          const emailResult = await sendInquiryNotificationEmail({
+            toEmail: artist.email,
+            vendorName: artist.firstName || artistProfile.businessName || 'Artist',
+            clientName,
+            clientEmail,
+            eventDate: parsedEventDate?.toLocaleDateString('en-US', { 
+              weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+            }) || 'Date TBD',
+            message: message || `New ${serviceType || 'beauty'} inquiry from ${source || 'external form'}`,
+            inquiryLink: `${baseUrl}/inquiry/${inquiry.threadToken}`
+          });
+          console.log(`[Public Webhook] Email result:`, JSON.stringify(emailResult));
+        } catch (emailErr: any) {
+          console.error('[Public Webhook] Email notification error:', emailErr.message, emailErr.stack);
+        }
+      } else {
+        console.log(`[Public Webhook] No email found for artist ${artistSlug}`);
       }
       
       // Send SMS notification if artist has phone
