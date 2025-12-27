@@ -67,9 +67,10 @@ async function getCredentials() {
       if (connectionSettings?.settings?.api_key) {
         console.log("Using Resend from Replit connector");
         console.log("Got Resend API key (first 8 chars):", connectionSettings.settings.api_key?.substring(0, 8) + "...");
+        // Always use dateinquiry.com domain for white-label emails
         return { 
           apiKey: connectionSettings.settings.api_key, 
-          fromEmail: connectionSettings.settings.from_email || 'notifications@dateinquiry.com' 
+          fromEmail: 'notifications@dateinquiry.com' 
         };
       }
     } catch (err) {
