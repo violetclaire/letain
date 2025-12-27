@@ -122,11 +122,11 @@ export default function Landing() {
           <div className="font-serif text-xl tracking-tight">Beauvette</div>
           <nav className="hidden md:flex items-center gap-6">
             <button
-              onClick={() => setLocation("/login")}
+              onClick={() => setLocation("/artist-login")}
               className="text-sm text-muted-ink hover:text-ink transition-colors"
               data-testid="button-nav-login"
             >
-              Log in
+              Artist Login
             </button>
             <button
               onClick={() => setLocation("/secretary")}
@@ -158,11 +158,11 @@ export default function Landing() {
             >
               <div className="flex flex-col items-center justify-center h-full gap-8">
                 <button
-                  onClick={() => { setMobileMenuOpen(false); setLocation("/login"); }}
+                  onClick={() => { setMobileMenuOpen(false); setLocation("/artist-login"); }}
                   className="text-lg"
                   data-testid="button-mobile-login"
                 >
-                  Log in
+                  Artist Login
                 </button>
                 <button
                   onClick={() => { setMobileMenuOpen(false); setLocation("/secretary"); }}
