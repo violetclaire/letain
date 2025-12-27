@@ -11,6 +11,8 @@ const app = express();
 
 // CORS configuration for external form submissions
 const allowedOrigins = [
+  'https://beauvette.app',
+  'https://www.beauvette.app',
   'https://dateinquiry.com',
   'https://www.dateinquiry.com',
   'https://themakeupdolls.com',
