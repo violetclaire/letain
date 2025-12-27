@@ -125,11 +125,16 @@ export default function ArtistLogin() {
                 </button>
               </form>
 
-              <div className="mt-8 pt-6 border-t border-[#3d1a22]/10 text-center">
+              <div className="mt-8 pt-6 border-t border-[#3d1a22]/10 text-center space-y-3">
                 <p className="text-xs text-[#3d1a22]/50">
                   New here?{" "}
                   <a href="/secretary" className="underline hover:text-[#3d1a22]/70">
                     Sign up
+                  </a>
+                </p>
+                <p className="text-xs text-[#3d1a22]/40">
+                  <a href="/login" className="underline hover:text-[#3d1a22]/60">
+                    Log into full site
                   </a>
                 </p>
               </div>
