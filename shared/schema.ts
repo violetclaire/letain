@@ -190,12 +190,46 @@ export const artistProfiles = pgTable("artist_profiles", {
   onboardingPreferences: jsonb("onboarding_preferences").$type<VendorOnboardingPreferences>(),
   editToken: varchar("edit_token").unique(),
   formSuccessMessage: text("form_success_message"), // Custom success message for embed form
-  // Auto-responder settings
-  autoResponderMode: text("auto_responder_mode").default("manual"), // 'manual', 'auto_info_sheet', 'smart'
+  // Auto-responder settings - modes: 'off', 'info_sheet', 'smart', 'paused'
+  autoResponderMode: text("auto_responder_mode").default("off"), // 'off', 'info_sheet', 'smart', 'paused'
   politeDeclineTemplate: text("polite_decline_template"), // Template for polite decline messages
   referralListTemplate: text("referral_list_template"), // Template for referral messages
+  // Additional content fields
+  pricingInfo: text("pricing_info"), // Quick summary of rates
+  customResponse: text("custom_response"), // Personalized auto-response message
+  plannerInfoSheet: text("planner_info_sheet"), // Wedding planner specific info sheet
+  plannerPricing: text("planner_pricing"), // Planner-specific pricing sheet
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// Trusted Circle - referral network for artists
+export const trustedCircle = pgTable("trusted_circle", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  referrerId: varchar("referrer_id").notNull().references(() => users.id),
+  refereeName: text("referee_name").notNull(),
+  refereeEmail: text("referee_email"),
+  refereeInstagram: text("referee_instagram"),
+  inviteToken: varchar("invite_token").unique(),
+  status: text("status").default("pending"), // 'pending', 'active'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertTrustedCircleSchema = createInsertSchema(trustedCircle).omit({ id: true, createdAt: true });
+export type InsertTrustedCircle = z.infer<typeof insertTrustedCircleSchema>;
+export type TrustedCircle = typeof trustedCircle.$inferSelect;
+
+// Blocked Dates - calendar availability
+export const blockedDates = pgTable("blocked_dates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  artistId: varchar("artist_id").notNull().references(() => users.id),
+  blockedDate: text("blocked_date").notNull(), // YYYY-MM-DD format
+  reason: text("reason").default("Pending"), // 'Pending' or 'Booked'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertBlockedDateSchema = createInsertSchema(blockedDates).omit({ id: true, createdAt: true });
+export type InsertBlockedDate = z.infer<typeof insertBlockedDateSchema>;
+export type BlockedDate = typeof blockedDates.$inferSelect
 
 // Form field configuration types
 export type FormFieldType = 'text' | 'textarea' | 'select' | 'checkbox' | 'date' | 'email' | 'phone';
@@ -581,8 +615,9 @@ export const inquiries = pgTable("inquiries", {
   partySize: integer("party_size"), // Number of people needing services
   message: text("message"), // Client's initial message/notes
   budget: text("budget"), // Budget range if provided
-  status: text("status").notNull().default("pending"), // 'pending', 'hold', 'responded', 'chatting', 'confirmed', 'declined', 'expired', 'completed'
+  status: text("status").notNull().default("pending"), // 'pending', 'accepted', 'auto_responded', 'referred', 'declined', 'deposit_paid'
   responseMode: text("response_mode").default("auto"), // 'auto' or 'manual' - how vendor responds
+  depositPaidAt: timestamp("deposit_paid_at"), // When deposit was paid (stops velocity clock)
   infoSheetSentAt: timestamp("info_sheet_sent_at"), // When info sheet was sent
   chatInviteSentAt: timestamp("chat_invite_sent_at"), // When chat invite was sent
   bookingId: varchar("booking_id").references(() => bookings.id), // Calendar locking sourced from Booking presence
