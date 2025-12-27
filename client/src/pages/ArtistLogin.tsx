@@ -2,13 +2,25 @@ import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Loader2, CheckCircle, Mail } from "lucide-react";
+import { Loader2, CheckCircle, Mail, Link2, Copy, Check } from "lucide-react";
 
 export default function ArtistLogin() {
   const [, setLocation] = useLocation();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+  const [slug, setSlug] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const inquiryUrl = slug.trim() ? `https://dateinquiry.com/${slug.trim().toLowerCase().replace(/\s+/g, '')}` : "";
+
+  const handleCopy = () => {
+    if (inquiryUrl) {
+      navigator.clipboard.writeText(inquiryUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   useEffect(() => {
     const hostname = window.location.hostname;
@@ -125,7 +137,40 @@ export default function ArtistLogin() {
                 </button>
               </form>
 
-              <div className="mt-8 pt-6 border-t border-[#3d1a22]/10 text-center space-y-3">
+              {/* Get Your Inquiry Link Section */}
+              <div className="mt-8 pt-6 border-t border-[#3d1a22]/10">
+                <div className="flex items-center gap-2 mb-4">
+                  <Link2 className="w-4 h-4 text-[#3d1a22]/60" />
+                  <p className="text-xs uppercase tracking-wide text-[#3d1a22]/60">Get Your Inquiry Link</p>
+                </div>
+                <p className="text-xs text-[#3d1a22]/50 mb-3">Enter your business name to get your shareable link for social media</p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={slug}
+                    onChange={(e) => setSlug(e.target.value)}
+                    placeholder="yourbusinessname"
+                    className="flex-1 border border-[#3d1a22]/20 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#3d1a22]/40 text-[#3d1a22]"
+                    data-testid="input-slug"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCopy}
+                    disabled={!inquiryUrl}
+                    className="px-3 py-2 bg-[#3d1a22] text-[#f5f3ef] text-sm disabled:opacity-30 hover:bg-[#2d1018] transition-colors flex items-center gap-1"
+                    data-testid="button-copy-link"
+                  >
+                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+                {inquiryUrl && (
+                  <p className="mt-2 text-xs text-[#3d1a22]/70 break-all bg-[#3d1a22]/5 px-2 py-1.5 rounded">
+                    {inquiryUrl}
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-[#3d1a22]/10 text-center space-y-3">
                 <p className="text-xs text-[#3d1a22]/50">
                   New here?{" "}
                   <a href="/secretary" className="underline hover:text-[#3d1a22]/70">
