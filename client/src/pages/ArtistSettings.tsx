@@ -277,142 +277,14 @@ export default function ArtistSettings() {
             </div>
           </section>
 
-          {/* Response Templates Section */}
+          {/* Upload Your Info Sheet */}
           <section className="bg-white rounded-xl p-6 shadow-sm">
-            <p className="text-[10px] tracking-[0.3em] uppercase text-gray-400 mb-2">Response Templates</p>
-            <h2 className="text-lg font-serif text-[#6B4A55] mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
-              Response Templates
-            </h2>
-
-            <div className="space-y-6">
-              <div>
-                <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 mb-3">Referral List</p>
-                <p className="text-sm text-gray-500 mb-3">This is sent when you refer a client to your trusted colleagues.</p>
-                <textarea
-                  value={settings.referralListTemplate || "Thank you so much for thinking of me!\nUnfortunately, I'm already booked for that date.\n\nI'd love to recommend some talented colleagues who may be available:"}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (debounceRef.current) clearTimeout(debounceRef.current);
-                    debounceRef.current = setTimeout(() => {
-                      updateSettings.mutate({ referralListTemplate: value });
-                    }, 800);
-                  }}
-                  rows={5}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6B4A55]/20 focus:border-[#6B4A55]"
-                  data-testid="input-referral-template"
-                />
-              </div>
-
-              <div>
-                <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 mb-3">Polite Decline</p>
-                <p className="text-sm text-gray-500 mb-3">This is sent when you politely decline an inquiry.</p>
-                <textarea
-                  value={settings.politeDeclineTemplate || "Thank you so much for reaching out!\nUnfortunately, I'm not available for your date.\n\nI wish you all the best for your special day!"}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (debounceRef.current) clearTimeout(debounceRef.current);
-                    debounceRef.current = setTimeout(() => {
-                      updateSettings.mutate({ politeDeclineTemplate: value });
-                    }, 800);
-                  }}
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6B4A55]/20 focus:border-[#6B4A55]"
-                  data-testid="input-decline-template"
-                />
-              </div>
-
-              <div>
-                <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 mb-3">Quick Pricing Summary</p>
-                <p className="text-sm text-gray-500 mb-3">A quick summary of your rates for thread replies.</p>
-                <textarea
-                  value={settings.pricingInfo || "Bridal makeup: $XXX\nBridesmaid makeup: $XXX per person\nHair styling: $XXX\n\nTravel fee may apply depending on location."}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (debounceRef.current) clearTimeout(debounceRef.current);
-                    debounceRef.current = setTimeout(() => {
-                      updateSettings.mutate({ pricingInfo: value });
-                    }, 800);
-                  }}
-                  rows={5}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6B4A55]/20 focus:border-[#6B4A55]"
-                  data-testid="input-pricing-info"
-                />
-              </div>
-            </div>
-          </section>
-
-          <section className="bg-white rounded-xl p-6 shadow-sm">
-            <p className="text-[10px] tracking-[0.3em] uppercase text-gray-400 mb-2">For Wedding Planners</p>
-            <h2 className="text-lg font-serif text-[#6B4A55] mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
-              Planner-Specific Content
-            </h2>
+            <h2 className="text-lg font-serif text-[#6B4A55] mb-2">Upload Your Info Sheet</h2>
             <p className="text-gray-600 text-sm mb-6">
-              Planners often want different info. Customize what they receive.
+              Your pricing guide or info sheet. Sent to clients when you accept their inquiry.
             </p>
 
-            <div className="space-y-6">
-              <div>
-                <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 mb-3">Planner Info Sheet</p>
-                <p className="text-sm text-gray-500 mb-3">What planners should know about working with you.</p>
-                <textarea
-                  value={settings.plannerInfoSheet || ""}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (debounceRef.current) clearTimeout(debounceRef.current);
-                    debounceRef.current = setTimeout(() => {
-                      updateSettings.mutate({ plannerInfoSheet: value });
-                    }, 800);
-                  }}
-                  rows={4}
-                  placeholder="I work with planners regularly. I provide day-of timelines, communicate with your team directly..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6B4A55]/20 focus:border-[#6B4A55]"
-                  data-testid="input-planner-info-sheet"
-                />
-              </div>
-
-              <div>
-                <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 mb-3">Planner Pricing</p>
-                <p className="text-sm text-gray-500 mb-3">Wholesale or planner-specific pricing (if different).</p>
-                <textarea
-                  value={settings.plannerPricing || ""}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (debounceRef.current) clearTimeout(debounceRef.current);
-                    debounceRef.current = setTimeout(() => {
-                      updateSettings.mutate({ plannerPricing: value });
-                    }, 800);
-                  }}
-                  rows={4}
-                  placeholder="Planner rates available upon request..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6B4A55]/20 focus:border-[#6B4A55]"
-                  data-testid="input-planner-pricing"
-                />
-              </div>
-            </div>
-          </section>
-
-          <section className="bg-white rounded-xl p-6 shadow-sm">
-            <h2 className="text-lg font-serif text-[#6B4A55] mb-4">Pricing & Info Sheet</h2>
-            <p className="text-gray-600 text-sm mb-6">
-              Upload your pricing guide or info sheet. This will be automatically sent to clients when they inquire about your services.
-            </p>
-
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="info-sheet-enabled" className="text-[#6B4A55] font-medium">
-                    Auto-send to clients
-                  </Label>
-                  <p className="text-sm text-gray-500">Send your info sheet when clients submit an inquiry</p>
-                </div>
-                <Switch
-                  id="info-sheet-enabled"
-                  checked={settings.infoSheetEnabled}
-                  onCheckedChange={(checked) => updateSettings.mutate({ infoSheetEnabled: checked })}
-                  data-testid="switch-info-sheet-enabled"
-                />
-              </div>
-
+            <div className="space-y-4">
               {settings.infoSheetPdfUrl && (
                 <div className="bg-[#FAF8F5] rounded-lg p-4">
                   <div className="flex items-start gap-4">
@@ -446,7 +318,7 @@ export default function ArtistSettings() {
                 </div>
               )}
 
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-[#6B4A55] transition-colors">
+              <div className="border border-dashed border-gray-300 rounded-lg p-4 hover:border-[#6B4A55] transition-colors">
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -457,27 +329,28 @@ export default function ArtistSettings() {
                 />
                 
                 {uploading ? (
-                  <div className="space-y-3">
-                    <Loader2 className="w-10 h-10 mx-auto text-[#6B4A55] animate-spin" />
-                    <p className="text-gray-600">Uploading...</p>
+                  <div className="flex items-center justify-center gap-3 py-2">
+                    <Loader2 className="w-5 h-5 text-[#6B4A55] animate-spin" />
+                    <p className="text-gray-600 text-sm">Uploading...</p>
                   </div>
                 ) : (
-                  <>
-                    <Upload className="w-10 h-10 mx-auto text-gray-400 mb-3" />
-                    <p className="text-gray-600 mb-2">
-                      {settings.infoSheetPdfUrl ? 'Upload a new file to replace' : 'Drag and drop or click to upload'}
-                    </p>
-                    <p className="text-xs text-gray-400 mb-4">PDF, JPG, PNG, or WebP (max 10MB)</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Upload className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-600">PDF, JPG, PNG, or WebP</p>
+                      </div>
+                    </div>
                     <Button
                       onClick={() => fileInputRef.current?.click()}
                       variant="outline"
+                      size="sm"
                       className="border-[#6B4A55] text-[#6B4A55] hover:bg-[#6B4A55] hover:text-white"
                       data-testid="button-upload-file"
                     >
-                      <Upload className="w-4 h-4 mr-2" />
-                      {settings.infoSheetPdfUrl ? 'Replace File' : 'Choose File'}
+                      {settings.infoSheetPdfUrl ? 'Replace' : 'Upload'}
                     </Button>
-                  </>
+                  </div>
                 )}
               </div>
             </div>
