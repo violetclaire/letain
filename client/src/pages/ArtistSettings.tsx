@@ -219,135 +219,60 @@ export default function ArtistSettings() {
               Control how you respond to new inquiries.
             </p>
 
-            <div className="space-y-2">
-              {/* Smart - First */}
-              <label className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-all ${
+            <div className="grid grid-cols-2 gap-2">
+              {/* Smart */}
+              <label className={`flex flex-col items-center justify-center text-center px-3 py-3 rounded-lg cursor-pointer transition-all ${
                 settings.autoResponderMode === 'smart' 
-                  ? 'bg-[#f5f3ef] text-[#3d1a22]' 
-                  : 'bg-[#3d1a22] border border-[#f5f3ef]/20 hover:border-[#f5f3ef]/40'
+                  ? 'bg-[#f5f3ef] ring-2 ring-[#f5f3ef]' 
+                  : 'border border-[#f5f3ef]/20 hover:border-[#f5f3ef]/40'
               }`}>
-                <input
-                  type="radio"
-                  name="autoResponderMode"
-                  value="smart"
-                  checked={settings.autoResponderMode === 'smart'}
-                  onChange={() => updateSettings.mutate({ autoResponderMode: 'smart' })}
-                  className="sr-only"
-                  data-testid="radio-smart"
-                />
-                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                  settings.autoResponderMode === 'smart' ? 'border-[#3d1a22] bg-[#3d1a22]' : 'border-[#f5f3ef]/50'
-                }`}>
-                  {settings.autoResponderMode === 'smart' && <div className="w-2 h-2 rounded-full bg-[#f5f3ef]" />}
-                </div>
-                <div className="flex-1">
-                  <p className={`font-medium text-sm ${settings.autoResponderMode === 'smart' ? 'text-[#3d1a22]' : 'text-[#f5f3ef]'}`}>Smart</p>
-                  <p className={`text-xs ${settings.autoResponderMode === 'smart' ? 'text-[#3d1a22]/70' : 'text-[#f5f3ef]/60'}`}>Check calendar: send info sheet if available</p>
-                </div>
+                <input type="radio" name="autoResponderMode" value="smart" checked={settings.autoResponderMode === 'smart'} onChange={() => updateSettings.mutate({ autoResponderMode: 'smart' })} className="sr-only" data-testid="radio-smart" />
+                <p className={`font-medium text-sm ${settings.autoResponderMode === 'smart' ? 'text-[#3d1a22]' : 'text-[#f5f3ef]'}`}>Smart</p>
+                <p className={`text-[10px] mt-0.5 ${settings.autoResponderMode === 'smart' ? 'text-[#3d1a22]/60' : 'text-[#f5f3ef]/50'}`}>Calendar-aware</p>
               </label>
 
-              {/* Info Sheet - Second */}
-              <label className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-all ${
+              {/* Info Sheet */}
+              <label className={`flex flex-col items-center justify-center text-center px-3 py-3 rounded-lg cursor-pointer transition-all ${
                 settings.autoResponderMode === 'info_sheet' 
-                  ? 'bg-[#f5f3ef] text-[#3d1a22]' 
-                  : 'bg-[#3d1a22] border border-[#f5f3ef]/20 hover:border-[#f5f3ef]/40'
+                  ? 'bg-[#f5f3ef] ring-2 ring-[#f5f3ef]' 
+                  : 'border border-[#f5f3ef]/20 hover:border-[#f5f3ef]/40'
               }`}>
-                <input
-                  type="radio"
-                  name="autoResponderMode"
-                  value="info_sheet"
-                  checked={settings.autoResponderMode === 'info_sheet'}
-                  onChange={() => updateSettings.mutate({ autoResponderMode: 'info_sheet' })}
-                  className="sr-only"
-                  data-testid="radio-info-sheet"
-                />
-                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                  settings.autoResponderMode === 'info_sheet' ? 'border-[#3d1a22] bg-[#3d1a22]' : 'border-[#f5f3ef]/50'
-                }`}>
-                  {settings.autoResponderMode === 'info_sheet' && <div className="w-2 h-2 rounded-full bg-[#f5f3ef]" />}
-                </div>
-                <div className="flex-1">
-                  <p className={`font-medium text-sm ${settings.autoResponderMode === 'info_sheet' ? 'text-[#3d1a22]' : 'text-[#f5f3ef]'}`}>Info Sheet</p>
-                  <p className={`text-xs ${settings.autoResponderMode === 'info_sheet' ? 'text-[#3d1a22]/70' : 'text-[#f5f3ef]/60'}`}>Auto-send info sheet to every inquiry</p>
-                </div>
+                <input type="radio" name="autoResponderMode" value="info_sheet" checked={settings.autoResponderMode === 'info_sheet'} onChange={() => updateSettings.mutate({ autoResponderMode: 'info_sheet' })} className="sr-only" data-testid="radio-info-sheet" />
+                <p className={`font-medium text-sm ${settings.autoResponderMode === 'info_sheet' ? 'text-[#3d1a22]' : 'text-[#f5f3ef]'}`}>Info Sheet</p>
+                <p className={`text-[10px] mt-0.5 ${settings.autoResponderMode === 'info_sheet' ? 'text-[#3d1a22]/60' : 'text-[#f5f3ef]/50'}`}>Auto-send always</p>
               </label>
 
-              {/* Paused with Referral - Third */}
-              <label className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-all ${
+              {/* Paused + Refer */}
+              <label className={`flex flex-col items-center justify-center text-center px-3 py-3 rounded-lg cursor-pointer transition-all ${
                 settings.autoResponderMode === 'paused_with_referral' 
-                  ? 'bg-[#f5f3ef] text-[#3d1a22]' 
-                  : 'bg-[#3d1a22] border border-[#f5f3ef]/20 hover:border-[#f5f3ef]/40'
+                  ? 'bg-[#f5f3ef] ring-2 ring-[#f5f3ef]' 
+                  : 'border border-[#f5f3ef]/20 hover:border-[#f5f3ef]/40'
               }`}>
-                <input
-                  type="radio"
-                  name="autoResponderMode"
-                  value="paused_with_referral"
-                  checked={settings.autoResponderMode === 'paused_with_referral'}
-                  onChange={() => updateSettings.mutate({ autoResponderMode: 'paused_with_referral' })}
-                  className="sr-only"
-                  data-testid="radio-paused-referral"
-                />
-                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                  settings.autoResponderMode === 'paused_with_referral' ? 'border-[#3d1a22] bg-[#3d1a22]' : 'border-[#f5f3ef]/50'
-                }`}>
-                  {settings.autoResponderMode === 'paused_with_referral' && <div className="w-2 h-2 rounded-full bg-[#f5f3ef]" />}
-                </div>
-                <div className="flex-1">
-                  <p className={`font-medium text-sm ${settings.autoResponderMode === 'paused_with_referral' ? 'text-[#3d1a22]' : 'text-[#f5f3ef]'}`}>Paused + Refer</p>
-                  <p className={`text-xs ${settings.autoResponderMode === 'paused_with_referral' ? 'text-[#3d1a22]/70' : 'text-[#f5f3ef]/60'}`}>Not accepting, auto-refer to trusted circle</p>
-                </div>
+                <input type="radio" name="autoResponderMode" value="paused_with_referral" checked={settings.autoResponderMode === 'paused_with_referral'} onChange={() => updateSettings.mutate({ autoResponderMode: 'paused_with_referral' })} className="sr-only" data-testid="radio-paused-referral" />
+                <p className={`font-medium text-sm ${settings.autoResponderMode === 'paused_with_referral' ? 'text-[#3d1a22]' : 'text-[#f5f3ef]'}`}>Paused + Refer</p>
+                <p className={`text-[10px] mt-0.5 ${settings.autoResponderMode === 'paused_with_referral' ? 'text-[#3d1a22]/60' : 'text-[#f5f3ef]/50'}`}>Send to circle</p>
               </label>
 
-              {/* Paused - Fourth */}
-              <label className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-all ${
+              {/* Paused */}
+              <label className={`flex flex-col items-center justify-center text-center px-3 py-3 rounded-lg cursor-pointer transition-all ${
                 settings.autoResponderMode === 'paused' 
-                  ? 'bg-[#f5f3ef] text-[#3d1a22]' 
-                  : 'bg-[#3d1a22] border border-[#f5f3ef]/20 hover:border-[#f5f3ef]/40'
+                  ? 'bg-[#f5f3ef] ring-2 ring-[#f5f3ef]' 
+                  : 'border border-[#f5f3ef]/20 hover:border-[#f5f3ef]/40'
               }`}>
-                <input
-                  type="radio"
-                  name="autoResponderMode"
-                  value="paused"
-                  checked={settings.autoResponderMode === 'paused'}
-                  onChange={() => updateSettings.mutate({ autoResponderMode: 'paused' })}
-                  className="sr-only"
-                  data-testid="radio-paused"
-                />
-                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                  settings.autoResponderMode === 'paused' ? 'border-[#3d1a22] bg-[#3d1a22]' : 'border-[#f5f3ef]/50'
-                }`}>
-                  {settings.autoResponderMode === 'paused' && <div className="w-2 h-2 rounded-full bg-[#f5f3ef]" />}
-                </div>
-                <div className="flex-1">
-                  <p className={`font-medium text-sm ${settings.autoResponderMode === 'paused' ? 'text-[#3d1a22]' : 'text-[#f5f3ef]'}`}>Paused</p>
-                  <p className={`text-xs ${settings.autoResponderMode === 'paused' ? 'text-[#3d1a22]/70' : 'text-[#f5f3ef]/60'}`}>Not accepting, no auto-response</p>
-                </div>
+                <input type="radio" name="autoResponderMode" value="paused" checked={settings.autoResponderMode === 'paused'} onChange={() => updateSettings.mutate({ autoResponderMode: 'paused' })} className="sr-only" data-testid="radio-paused" />
+                <p className={`font-medium text-sm ${settings.autoResponderMode === 'paused' ? 'text-[#3d1a22]' : 'text-[#f5f3ef]'}`}>Paused</p>
+                <p className={`text-[10px] mt-0.5 ${settings.autoResponderMode === 'paused' ? 'text-[#3d1a22]/60' : 'text-[#f5f3ef]/50'}`}>No response</p>
               </label>
 
-              {/* Off - Last */}
-              <label className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-all ${
+              {/* Off - spans full width */}
+              <label className={`col-span-2 flex flex-col items-center justify-center text-center px-3 py-2.5 rounded-lg cursor-pointer transition-all ${
                 (settings.autoResponderMode === 'off' || !settings.autoResponderMode)
-                  ? 'bg-[#f5f3ef] text-[#3d1a22]' 
-                  : 'bg-[#3d1a22] border border-[#f5f3ef]/20 hover:border-[#f5f3ef]/40'
+                  ? 'bg-[#f5f3ef] ring-2 ring-[#f5f3ef]' 
+                  : 'border border-[#f5f3ef]/20 hover:border-[#f5f3ef]/40'
               }`}>
-                <input
-                  type="radio"
-                  name="autoResponderMode"
-                  value="off"
-                  checked={settings.autoResponderMode === 'off' || !settings.autoResponderMode}
-                  onChange={() => updateSettings.mutate({ autoResponderMode: 'off' })}
-                  className="sr-only"
-                  data-testid="radio-off"
-                />
-                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                  (settings.autoResponderMode === 'off' || !settings.autoResponderMode) ? 'border-[#3d1a22] bg-[#3d1a22]' : 'border-[#f5f3ef]/50'
-                }`}>
-                  {(settings.autoResponderMode === 'off' || !settings.autoResponderMode) && <div className="w-2 h-2 rounded-full bg-[#f5f3ef]" />}
-                </div>
-                <div className="flex-1">
-                  <p className={`font-medium text-sm ${(settings.autoResponderMode === 'off' || !settings.autoResponderMode) ? 'text-[#3d1a22]' : 'text-[#f5f3ef]'}`}>Off</p>
-                  <p className={`text-xs ${(settings.autoResponderMode === 'off' || !settings.autoResponderMode) ? 'text-[#3d1a22]/70' : 'text-[#f5f3ef]/60'}`}>Review manually: Accept, Refer, or Decline</p>
-                </div>
+                <input type="radio" name="autoResponderMode" value="off" checked={settings.autoResponderMode === 'off' || !settings.autoResponderMode} onChange={() => updateSettings.mutate({ autoResponderMode: 'off' })} className="sr-only" data-testid="radio-off" />
+                <p className={`font-medium text-sm ${(settings.autoResponderMode === 'off' || !settings.autoResponderMode) ? 'text-[#3d1a22]' : 'text-[#f5f3ef]'}`}>Off</p>
+                <p className={`text-[10px] mt-0.5 ${(settings.autoResponderMode === 'off' || !settings.autoResponderMode) ? 'text-[#3d1a22]/60' : 'text-[#f5f3ef]/50'}`}>Manual review only</p>
               </label>
             </div>
           </section>
