@@ -402,9 +402,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set session
       (req.session as any).userId = user.id;
 
+      // If user is an artist, get their slug for redirect
+      let artistSlug: string | null = null;
+      if (user.role === 'artist') {
+        const artistProfile = await storage.getArtistProfileByUserId(user.id);
+        artistSlug = artistProfile?.slug || null;
+      }
+
       res.json({ 
         message: "Login successful", 
-        user: { ...user, password: undefined }
+        user: { ...user, password: undefined },
+        artistSlug
       });
     } catch (error: any) {
       console.error("Login error:", error);
@@ -867,7 +875,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         artistSlug = data.businessName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().slice(0, 30);
       }
       
-      await storage.createArtistProfile({
+      const profile = await storage.createArtistProfile({
         userId,
         businessName: data.businessName,
         location: data.serviceAreas?.[0] || null,
@@ -891,7 +899,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      res.json(intake);
+      res.json({ ...intake, artistSlug: profile?.slug || artistSlug });
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }

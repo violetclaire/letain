@@ -41,10 +41,15 @@ export default function ArtistIntake() {
       if (!response.ok) throw new Error("Failed to submit intake");
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      toast({ title: "Welcome to Beauvette!", description: "Your vendor profile has been created." });
-      setLocation("/artist");
+      toast({ title: "Welcome!", description: "Your profile has been created." });
+      // Redirect to dateinquiry.com for artist setup
+      if (data.artistSlug) {
+        window.location.href = `https://dateinquiry.com/setup/${data.artistSlug}/square`;
+      } else {
+        setLocation("/artist");
+      }
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to submit. Please try again.", variant: "destructive" });

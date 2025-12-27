@@ -153,6 +153,12 @@ export async function setupAuth(app: Express) {
               case 'client':
                 return res.redirect("/client");
               case 'artist':
+                // Redirect artists to dateinquiry.com with their slug
+                const artistProfile = await storage.getArtistProfileByUserId(userId);
+                if (artistProfile?.slug) {
+                  const dateinquiryBase = process.env.DATEINQUIRY_URL || 'https://dateinquiry.com';
+                  return res.redirect(`${dateinquiryBase}/admin/${artistProfile.slug}`);
+                }
                 return res.redirect("/artist");
               case 'planner':
                 return res.redirect("/planner");

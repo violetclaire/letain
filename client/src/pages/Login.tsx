@@ -41,7 +41,12 @@ export default function Login() {
             setLocation("/client");
             break;
           case "artist":
-            setLocation("/artist");
+            // Redirect to dateinquiry.com with artist slug
+            if (data.artistSlug) {
+              window.location.href = `https://dateinquiry.com/admin/${data.artistSlug}`;
+            } else {
+              setLocation("/artist");
+            }
             break;
           case "planner":
             setLocation("/planner");
