@@ -2766,8 +2766,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           <div class="container">
             <div class="header">
               <h1>Beauvette</h1>
-              <p>For Life's Most Important Days</p>
-            </div>
+              </div>
             <div class="content">
               <p>Hi ${clientName},</p>
               <div class="message">${body}</div>
@@ -2777,7 +2776,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               </div>` : ''}
             </div>
             <div class="footer">
-              Sent via Beauvette - Beauty services for life's most important days
+              Sent via Beauvette
             </div>
           </div>
         </body>

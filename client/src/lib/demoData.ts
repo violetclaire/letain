@@ -41,7 +41,7 @@ export const demoArtistProfile = {
   id: "profile-001",
   userId: "demo-artist-001",
   businessName: "Bella Beauty Studio",
-  bio: "Award-winning makeup artist specializing in bridal and editorial looks. Over 10 years of experience creating timeless beauty for life's most important moments.",
+  bio: "Award-winning makeup artist specializing in bridal and editorial looks. Over 10 years of experience creating timeless beauty.",
   location: "Los Angeles, CA",
   specialties: ["Bridal", "Editorial", "Airbrush", "Hair Styling"],
   portfolioUrls: [

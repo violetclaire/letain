@@ -1,7 +1,7 @@
 {
   "name": "Beauvette",
   "short_name": "Beauvette",
-  "description": "Beauty for Life's Most Important Days - Connect with beauty artists for your special events",
+  "description": "Booking infrastructure for independent professionals",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FAF9F7",

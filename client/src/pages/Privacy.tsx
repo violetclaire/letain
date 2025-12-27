@@ -32,7 +32,7 @@ export default function Privacy() {
           <section>
             <h2 className="font-medium text-[#5A1F2B] text-base mb-2">Your Privacy Matters</h2>
             <p>
-              At Beauvette, we understand that you're entrusting us with personal details about one of life's most important days. We take that responsibility seriously and are committed to protecting your information.
+              At Beauvette, we understand that you're entrusting us with personal details about your clients and business. We take that responsibility seriously and are committed to protecting your information.
             </p>
           </section>
 

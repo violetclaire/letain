@@ -823,8 +823,7 @@ export async function sendContractSignedNotification({
       <div class="container">
         <div class="header">
           <h1>Beauvette</h1>
-          <p>For Life's Most Important Days</p>
-        </div>
+          </div>
         <div class="content">
           <div class="success-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#3D5A3B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -848,7 +847,7 @@ export async function sendContractSignedNotification({
           </p>
         </div>
         <div class="footer">
-          Sent via Beauvette - Beauty services for life's most important days
+          Sent via Beauvette
         </div>
       </div>
     </body>
@@ -1593,7 +1592,7 @@ export async function sendPasswordResetEmail({
           <p>Best,<br>The Beauvette Team</p>
         </div>
         <div class="footer">
-          <a href="${getBaseUrl()}" style="color: #6B4A55;">Beauvette</a> - For Life's Most Important Days
+          <a href="${getBaseUrl()}" style="color: #6B4A55;">Beauvette</a>
         </div>
       </div>
     </body>
@@ -1667,8 +1666,7 @@ export async function sendWaitlistConfirmationEmail({
       <div class="container">
         <div class="header">
           <h1>Beauvette</h1>
-          <p>For Life's Most Important Days</p>
-        </div>
+          </div>
         <div class="content">
           <p>You're on the list!</p>
           
@@ -1694,7 +1692,7 @@ export async function sendWaitlistConfirmationEmail({
           <p>With love,<br>The Beauvette Team</p>
         </div>
         <div class="footer">
-          <a href="${getBaseUrl()}" style="color: #6B4A55;">Beauvette</a> - For Life's Most Important Days
+          <a href="${getBaseUrl()}" style="color: #6B4A55;">Beauvette</a>
         </div>
       </div>
     </body>
@@ -1768,8 +1766,7 @@ export async function sendArtistWelcomeEmail({
       <div class="container">
         <div class="header">
           <h1>Beauvette</h1>
-          <p>For Life's Most Important Days</p>
-        </div>
+          </div>
         <div class="content">
           <p class="greeting">Welcome to Beauvette, ${escapeHtml(artistName)}!</p>
           
@@ -1805,7 +1802,7 @@ export async function sendArtistWelcomeEmail({
           <p>With love,<br>The Beauvette Team</p>
         </div>
         <div class="footer">
-          <a href="https://beauvette.app" style="color: #6B4A55;">Beauvette</a> - For Life's Most Important Days
+          <a href="https://beauvette.app" style="color: #6B4A55;">Beauvette</a>
         </div>
       </div>
     </body>

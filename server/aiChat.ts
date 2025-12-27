@@ -750,8 +750,7 @@ export async function sendThankYouEmailFromAI(
       <div style="font-family: 'Georgia', serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background: linear-gradient(135deg, #FAF7F2 0%, #F5F1E8 100%);">
         <div style="text-align: center; margin-bottom: 30px;">
           <h1 style="color: #6B4A55; font-size: 28px; margin: 0; font-weight: normal;">Beauvette</h1>
-          <p style="color: #8B7355; font-size: 12px; letter-spacing: 2px; margin-top: 5px;">FOR LIFE'S MOST IMPORTANT DAYS</p>
-        </div>
+                  </div>
         
         <div style="background: white; border-radius: 8px; padding: 40px; box-shadow: 0 2px 10px rgba(107, 74, 85, 0.1);">
           <h2 style="color: #6B4A55; font-size: 22px; margin-bottom: 20px;">Dear ${email.recipientName},</h2>
