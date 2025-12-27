@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRoute, useLocation } from "wouter";
+import { useRoute } from "wouter";
 import { format } from "date-fns";
 import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, X, Check, ArrowRight, Send } from "lucide-react";
+import { Loader2, Send, X, Check } from "lucide-react";
 
 interface Inquiry {
   id: string;
@@ -18,7 +18,6 @@ interface Inquiry {
   status: string;
   createdAt?: string;
   depositPaidAt?: string;
-  infoSheetSentAt?: string;
 }
 
 interface ArtistProfile {
@@ -34,8 +33,6 @@ interface ArtistProfile {
   pricingInfo?: string;
   politeDeclineTemplate?: string;
   referralListTemplate?: string;
-  plannerInfoSheet?: string;
-  plannerPricing?: string;
 }
 
 interface ThreadMessage {
@@ -46,16 +43,15 @@ interface ThreadMessage {
   sentBy: string;
 }
 
-type ConfirmAction = "accept-client" | "accept-planner" | "refer" | "decline" | null;
+type ModalType = "accept" | "refer" | "decline" | null;
 
 export default function InquiryThread() {
   const [, params] = useRoute("/inquiry/:threadToken");
-  const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const threadToken = params?.threadToken;
 
-  const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
-  const [customMessage, setCustomMessage] = useState("");
+  const [activeModal, setActiveModal] = useState<ModalType>(null);
+  const [replyMessage, setReplyMessage] = useState("");
   const [showContractForm, setShowContractForm] = useState(false);
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
   const [contractData, setContractData] = useState({
@@ -81,13 +77,12 @@ export default function InquiryThread() {
   });
 
   const actionMutation = useMutation({
-    mutationFn: async ({ action, message }: { action: string; message?: string }) => {
-      return apiRequest("POST", `/api/public/inquiry/${threadToken}/action/${action}`, { message });
+    mutationFn: async ({ action }: { action: string }) => {
+      return apiRequest("POST", `/api/public/inquiry/${threadToken}/action/${action}`, {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/public/inquiry/${threadToken}`] });
-      setConfirmAction(null);
-      setCustomMessage("");
+      setActiveModal(null);
     },
   });
 
@@ -97,7 +92,7 @@ export default function InquiryThread() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/public/inquiry/${threadToken}`] });
-      setCustomMessage("");
+      setReplyMessage("");
     },
   });
 
@@ -133,310 +128,261 @@ export default function InquiryThread() {
     return (
       <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center px-8">
         <div className="text-center">
-          <p className="text-sm text-[#F5F0E8]/50 mb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
-            Inquiry not found
-          </p>
-          <a href="/" className="text-xs underline text-[#F5F0E8]/40 hover:text-[#F5F0E8]">
-            Return home
-          </a>
+          <p className="text-sm text-[#F5F0E8]/50">Inquiry not found</p>
         </div>
       </div>
     );
   }
 
   const { inquiry, artist, messages = [] }: { inquiry: Inquiry; artist: ArtistProfile; messages: ThreadMessage[] } = data;
-  const onboardingComplete = artist?.onboardingCompleted;
   const slug = artist?.artistSlug;
+  const onboardingComplete = artist?.onboardingCompleted;
 
-  const getStatusStyle = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "pending": return "text-[#F5F0E8]/60";
-      case "accepted": return "text-[#F5F0E8]";
-      case "auto_responded": return "text-[#F5F0E8]";
-      case "deposit_paid": return "text-emerald-400";
-      case "referred": return "text-[#F5F0E8]/50";
-      case "declined": return "text-[#F5F0E8]/40";
-      default: return "text-[#F5F0E8]/50";
-    }
-  };
+  const isPending = inquiry.status.toLowerCase() === "pending";
+  const isAccepted = ["accepted", "auto_responded"].includes(inquiry.status.toLowerCase());
+  const isTerminal = ["referred", "declined", "deposit_paid"].includes(inquiry.status.toLowerCase());
 
   const getVelocity = () => {
-    if (!inquiry.createdAt) return { text: "Active", color: "text-[#F5F0E8]/40" };
+    if (!inquiry.createdAt) return "Starting";
     if (inquiry.depositPaidAt) {
       const start = new Date(inquiry.createdAt);
       const end = new Date(inquiry.depositPaidAt);
-      const hours = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60) * 10) / 10;
-      return {
-        text: `${hours}h`,
-        color: hours < 48 ? "text-emerald-400 font-bold" : "text-[#F5F0E8]/60"
-      };
+      const hours = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60));
+      return `${hours}h`;
     }
-    return { text: "Active", color: "text-[#F5F0E8]/40" };
+    const start = new Date(inquiry.createdAt);
+    const now = new Date();
+    const hours = Math.round((now.getTime() - start.getTime()) / (1000 * 60 * 60));
+    return `${hours}h`;
   };
 
-  const velocity = getVelocity();
+  const velocityHours = inquiry.createdAt 
+    ? Math.round((new Date().getTime() - new Date(inquiry.createdAt).getTime()) / (1000 * 60 * 60))
+    : 0;
+  const velocityColor = velocityHours < 48 ? "text-emerald-400" : "text-[#F5F0E8]/50";
 
-  const getConfirmDetails = (action: ConfirmAction) => {
-    switch (action) {
-      case "accept-client":
-        return {
-          title: "Send Info Sheet",
-          preview: artist?.infoSheetContent || "Your info sheet content will be sent to the client.",
-          buttonText: "Confirm & Send",
-        };
-      case "accept-planner":
-        return {
-          title: "Send Planner Pricing",
-          preview: artist?.plannerPricing || artist?.pricingInfo || "Your planner pricing will be sent.",
-          buttonText: "Confirm & Send",
-        };
-      case "refer":
-        return {
-          title: "Send Referral List",
-          preview: artist?.referralListTemplate || "Your trusted circle referrals will be sent.",
-          buttonText: "Confirm & Refer",
-        };
-      case "decline":
-        return {
-          title: "Send Polite Decline",
-          preview: artist?.politeDeclineTemplate || "Thank you for reaching out. Unfortunately, I'm not available for your date. I wish you all the best for your special day!",
-          buttonText: "Confirm & Decline",
-        };
-      default:
-        return null;
-    }
+  const getStatusBadge = (status: string) => {
+    const s = status.toLowerCase();
+    if (s === "pending") return { text: "PENDING", color: "bg-amber-500/20 text-amber-400" };
+    if (s === "accepted" || s === "auto_responded") return { text: "ACCEPTED", color: "bg-emerald-500/20 text-emerald-400" };
+    if (s === "deposit_paid") return { text: "DEPOSIT PAID", color: "bg-emerald-500/30 text-emerald-300" };
+    if (s === "referred") return { text: "REFERRED", color: "bg-blue-500/20 text-blue-400" };
+    if (s === "declined") return { text: "DECLINED", color: "bg-[#F5F0E8]/10 text-[#F5F0E8]/50" };
+    return { text: status.toUpperCase(), color: "bg-[#F5F0E8]/10 text-[#F5F0E8]/50" };
   };
 
-  const confirmDetails = confirmAction ? getConfirmDetails(confirmAction) : null;
-  const isTerminal = ["referred", "declined", "deposit_paid"].includes(inquiry.status.toLowerCase());
-  const isPending = inquiry.status.toLowerCase() === "pending";
-  const isAccepted = ["accepted", "auto_responded"].includes(inquiry.status.toLowerCase());
+  const statusBadge = getStatusBadge(inquiry.status);
 
   return (
     <div className="min-h-screen bg-[#1A1A1A] text-[#F5F0E8]" style={{ fontFamily: "'Inter', sans-serif" }}>
-      <header className="flex justify-between items-center px-8 md:px-16 py-8 border-b border-[#F5F0E8]/10">
-        <a href="/">
-          <h1 className="text-sm tracking-[0.2em] text-[#F5F0E8]/70" style={{ fontFamily: "'Playfair Display', serif" }}>
-            {artist?.businessName || "Artist"}
-          </h1>
-        </a>
-        <div className="flex items-center gap-4">
+      {/* 1. HEADER */}
+      <header className="flex justify-between items-center px-6 md:px-12 py-6 border-b border-[#F5F0E8]/10">
+        <h1 className="text-sm tracking-[0.15em] text-[#F5F0E8]/80" style={{ fontFamily: "'Playfair Display', serif" }}>
+          {artist?.businessName || "Artist"}
+        </h1>
+        <div className="flex items-center gap-6">
           <div className="text-right">
-            <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F0E8]/30">Velocity</p>
-            <p className={`text-sm ${velocity.color}`}>{velocity.text}</p>
+            <p className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40">Velocity</p>
+            <p className={`text-sm font-medium ${velocityColor}`}>{getVelocity()}</p>
           </div>
-          <span className={`text-[10px] tracking-[0.3em] uppercase ${getStatusStyle(inquiry.status)}`}>
-            {inquiry.status.replace('_', ' ')}
-          </span>
+          <a 
+            href={`/admin/${slug}`}
+            className="text-xs text-[#F5F0E8]/50 hover:text-[#F5F0E8] underline"
+            data-testid="link-dashboard"
+          >
+            Dashboard
+          </a>
         </div>
       </header>
 
-      <main className="max-w-xl mx-auto px-8 md:px-16 py-16 md:py-24">
-        <div className="mb-16 pb-12 border-b border-[#F5F0E8]/10">
-          <div className="flex justify-between items-start">
+      <main className="max-w-2xl mx-auto px-6 md:px-12 py-10">
+        {/* 2. CLIENT INFO SECTION */}
+        <section className="mb-10">
+          <div className="flex justify-between items-start mb-6">
             <div>
-              <p className="text-[10px] tracking-[0.3em] uppercase text-[#F5F0E8]/40 mb-3">from</p>
-              <h2 className="text-2xl text-[#F5F0E8] mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
+              <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F0E8]/40 mb-2">inquiry from</p>
+              <h2 className="text-2xl text-[#F5F0E8] mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>
                 {inquiry.clientName}
               </h2>
               <p className="text-sm text-[#F5F0E8]/50">{inquiry.clientEmail}</p>
               {inquiry.clientPhone && (
-                <p className="text-sm text-[#F5F0E8]/50 mt-1">{inquiry.clientPhone}</p>
+                <p className="text-sm text-[#F5F0E8]/50">{inquiry.clientPhone}</p>
               )}
             </div>
             <div className="text-right">
-              <p className="text-[10px] tracking-[0.3em] uppercase text-[#F5F0E8]/40 mb-3">event</p>
+              <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F0E8]/40 mb-2">event date</p>
               <p className="text-lg text-[#F5F0E8]" style={{ fontFamily: "'Playfair Display', serif" }}>
                 {format(new Date(inquiry.eventDate), "MMM d, yyyy")}
               </p>
-              {inquiry.eventLocation && (
-                <p className="text-sm text-[#F5F0E8]/50 mt-2">{inquiry.eventLocation}</p>
-              )}
-              {inquiry.eventType && (
-                <p className="text-xs text-[#F5F0E8]/40 mt-1">{inquiry.eventType}</p>
-              )}
+              <span className={`inline-block mt-2 px-3 py-1 text-[10px] tracking-[0.15em] uppercase rounded ${statusBadge.color}`}>
+                {statusBadge.text}
+              </span>
             </div>
           </div>
 
           {inquiry.message && (
-            <div className="mt-10 pl-6 border-l border-[#F5F0E8]/10">
-              <p className="text-sm text-[#F5F0E8]/70 leading-relaxed italic">
-                "{inquiry.message}"
+            <div className="bg-[#F5F0E8]/5 border border-[#F5F0E8]/10 p-5 rounded">
+              <p className="text-sm text-[#F5F0E8]/70 leading-relaxed whitespace-pre-wrap">
+                {inquiry.message}
               </p>
             </div>
           )}
-        </div>
+        </section>
 
+        {/* 3. TOOL BELT (Only shows when status = PENDING) */}
         {isPending && (
-          <div className="space-y-6 mb-12">
-            <div className="grid grid-cols-2 gap-4">
+          <section className="mb-10">
+            <div className="grid grid-cols-3 gap-4">
               <button
-                onClick={() => setConfirmAction("accept-client")}
+                onClick={() => setActiveModal("accept")}
                 disabled={actionMutation.isPending}
-                className="py-6 border border-[#F5F0E8] hover:bg-[#F5F0E8] hover:text-[#1A1A1A] transition-all duration-500 text-center disabled:opacity-50"
+                className="py-5 bg-[#F5F0E8] text-[#1A1A1A] hover:bg-white transition-all text-center rounded disabled:opacity-50"
                 data-testid="button-accept"
               >
-                <p className="text-xs tracking-[0.2em] uppercase">Accept</p>
-                <p className="text-[10px] text-[#F5F0E8]/50 mt-1">Send Info Sheet</p>
+                <p className="text-sm font-medium">Accept</p>
+                <p className="text-[10px] opacity-60 mt-1">Send info sheet</p>
               </button>
               <button
-                onClick={() => setConfirmAction("accept-planner")}
+                onClick={() => setActiveModal("refer")}
                 disabled={actionMutation.isPending}
-                className="py-6 border border-[#F5F0E8]/70 hover:bg-[#F5F0E8] hover:text-[#1A1A1A] transition-all duration-500 text-center disabled:opacity-50"
-                data-testid="button-accept-planner"
-              >
-                <p className="text-xs tracking-[0.2em] uppercase">Accept</p>
-                <p className="text-[10px] text-[#F5F0E8]/50 mt-1">Planner Pricing</p>
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={() => setConfirmAction("refer")}
-                disabled={actionMutation.isPending}
-                className="group py-6 border border-[#F5F0E8]/30 hover:border-[#F5F0E8] hover:bg-[#F5F0E8] transition-all duration-500 text-center disabled:opacity-50"
+                className="py-5 border border-[#F5F0E8]/30 hover:border-[#F5F0E8] transition-all text-center rounded disabled:opacity-50"
                 data-testid="button-refer"
               >
-                <p className="text-xs tracking-[0.2em] uppercase text-[#F5F0E8]/70 group-hover:text-[#1A1A1A]">Refer</p>
-                <p className="text-[10px] text-[#F5F0E8]/40 mt-1 group-hover:text-[#1A1A1A]/60">Send Trusted Circle</p>
+                <p className="text-sm">Refer</p>
+                <p className="text-[10px] text-[#F5F0E8]/50 mt-1">I'm unavailable</p>
               </button>
               <button
-                onClick={() => setConfirmAction("decline")}
+                onClick={() => setActiveModal("decline")}
                 disabled={actionMutation.isPending}
-                className="group py-6 border border-[#F5F0E8]/20 hover:border-[#F5F0E8] hover:bg-[#F5F0E8] transition-all duration-500 text-center disabled:opacity-50"
+                className="py-5 border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40 transition-all text-center rounded disabled:opacity-50"
                 data-testid="button-decline"
               >
-                <p className="text-xs tracking-[0.2em] uppercase text-[#F5F0E8]/50 group-hover:text-[#1A1A1A]">Decline</p>
-                <p className="text-[10px] text-[#F5F0E8]/30 mt-1 group-hover:text-[#1A1A1A]/60">Polite message</p>
+                <p className="text-sm text-[#F5F0E8]/70">Decline</p>
+                <p className="text-[10px] text-[#F5F0E8]/40 mt-1">Politely pass</p>
               </button>
             </div>
-          </div>
+          </section>
         )}
 
+        {/* 4. BOOKING ACTIONS (Only shows when status = ACCEPTED) */}
         {isAccepted && (
-          <div className="space-y-8 mb-12">
+          <section className="mb-10">
             {!onboardingComplete ? (
-              <div className="p-8 border border-[#F5F0E8]/10">
-                <p className="text-[10px] tracking-[0.3em] uppercase text-[#F5F0E8]/40 mb-6">Complete Setup</p>
+              <div className="border border-[#F5F0E8]/10 rounded p-6">
+                <h3 className="text-sm font-medium mb-2">First Booking Setup</h3>
+                <p className="text-xs text-[#F5F0E8]/50 mb-6">Before you can send contracts...</p>
                 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <a
                     href={`/setup/${slug}/square`}
-                    className={`flex items-center gap-4 p-5 border ${artist?.squareAccessToken ? "border-[#F5F0E8]/30" : "border-[#F5F0E8]/10 hover:border-[#F5F0E8]/30"} transition-all`}
+                    className="flex items-center gap-4 p-4 border border-[#F5F0E8]/10 hover:border-[#F5F0E8]/30 rounded transition-all"
                   >
-                    <div className={`w-8 h-8 rounded-full ${artist?.squareAccessToken ? "bg-[#F5F0E8] text-[#1A1A1A]" : "border border-[#F5F0E8]/20"} flex items-center justify-center text-xs`}>
-                      {artist?.squareAccessToken ? "✓" : "1"}
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${artist?.squareAccessToken ? "bg-emerald-500 text-white" : "border border-[#F5F0E8]/30"}`}>
+                      {artist?.squareAccessToken ? <Check className="w-4 h-4" /> : "1"}
                     </div>
                     <div>
-                      <p className="text-sm text-[#F5F0E8]">Connect Square</p>
-                      <p className="text-[10px] text-[#F5F0E8]/40 mt-1">{artist?.squareAccessToken ? "Connected" : "Accept payments"}</p>
+                      <p className="text-sm">Connect Square</p>
+                      <p className="text-[10px] text-[#F5F0E8]/40">Accept payments</p>
                     </div>
                   </a>
                   
                   <a
                     href={`/setup/${slug}/contract`}
-                    className={`flex items-center gap-4 p-5 border ${artist?.contractTemplate ? "border-[#F5F0E8]/30" : "border-[#F5F0E8]/10 hover:border-[#F5F0E8]/30"} transition-all`}
+                    className="flex items-center gap-4 p-4 border border-[#F5F0E8]/10 hover:border-[#F5F0E8]/30 rounded transition-all"
                   >
-                    <div className={`w-8 h-8 rounded-full ${artist?.contractTemplate ? "bg-[#F5F0E8] text-[#1A1A1A]" : "border border-[#F5F0E8]/20"} flex items-center justify-center text-xs`}>
-                      {artist?.contractTemplate ? "✓" : "2"}
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${artist?.contractTemplate ? "bg-emerald-500 text-white" : "border border-[#F5F0E8]/30"}`}>
+                      {artist?.contractTemplate ? <Check className="w-4 h-4" /> : "2"}
                     </div>
                     <div>
-                      <p className="text-sm text-[#F5F0E8]">Contract Template</p>
-                      <p className="text-[10px] text-[#F5F0E8]/40 mt-1">{artist?.contractTemplate ? "Template saved" : "Your service agreement"}</p>
+                      <p className="text-sm">Upload Contract Template</p>
+                      <p className="text-[10px] text-[#F5F0E8]/40">Your service agreement</p>
                     </div>
                   </a>
                   
                   <a
                     href={`/setup/${slug}/links`}
-                    className={`flex items-center gap-4 p-5 border ${artist?.prettyLinks ? "border-[#F5F0E8]/30" : "border-[#F5F0E8]/10 hover:border-[#F5F0E8]/30"} transition-all`}
+                    className="flex items-center gap-4 p-4 border border-[#F5F0E8]/10 hover:border-[#F5F0E8]/30 rounded transition-all"
                   >
-                    <div className={`w-8 h-8 rounded-full ${artist?.prettyLinks ? "bg-[#F5F0E8] text-[#1A1A1A]" : "border border-[#F5F0E8]/20"} flex items-center justify-center text-xs`}>
-                      {artist?.prettyLinks ? "✓" : "3"}
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${artist?.prettyLinks ? "bg-emerald-500 text-white" : "border border-[#F5F0E8]/30"}`}>
+                      {artist?.prettyLinks ? <Check className="w-4 h-4" /> : "3"}
                     </div>
                     <div>
-                      <p className="text-sm text-[#F5F0E8]">Your Links</p>
-                      <p className="text-[10px] text-[#F5F0E8]/40 mt-1">{artist?.prettyLinks ? "Links added" : "Instagram, website, etc."}</p>
+                      <p className="text-sm">Add Your Links</p>
+                      <p className="text-[10px] text-[#F5F0E8]/40">Instagram, website, etc.</p>
                     </div>
                   </a>
                 </div>
               </div>
             ) : (
-              <>
+              <div className="space-y-3">
                 <button
                   onClick={() => setShowContractForm(!showContractForm)}
-                  className="w-full py-5 border border-[#F5F0E8] hover:bg-[#F5F0E8] hover:text-[#1A1A1A] transition-all duration-500 text-center"
+                  className="w-full py-4 border border-[#F5F0E8] hover:bg-[#F5F0E8] hover:text-[#1A1A1A] transition-all text-center rounded"
+                  data-testid="button-send-contract"
                 >
-                  <p className="text-xs tracking-[0.2em] uppercase">Send Contract</p>
+                  <p className="text-sm">Send Contract</p>
+                  <p className="text-[10px] opacity-50 mt-1">Create & send for signing</p>
                 </button>
 
                 {showContractForm && (
-                  <div className="p-8 border border-[#F5F0E8]/10">
+                  <div className="border border-[#F5F0E8]/10 rounded p-6">
                     <form
                       onSubmit={(e) => {
                         e.preventDefault();
                         contractMutation.mutate(contractData);
                       }}
-                      className="space-y-8"
+                      className="space-y-5"
                     >
                       <div>
-                        <label className="text-[10px] tracking-[0.3em] uppercase text-[#F5F0E8]/40 block mb-4">
-                          Package Description
-                        </label>
+                        <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40 block mb-2">Package Description</label>
                         <textarea
                           value={contractData.packageDetails}
                           onChange={(e) => setContractData({ ...contractData, packageDetails: e.target.value })}
-                          rows={3}
-                          className="w-full bg-transparent border-0 border-b border-[#F5F0E8]/20 text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-0 py-3 text-sm resize-none"
-                          placeholder="Bridal hair & makeup, bridesmaids..."
+                          rows={2}
+                          className="w-full bg-transparent border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-3 py-2 resize-none"
+                          placeholder="Bridal hair & makeup, 3 bridesmaids..."
                         />
                       </div>
-                      <div className="grid grid-cols-2 gap-8">
+                      <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="text-[10px] tracking-[0.3em] uppercase text-[#F5F0E8]/40 block mb-4">
-                            Total ($)
-                          </label>
+                          <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40 block mb-2">Total Amount ($)</label>
                           <input
                             type="number"
                             value={contractData.totalAmount}
                             onChange={(e) => setContractData({ ...contractData, totalAmount: e.target.value })}
                             step="0.01"
-                            required
-                            className="w-full bg-transparent border-0 border-b border-[#F5F0E8]/20 text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-0 py-3 text-sm"
-                            placeholder="1500"
+                            className="w-full bg-transparent border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-3 py-2"
+                            placeholder="1500.00"
                           />
                         </div>
                         <div>
-                          <label className="text-[10px] tracking-[0.3em] uppercase text-[#F5F0E8]/40 block mb-4">
-                            Deposit ($)
-                          </label>
+                          <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40 block mb-2">Deposit Amount ($)</label>
                           <input
                             type="number"
                             value={contractData.depositAmount}
                             onChange={(e) => setContractData({ ...contractData, depositAmount: e.target.value })}
                             step="0.01"
-                            required
-                            className="w-full bg-transparent border-0 border-b border-[#F5F0E8]/20 text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-0 py-3 text-sm"
-                            placeholder="500"
+                            className="w-full bg-transparent border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-3 py-2"
+                            placeholder="500.00"
                           />
                         </div>
                       </div>
                       <div>
-                        <label className="text-[10px] tracking-[0.3em] uppercase text-[#F5F0E8]/40 block mb-4">
-                          Location
-                        </label>
+                        <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40 block mb-2">Event Location</label>
                         <input
                           type="text"
                           value={contractData.eventLocation}
                           onChange={(e) => setContractData({ ...contractData, eventLocation: e.target.value })}
-                          className="w-full bg-transparent border-0 border-b border-[#F5F0E8]/20 text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-0 py-3 text-sm"
-                          placeholder="Venue name, address..."
+                          className="w-full bg-transparent border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-3 py-2"
+                          placeholder="Hotel name, address..."
                         />
                       </div>
                       <button
                         type="submit"
                         disabled={contractMutation.isPending}
-                        className="w-full border border-[#F5F0E8] py-4 text-xs tracking-[0.2em] uppercase hover:bg-[#F5F0E8] hover:text-[#1A1A1A] transition-all duration-500 disabled:opacity-50"
+                        className="w-full py-3 bg-[#F5F0E8] text-[#1A1A1A] text-sm rounded hover:bg-white transition-all disabled:opacity-50"
                       >
-                        {contractMutation.isPending ? "Sending..." : "Create & Send"}
+                        {contractMutation.isPending ? "Sending..." : "Create & Send Contract"}
                       </button>
                     </form>
                   </div>
@@ -444,119 +390,146 @@ export default function InquiryThread() {
 
                 <button
                   onClick={() => setShowInvoiceForm(!showInvoiceForm)}
-                  className="group w-full py-5 border border-[#F5F0E8]/30 hover:border-[#F5F0E8] hover:bg-[#F5F0E8] transition-all duration-500 text-center"
+                  className="w-full py-4 border border-[#F5F0E8]/50 hover:border-[#F5F0E8] transition-all text-center rounded"
+                  data-testid="button-send-invoice"
                 >
-                  <p className="text-xs tracking-[0.2em] uppercase text-[#F5F0E8]/70 group-hover:text-[#1A1A1A]">Send Invoice</p>
+                  <p className="text-sm">Send Invoice</p>
+                  <p className="text-[10px] text-[#F5F0E8]/50 mt-1">Collect deposit or balance</p>
                 </button>
 
                 {showInvoiceForm && (
-                  <div className="p-8 border border-[#F5F0E8]/10">
+                  <div className="border border-[#F5F0E8]/10 rounded p-6">
                     <form
                       onSubmit={(e) => {
                         e.preventDefault();
                         invoiceMutation.mutate(invoiceData);
                       }}
-                      className="space-y-8"
+                      className="space-y-5"
                     >
                       <div>
-                        <label className="text-[10px] tracking-[0.3em] uppercase text-[#F5F0E8]/40 block mb-4">
-                          Type
-                        </label>
+                        <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40 block mb-2">Invoice Type</label>
                         <select
                           value={invoiceData.type}
                           onChange={(e) => setInvoiceData({ ...invoiceData, type: e.target.value })}
-                          className="w-full bg-transparent border-0 border-b border-[#F5F0E8]/20 text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-0 py-3 text-sm"
+                          className="w-full bg-[#1A1A1A] border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-3 py-2"
                         >
-                          <option value="deposit" className="bg-[#1A1A1A]">Deposit</option>
-                          <option value="balance" className="bg-[#1A1A1A]">Final Balance</option>
-                          <option value="custom" className="bg-[#1A1A1A]">Custom</option>
+                          <option value="deposit">Deposit / Retainer</option>
+                          <option value="balance">Final Balance</option>
+                          <option value="custom">Custom</option>
                         </select>
                       </div>
                       <div>
-                        <label className="text-[10px] tracking-[0.3em] uppercase text-[#F5F0E8]/40 block mb-4">
-                          Amount ($)
-                        </label>
+                        <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40 block mb-2">Amount ($)</label>
                         <input
                           type="number"
                           value={invoiceData.amount}
                           onChange={(e) => setInvoiceData({ ...invoiceData, amount: e.target.value })}
                           step="0.01"
-                          required
-                          className="w-full bg-transparent border-0 border-b border-[#F5F0E8]/20 text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-0 py-3 text-sm"
-                          placeholder="500"
+                          className="w-full bg-transparent border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-3 py-2"
+                          placeholder="500.00"
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] tracking-[0.3em] uppercase text-[#F5F0E8]/40 block mb-4">
-                          Description
-                        </label>
+                        <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40 block mb-2">Description</label>
                         <textarea
                           value={invoiceData.description}
                           onChange={(e) => setInvoiceData({ ...invoiceData, description: e.target.value })}
                           rows={2}
-                          className="w-full bg-transparent border-0 border-b border-[#F5F0E8]/20 text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-0 py-3 text-sm resize-none"
-                          placeholder="Deposit for bridal services..."
+                          className="w-full bg-transparent border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-3 py-2 resize-none"
+                          placeholder="Deposit for bridal services"
                         />
                       </div>
                       <button
                         type="submit"
                         disabled={invoiceMutation.isPending}
-                        className="w-full border border-[#F5F0E8] py-4 text-xs tracking-[0.2em] uppercase hover:bg-[#F5F0E8] hover:text-[#1A1A1A] transition-all duration-500 disabled:opacity-50"
+                        className="w-full py-3 bg-[#F5F0E8] text-[#1A1A1A] text-sm rounded hover:bg-white transition-all disabled:opacity-50"
                       >
-                        {invoiceMutation.isPending ? "Sending..." : "Send Invoice"}
+                        {invoiceMutation.isPending ? "Sending..." : "Create & Send Invoice"}
                       </button>
                     </form>
                   </div>
                 )}
-              </>
+
+                <button
+                  onClick={() => actionMutation.mutate({ action: "deposit" })}
+                  disabled={actionMutation.isPending}
+                  className="w-full py-4 bg-emerald-600/20 border border-emerald-500/50 text-emerald-400 hover:bg-emerald-600/30 transition-all text-center rounded disabled:opacity-50"
+                  data-testid="button-deposit-paid"
+                >
+                  <p className="text-sm">Mark Deposit Paid</p>
+                  <p className="text-[10px] opacity-70 mt-1">Stops Velocity Clock</p>
+                </button>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Terminal status messages */}
+        {inquiry.status.toLowerCase() === "deposit_paid" && (
+          <section className="mb-10 text-center py-6">
+            <Check className="w-10 h-10 text-emerald-400 mx-auto mb-3" />
+            <p className="text-emerald-400 font-medium">Deposit Received</p>
+            <p className="text-xs text-[#F5F0E8]/40 mt-1">Booking confirmed</p>
+          </section>
+        )}
+
+        {inquiry.status.toLowerCase() === "referred" && (
+          <section className="mb-10 text-center py-6">
+            <p className="text-sm text-[#F5F0E8]/50">This inquiry has been referred to your trusted circle.</p>
+          </section>
+        )}
+
+        {inquiry.status.toLowerCase() === "declined" && (
+          <section className="mb-10 text-center py-6">
+            <p className="text-sm text-[#F5F0E8]/50">This inquiry has been politely declined.</p>
+          </section>
+        )}
+
+        {/* 5. CONVERSATION THREAD */}
+        <section className="mb-10">
+          <h3 className="text-[10px] tracking-[0.2em] uppercase text-[#F5F0E8]/40 mb-4">Conversation</h3>
+          <div className="space-y-4">
+            {messages.length === 0 ? (
+              <p className="text-sm text-[#F5F0E8]/30 italic py-4">No messages yet</p>
+            ) : (
+              messages.map((msg) => {
+                const isArtist = msg.sentBy === "artist" || msg.sentBy === artist?.businessName;
+                return (
+                  <div key={msg.id} className={`flex ${isArtist ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-[80%] p-4 rounded ${isArtist ? "bg-[#F5F0E8]/10" : "bg-[#F5F0E8]/5 border border-[#F5F0E8]/10"}`}>
+                      <p className="text-sm text-[#F5F0E8]/80 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                      <p className="text-[10px] text-[#F5F0E8]/30 mt-2">
+                        {format(new Date(msg.sentAt), "h:mm a")}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
-        )}
+        </section>
 
-        {messages.length > 0 && (
-          <div className="mb-12 pt-8 border-t border-[#F5F0E8]/10">
-            <p className="text-[10px] tracking-[0.3em] uppercase text-[#F5F0E8]/40 mb-6">Thread</p>
-            <div className="space-y-6">
-              {messages.map((msg) => (
-                <div key={msg.id} className="pl-6 border-l border-[#F5F0E8]/10">
-                  <p className="text-[10px] text-[#F5F0E8]/30 mb-2">
-                    {msg.sentBy} · {format(new Date(msg.sentAt), "MMM d, h:mm a")}
-                  </p>
-                  <p className="text-sm text-[#F5F0E8]/70 leading-relaxed">{msg.content}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
+        {/* 6. QUICK TEMPLATES + 7. CUSTOM REPLY FORM */}
         {!isTerminal && (
-          <div className="pt-8 border-t border-[#F5F0E8]/10">
-            <p className="text-[10px] tracking-[0.3em] uppercase text-[#F5F0E8]/40 mb-6">Send a Message</p>
-            <div className="flex gap-3 mb-6 flex-wrap">
+          <section className="border-t border-[#F5F0E8]/10 pt-8">
+            <div className="flex gap-3 mb-4 flex-wrap">
               <button
-                onClick={() => setCustomMessage(artist?.infoSheetContent || "Hi! Here's my info sheet with pricing and services...")}
-                className="px-4 py-2 text-xs border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40 transition-all"
+                onClick={() => setReplyMessage(artist?.infoSheetContent || "Here's my info sheet with pricing and services...")}
+                className="px-4 py-2 text-xs border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40 rounded transition-all"
                 data-testid="button-template-info"
               >
                 Info Sheet
               </button>
               <button
-                onClick={() => setCustomMessage(artist?.pricingInfo || "Here's my current pricing...")}
-                className="px-4 py-2 text-xs border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40 transition-all"
-                data-testid="button-template-pricing"
-              >
-                Pricing
-              </button>
-              <button
-                onClick={() => setCustomMessage(artist?.referralListTemplate || "I'm not available but here are some amazing artists I trust...")}
-                className="px-4 py-2 text-xs border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40 transition-all"
+                onClick={() => setReplyMessage(artist?.referralListTemplate || "I'm not available but here are some amazing artists I trust...")}
+                className="px-4 py-2 text-xs border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40 rounded transition-all"
                 data-testid="button-template-referral"
               >
                 Referral List
               </button>
               <button
-                onClick={() => setCustomMessage(artist?.politeDeclineTemplate || "Thank you for reaching out. Unfortunately, I'm not available for your date.")}
-                className="px-4 py-2 text-xs border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40 transition-all"
+                onClick={() => setReplyMessage(artist?.politeDeclineTemplate || "Thank you for reaching out. Unfortunately, I'm not available for your date.")}
+                className="px-4 py-2 text-xs border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40 rounded transition-all"
                 data-testid="button-template-decline"
               >
                 Polite Decline
@@ -565,102 +538,128 @@ export default function InquiryThread() {
 
             <div className="relative">
               <textarea
-                value={customMessage}
-                onChange={(e) => setCustomMessage(e.target.value)}
-                placeholder="Write a custom reply..."
+                value={replyMessage}
+                onChange={(e) => setReplyMessage(e.target.value)}
+                placeholder="Type your response..."
                 rows={4}
-                className="w-full bg-transparent border border-[#F5F0E8]/20 text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-4 py-4 text-sm resize-none"
-                data-testid="input-custom-message"
+                className="w-full bg-transparent border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-4 py-3 resize-none"
+                data-testid="input-reply"
               />
               <button
-                onClick={() => sendMessageMutation.mutate(customMessage)}
-                disabled={!customMessage.trim() || sendMessageMutation.isPending}
-                className="absolute bottom-4 right-4 p-2 bg-[#F5F0E8] text-[#1A1A1A] hover:bg-white disabled:opacity-30 transition-all"
-                data-testid="button-send-message"
+                onClick={() => sendMessageMutation.mutate(replyMessage)}
+                disabled={!replyMessage.trim() || sendMessageMutation.isPending}
+                className="absolute bottom-3 right-3 px-4 py-2 bg-[#F5F0E8] text-[#1A1A1A] text-xs rounded hover:bg-white disabled:opacity-30 transition-all flex items-center gap-2"
+                data-testid="button-send-response"
               >
-                <Send className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {isAccepted && (
-          <div className="mt-12 pt-8 border-t border-[#F5F0E8]/10">
-            <p className="text-[10px] tracking-[0.3em] uppercase text-[#F5F0E8]/30 mb-6">When ready</p>
-            <button
-              onClick={() => actionMutation.mutate({ action: "deposit" })}
-              disabled={actionMutation.isPending}
-              className="w-full py-4 border border-emerald-600/50 text-emerald-400/80 hover:border-emerald-500 hover:text-emerald-400 hover:bg-emerald-600/10 transition-all duration-500 text-center disabled:opacity-50"
-              data-testid="button-deposit-paid"
-            >
-              <p className="text-xs tracking-[0.2em] uppercase">Confirm Deposit Received</p>
-            </button>
-          </div>
-        )}
-
-        {inquiry.status.toLowerCase() === "referred" && (
-          <div className="text-center py-8">
-            <p className="text-sm text-[#F5F0E8]/50 italic">This inquiry has been referred.</p>
-          </div>
-        )}
-
-        {inquiry.status.toLowerCase() === "declined" && (
-          <div className="text-center py-8">
-            <p className="text-sm text-[#F5F0E8]/50 italic">This inquiry has been declined.</p>
-          </div>
-        )}
-
-        {inquiry.status.toLowerCase() === "deposit_paid" && (
-          <div className="text-center py-8">
-            <Check className="w-8 h-8 text-emerald-400 mx-auto mb-4" />
-            <p className="text-sm text-emerald-400 font-medium">Deposit Received</p>
-            <p className="text-xs text-[#F5F0E8]/40 mt-2">
-              Velocity: {velocity.text}
-            </p>
-          </div>
-        )}
-      </main>
-
-      {confirmAction && confirmDetails && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-8 z-50" onClick={() => setConfirmAction(null)}>
-          <div className="bg-[#1A1A1A] border border-[#F5F0E8]/20 max-w-md w-full p-8" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-start mb-8">
-              <h3 className="text-sm tracking-[0.2em] uppercase text-[#F5F0E8]">{confirmDetails.title}</h3>
-              <button onClick={() => setConfirmAction(null)} className="text-[#F5F0E8]/40 hover:text-[#F5F0E8]">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="mb-8 p-6 bg-[#F5F0E8]/5 border border-[#F5F0E8]/10">
-              <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F0E8]/40 mb-4">Preview</p>
-              <p className="text-sm text-[#F5F0E8]/70 leading-relaxed whitespace-pre-wrap">
-                {confirmDetails.preview.substring(0, 300)}{confirmDetails.preview.length > 300 ? "..." : ""}
-              </p>
-            </div>
-
-            <div className="flex gap-4">
-              <button
-                onClick={() => setConfirmAction(null)}
-                className="flex-1 py-4 border border-[#F5F0E8]/30 text-xs tracking-[0.2em] uppercase hover:border-[#F5F0E8] transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => actionMutation.mutate({ action: confirmAction })}
-                disabled={actionMutation.isPending}
-                className="flex-1 py-4 bg-[#F5F0E8] text-[#1A1A1A] text-xs tracking-[0.2em] uppercase hover:bg-white transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                data-testid="button-confirm-action"
-              >
-                {actionMutation.isPending ? (
+                {sendMessageMutation.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <>
-                    {confirmDetails.buttonText}
-                    <ArrowRight className="w-4 h-4" />
+                    <Send className="w-3 h-3" />
+                    Send Response
                   </>
                 )}
               </button>
             </div>
+          </section>
+        )}
+      </main>
+
+      {/* MODALS */}
+      {activeModal && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-6 z-50" onClick={() => setActiveModal(null)}>
+          <div className="bg-[#1A1A1A] border border-[#F5F0E8]/20 max-w-md w-full rounded-lg p-6" onClick={(e) => e.stopPropagation()}>
+            {activeModal === "accept" && (
+              <>
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-sm font-medium">Send Info Sheet</h3>
+                  <button onClick={() => setActiveModal(null)} className="text-[#F5F0E8]/40 hover:text-[#F5F0E8]">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="bg-[#F5F0E8]/5 border border-[#F5F0E8]/10 rounded p-4 mb-6 max-h-40 overflow-y-auto">
+                  <p className="text-xs text-[#F5F0E8]/60 leading-relaxed whitespace-pre-wrap">
+                    {artist?.infoSheetContent || "Your info sheet content will be sent to the client."}
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setActiveModal(null)}
+                    className="flex-1 py-3 border border-[#F5F0E8]/30 rounded text-sm hover:border-[#F5F0E8] transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => actionMutation.mutate({ action: "accept-client" })}
+                    disabled={actionMutation.isPending}
+                    className="flex-1 py-3 bg-[#F5F0E8] text-[#1A1A1A] rounded text-sm hover:bg-white transition-all disabled:opacity-50"
+                    data-testid="button-confirm-accept"
+                  >
+                    {actionMutation.isPending ? "Sending..." : "Confirm & Send"}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {activeModal === "refer" && (
+              <>
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-sm font-medium">Send Referrals</h3>
+                  <button onClick={() => setActiveModal(null)} className="text-[#F5F0E8]/40 hover:text-[#F5F0E8]">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <p className="text-sm text-[#F5F0E8]/70 mb-6">
+                  This will let {inquiry.clientName} know you're unavailable and share your Trusted Circle referrals.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setActiveModal(null)}
+                    className="flex-1 py-3 border border-[#F5F0E8]/30 rounded text-sm hover:border-[#F5F0E8] transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => actionMutation.mutate({ action: "refer" })}
+                    disabled={actionMutation.isPending}
+                    className="flex-1 py-3 bg-[#F5F0E8] text-[#1A1A1A] rounded text-sm hover:bg-white transition-all disabled:opacity-50"
+                    data-testid="button-confirm-refer"
+                  >
+                    {actionMutation.isPending ? "Sending..." : "Send Referrals"}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {activeModal === "decline" && (
+              <>
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-sm font-medium">Decline Inquiry</h3>
+                  <button onClick={() => setActiveModal(null)} className="text-[#F5F0E8]/40 hover:text-[#F5F0E8]">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <p className="text-sm text-[#F5F0E8]/70 mb-6">
+                  This will send a polite decline message to {inquiry.clientName}.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setActiveModal(null)}
+                    className="flex-1 py-3 border border-[#F5F0E8]/30 rounded text-sm hover:border-[#F5F0E8] transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => actionMutation.mutate({ action: "decline" })}
+                    disabled={actionMutation.isPending}
+                    className="flex-1 py-3 bg-[#F5F0E8] text-[#1A1A1A] rounded text-sm hover:bg-white transition-all disabled:opacity-50"
+                    data-testid="button-confirm-decline"
+                  >
+                    {actionMutation.isPending ? "Sending..." : "Decline"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
