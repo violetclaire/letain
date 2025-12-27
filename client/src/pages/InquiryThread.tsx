@@ -314,16 +314,6 @@ export default function InquiryThread() {
 
         {isAccepted && (
           <div className="space-y-8 mb-12">
-            <button
-              onClick={() => actionMutation.mutate({ action: "deposit" })}
-              disabled={actionMutation.isPending}
-              className="w-full py-5 bg-emerald-600 text-white hover:bg-emerald-500 transition-all duration-500 text-center disabled:opacity-50"
-              data-testid="button-deposit-paid"
-            >
-              <p className="text-xs tracking-[0.2em] uppercase">Mark Deposit Paid</p>
-              <p className="text-[10px] opacity-70 mt-1">Stops velocity clock</p>
-            </button>
-
             {!onboardingComplete ? (
               <div className="p-8 border border-[#F5F0E8]/10">
                 <p className="text-[10px] tracking-[0.3em] uppercase text-[#F5F0E8]/40 mb-6">Complete Setup</p>
@@ -541,7 +531,7 @@ export default function InquiryThread() {
 
         {!isTerminal && (
           <div className="pt-8 border-t border-[#F5F0E8]/10">
-            <p className="text-[10px] tracking-[0.3em] uppercase text-[#F5F0E8]/40 mb-6">Quick Templates</p>
+            <p className="text-[10px] tracking-[0.3em] uppercase text-[#F5F0E8]/40 mb-6">Send a Message</p>
             <div className="flex gap-3 mb-6 flex-wrap">
               <button
                 onClick={() => setCustomMessage(artist?.infoSheetContent || "Hi! Here's my info sheet with pricing and services...")}
@@ -591,6 +581,20 @@ export default function InquiryThread() {
                 <Send className="w-4 h-4" />
               </button>
             </div>
+          </div>
+        )}
+
+        {isAccepted && (
+          <div className="mt-12 pt-8 border-t border-[#F5F0E8]/10">
+            <p className="text-[10px] tracking-[0.3em] uppercase text-[#F5F0E8]/30 mb-6">When ready</p>
+            <button
+              onClick={() => actionMutation.mutate({ action: "deposit" })}
+              disabled={actionMutation.isPending}
+              className="w-full py-4 border border-emerald-600/50 text-emerald-400/80 hover:border-emerald-500 hover:text-emerald-400 hover:bg-emerald-600/10 transition-all duration-500 text-center disabled:opacity-50"
+              data-testid="button-deposit-paid"
+            >
+              <p className="text-xs tracking-[0.2em] uppercase">Confirm Deposit Received</p>
+            </button>
           </div>
         )}
 
