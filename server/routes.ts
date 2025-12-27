@@ -10346,9 +10346,10 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.json({ success: true, message: "If this email is registered, you'll receive your settings link shortly." });
       }
       
-      // Build settings URL
+      // Build settings and dashboard URLs
       const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
       const settingsUrl = `${baseUrl}/${profile.artistSlug}/settings?token=${profile.editToken}`;
+      const dashboardUrl = `${baseUrl}/admin/${profile.artistSlug}?token=${profile.editToken}`;
       
       // Send the email
       const { sendSettingsLinkEmail } = await import('./emailService');
@@ -10356,7 +10357,8 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         toEmail: email,
         artistName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'there',
         businessName: profile.businessName || undefined,
-        settingsUrl
+        settingsUrl,
+        dashboardUrl
       });
       
       res.json({ success: true, message: "If this email is registered, you'll receive your settings link shortly." });

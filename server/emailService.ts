@@ -1835,12 +1835,14 @@ export async function sendSettingsLinkEmail({
   toEmail,
   artistName,
   businessName,
-  settingsUrl
+  settingsUrl,
+  dashboardUrl
 }: {
   toEmail: string;
   artistName: string;
   businessName?: string;
   settingsUrl: string;
+  dashboardUrl?: string;
 }) {
   const { client, fromEmail } = await getResendClient();
   const baseUrl = getBaseUrl();
@@ -1876,14 +1878,20 @@ export async function sendSettingsLinkEmail({
         <div class="content">
           <p>Hi ${escapeHtml(safeArtistName)},</p>
           
-          <p>You requested access to your settings. Here's your private link:</p>
+          <p>You requested access to your account. Here are your private links:</p>
           
           <p style="text-align: center; margin: 32px 0;">
-            <a href="${settingsUrl}" class="button">Open My Settings</a>
+            <a href="${dashboardUrl || settingsUrl}" class="button">Open My Dashboard</a>
           </p>
           
+          ${dashboardUrl ? `
+          <p style="text-align: center; margin-top: 16px;">
+            <a href="${settingsUrl}" style="color: #6B4A55; text-decoration: underline;">Settings &amp; Preferences</a>
+          </p>
+          ` : ''}
+          
           <div class="note">
-            <strong>Tip:</strong> Bookmark this link so you can find it easily! This is your private admin access - don't share it with clients.
+            <strong>Tip:</strong> Bookmark these links so you can find them easily! These are your private admin links - don't share them with clients.
           </div>
         </div>
         <div class="footer">
