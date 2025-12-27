@@ -66,6 +66,7 @@ import {
   insertCdiAdminOverrideSchema,
   insertInquirySchema,
   trustedCircle,
+  blockedDates,
   type FormConfig,
 } from "@shared/schema";
 import { db } from "./db";
@@ -10605,6 +10606,95 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       res.json({ success: true });
     } catch (error: any) {
       console.error("[Trusted Circle Remove] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Blocked Dates API - get artist's blocked dates (admin only)
+  app.get("/api/public/blocked-dates", async (req, res) => {
+    try {
+      const token = req.query.token as string;
+      if (!token) {
+        return res.status(401).json({ error: "Token required" });
+      }
+      
+      const profile = await storage.getArtistProfileByEditToken(token);
+      if (!profile) {
+        return res.status(401).json({ error: "Invalid or expired token" });
+      }
+      
+      const dates = await db.select()
+        .from(blockedDates)
+        .where(eq(blockedDates.artistId, profile.userId));
+      
+      res.json({
+        dates: dates.map(d => ({
+          date: d.blockedDate,
+          reason: d.reason,
+        })),
+      });
+    } catch (error: any) {
+      console.error("[Blocked Dates Get] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Blocked Dates API - toggle date status
+  const blockedDateSchema = z.object({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD format"),
+    status: z.enum(['available', 'pending', 'booked']),
+  });
+  
+  app.post("/api/public/blocked-dates", async (req, res) => {
+    try {
+      const token = req.query.token as string;
+      if (!token) {
+        return res.status(401).json({ error: "Token required" });
+      }
+      
+      const profile = await storage.getArtistProfileByEditToken(token);
+      if (!profile) {
+        return res.status(401).json({ error: "Invalid or expired token" });
+      }
+      
+      const parseResult = blockedDateSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: parseResult.error.errors[0]?.message || "Invalid input" });
+      }
+      
+      const { date, status } = parseResult.data;
+      
+      if (status === 'available') {
+        // Remove from blocked dates
+        await db.delete(blockedDates)
+          .where(
+            and(
+              eq(blockedDates.artistId, profile.userId),
+              eq(blockedDates.blockedDate, date)
+            )
+          );
+      } else {
+        // Upsert: delete existing then insert
+        await db.delete(blockedDates)
+          .where(
+            and(
+              eq(blockedDates.artistId, profile.userId),
+              eq(blockedDates.blockedDate, date)
+            )
+          );
+        
+        const reason = status === 'booked' ? 'Booked' : 'Pending';
+        await db.insert(blockedDates)
+          .values({
+            artistId: profile.userId,
+            blockedDate: date,
+            reason,
+          });
+      }
+      
+      res.json({ success: true, date, status });
+    } catch (error: any) {
+      console.error("[Blocked Dates Update] Error:", error);
       res.status(500).json({ error: error.message });
     }
   });

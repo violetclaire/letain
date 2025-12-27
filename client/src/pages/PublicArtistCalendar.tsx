@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { useRoute, useLocation } from "wouter";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState, useMemo } from "react";
+import { useRoute, useLocation, Link } from "wouter";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Calendar, Instagram, Globe, MessageCircle, Clock, Award, Send, ArrowLeft, User, Mail, CalendarDays, MessageSquare } from "lucide-react";
-import { format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths } from "date-fns";
+import { Calendar, Instagram, Globe, MessageCircle, Clock, Award, Send, ArrowLeft, User, Mail, CalendarDays, MessageSquare, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isPast, isToday } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
 interface ArtistPublicProfile {
@@ -17,12 +17,18 @@ interface ArtistPublicProfile {
   responsiveBadge: boolean;
   avgResponseTimeMinutes?: number;
   bookedDates: string[];
+  pendingDates?: string[];
   referralArtists?: Array<{
     name: string;
     instagramHandle?: string;
     slug?: string;
     isOnPlatform: boolean;
   }>;
+}
+
+interface BlockedDateEntry {
+  date: string;
+  reason: 'Pending' | 'Booked';
 }
 
 interface InquiryForm {
@@ -32,16 +38,26 @@ interface InquiryForm {
   message: string;
 }
 
+type DateStatus = 'available' | 'pending' | 'booked';
+
 export default function PublicArtistCalendar() {
-  const [, params] = useRoute("/:artistSlug");
+  // Route is mounted at /:artistSlug/calendar in App.tsx
+  const [, params] = useRoute("/:artistSlug/:page");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const artistSlug = params?.artistSlug || "";
+  
+  // Check for admin token
+  const searchParams = new URLSearchParams(window.location.search);
+  const token = searchParams.get("token");
+  const isAdminMode = !!token;
 
-  const [currentMonth, setCurrentMonth] = useState(new Date(2026, 0, 1));
+  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showInquiryForm, setShowInquiryForm] = useState(false);
   const [inquirySubmitted, setInquirySubmitted] = useState(false);
+  const [updatingDate, setUpdatingDate] = useState<string | null>(null);
   const [form, setForm] = useState<InquiryForm>({
     clientName: "",
     clientEmail: "",
@@ -87,6 +103,41 @@ export default function PublicArtistCalendar() {
     }
   });
 
+  // Admin mode: fetch blocked dates with reasons
+  const { data: blockedDatesData } = useQuery<{ dates: BlockedDateEntry[] }>({
+    queryKey: ["/api/public/blocked-dates", token],
+    queryFn: async () => {
+      const res = await fetch(`/api/public/blocked-dates?token=${token}`);
+      if (!res.ok) throw new Error("Failed to load blocked dates");
+      return res.json();
+    },
+    enabled: isAdminMode,
+  });
+
+  // Admin mode: toggle date status
+  const toggleDateStatus = useMutation({
+    mutationFn: async ({ date, newStatus }: { date: string; newStatus: DateStatus }) => {
+      const res = await fetch(`/api/public/blocked-dates?token=${token}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date, status: newStatus }),
+      });
+      if (!res.ok) throw new Error("Failed to update date");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/public/blocked-dates", token] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/artists", artistSlug] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update date status",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Parse date strings as local dates to avoid timezone issues
   // Dates come as YYYY-MM-DD strings, parse them at noon to prevent timezone shift
   const bookedDates = artist?.bookedDates?.map(d => {
@@ -94,8 +145,50 @@ export default function PublicArtistCalendar() {
     return new Date(year, month - 1, day, 12, 0, 0);
   }) || [];
   
+  const pendingDates = useMemo(() => {
+    if (!isAdminMode || !blockedDatesData) return [];
+    return blockedDatesData.dates
+      .filter(d => d.reason === 'Pending')
+      .map(d => {
+        const [year, month, day] = d.date.split('-').map(Number);
+        return new Date(year, month - 1, day, 12, 0, 0);
+      });
+  }, [blockedDatesData, isAdminMode]);
+
+  const getDateStatus = (date: Date): DateStatus => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    if (isAdminMode && blockedDatesData) {
+      const entry = blockedDatesData.dates.find(d => d.date === dateStr);
+      if (entry?.reason === 'Booked') return 'booked';
+      if (entry?.reason === 'Pending') return 'pending';
+      return 'available';
+    }
+    // Public mode: only show booked
+    if (bookedDates.some(bd => isSameDay(bd, date))) return 'booked';
+    return 'available';
+  };
+  
   const isDateBooked = (date: Date) => {
     return bookedDates.some(bd => isSameDay(bd, date));
+  };
+  
+  const handleAdminDateClick = (date: Date) => {
+    if (isPast(date) && !isToday(date)) return;
+    
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const currentStatus = getDateStatus(date);
+    
+    // Cycle: available -> pending -> booked -> available
+    let newStatus: DateStatus;
+    if (currentStatus === 'available') newStatus = 'pending';
+    else if (currentStatus === 'pending') newStatus = 'booked';
+    else newStatus = 'available';
+    
+    setUpdatingDate(dateStr);
+    toggleDateStatus.mutate(
+      { date: dateStr, newStatus },
+      { onSettled: () => setUpdatingDate(null) }
+    );
   };
 
   const days = (() => {
