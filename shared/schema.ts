@@ -190,6 +190,10 @@ export const artistProfiles = pgTable("artist_profiles", {
   onboardingPreferences: jsonb("onboarding_preferences").$type<VendorOnboardingPreferences>(),
   editToken: varchar("edit_token").unique(),
   formSuccessMessage: text("form_success_message"), // Custom success message for embed form
+  // Auto-responder settings
+  autoResponderMode: text("auto_responder_mode").default("manual"), // 'manual', 'auto_info_sheet', 'smart'
+  politeDeclineTemplate: text("polite_decline_template"), // Template for polite decline messages
+  referralListTemplate: text("referral_list_template"), // Template for referral messages
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -90,7 +90,7 @@ document.getElementById('inquiry-form').addEventListener('submit', async (e) => 
       const inviteLink = `https://dateinquiry.com/${data.artistSlug}`;
       
       setResult({
-        adminLink: `https://beauvette.app/artist`,
+        adminLink: `https://dateinquiry.com/artist`,
         businessName: formData.businessName,
         artistSlug: data.artistSlug,
         embedCode,

@@ -28,6 +28,9 @@ interface ArtistSettingsData {
   infoSheetPdfUrl?: string;
   infoSheetEnabled: boolean;
   formSuccessMessage?: string;
+  autoResponderMode?: 'manual' | 'auto_info_sheet' | 'smart';
+  politeDeclineTemplate?: string;
+  referralListTemplate?: string;
 }
 
 export default function ArtistSettings() {
@@ -42,9 +45,9 @@ export default function ArtistSettings() {
   const token = searchParams.get("token") || "";
   
   // Use current origin for internal links
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://beauvette.app';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://dateinquiry.com';
   // Production URL for embed code (artists paste this into their external website)
-  const embedApiUrl = 'https://beauvette.app';
+  const embedApiUrl = 'https://dateinquiry.com';
 
   const [uploading, setUploading] = useState(false);
   const [localSuccessMessage, setLocalSuccessMessage] = useState<string | null>(null);
@@ -203,6 +206,115 @@ export default function ArtistSettings() {
           animate={{ opacity: 1, y: 0 }}
           className="space-y-8"
         >
+          {/* Response Settings Section */}
+          <section className="bg-white rounded-xl p-6 shadow-sm">
+            <p className="text-[10px] tracking-[0.3em] uppercase text-gray-400 mb-2">Response Settings</p>
+            <h2 className="text-lg font-serif text-[#6B4A55] mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
+              Response Settings
+            </h2>
+            <p className="text-gray-600 text-sm mb-6">
+              Control how you respond to new inquiries.
+            </p>
+
+            <div className="space-y-4 mb-8">
+              <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400">Auto-Responder</p>
+              
+              <label className="flex items-start gap-4 p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-[#6B4A55] transition-colors">
+                <input
+                  type="radio"
+                  name="autoResponderMode"
+                  value="manual"
+                  checked={settings.autoResponderMode === 'manual' || !settings.autoResponderMode}
+                  onChange={() => updateSettings.mutate({ autoResponderMode: 'manual' })}
+                  className="mt-1"
+                  data-testid="radio-manual-approval"
+                />
+                <div>
+                  <p className="font-medium text-[#6B4A55]">Manual Approval</p>
+                  <p className="text-sm text-gray-500">Review each inquiry and choose: Accept, Refer, or Decline</p>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-4 p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-[#6B4A55] transition-colors">
+                <input
+                  type="radio"
+                  name="autoResponderMode"
+                  value="auto_info_sheet"
+                  checked={settings.autoResponderMode === 'auto_info_sheet'}
+                  onChange={() => updateSettings.mutate({ autoResponderMode: 'auto_info_sheet' })}
+                  className="mt-1"
+                  data-testid="radio-auto-info-sheet"
+                />
+                <div>
+                  <p className="font-medium text-[#6B4A55]">Auto-Send Info Sheet</p>
+                  <p className="text-sm text-gray-500">Automatically send your info sheet to every inquiry</p>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-4 p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-[#6B4A55] transition-colors">
+                <input
+                  type="radio"
+                  name="autoResponderMode"
+                  value="smart"
+                  checked={settings.autoResponderMode === 'smart'}
+                  onChange={() => updateSettings.mutate({ autoResponderMode: 'smart' })}
+                  className="mt-1"
+                  data-testid="radio-smart-response"
+                />
+                <div>
+                  <p className="font-medium text-[#6B4A55]">Smart Response</p>
+                  <p className="text-sm text-gray-500">Check your calendar: if available, send info sheet. If booked, wait for your manual response.</p>
+                </div>
+              </label>
+            </div>
+          </section>
+
+          {/* Response Templates Section */}
+          <section className="bg-white rounded-xl p-6 shadow-sm">
+            <p className="text-[10px] tracking-[0.3em] uppercase text-gray-400 mb-2">Response Templates</p>
+            <h2 className="text-lg font-serif text-[#6B4A55] mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
+              Response Templates
+            </h2>
+
+            <div className="space-y-6">
+              <div>
+                <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 mb-3">Referral List</p>
+                <p className="text-sm text-gray-500 mb-3">This is sent when you refer a client to your trusted colleagues.</p>
+                <textarea
+                  value={settings.referralListTemplate || "Thank you so much for thinking of me!\nUnfortunately, I'm already booked for that date.\n\nI'd love to recommend some talented colleagues who may be available:"}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (debounceRef.current) clearTimeout(debounceRef.current);
+                    debounceRef.current = setTimeout(() => {
+                      updateSettings.mutate({ referralListTemplate: value });
+                    }, 800);
+                  }}
+                  rows={5}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6B4A55]/20 focus:border-[#6B4A55]"
+                  data-testid="input-referral-template"
+                />
+              </div>
+
+              <div>
+                <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 mb-3">Polite Decline</p>
+                <p className="text-sm text-gray-500 mb-3">This is sent when you politely decline an inquiry.</p>
+                <textarea
+                  value={settings.politeDeclineTemplate || "Thank you so much for reaching out!\nUnfortunately, I'm not available for your date.\n\nI wish you all the best for your special day!"}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (debounceRef.current) clearTimeout(debounceRef.current);
+                    debounceRef.current = setTimeout(() => {
+                      updateSettings.mutate({ politeDeclineTemplate: value });
+                    }, 800);
+                  }}
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6B4A55]/20 focus:border-[#6B4A55]"
+                  data-testid="input-decline-template"
+                />
+              </div>
+            </div>
+          </section>
+
           <section className="bg-white rounded-xl p-6 shadow-sm">
             <h2 className="text-lg font-serif text-[#6B4A55] mb-4">Pricing & Info Sheet</h2>
             <p className="text-gray-600 text-sm mb-6">

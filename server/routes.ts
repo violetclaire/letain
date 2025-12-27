@@ -10232,6 +10232,9 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         infoSheetPdfUrl: profile.infoSheetPdfUrl,
         infoSheetEnabled: profile.infoSheetEnabled ?? true,
         formSuccessMessage: profile.formSuccessMessage,
+        autoResponderMode: (profile as any).autoResponderMode || 'manual',
+        politeDeclineTemplate: (profile as any).politeDeclineTemplate,
+        referralListTemplate: (profile as any).referralListTemplate,
       });
     } catch (error: any) {
       console.error("[Artist Settings Get] Error:", error);
@@ -10252,7 +10255,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(404).json({ error: "Invalid or expired token" });
       }
       
-      const { infoSheetType, infoSheetContent, infoSheetPdfUrl, infoSheetEnabled, formSuccessMessage } = req.body;
+      const { infoSheetType, infoSheetContent, infoSheetPdfUrl, infoSheetEnabled, formSuccessMessage, autoResponderMode, politeDeclineTemplate, referralListTemplate } = req.body;
       
       const updateData: any = {};
       if (infoSheetType !== undefined) updateData.infoSheetType = infoSheetType;
@@ -10260,8 +10263,11 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       if (infoSheetPdfUrl !== undefined) updateData.infoSheetPdfUrl = infoSheetPdfUrl;
       if (infoSheetEnabled !== undefined) updateData.infoSheetEnabled = infoSheetEnabled;
       if (formSuccessMessage !== undefined) updateData.formSuccessMessage = formSuccessMessage;
+      if (autoResponderMode !== undefined) updateData.autoResponderMode = autoResponderMode;
+      if (politeDeclineTemplate !== undefined) updateData.politeDeclineTemplate = politeDeclineTemplate;
+      if (referralListTemplate !== undefined) updateData.referralListTemplate = referralListTemplate;
       
-      const updatedProfile = await storage.updateArtistProfile(profile.id, updateData);
+      const updatedProfile = await storage.updateArtistProfile(profile.userId, updateData);
       
       res.json({
         success: true,
