@@ -177,9 +177,12 @@ export default function InquiryThread() {
     <div className="min-h-screen bg-[#1A1A1A] text-[#F5F0E8]" style={{ fontFamily: "'Inter', sans-serif" }}>
       {/* 1. HEADER */}
       <header className="flex justify-between items-center px-6 md:px-12 py-6 border-b border-[#F5F0E8]/10">
-        <h1 className="text-sm tracking-[0.15em] text-[#F5F0E8]/80" style={{ fontFamily: "'Playfair Display', serif" }}>
-          {artist?.businessName || "Artist"}
-        </h1>
+        <div>
+          <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F0E8]/40 mb-1">Inquiry Thread</p>
+          <h1 className="text-sm tracking-[0.15em] text-[#F5F0E8]/80" style={{ fontFamily: "'Playfair Display', serif" }}>
+            {artist?.businessName || "Artist"}
+          </h1>
+        </div>
         <div className="flex items-center gap-6">
           <div className="text-right">
             <p className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40">Velocity</p>
@@ -267,54 +270,8 @@ export default function InquiryThread() {
         {/* 4. BOOKING ACTIONS (Only shows when status = ACCEPTED) */}
         {isAccepted && (
           <section className="mb-10">
-            {!onboardingComplete ? (
-              <div className="border border-[#F5F0E8]/10 rounded p-6">
-                <h3 className="text-sm font-medium mb-2">First Booking Setup</h3>
-                <p className="text-xs text-[#F5F0E8]/50 mb-6">Before you can send contracts...</p>
-                
-                <div className="space-y-3">
-                  <a
-                    href={`/setup/${slug}/square`}
-                    className="flex items-center gap-4 p-4 border border-[#F5F0E8]/10 hover:border-[#F5F0E8]/30 rounded transition-all"
-                  >
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${artist?.squareAccessToken ? "bg-emerald-500 text-white" : "border border-[#F5F0E8]/30"}`}>
-                      {artist?.squareAccessToken ? <Check className="w-4 h-4" /> : "1"}
-                    </div>
-                    <div>
-                      <p className="text-sm">Connect Square</p>
-                      <p className="text-[10px] text-[#F5F0E8]/40">Accept payments</p>
-                    </div>
-                  </a>
-                  
-                  <a
-                    href={`/setup/${slug}/contract`}
-                    className="flex items-center gap-4 p-4 border border-[#F5F0E8]/10 hover:border-[#F5F0E8]/30 rounded transition-all"
-                  >
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${artist?.contractTemplate ? "bg-emerald-500 text-white" : "border border-[#F5F0E8]/30"}`}>
-                      {artist?.contractTemplate ? <Check className="w-4 h-4" /> : "2"}
-                    </div>
-                    <div>
-                      <p className="text-sm">Upload Contract Template</p>
-                      <p className="text-[10px] text-[#F5F0E8]/40">Your service agreement</p>
-                    </div>
-                  </a>
-                  
-                  <a
-                    href={`/setup/${slug}/links`}
-                    className="flex items-center gap-4 p-4 border border-[#F5F0E8]/10 hover:border-[#F5F0E8]/30 rounded transition-all"
-                  >
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${artist?.prettyLinks ? "bg-emerald-500 text-white" : "border border-[#F5F0E8]/30"}`}>
-                      {artist?.prettyLinks ? <Check className="w-4 h-4" /> : "3"}
-                    </div>
-                    <div>
-                      <p className="text-sm">Add Your Links</p>
-                      <p className="text-[10px] text-[#F5F0E8]/40">Instagram, website, etc.</p>
-                    </div>
-                  </a>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
+            <h3 className="text-sm font-medium text-[#F5F0E8]/80 mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Next Steps</h3>
+            <div className="space-y-3">
                 <button
                   onClick={() => setShowContractForm(!showContractForm)}
                   className="w-full py-4 border border-[#F5F0E8] hover:bg-[#F5F0E8] hover:text-[#1A1A1A] transition-all text-center rounded"
@@ -460,7 +417,6 @@ export default function InquiryThread() {
                   <p className="text-[10px] opacity-70 mt-1">Stops Velocity Clock</p>
                 </button>
               </div>
-            )}
           </section>
         )}
 
@@ -487,7 +443,7 @@ export default function InquiryThread() {
 
         {/* 5. CONVERSATION THREAD */}
         <section className="mb-10">
-          <h3 className="text-[10px] tracking-[0.2em] uppercase text-[#F5F0E8]/40 mb-4">Conversation</h3>
+          <h3 className="text-sm font-medium text-[#F5F0E8]/80 mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Thread Conversation</h3>
           <div className="space-y-4">
             {messages.length === 0 ? (
               <p className="text-sm text-[#F5F0E8]/30 italic py-4">No messages yet</p>
