@@ -45,6 +45,7 @@ import PublicOnboarding from "@/pages/PublicOnboarding";
 import PublicArtistCalendar from "@/pages/PublicArtistCalendar";
 import PublicAnalytics from "@/pages/PublicAnalytics";
 import ArtistSettings from "@/pages/ArtistSettings";
+import TrustedCircle from "@/pages/TrustedCircle";
 import Proposals from "@/pages/Proposals";
 import VendorOnboarding from "@/pages/VendorOnboarding";
 import Waitlist from "@/pages/Waitlist";
@@ -182,6 +183,7 @@ function Router() {
       <Route path="/analytics" component={PublicAnalytics} />
       <Route path="/:artistSlug/settings" component={ArtistSettings} />
       <Route path="/:artistSlug/calendar" component={PublicArtistCalendar} />
+      <Route path="/:artistSlug/circle" component={TrustedCircle} />
       
       {/* Primary inquiry route - clean URL for sharing (dateinquiry.com/business-name) */}
       <Route path="/:artistSlug" component={InquirePage} />

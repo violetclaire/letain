@@ -28,9 +28,12 @@ interface ArtistSettingsData {
   infoSheetPdfUrl?: string;
   infoSheetEnabled: boolean;
   formSuccessMessage?: string;
-  autoResponderMode?: 'manual' | 'auto_info_sheet' | 'smart';
+  autoResponderMode?: 'off' | 'info_sheet' | 'smart' | 'paused';
   politeDeclineTemplate?: string;
   referralListTemplate?: string;
+  pricingInfo?: string;
+  plannerInfoSheet?: string;
+  plannerPricing?: string;
 }
 
 export default function ArtistSettings() {
@@ -223,15 +226,15 @@ export default function ArtistSettings() {
                 <input
                   type="radio"
                   name="autoResponderMode"
-                  value="manual"
-                  checked={settings.autoResponderMode === 'manual' || !settings.autoResponderMode}
-                  onChange={() => updateSettings.mutate({ autoResponderMode: 'manual' })}
+                  value="off"
+                  checked={settings.autoResponderMode === 'off' || !settings.autoResponderMode}
+                  onChange={() => updateSettings.mutate({ autoResponderMode: 'off' })}
                   className="mt-1"
-                  data-testid="radio-manual-approval"
+                  data-testid="radio-off"
                 />
                 <div>
-                  <p className="font-medium text-[#6B4A55]">Manual Approval</p>
-                  <p className="text-sm text-gray-500">Review each inquiry and choose: Accept, Refer, or Decline</p>
+                  <p className="font-medium text-[#6B4A55]">Off</p>
+                  <p className="text-sm text-gray-500">Review each inquiry manually and choose: Accept, Refer, or Decline</p>
                 </div>
               </label>
 
@@ -239,14 +242,14 @@ export default function ArtistSettings() {
                 <input
                   type="radio"
                   name="autoResponderMode"
-                  value="auto_info_sheet"
-                  checked={settings.autoResponderMode === 'auto_info_sheet'}
-                  onChange={() => updateSettings.mutate({ autoResponderMode: 'auto_info_sheet' })}
+                  value="info_sheet"
+                  checked={settings.autoResponderMode === 'info_sheet'}
+                  onChange={() => updateSettings.mutate({ autoResponderMode: 'info_sheet' })}
                   className="mt-1"
-                  data-testid="radio-auto-info-sheet"
+                  data-testid="radio-info-sheet"
                 />
                 <div>
-                  <p className="font-medium text-[#6B4A55]">Auto-Send Info Sheet</p>
+                  <p className="font-medium text-[#6B4A55]">Info Sheet</p>
                   <p className="text-sm text-gray-500">Automatically send your info sheet to every inquiry</p>
                 </div>
               </label>
@@ -259,11 +262,27 @@ export default function ArtistSettings() {
                   checked={settings.autoResponderMode === 'smart'}
                   onChange={() => updateSettings.mutate({ autoResponderMode: 'smart' })}
                   className="mt-1"
-                  data-testid="radio-smart-response"
+                  data-testid="radio-smart"
                 />
                 <div>
-                  <p className="font-medium text-[#6B4A55]">Smart Response</p>
+                  <p className="font-medium text-[#6B4A55]">Smart</p>
                   <p className="text-sm text-gray-500">Check your calendar: if available, send info sheet. If booked, wait for your manual response.</p>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-4 p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-[#6B4A55] transition-colors">
+                <input
+                  type="radio"
+                  name="autoResponderMode"
+                  value="paused"
+                  checked={settings.autoResponderMode === 'paused'}
+                  onChange={() => updateSettings.mutate({ autoResponderMode: 'paused' })}
+                  className="mt-1"
+                  data-testid="radio-paused"
+                />
+                <div>
+                  <p className="font-medium text-[#6B4A55]">Paused</p>
+                  <p className="text-sm text-gray-500">Temporarily pause auto-responses (e.g., vacation mode)</p>
                 </div>
               </label>
             </div>
@@ -310,6 +329,74 @@ export default function ArtistSettings() {
                   rows={4}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6B4A55]/20 focus:border-[#6B4A55]"
                   data-testid="input-decline-template"
+                />
+              </div>
+
+              <div>
+                <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 mb-3">Quick Pricing Summary</p>
+                <p className="text-sm text-gray-500 mb-3">A quick summary of your rates for thread replies.</p>
+                <textarea
+                  value={settings.pricingInfo || "Bridal makeup: $XXX\nBridesmaid makeup: $XXX per person\nHair styling: $XXX\n\nTravel fee may apply depending on location."}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (debounceRef.current) clearTimeout(debounceRef.current);
+                    debounceRef.current = setTimeout(() => {
+                      updateSettings.mutate({ pricingInfo: value });
+                    }, 800);
+                  }}
+                  rows={5}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6B4A55]/20 focus:border-[#6B4A55]"
+                  data-testid="input-pricing-info"
+                />
+              </div>
+            </div>
+          </section>
+
+          <section className="bg-white rounded-xl p-6 shadow-sm">
+            <p className="text-[10px] tracking-[0.3em] uppercase text-gray-400 mb-2">For Wedding Planners</p>
+            <h2 className="text-lg font-serif text-[#6B4A55] mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
+              Planner-Specific Content
+            </h2>
+            <p className="text-gray-600 text-sm mb-6">
+              Planners often want different info. Customize what they receive.
+            </p>
+
+            <div className="space-y-6">
+              <div>
+                <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 mb-3">Planner Info Sheet</p>
+                <p className="text-sm text-gray-500 mb-3">What planners should know about working with you.</p>
+                <textarea
+                  value={settings.plannerInfoSheet || ""}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (debounceRef.current) clearTimeout(debounceRef.current);
+                    debounceRef.current = setTimeout(() => {
+                      updateSettings.mutate({ plannerInfoSheet: value });
+                    }, 800);
+                  }}
+                  rows={4}
+                  placeholder="I work with planners regularly. I provide day-of timelines, communicate with your team directly..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6B4A55]/20 focus:border-[#6B4A55]"
+                  data-testid="input-planner-info-sheet"
+                />
+              </div>
+
+              <div>
+                <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 mb-3">Planner Pricing</p>
+                <p className="text-sm text-gray-500 mb-3">Wholesale or planner-specific pricing (if different).</p>
+                <textarea
+                  value={settings.plannerPricing || ""}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (debounceRef.current) clearTimeout(debounceRef.current);
+                    debounceRef.current = setTimeout(() => {
+                      updateSettings.mutate({ plannerPricing: value });
+                    }, 800);
+                  }}
+                  rows={4}
+                  placeholder="Planner rates available upon request..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6B4A55]/20 focus:border-[#6B4A55]"
+                  data-testid="input-planner-pricing"
                 />
               </div>
             </div>

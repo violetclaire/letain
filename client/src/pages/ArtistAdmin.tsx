@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { useRoute, useSearch } from "wouter";
+import { useRoute, useSearch, Link } from "wouter";
 import { format } from "date-fns";
-import { Loader2 } from "lucide-react";
+import { Loader2, Settings, Calendar, Users, Copy, Check } from "lucide-react";
+import { useState } from "react";
 
 interface Inquiry {
   id: string;
@@ -25,10 +26,18 @@ export default function ArtistAdmin() {
   const [, params] = useRoute("/admin/:slug");
   const searchString = useSearch();
   const slug = params?.slug;
+  const [copied, setCopied] = useState(false);
   
   // Extract token from query string
   const urlParams = new URLSearchParams(searchString);
   const token = urlParams.get('token');
+  
+  const handleCopyLink = () => {
+    const link = `https://dateinquiry.com/${slug}`;
+    navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const { data, isLoading, error } = useQuery({
     queryKey: [`/api/public/artist-admin/${slug}`, token],
@@ -119,10 +128,40 @@ export default function ArtistAdmin() {
   return (
     <div className="min-h-screen bg-[#F9F8F6] text-[#2D2D2D]" style={{ fontFamily: "'Inter', sans-serif" }}>
       <header className="px-8 md:px-16 py-8 border-b border-[#2D2D2D]/10">
-        <h1 className="text-2xl mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
-          {artist.businessName}
-        </h1>
-        <p className="text-sm text-[#2D2D2D]/50">Your inquiries dashboard</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-2xl mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
+              {artist.businessName}
+            </h1>
+            <p className="text-sm text-[#2D2D2D]/50">Your inquiries dashboard</p>
+          </div>
+          <nav className="flex items-center gap-6 text-sm">
+            <Link 
+              href={`/${slug}/calendar?token=${token}`}
+              className="flex items-center gap-2 text-[#2D2D2D]/60 hover:text-[#2D2D2D] transition-colors"
+              data-testid="nav-calendar"
+            >
+              <Calendar className="w-4 h-4" />
+              <span className="hidden sm:inline">Calendar</span>
+            </Link>
+            <Link 
+              href={`/${slug}/circle?token=${token}`}
+              className="flex items-center gap-2 text-[#2D2D2D]/60 hover:text-[#2D2D2D] transition-colors"
+              data-testid="nav-circle"
+            >
+              <Users className="w-4 h-4" />
+              <span className="hidden sm:inline">Circle</span>
+            </Link>
+            <Link 
+              href={`/${slug}/settings?token=${token}`}
+              className="flex items-center gap-2 text-[#2D2D2D]/60 hover:text-[#2D2D2D] transition-colors"
+              data-testid="nav-settings"
+            >
+              <Settings className="w-4 h-4" />
+              <span className="hidden sm:inline">Settings</span>
+            </Link>
+          </nav>
+        </div>
       </header>
 
       <main className="max-w-4xl mx-auto px-8 md:px-16 py-12">
@@ -192,7 +231,23 @@ export default function ArtistAdmin() {
 
         <div className="mt-12 p-6 border border-dashed border-[#2D2D2D]/20 text-center">
           <p className="text-[10px] tracking-[0.2em] uppercase text-[#2D2D2D]/40 mb-2">Your Form Link</p>
-          <p className="text-sm text-[#2D2D2D]/70 font-mono">dateinquiry.com/{artist.artistSlug}</p>
+          <div className="flex items-center justify-center gap-3">
+            <p className="text-sm text-[#2D2D2D]/70 font-mono">dateinquiry.com/{artist.artistSlug}</p>
+            <button
+              onClick={handleCopyLink}
+              className="p-2 rounded hover:bg-[#2D2D2D]/5 transition-colors"
+              data-testid="button-copy-link"
+            >
+              {copied ? (
+                <Check className="w-4 h-4 text-green-600" />
+              ) : (
+                <Copy className="w-4 h-4 text-[#2D2D2D]/40" />
+              )}
+            </button>
+          </div>
+          {copied && (
+            <p className="text-xs text-green-600 mt-2">Link copied!</p>
+          )}
         </div>
       </main>
     </div>

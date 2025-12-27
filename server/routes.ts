@@ -65,8 +65,11 @@ import {
   insertCdiThresholdSchema,
   insertCdiAdminOverrideSchema,
   insertInquirySchema,
+  trustedCircle,
   type FormConfig,
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, and } from "drizzle-orm";
 
 // Default form configuration for new artists
 function getDefaultFormConfig(): FormConfig {
@@ -8250,14 +8253,16 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       
       const inquiry = await storage.createInquiry(data);
       
-      // Auto-send info sheet if vendor has one enabled and mode is auto
+      // Check auto-responder mode (off, info_sheet, smart, paused)
       const artistProfile = await storage.getArtistProfile(data.vendorId);
-      const hasInfoSheet = artistProfile?.infoSheetEnabled && (
-        artistProfile?.infoSheetContent || 
-        (artistProfile?.infoSheetType === 'pdf' && artistProfile?.infoSheetPdfUrl)
-      );
+      const autoResponderMode = artistProfile?.autoResponderMode || 'off';
+      const hasInfoSheet = artistProfile?.infoSheetContent || 
+        (artistProfile?.infoSheetType === 'pdf' && artistProfile?.infoSheetPdfUrl);
       
-      if (hasInfoSheet && (artistProfile?.infoSheetType !== 'manual' || data.responseMode === 'auto')) {
+      // Auto-respond based on mode
+      const shouldAutoRespond = (autoResponderMode === 'info_sheet' || autoResponderMode === 'smart') && hasInfoSheet;
+      
+      if (shouldAutoRespond) {
         const vendorName = artistProfile.businessName || vendor.firstName || 'The Vendor';
         const eventDate = data.eventDate 
           ? new Date(data.eventDate).toLocaleDateString('en-US', { 
@@ -8277,8 +8282,13 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
             eventDate,
             serviceType: data.serviceType || 'Beauty Services'
           }).then(async () => {
-            // Update inquiry with info sheet sent timestamp
-            await storage.updateInquiry(inquiry.id, { infoSheetSentAt: new Date() } as any);
+            // Update inquiry with info sheet sent timestamp and auto_responded status
+            await storage.updateInquiry(inquiry.id, { 
+              infoSheetSentAt: new Date(),
+              status: 'auto_responded',
+              statusReason: 'Auto-responded with info sheet',
+              firstResponseAt: new Date(),
+            } as any);
             // Log notification
             await storage.createInquiryNotification({
               inquiryId: inquiry.id,
@@ -9716,6 +9726,17 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       }
       
       const artist = await storage.getArtistProfile(inquiry.vendorId);
+      const notifications = await storage.getInquiryNotifications(inquiry.id);
+      
+      const messages = notifications
+        .filter(n => ['artist_reply', 'info_sheet', 'referral_list', 'polite_decline'].includes(n.type))
+        .map(n => ({
+          id: n.id,
+          type: n.type,
+          content: n.content || '',
+          sentAt: n.sentAt || n.createdAt,
+          sentBy: n.type === 'artist_reply' ? 'You' : 'System',
+        }));
       
       res.json({
         inquiry: {
@@ -9731,21 +9752,67 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           status: inquiry.status,
           createdAt: inquiry.createdAt,
           depositPaidAt: (inquiry as any).depositPaidAt,
+          infoSheetSentAt: inquiry.infoSheetSentAt,
         },
         artist: artist ? {
           id: artist.id,
           userId: artist.userId,
           businessName: artist.businessName,
           artistSlug: artist.artistSlug,
-          squareAccessToken: artist.squareAccessToken ? true : false, // Don't expose token
-          contractTemplate: artist.contractTemplate ? true : false, // Just indicate presence
+          squareAccessToken: artist.squareAccessToken ? true : false,
+          contractTemplate: artist.contractTemplate ? true : false,
           prettyLinks: artist.prettyLinks,
           onboardingCompleted: artist.onboardingCompleted,
+          infoSheetContent: artist.infoSheetContent,
+          pricingInfo: (artist as any).pricingInfo,
+          politeDeclineTemplate: artist.politeDeclineTemplate,
+          referralListTemplate: artist.referralListTemplate,
+          plannerInfoSheet: (artist as any).plannerInfoSheet,
+          plannerPricing: (artist as any).plannerPricing,
         } : null,
+        messages,
       });
     } catch (error: any) {
       console.error("[Inquiry Thread] Error fetching inquiry:", error);
       res.status(500).json({ error: error.message || "Failed to fetch inquiry" });
+    }
+  });
+
+  // Send message on inquiry thread
+  app.post("/api/public/inquiry/:threadToken/message", async (req, res) => {
+    try {
+      const { threadToken } = req.params;
+      const { message } = req.body;
+      
+      if (!message?.trim()) {
+        return res.status(400).json({ error: "Message is required" });
+      }
+      
+      const inquiry = await storage.getInquiryByThreadToken(threadToken);
+      if (!inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+      
+      // Store the message in notifications
+      await storage.createInquiryNotification({
+        inquiryId: inquiry.id,
+        type: 'artist_reply',
+        channel: 'thread',
+        recipientEmail: inquiry.clientEmail,
+        content: message,
+        status: 'sent',
+        sentAt: new Date(),
+      });
+      
+      // Update inquiry last action
+      await storage.updateInquiry(inquiry.id, { lastActionAt: new Date() });
+      
+      console.log(`[Inquiry Thread] Message saved for ${inquiry.id}`);
+      
+      res.json({ success: true, message: "Message sent" });
+    } catch (error: any) {
+      console.error("[Inquiry Thread] Error sending message:", error);
+      res.status(500).json({ error: error.message || "Failed to send message" });
     }
   });
 
@@ -9813,7 +9880,44 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         updateData.depositPaidAt = new Date();
       }
       
+      if (action === 'accept-client' || action === 'accept-planner') {
+        updateData.infoSheetSentAt = new Date();
+      }
+      
       await storage.updateInquiry(inquiry.id, updateData);
+      
+      // Record notification for the action taken
+      const artist = await storage.getArtistProfile(inquiry.vendorId);
+      let notificationType = 'status_change';
+      let notificationContent = statusReason;
+      
+      if (action === 'accept-client') {
+        notificationType = 'info_sheet';
+        notificationContent = artist?.infoSheetContent || 'Info sheet sent';
+      } else if (action === 'accept-planner') {
+        notificationType = 'info_sheet';
+        notificationContent = (artist as any)?.plannerInfoSheet || (artist as any)?.plannerPricing || 'Planner info sent';
+      } else if (action === 'refer') {
+        notificationType = 'referral_list';
+        notificationContent = artist?.referralListTemplate || 'Referral list sent';
+      } else if (action === 'decline') {
+        notificationType = 'polite_decline';
+        notificationContent = artist?.politeDeclineTemplate || 'Thank you for reaching out. Unfortunately, I am not available for your date.';
+      }
+      
+      try {
+        await storage.createInquiryNotification({
+          inquiryId: inquiry.id,
+          type: notificationType,
+          channel: 'thread',
+          recipientEmail: inquiry.clientEmail,
+          content: notificationContent,
+          status: 'sent',
+          sentAt: new Date(),
+        });
+      } catch (e) {
+        console.error("[Inquiry Thread] Failed to create notification:", e);
+      }
       
       // Log activity
       try {
@@ -10232,9 +10336,12 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         infoSheetPdfUrl: profile.infoSheetPdfUrl,
         infoSheetEnabled: profile.infoSheetEnabled ?? true,
         formSuccessMessage: profile.formSuccessMessage,
-        autoResponderMode: (profile as any).autoResponderMode || 'manual',
+        autoResponderMode: (profile as any).autoResponderMode || 'off',
         politeDeclineTemplate: (profile as any).politeDeclineTemplate,
         referralListTemplate: (profile as any).referralListTemplate,
+        pricingInfo: (profile as any).pricingInfo,
+        plannerInfoSheet: (profile as any).plannerInfoSheet,
+        plannerPricing: (profile as any).plannerPricing,
       });
     } catch (error: any) {
       console.error("[Artist Settings Get] Error:", error);
@@ -10255,7 +10362,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(404).json({ error: "Invalid or expired token" });
       }
       
-      const { infoSheetType, infoSheetContent, infoSheetPdfUrl, infoSheetEnabled, formSuccessMessage, autoResponderMode, politeDeclineTemplate, referralListTemplate } = req.body;
+      const { infoSheetType, infoSheetContent, infoSheetPdfUrl, infoSheetEnabled, formSuccessMessage, autoResponderMode, politeDeclineTemplate, referralListTemplate, pricingInfo, plannerInfoSheet, plannerPricing } = req.body;
       
       const updateData: any = {};
       if (infoSheetType !== undefined) updateData.infoSheetType = infoSheetType;
@@ -10266,6 +10373,9 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       if (autoResponderMode !== undefined) updateData.autoResponderMode = autoResponderMode;
       if (politeDeclineTemplate !== undefined) updateData.politeDeclineTemplate = politeDeclineTemplate;
       if (referralListTemplate !== undefined) updateData.referralListTemplate = referralListTemplate;
+      if (pricingInfo !== undefined) updateData.pricingInfo = pricingInfo;
+      if (plannerInfoSheet !== undefined) updateData.plannerInfoSheet = plannerInfoSheet;
+      if (plannerPricing !== undefined) updateData.plannerPricing = plannerPricing;
       
       const updatedProfile = await storage.updateArtistProfile(profile.userId, updateData);
       
@@ -10372,6 +10482,130 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     } catch (error: any) {
       console.error("[Resend Settings Link] Error:", error);
       res.status(500).json({ error: "Failed to send settings link" });
+    }
+  });
+  
+  // Trusted Circle API - get artist's trusted circle members
+  app.get("/api/public/trusted-circle", async (req, res) => {
+    try {
+      const token = req.query.token as string;
+      if (!token) {
+        return res.status(401).json({ error: "Token required" });
+      }
+      
+      const profile = await storage.getArtistProfileByEditToken(token);
+      if (!profile) {
+        return res.status(401).json({ error: "Invalid or expired token" });
+      }
+      
+      // Fetch trusted circle members from database
+      const members = await db.select()
+        .from(trustedCircle)
+        .where(eq(trustedCircle.referrerId, profile.userId));
+      
+      res.json({
+        artistProfile: {
+          id: profile.id,
+          businessName: profile.businessName,
+          artistSlug: profile.artistSlug,
+        },
+        members: members.map(m => ({
+          id: m.id,
+          name: m.refereeName,
+          email: m.refereeEmail,
+          status: m.status,
+          addedAt: m.createdAt,
+        })),
+      });
+    } catch (error: any) {
+      console.error("[Trusted Circle Get] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Add member to trusted circle
+  const addTrustedCircleMemberSchema = z.object({
+    name: z.string().min(1, "Name is required"),
+    email: z.string().email("Valid email is required"),
+    note: z.string().optional(),
+  });
+  
+  app.post("/api/public/trusted-circle", async (req, res) => {
+    try {
+      const token = req.query.token as string;
+      if (!token) {
+        return res.status(401).json({ error: "Token required" });
+      }
+      
+      const profile = await storage.getArtistProfileByEditToken(token);
+      if (!profile) {
+        return res.status(401).json({ error: "Invalid or expired token" });
+      }
+      
+      const parseResult = addTrustedCircleMemberSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: parseResult.error.errors[0]?.message || "Invalid input" });
+      }
+      
+      const { name, email } = parseResult.data;
+      
+      // Create the trusted circle entry
+      const [newMember] = await db.insert(trustedCircle)
+        .values({
+          referrerId: profile.userId,
+          refereeName: name,
+          refereeEmail: email,
+          status: 'pending',
+          inviteToken: randomUUID(),
+        })
+        .returning();
+      
+      // TODO: Send invite email to the new member
+      
+      res.json({
+        success: true,
+        member: {
+          id: newMember.id,
+          name: newMember.refereeName,
+          email: newMember.refereeEmail,
+          status: newMember.status,
+          addedAt: newMember.createdAt,
+        },
+      });
+    } catch (error: any) {
+      console.error("[Trusted Circle Add] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Remove member from trusted circle
+  app.delete("/api/public/trusted-circle/:memberId", async (req, res) => {
+    try {
+      const token = req.query.token as string;
+      if (!token) {
+        return res.status(401).json({ error: "Token required" });
+      }
+      
+      const profile = await storage.getArtistProfileByEditToken(token);
+      if (!profile) {
+        return res.status(401).json({ error: "Invalid or expired token" });
+      }
+      
+      const { memberId } = req.params;
+      
+      // Delete only if the member belongs to this artist
+      await db.delete(trustedCircle)
+        .where(
+          and(
+            eq(trustedCircle.id, memberId),
+            eq(trustedCircle.referrerId, profile.userId)
+          )
+        );
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("[Trusted Circle Remove] Error:", error);
+      res.status(500).json({ error: error.message });
     }
   });
   
@@ -11035,6 +11269,55 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       
       // Get the artist for notifications
       const artist = await storage.getUser(artistProfile.userId);
+      
+      // Check auto-responder mode (off, info_sheet, smart, paused)
+      const autoResponderMode = artistProfile?.autoResponderMode || 'off';
+      const hasInfoSheet = artistProfile?.infoSheetContent || 
+        (artistProfile?.infoSheetType === 'pdf' && artistProfile?.infoSheetPdfUrl);
+      
+      // Auto-respond based on mode
+      const shouldAutoRespond = (autoResponderMode === 'info_sheet' || autoResponderMode === 'smart') && hasInfoSheet;
+      
+      if (shouldAutoRespond) {
+        console.log(`[Public Webhook] Auto-responding with info sheet for ${artistSlug}`);
+        import('./emailService').then(async ({ sendInfoSheetEmail }) => {
+          try {
+            await sendInfoSheetEmail({
+              toEmail: clientEmail,
+              vendorName: artistProfile.businessName || artist?.firstName || 'The Artist',
+              vendorEmail: artist?.email || undefined,
+              infoSheetContent: artistProfile.infoSheetContent || undefined,
+              infoSheetPdfUrl: artistProfile.infoSheetPdfUrl || undefined,
+              infoSheetType: (artistProfile.infoSheetType as 'template' | 'custom' | 'pdf') || 'template',
+              eventDate: parsedEventDate.toLocaleDateString('en-US', { 
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+              }),
+              serviceType: serviceType || 'Beauty Services'
+            });
+            // Update inquiry status to auto_responded
+            await storage.updateInquiry(inquiry.id, { 
+              infoSheetSentAt: new Date(),
+              status: 'auto_responded',
+              statusReason: 'Auto-responded with info sheet',
+              firstResponseAt: new Date(),
+            } as any);
+            // Log notification
+            await storage.createInquiryNotification({
+              inquiryId: inquiry.id,
+              type: 'info_sheet',
+              channel: 'email',
+              recipientEmail: clientEmail,
+              subject: `Information from ${artistProfile.businessName || 'Artist'}`,
+              content: 'Auto-sent info sheet based on artist settings',
+              status: 'sent',
+              sentAt: new Date(),
+            });
+            console.log(`[Public Webhook] Info sheet sent to ${clientEmail}`);
+          } catch (err: any) {
+            console.error('[Public Webhook] Info sheet error:', err);
+          }
+        });
+      }
       
       // Send email notification to artist
       if (artist?.email) {

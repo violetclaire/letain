@@ -3,7 +3,7 @@ import { useRoute, useLocation } from "wouter";
 import { format } from "date-fns";
 import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2 } from "lucide-react";
+import { Loader2, X, Check, ArrowRight, Send } from "lucide-react";
 
 interface Inquiry {
   id: string;
@@ -18,6 +18,7 @@ interface Inquiry {
   status: string;
   createdAt?: string;
   depositPaidAt?: string;
+  infoSheetSentAt?: string;
 }
 
 interface ArtistProfile {
@@ -29,7 +30,23 @@ interface ArtistProfile {
   contractTemplate?: string;
   prettyLinks?: Record<string, string>;
   onboardingCompleted?: boolean;
+  infoSheetContent?: string;
+  pricingInfo?: string;
+  politeDeclineTemplate?: string;
+  referralListTemplate?: string;
+  plannerInfoSheet?: string;
+  plannerPricing?: string;
 }
+
+interface ThreadMessage {
+  id: string;
+  type: string;
+  content: string;
+  sentAt: string;
+  sentBy: string;
+}
+
+type ConfirmAction = "accept-client" | "accept-planner" | "refer" | "decline" | null;
 
 export default function InquiryThread() {
   const [, params] = useRoute("/inquiry/:threadToken");
@@ -37,6 +54,8 @@ export default function InquiryThread() {
   const queryClient = useQueryClient();
   const threadToken = params?.threadToken;
 
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
+  const [customMessage, setCustomMessage] = useState("");
   const [showContractForm, setShowContractForm] = useState(false);
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
   const [contractData, setContractData] = useState({
@@ -62,11 +81,23 @@ export default function InquiryThread() {
   });
 
   const actionMutation = useMutation({
-    mutationFn: async ({ action }: { action: string }) => {
-      return apiRequest("POST", `/api/public/inquiry/${threadToken}/action/${action}`);
+    mutationFn: async ({ action, message }: { action: string; message?: string }) => {
+      return apiRequest("POST", `/api/public/inquiry/${threadToken}/action/${action}`, { message });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/public/inquiry/${threadToken}`] });
+      setConfirmAction(null);
+      setCustomMessage("");
+    },
+  });
+
+  const sendMessageMutation = useMutation({
+    mutationFn: async (message: string) => {
+      return apiRequest("POST", `/api/public/inquiry/${threadToken}/message`, { message });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/public/inquiry/${threadToken}`] });
+      setCustomMessage("");
     },
   });
 
@@ -113,7 +144,7 @@ export default function InquiryThread() {
     );
   }
 
-  const { inquiry, artist }: { inquiry: Inquiry; artist: ArtistProfile } = data;
+  const { inquiry, artist, messages = [] }: { inquiry: Inquiry; artist: ArtistProfile; messages: ThreadMessage[] } = data;
   const onboardingComplete = artist?.onboardingCompleted;
   const slug = artist?.artistSlug;
 
@@ -121,6 +152,7 @@ export default function InquiryThread() {
     switch (status.toLowerCase()) {
       case "pending": return "text-[#F5F0E8]/60";
       case "accepted": return "text-[#F5F0E8]";
+      case "auto_responded": return "text-[#F5F0E8]";
       case "deposit_paid": return "text-emerald-400";
       case "referred": return "text-[#F5F0E8]/50";
       case "declined": return "text-[#F5F0E8]/40";
@@ -143,6 +175,42 @@ export default function InquiryThread() {
   };
 
   const velocity = getVelocity();
+
+  const getConfirmDetails = (action: ConfirmAction) => {
+    switch (action) {
+      case "accept-client":
+        return {
+          title: "Send Info Sheet",
+          preview: artist?.infoSheetContent || "Your info sheet content will be sent to the client.",
+          buttonText: "Confirm & Send",
+        };
+      case "accept-planner":
+        return {
+          title: "Send Planner Pricing",
+          preview: artist?.plannerPricing || artist?.pricingInfo || "Your planner pricing will be sent.",
+          buttonText: "Confirm & Send",
+        };
+      case "refer":
+        return {
+          title: "Send Referral List",
+          preview: artist?.referralListTemplate || "Your trusted circle referrals will be sent.",
+          buttonText: "Confirm & Refer",
+        };
+      case "decline":
+        return {
+          title: "Send Polite Decline",
+          preview: artist?.politeDeclineTemplate || "Thank you for reaching out. Unfortunately, I'm not available for your date. I wish you all the best for your special day!",
+          buttonText: "Confirm & Decline",
+        };
+      default:
+        return null;
+    }
+  };
+
+  const confirmDetails = confirmAction ? getConfirmDetails(confirmAction) : null;
+  const isTerminal = ["referred", "declined", "deposit_paid"].includes(inquiry.status.toLowerCase());
+  const isPending = inquiry.status.toLowerCase() === "pending";
+  const isAccepted = ["accepted", "auto_responded"].includes(inquiry.status.toLowerCase());
 
   return (
     <div className="min-h-screen bg-[#1A1A1A] text-[#F5F0E8]" style={{ fontFamily: "'Inter', sans-serif" }}>
@@ -199,11 +267,11 @@ export default function InquiryThread() {
           )}
         </div>
 
-        {inquiry.status.toLowerCase() === "pending" && (
-          <div className="space-y-6">
+        {isPending && (
+          <div className="space-y-6 mb-12">
             <div className="grid grid-cols-2 gap-4">
               <button
-                onClick={() => actionMutation.mutate({ action: "accept-client" })}
+                onClick={() => setConfirmAction("accept-client")}
                 disabled={actionMutation.isPending}
                 className="py-6 border border-[#F5F0E8] hover:bg-[#F5F0E8] hover:text-[#1A1A1A] transition-all duration-500 text-center disabled:opacity-50"
                 data-testid="button-accept"
@@ -212,7 +280,7 @@ export default function InquiryThread() {
                 <p className="text-[10px] text-[#F5F0E8]/50 mt-1">Send Info Sheet</p>
               </button>
               <button
-                onClick={() => actionMutation.mutate({ action: "accept-planner" })}
+                onClick={() => setConfirmAction("accept-planner")}
                 disabled={actionMutation.isPending}
                 className="py-6 border border-[#F5F0E8]/70 hover:bg-[#F5F0E8] hover:text-[#1A1A1A] transition-all duration-500 text-center disabled:opacity-50"
                 data-testid="button-accept-planner"
@@ -223,7 +291,7 @@ export default function InquiryThread() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <button
-                onClick={() => actionMutation.mutate({ action: "refer" })}
+                onClick={() => setConfirmAction("refer")}
                 disabled={actionMutation.isPending}
                 className="group py-6 border border-[#F5F0E8]/30 hover:border-[#F5F0E8] hover:bg-[#F5F0E8] transition-all duration-500 text-center disabled:opacity-50"
                 data-testid="button-refer"
@@ -232,7 +300,7 @@ export default function InquiryThread() {
                 <p className="text-[10px] text-[#F5F0E8]/40 mt-1 group-hover:text-[#1A1A1A]/60">Send Trusted Circle</p>
               </button>
               <button
-                onClick={() => actionMutation.mutate({ action: "decline" })}
+                onClick={() => setConfirmAction("decline")}
                 disabled={actionMutation.isPending}
                 className="group py-6 border border-[#F5F0E8]/20 hover:border-[#F5F0E8] hover:bg-[#F5F0E8] transition-all duration-500 text-center disabled:opacity-50"
                 data-testid="button-decline"
@@ -244,8 +312,8 @@ export default function InquiryThread() {
           </div>
         )}
 
-        {(inquiry.status.toLowerCase() === "accepted" || inquiry.status.toLowerCase() === "auto_responded") && (
-          <div className="space-y-8">
+        {isAccepted && (
+          <div className="space-y-8 mb-12">
             <button
               onClick={() => actionMutation.mutate({ action: "deposit" })}
               disabled={actionMutation.isPending}
@@ -455,6 +523,77 @@ export default function InquiryThread() {
           </div>
         )}
 
+        {messages.length > 0 && (
+          <div className="mb-12 pt-8 border-t border-[#F5F0E8]/10">
+            <p className="text-[10px] tracking-[0.3em] uppercase text-[#F5F0E8]/40 mb-6">Thread</p>
+            <div className="space-y-6">
+              {messages.map((msg) => (
+                <div key={msg.id} className="pl-6 border-l border-[#F5F0E8]/10">
+                  <p className="text-[10px] text-[#F5F0E8]/30 mb-2">
+                    {msg.sentBy} · {format(new Date(msg.sentAt), "MMM d, h:mm a")}
+                  </p>
+                  <p className="text-sm text-[#F5F0E8]/70 leading-relaxed">{msg.content}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!isTerminal && (
+          <div className="pt-8 border-t border-[#F5F0E8]/10">
+            <p className="text-[10px] tracking-[0.3em] uppercase text-[#F5F0E8]/40 mb-6">Quick Templates</p>
+            <div className="flex gap-3 mb-6 flex-wrap">
+              <button
+                onClick={() => setCustomMessage(artist?.infoSheetContent || "Hi! Here's my info sheet with pricing and services...")}
+                className="px-4 py-2 text-xs border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40 transition-all"
+                data-testid="button-template-info"
+              >
+                Info Sheet
+              </button>
+              <button
+                onClick={() => setCustomMessage(artist?.pricingInfo || "Here's my current pricing...")}
+                className="px-4 py-2 text-xs border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40 transition-all"
+                data-testid="button-template-pricing"
+              >
+                Pricing
+              </button>
+              <button
+                onClick={() => setCustomMessage(artist?.referralListTemplate || "I'm not available but here are some amazing artists I trust...")}
+                className="px-4 py-2 text-xs border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40 transition-all"
+                data-testid="button-template-referral"
+              >
+                Referral List
+              </button>
+              <button
+                onClick={() => setCustomMessage(artist?.politeDeclineTemplate || "Thank you for reaching out. Unfortunately, I'm not available for your date.")}
+                className="px-4 py-2 text-xs border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40 transition-all"
+                data-testid="button-template-decline"
+              >
+                Polite Decline
+              </button>
+            </div>
+
+            <div className="relative">
+              <textarea
+                value={customMessage}
+                onChange={(e) => setCustomMessage(e.target.value)}
+                placeholder="Write a custom reply..."
+                rows={4}
+                className="w-full bg-transparent border border-[#F5F0E8]/20 text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-4 py-4 text-sm resize-none"
+                data-testid="input-custom-message"
+              />
+              <button
+                onClick={() => sendMessageMutation.mutate(customMessage)}
+                disabled={!customMessage.trim() || sendMessageMutation.isPending}
+                className="absolute bottom-4 right-4 p-2 bg-[#F5F0E8] text-[#1A1A1A] hover:bg-white disabled:opacity-30 transition-all"
+                data-testid="button-send-message"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {inquiry.status.toLowerCase() === "referred" && (
           <div className="text-center py-8">
             <p className="text-sm text-[#F5F0E8]/50 italic">This inquiry has been referred.</p>
@@ -466,7 +605,61 @@ export default function InquiryThread() {
             <p className="text-sm text-[#F5F0E8]/50 italic">This inquiry has been declined.</p>
           </div>
         )}
+
+        {inquiry.status.toLowerCase() === "deposit_paid" && (
+          <div className="text-center py-8">
+            <Check className="w-8 h-8 text-emerald-400 mx-auto mb-4" />
+            <p className="text-sm text-emerald-400 font-medium">Deposit Received</p>
+            <p className="text-xs text-[#F5F0E8]/40 mt-2">
+              Velocity: {velocity.text}
+            </p>
+          </div>
+        )}
       </main>
+
+      {confirmAction && confirmDetails && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-8 z-50" onClick={() => setConfirmAction(null)}>
+          <div className="bg-[#1A1A1A] border border-[#F5F0E8]/20 max-w-md w-full p-8" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-start mb-8">
+              <h3 className="text-sm tracking-[0.2em] uppercase text-[#F5F0E8]">{confirmDetails.title}</h3>
+              <button onClick={() => setConfirmAction(null)} className="text-[#F5F0E8]/40 hover:text-[#F5F0E8]">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="mb-8 p-6 bg-[#F5F0E8]/5 border border-[#F5F0E8]/10">
+              <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F0E8]/40 mb-4">Preview</p>
+              <p className="text-sm text-[#F5F0E8]/70 leading-relaxed whitespace-pre-wrap">
+                {confirmDetails.preview.substring(0, 300)}{confirmDetails.preview.length > 300 ? "..." : ""}
+              </p>
+            </div>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setConfirmAction(null)}
+                className="flex-1 py-4 border border-[#F5F0E8]/30 text-xs tracking-[0.2em] uppercase hover:border-[#F5F0E8] transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => actionMutation.mutate({ action: confirmAction })}
+                disabled={actionMutation.isPending}
+                className="flex-1 py-4 bg-[#F5F0E8] text-[#1A1A1A] text-xs tracking-[0.2em] uppercase hover:bg-white transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                data-testid="button-confirm-action"
+              >
+                {actionMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    {confirmDetails.buttonText}
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
