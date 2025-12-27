@@ -1,12 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Loader2, CheckCircle, Mail } from "lucide-react";
 
 export default function ArtistLogin() {
+  const [, setLocation] = useLocation();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const hostname = window.location.hostname;
+    const isWhiteLabelDomain = hostname.includes('dateinquiry') || 
+      (hostname !== 'localhost' && !hostname.includes('beauvette') && !hostname.includes('replit'));
+    
+    if (isWhiteLabelDomain) {
+      setLocation('/');
+    }
+  }, [setLocation]);
 
   const requestLink = useMutation({
     mutationFn: async () => {
@@ -115,9 +127,9 @@ export default function ArtistLogin() {
 
               <div className="mt-8 pt-6 border-t border-[#3d1a22]/10 text-center">
                 <p className="text-xs text-[#3d1a22]/50">
-                  New to Beauvette?{" "}
+                  New here?{" "}
                   <a href="/secretary" className="underline hover:text-[#3d1a22]/70">
-                    Sign up here
+                    Sign up
                   </a>
                 </p>
               </div>
