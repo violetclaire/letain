@@ -63,6 +63,7 @@ import SetupLinks from "@/pages/SetupLinks";
 import SetupComplete from "@/pages/SetupComplete";
 import ThreadPage from "@/pages/ThreadPage";
 import RecoverAccess from "@/pages/RecoverAccess";
+import ArtistAdmin from "@/pages/ArtistAdmin";
 
 function InviteRedirectHandler() {
   const [location, setLocation] = useLocation();
@@ -158,6 +159,9 @@ function Router() {
       
       {/* Secretary Onboarding (public) */}
       <Route path="/secretary" component={SecretaryOnboarding} />
+      
+      {/* Artist Admin Dashboard (slug-based, no login required) */}
+      <Route path="/admin/:slug" component={ArtistAdmin} />
       
       {/* Inquiry Thread (artist view of individual inquiry) */}
       <Route path="/inquiry/:threadToken" component={InquiryThread} />

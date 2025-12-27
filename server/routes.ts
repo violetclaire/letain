@@ -10442,6 +10442,60 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
   
+  // Artist admin dashboard (slug + token required for security)
+  app.get("/api/public/artist-admin/:slug", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const { token } = req.query;
+      
+      if (!token) {
+        return res.status(401).json({ error: "Access token required" });
+      }
+      
+      const profile = await storage.getArtistProfileBySlug(slug);
+      if (!profile) {
+        return res.status(404).json({ error: "Artist not found" });
+      }
+      
+      // Verify the edit token matches
+      if (profile.editToken !== token) {
+        return res.status(401).json({ error: "Invalid access token" });
+      }
+      
+      // Get all inquiries for this artist
+      const inquiries = await storage.getInquiriesByVendor(profile.userId);
+      
+      // Sort by createdAt descending (newest first)
+      const sortedInquiries = inquiries.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+      });
+      
+      res.json({
+        artist: {
+          id: profile.id,
+          businessName: profile.businessName,
+          artistSlug: profile.artistSlug,
+        },
+        inquiries: sortedInquiries.map(inq => ({
+          id: inq.id,
+          threadToken: inq.threadToken,
+          clientName: inq.clientName,
+          clientEmail: inq.clientEmail,
+          eventDate: inq.eventDate,
+          eventLocation: inq.eventLocation,
+          status: inq.status,
+          createdAt: inq.createdAt,
+          depositPaidAt: (inq as any).depositPaidAt,
+        }))
+      });
+    } catch (error: any) {
+      console.error("[Artist Admin] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Public inquiry submission (supports both artistSlug and username)
   app.post("/api/public/inquiries", async (req, res) => {
     try {
