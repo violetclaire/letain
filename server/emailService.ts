@@ -7,8 +7,9 @@ function getBaseUrl(): string {
   return process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
 }
 
-// White-label email sender - never show Beauvette branding
-const WHITELABEL_EMAIL_DOMAIN = 'dateinquiry.com';
+// White-label email sender - using toileviolet.com until dateinquiry.com is verified in Resend
+const WHITELABEL_EMAIL_DOMAIN = 'toileviolet.com';
+const WHITELABEL_FROM_EMAIL = 'notifications@toileviolet.com';
 
 function sanitizeSenderName(name: string): string {
   return name
@@ -67,10 +68,10 @@ async function getCredentials() {
       if (connectionSettings?.settings?.api_key) {
         console.log("Using Resend from Replit connector");
         console.log("Got Resend API key (first 8 chars):", connectionSettings.settings.api_key?.substring(0, 8) + "...");
-        // Always use dateinquiry.com domain for white-label emails
+        // Use verified domain for emails
         return { 
           apiKey: connectionSettings.settings.api_key, 
-          fromEmail: 'notifications@dateinquiry.com' 
+          fromEmail: WHITELABEL_FROM_EMAIL 
         };
       }
     } catch (err) {
@@ -83,7 +84,7 @@ async function getCredentials() {
     console.log("Using direct RESEND_API_KEY from environment");
     return { 
       apiKey: process.env.RESEND_API_KEY, 
-      fromEmail: 'notifications@dateinquiry.com' 
+      fromEmail: WHITELABEL_FROM_EMAIL 
     };
   }
   
@@ -178,7 +179,7 @@ export async function sendScheduleEmail({
 
   console.log("=== SENDING EMAILS ===");
   console.log("To:", toEmails);
-  const senderEmail = `${sanitizeSenderName(senderName)} <notifications@dateinquiry.com>`;
+  const senderEmail = `${sanitizeSenderName(senderName)} <notifications@toileviolet.com>`;
   console.log("From:", senderEmail);
   
   const results = await Promise.allSettled(
@@ -353,7 +354,7 @@ export async function sendInfoSheetEmail({
     </html>
   `;
 
-  const senderEmail = `${sanitizeSenderName(vendorName)} <notifications@dateinquiry.com>`;
+  const senderEmail = `${sanitizeSenderName(vendorName)} <notifications@toileviolet.com>`;
   
   try {
     console.log("Sending info sheet email to:", toEmail);
@@ -447,7 +448,7 @@ export async function sendInvoiceEmail({
     </html>
   `;
 
-  const senderEmail = `${sanitizeSenderName(vendorName)} <notifications@dateinquiry.com>`;
+  const senderEmail = `${sanitizeSenderName(vendorName)} <notifications@toileviolet.com>`;
   
   try {
     console.log("Sending invoice email to:", toEmail);
@@ -545,7 +546,7 @@ export async function sendContractEmail({
     </html>
   `;
 
-  const senderEmail = `${sanitizeSenderName(senderName)} <notifications@dateinquiry.com>`;
+  const senderEmail = `${sanitizeSenderName(senderName)} <notifications@toileviolet.com>`;
   
   try {
     console.log("Sending contract email to:", toEmail);
@@ -651,7 +652,7 @@ export async function sendContractWithSigningLink({
     </html>
   `;
 
-  const senderEmail = `${sanitizeSenderName(senderName)} <notifications@dateinquiry.com>`;
+  const senderEmail = `${sanitizeSenderName(senderName)} <notifications@toileviolet.com>`;
   
   try {
     console.log("Sending contract with signing link to:", toEmail);
@@ -764,7 +765,7 @@ export async function sendContractSigningEmail({
     </html>
   `;
 
-  const senderEmail = `${sanitizeSenderName(artistName)} <notifications@dateinquiry.com>`;
+  const senderEmail = `${sanitizeSenderName(artistName)} <notifications@toileviolet.com>`;
   
   try {
     console.log("Sending contract signing email to:", toEmail);
@@ -866,7 +867,7 @@ export async function sendContractSignedNotification({
     </html>
   `;
 
-  const senderEmail = 'Beauvette <notifications@dateinquiry.com>';
+  const senderEmail = 'Beauvette <notifications@toileviolet.com>';
   
   try {
     console.log("Sending contract signed notification to:", toEmail);
@@ -1000,7 +1001,7 @@ export async function sendAppointmentConfirmationEmail({
     </html>
   `;
 
-  const senderEmail = `${sanitizeSenderName(artistBusinessName)} <notifications@dateinquiry.com>`;
+  const senderEmail = `${sanitizeSenderName(artistBusinessName)} <notifications@toileviolet.com>`;
   
   try {
     console.log("Sending appointment confirmation email to:", toEmail);
@@ -1103,7 +1104,7 @@ export async function sendChatInviteEmail({
     </html>
   `;
 
-  const senderEmail = `${sanitizeSenderName(vendorName)} <notifications@dateinquiry.com>`;
+  const senderEmail = `${sanitizeSenderName(vendorName)} <notifications@toileviolet.com>`;
   
   try {
     console.log("Sending chat invite email to:", toEmail);
@@ -1186,7 +1187,7 @@ export async function sendGeneralEmail({
     </html>
   `;
 
-  const senderEmail = `${safeSenderName} <notifications@dateinquiry.com>`;
+  const senderEmail = `${safeSenderName} <notifications@toileviolet.com>`;
   
   console.log("Sending general email to:", to);
   const result = await client.emails.send({
@@ -1357,7 +1358,7 @@ export async function sendProposalEmail({
     </html>
   `;
 
-  const senderEmail = `${safeArtistName} <notifications@dateinquiry.com>`;
+  const senderEmail = `${safeArtistName} <notifications@toileviolet.com>`;
   
   try {
     console.log("Sending proposal email to:", toEmail);
@@ -1433,7 +1434,7 @@ export async function sendInquiryNotificationEmail({
     </html>
   `;
 
-  const senderEmail = 'notifications@dateinquiry.com';
+  const senderEmail = 'notifications@toileviolet.com';
   
   try {
     console.log("Sending inquiry notification email to:", toEmail);
@@ -1529,7 +1530,7 @@ export async function sendReferralNotificationEmail({
     </html>
   `;
 
-  const senderEmail = `${sanitizeSenderName(referrerName)} <notifications@dateinquiry.com>`;
+  const senderEmail = `${sanitizeSenderName(referrerName)} <notifications@toileviolet.com>`;
   
   try {
     console.log("Sending referral notification email to:", toEmail);
@@ -1611,7 +1612,7 @@ export async function sendPasswordResetEmail({
     </html>
   `;
 
-  const senderEmail = 'Beauvette <notifications@dateinquiry.com>';
+  const senderEmail = 'Beauvette <notifications@toileviolet.com>';
   
   try {
     console.log("Sending password reset email to:", toEmail);
@@ -1695,7 +1696,7 @@ export async function sendWaitlistConfirmationEmail({
           
           <p>We'll reach out as soon as we're ready to help you find the perfect beauty artists for your special day.</p>
           
-          <p>If you have any questions, please email <a href="mailto:notifications@dateinquiry.com" style="color: #6B4A55;">notifications@dateinquiry.com</a>.</p>
+          <p>If you have any questions, please email <a href="mailto:notifications@toileviolet.com" style="color: #6B4A55;">notifications@toileviolet.com</a>.</p>
           
           <p>Already working with a beauty artist you love? Send them this link to join: <a href="https://dateinquiry.com/onboarding" style="color: #6B4A55;">dateinquiry.com/onboarding</a></p>
           
@@ -1711,7 +1712,7 @@ export async function sendWaitlistConfirmationEmail({
     </html>
   `;
 
-  const senderEmail = 'Beauvette <notifications@dateinquiry.com>';
+  const senderEmail = 'Beauvette <notifications@toileviolet.com>';
   
   try {
     console.log("Sending waitlist confirmation email to:", toEmail);
@@ -1821,7 +1822,7 @@ export async function sendArtistWelcomeEmail({
     </html>
   `;
 
-  const senderEmail = 'Beauvette <notifications@dateinquiry.com>';
+  const senderEmail = 'Beauvette <notifications@toileviolet.com>';
   
   try {
     console.log("Sending artist welcome email to:", toEmail);
