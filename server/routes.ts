@@ -9818,10 +9818,12 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       // Log activity
       try {
         await logActivity({
-          type: 'inquiry_action',
-          entityType: 'inquiry',
-          entityId: inquiry.id,
+          action: 'inquiry_responded',
+          resourceType: 'inquiry',
+          resourceId: inquiry.id,
           userId: inquiry.vendorId,
+          description: `${action === 'accept-client' ? 'Accepted' : action === 'accept-planner' ? 'Accepted (planner)' : action === 'refer' ? 'Referred' : action === 'decline' ? 'Declined' : 'Responded to'} inquiry from ${inquiry.clientName}`,
+          sendEmail: false, // Don't send activity emails for inquiry actions
           metadata: {
             action,
             clientName: inquiry.clientName,

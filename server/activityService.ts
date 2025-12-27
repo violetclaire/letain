@@ -181,7 +181,7 @@ async function sendActivityNotificationEmail({
     <body>
       <div class="container">
         <div class="header">
-          <h1>Beauvette</h1>
+          <h1>Activity Update</h1>
         </div>
         <div class="content">
           <div class="action-badge">✓ ${actionLabel}</div>
@@ -191,7 +191,7 @@ async function sendActivityNotificationEmail({
           <p class="timestamp">${timestamp}</p>
         </div>
         <div class="footer">
-          <p>This is an automated notification from your Beauvette dashboard.</p>
+          <p>This is an automated notification from your dashboard.</p>
         </div>
       </div>
     </body>
@@ -199,9 +199,9 @@ async function sendActivityNotificationEmail({
   `;
 
   await client.emails.send({
-    from: `Beauvette <${fromEmail}>`,
+    from: fromEmail,
     to: [toEmail],
-    subject: `✓ ${actionLabel} - Beauvette`,
+    subject: `✓ ${actionLabel}`,
     html: htmlContent,
   });
 }
