@@ -35,7 +35,89 @@ function cleanupExpiredStates() {
 
 setInterval(cleanupExpiredStates, 60000);
 
+// Store artist slug for public OAuth flow
+const oauthSlugStates = new Map<string, { artistSlug: string; userId: string; returnBaseUrl: string; expires: number }>();
+
 export function registerSquareRoutes(app: Express, isAuthenticated: any) {
+  
+  // Public OAuth flow for artist setup (uses artist slug instead of session)
+  app.get("/api/square/connect/start/:artistSlug", async (req, res) => {
+    try {
+      const { artistSlug } = req.params;
+      
+      const profile = await storage.getArtistProfileBySlug(artistSlug);
+      if (!profile) {
+        return res.status(404).json({ error: "Artist not found" });
+      }
+      
+      if (!isSquareOAuthConfigured()) {
+        return res.status(500).json({ error: "Square OAuth not configured" });
+      }
+
+      const applicationId = getSquareApplicationId();
+      // Use dateinquiry.com as the return URL for artist setup flow
+      const returnBaseUrl = 'https://dateinquiry.com';
+      // Use the callback URL registered in Square (must match exactly)
+      const callbackBaseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
+      const state = crypto.randomBytes(32).toString('hex');
+      
+      // Store state with artist info and return URL
+      oauthSlugStates.set(state, {
+        artistSlug,
+        userId: profile.userId,
+        returnBaseUrl,
+        expires: Date.now() + 10 * 60 * 1000 // 10 minutes
+      });
+      
+      const scope = [
+        'MERCHANT_PROFILE_READ',
+        'PAYMENTS_READ',
+        'PAYMENTS_WRITE',
+        'PAYMENTS_WRITE_ADDITIONAL_RECIPIENTS',
+        'INVOICES_READ',
+        'INVOICES_WRITE',
+        'ORDERS_READ',
+        'ORDERS_WRITE',
+      ].join('+');
+
+      // Use the production redirect URL configured in Square dashboard
+      const redirectUri = encodeURIComponent(`${callbackBaseUrl}/api/square/connect/callback`);
+      const authUrl = `${SQUARE_OAUTH_BASE}/oauth2/authorize?` +
+        `client_id=${applicationId}&` +
+        `scope=${scope}&` +
+        `session=false&` +
+        `state=${state}&` +
+        `redirect_uri=${redirectUri}`;
+
+      // Redirect directly to Square
+      res.redirect(authUrl);
+    } catch (error: any) {
+      console.error("[Square OAuth Public] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to start Square connection" });
+    }
+  });
+  
+  // Public status check by artist slug
+  app.get("/api/square/connect/status/:artistSlug", async (req, res) => {
+    try {
+      const { artistSlug } = req.params;
+      const profile = await storage.getArtistProfileBySlug(artistSlug);
+      
+      if (!profile) {
+        return res.status(404).json({ error: "Artist not found" });
+      }
+      
+      const connected = !!(profile.squareAccessToken && profile.squareMerchantId);
+      
+      res.json({
+        connected,
+        merchantId: connected ? profile.squareMerchantId : null,
+      });
+    } catch (error: any) {
+      console.error("[Square Status] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to check status" });
+    }
+  });
   app.get("/api/square/config", async (req, res) => {
     try {
       if (!isSquareConfigured()) {
@@ -121,20 +203,36 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
         return res.redirect(`/artist?square=error&message=Invalid state parameter`);
       }
 
-      console.log(`[Square OAuth] Looking up state. Active states: ${oauthStates.size}`);
-      const stateData = oauthStates.get(state);
-      if (!stateData) {
+      // Check both state maps (authenticated flow and public slug flow)
+      console.log(`[Square OAuth] Looking up state. Auth states: ${oauthStates.size}, Slug states: ${oauthSlugStates.size}`);
+      
+      let userId: string;
+      let artistSlug: string | null = null;
+      let returnBaseUrl: string | null = null;
+      
+      const authStateData = oauthStates.get(state);
+      const slugStateData = oauthSlugStates.get(state);
+      
+      if (authStateData) {
+        if (authStateData.expires < Date.now()) {
+          oauthStates.delete(state);
+          return res.redirect(`/artist?square=error&message=Authorization expired, please try again`);
+        }
+        oauthStates.delete(state);
+        userId = authStateData.userId;
+      } else if (slugStateData) {
+        if (slugStateData.expires < Date.now()) {
+          oauthSlugStates.delete(state);
+          return res.redirect(`/artist?square=error&message=Authorization expired, please try again`);
+        }
+        oauthSlugStates.delete(state);
+        userId = slugStateData.userId;
+        artistSlug = slugStateData.artistSlug;
+        returnBaseUrl = slugStateData.returnBaseUrl;
+      } else {
         console.log('[Square OAuth] State not found in memory - may have expired or app restarted');
         return res.redirect(`/artist?square=error&message=Session expired - please try connecting again`);
       }
-
-      if (stateData.expires < Date.now()) {
-        oauthStates.delete(state);
-        return res.redirect(`/artist?square=error&message=Authorization expired, please try again`);
-      }
-
-      oauthStates.delete(state);
-      const userId = stateData.userId;
 
       const square = getSquare();
       const applicationId = getSquareApplicationId();
@@ -197,10 +295,17 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
         console.log(`[Square OAuth] Planner update result:`, result ? 'SUCCESS' : 'FAILED');
       }
 
-      console.log(`[Square OAuth] OAuth complete for user ${userId}, merchant ${merchantId}`);
+      console.log(`[Square OAuth] OAuth complete for user ${userId}, merchant ${merchantId}, slug: ${artistSlug || 'none'}, returnUrl: ${returnBaseUrl || 'none'}`);
       
-      const redirectPath = user.role === 'artist' ? '/artist' : '/planner';
-      res.redirect(`${redirectPath}?square=success&merchantId=${merchantId}`);
+      // If came from setup flow (has artistSlug), redirect to next setup step on dateinquiry.com
+      if (artistSlug && returnBaseUrl) {
+        res.redirect(`${returnBaseUrl}/setup/${artistSlug}/contract?square=success`);
+      } else if (artistSlug) {
+        res.redirect(`https://dateinquiry.com/setup/${artistSlug}/contract?square=success`);
+      } else {
+        const redirectPath = user.role === 'artist' ? '/artist' : '/planner';
+        res.redirect(`${redirectPath}?square=success&merchantId=${merchantId}`);
+      }
     } catch (error: any) {
       console.error("Square OAuth callback error:", error);
       res.redirect(`/artist?square=error&message=${encodeURIComponent(error.message || 'OAuth failed')}`);

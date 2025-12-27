@@ -1,22 +1,17 @@
-import { useState } from "react";
 import { useRoute, useLocation } from "wouter";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2, CreditCard, ExternalLink } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Loader2, CreditCard, Check, ArrowRight } from "lucide-react";
 
 export default function SetupSquare() {
   const [, params] = useRoute("/setup/:artistSlug/square");
   const [, setLocation] = useLocation();
   const artistSlug = params?.artistSlug || "";
-  const { toast } = useToast();
   
-  const [formData, setFormData] = useState({
-    accessToken: "",
-    locationId: "",
-    environment: "production",
-  });
+  // Check if square=success in URL (just connected)
+  const urlParams = new URLSearchParams(window.location.search);
+  const justConnected = urlParams.get('square') === 'success';
 
-  const { data: artist, isLoading } = useQuery({
+  const { data: artist, isLoading: artistLoading } = useQuery({
     queryKey: ["/api/public/artists", artistSlug, "setup"],
     queryFn: async () => {
       const res = await fetch(`/api/public/artists/${artistSlug}`);
@@ -26,28 +21,30 @@ export default function SetupSquare() {
     enabled: !!artistSlug
   });
 
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(`/api/public/setup/${artistSlug}/square`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-      if (!res.ok) throw new Error("Failed to save Square settings");
+  const { data: squareStatus, isLoading: statusLoading } = useQuery({
+    queryKey: ["/api/square/connect/status", artistSlug],
+    queryFn: async () => {
+      const res = await fetch(`/api/square/connect/status/${artistSlug}`);
+      if (!res.ok) return { connected: false };
       return res.json();
     },
-    onSuccess: () => {
-      toast({ title: "Saved!", description: "Square settings saved successfully." });
-      setLocation(`/setup/${artistSlug}/contract`);
-    },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to save settings.", variant: "destructive" });
-    }
+    enabled: !!artistSlug
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    saveMutation.mutate();
+  const isLoading = artistLoading || statusLoading;
+  const isConnected = squareStatus?.connected || justConnected;
+
+  const handleConnect = () => {
+    // Redirect to Square OAuth via our backend
+    window.location.href = `/api/square/connect/start/${artistSlug}`;
+  };
+
+  const handleContinue = () => {
+    setLocation(`/setup/${artistSlug}/contract`);
+  };
+
+  const handleSkip = () => {
+    setLocation(`/setup/${artistSlug}/contract`);
   };
 
   if (isLoading) {
@@ -77,114 +74,65 @@ export default function SetupSquare() {
           <p className="text-sm" style={{ color: "hsl(0 0% 30%)" }}>Accept payments from your clients securely</p>
         </div>
 
-        <div className="p-5 border mb-8 flex items-start gap-4" style={{ borderColor: "hsl(36 8% 75%)", background: "hsl(36 10% 85%)" }}>
-          <CreditCard size={20} style={{ color: "hsl(38 35% 45%)", flexShrink: 0, marginTop: 2 }} />
-          <div>
-            <p className="text-sm mb-2">You'll need your Square credentials to accept payments.</p>
-            <a 
-              href="https://developer.squareup.com/apps" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs underline"
-              style={{ color: "hsl(38 35% 45%)" }}
+        {isConnected ? (
+          <div className="space-y-6">
+            <div className="p-6 border flex items-center gap-4" style={{ borderColor: "hsl(142 76% 36%)", background: "hsl(142 76% 96%)" }}>
+              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "hsl(142 76% 36%)" }}>
+                <Check className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <p className="font-medium" style={{ color: "hsl(142 76% 26%)" }}>Square Connected</p>
+                <p className="text-sm" style={{ color: "hsl(142 50% 30%)" }}>You can now accept payments from clients</p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleContinue}
+              className="w-full py-4 flex items-center justify-center gap-2 text-sm tracking-wider"
+              style={{ 
+                background: "hsl(0 0% 8%)", 
+                color: "hsl(36 10% 92%)"
+              }}
+              data-testid="button-continue"
             >
-              Open Square Developer Dashboard
-              <ExternalLink size={12} />
-            </a>
+              Continue to Contract
+              <ArrowRight size={16} />
+            </button>
           </div>
-        </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="p-5 border flex items-start gap-4" style={{ borderColor: "hsl(36 8% 75%)", background: "hsl(36 10% 85%)" }}>
+              <CreditCard size={20} style={{ color: "hsl(38 35% 45%)", flexShrink: 0, marginTop: 2 }} />
+              <div>
+                <p className="text-sm mb-1">Connect your Square account to accept payments</p>
+                <p className="text-xs" style={{ color: "hsl(0 0% 35%)" }}>
+                  You'll be redirected to Square to log in and authorize access
+                </p>
+              </div>
+            </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="text-xs block mb-2" style={{ color: "hsl(0 0% 30%)" }}>Square Access Token</label>
-            <input 
-              type="text" 
-              name="access_token" 
-              required
-              value={formData.accessToken}
-              onChange={(e) => setFormData({ ...formData, accessToken: e.target.value })}
-              className="w-full border p-4 text-sm focus:outline-none"
+            <button
+              onClick={handleConnect}
+              className="w-full py-4 text-sm tracking-wider"
               style={{ 
-                background: "hsl(36 10% 85%)", 
-                borderColor: "hsl(36 8% 75%)",
-                color: "hsl(0 0% 8%)"
+                background: "hsl(0 0% 8%)", 
+                color: "hsl(36 10% 92%)"
               }}
-              placeholder="sq0atp-xxxxxxxxxxxxx"
-              data-testid="input-square-token"
-            />
-            <p className="text-[10px] mt-2" style={{ color: "hsl(0 0% 35%)" }}>
-              Found under Credentials in your Square app
-            </p>
-          </div>
-
-          <div>
-            <label className="text-xs block mb-2" style={{ color: "hsl(0 0% 30%)" }}>Location ID</label>
-            <input 
-              type="text" 
-              name="location_id" 
-              required
-              value={formData.locationId}
-              onChange={(e) => setFormData({ ...formData, locationId: e.target.value })}
-              className="w-full border p-4 text-sm focus:outline-none"
-              style={{ 
-                background: "hsl(36 10% 85%)", 
-                borderColor: "hsl(36 8% 75%)",
-                color: "hsl(0 0% 8%)"
-              }}
-              placeholder="LXXXXXXXXXXXXXXXXXX"
-              data-testid="input-location-id"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs block mb-2" style={{ color: "hsl(0 0% 30%)" }}>Environment</label>
-            <select 
-              name="environment"
-              value={formData.environment}
-              onChange={(e) => setFormData({ ...formData, environment: e.target.value })}
-              className="w-full border p-4 text-sm focus:outline-none"
-              style={{ 
-                background: "hsl(36 10% 85%)", 
-                borderColor: "hsl(36 8% 75%)",
-                color: "hsl(0 0% 8%)"
-              }}
-              data-testid="select-environment"
+              data-testid="button-connect-square"
             >
-              <option value="production">Production (Live Payments)</option>
-              <option value="sandbox">Sandbox (Testing)</option>
-            </select>
-          </div>
+              Connect with Square
+            </button>
 
-          <button 
-            type="submit"
-            disabled={saveMutation.isPending}
-            className="w-full border py-4 text-xs tracking-[0.2em] uppercase transition-all disabled:opacity-50"
-            style={{ 
-              borderColor: "hsl(0 0% 8%)",
-              background: "hsl(0 0% 8%)",
-              color: "hsl(36 12% 88%)"
-            }}
-            data-testid="button-save-continue"
-          >
-            {saveMutation.isPending ? (
-              <span className="flex items-center justify-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Saving...
-              </span>
-            ) : (
-              "Save & Continue"
-            )}
-          </button>
-          
-          <a 
-            href={`/setup/${artistSlug}/contract`}
-            className="block text-center text-xs transition underline"
-            style={{ color: "hsl(0 0% 35%)" }}
-            data-testid="link-skip"
-          >
-            Skip for now
-          </a>
-        </form>
+            <button
+              onClick={handleSkip}
+              className="w-full py-3 text-sm underline"
+              style={{ color: "hsl(0 0% 35%)" }}
+              data-testid="button-skip"
+            >
+              Skip for now
+            </button>
+          </div>
+        )}
       </main>
     </div>
   );
