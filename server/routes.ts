@@ -9883,12 +9883,51 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       
       if (action === 'accept-client' || action === 'accept-planner') {
         updateData.infoSheetSentAt = new Date();
+        updateData.firstResponseAt = updateData.firstResponseAt || new Date();
       }
       
       await storage.updateInquiry(inquiry.id, updateData);
       
       // Record notification for the action taken
       const artist = await storage.getArtistProfile(inquiry.vendorId);
+      
+      // SEND the info sheet email to the CLIENT (not just record it!)
+      if (action === 'accept-client' || action === 'accept-planner') {
+        const vendor = await storage.getUser(inquiry.vendorId);
+        const vendorName = artist?.businessName || vendor?.firstName || 'Your Artist';
+        const eventDate = inquiry.eventDate 
+          ? new Date(inquiry.eventDate).toLocaleDateString('en-US', { 
+              weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+            })
+          : 'Date TBD';
+        
+        // Build chat link for client to respond
+        const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
+        const chatLink = `${baseUrl}/chat/${inquiry.threadToken}`;
+        
+        // Determine which content to send based on action type
+        const infoContent = action === 'accept-planner' 
+          ? ((artist as any)?.plannerInfoSheet || artist?.infoSheetContent)
+          : artist?.infoSheetContent;
+        
+        import('./emailService').then(({ sendInfoSheetEmail }) => {
+          sendInfoSheetEmail({
+            toEmail: inquiry.clientEmail, // Send to CLIENT
+            vendorName,
+            vendorEmail: vendor?.email || undefined,
+            infoSheetContent: infoContent || undefined,
+            infoSheetPdfUrl: artist?.infoSheetPdfUrl || undefined,
+            infoSheetType: (artist?.infoSheetType as 'template' | 'custom' | 'pdf') || 'template',
+            eventDate,
+            serviceType: inquiry.serviceType || 'Beauty Services',
+            chatLink
+          }).then(() => {
+            console.log(`[Inquiry Action] Info sheet email sent to ${inquiry.clientEmail}`);
+          }).catch((err: any) => {
+            console.error('[Inquiry Action] Failed to send info sheet email:', err);
+          });
+        });
+      }
       let notificationType = 'status_change';
       let notificationContent = statusReason;
       
