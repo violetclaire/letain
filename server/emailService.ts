@@ -37,6 +37,17 @@ function sanitizeSubject(subject: string): string {
 
 async function getCredentials() {
   console.log("=== Getting Resend credentials ===");
+  
+  // First check for direct RESEND_API_KEY environment variable (works in all environments)
+  if (process.env.RESEND_API_KEY) {
+    console.log("Using direct RESEND_API_KEY from environment");
+    return { 
+      apiKey: process.env.RESEND_API_KEY, 
+      fromEmail: 'notifications@dateinquiry.com' 
+    };
+  }
+  
+  // Fall back to Replit connector
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   console.log("Connectors hostname:", hostname);
   
@@ -47,8 +58,8 @@ async function getCredentials() {
     : null;
 
   if (!xReplitToken) {
-    console.error("No X_REPLIT_TOKEN found");
-    throw new Error('X_REPLIT_TOKEN not found for repl/depl');
+    console.error("No X_REPLIT_TOKEN found and no RESEND_API_KEY set");
+    throw new Error('No Resend credentials available');
   }
   console.log("Token type:", xReplitToken.split(' ')[0]);
 
