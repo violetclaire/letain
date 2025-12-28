@@ -374,49 +374,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Email/Password Login (with rate limiting and Zod validation)
   app.post('/api/auth/login', authLimiter, async (req, res) => {
     try {
+      console.log("[Login] Attempt for email:", req.body?.email);
+      
       // Validate input with Zod
       const parseResult = loginSchema.safeParse(req.body);
       if (!parseResult.success) {
         const firstError = parseResult.error.errors[0];
+        console.log("[Login] Validation failed:", firstError.message);
         return res.status(400).json({ message: firstError.message });
       }
 
       const { email, password } = parseResult.data;
 
       // Find user by email
+      console.log("[Login] Looking up user...");
       const user = await storage.getUserByEmail(email);
       if (!user) {
+        console.log("[Login] User not found");
         return res.status(401).json({ message: "Invalid email or password" });
       }
+      console.log("[Login] User found, id:", user.id, "role:", user.role);
 
       // Check if user has a password (might be Replit OAuth user)
       if (!user.password) {
+        console.log("[Login] User has no password (OAuth user)");
         return res.status(401).json({ message: "Please use your original login method" });
       }
 
       // Verify password
+      console.log("[Login] Verifying password...");
       const isValidPassword = await bcrypt.compare(password, user.password);
       if (!isValidPassword) {
+        console.log("[Login] Invalid password");
         return res.status(401).json({ message: "Invalid email or password" });
       }
+      console.log("[Login] Password valid");
 
       // Set session
+      console.log("[Login] Setting session...");
       (req.session as any).userId = user.id;
 
       // If user is an artist, get their slug for redirect
       let artistSlug: string | null = null;
       if (user.role === 'artist') {
+        console.log("[Login] Getting artist profile...");
         const artistProfile = await storage.getArtistProfileByUserId(user.id);
         artistSlug = artistProfile?.slug || null;
+        console.log("[Login] Artist slug:", artistSlug);
       }
 
+      console.log("[Login] Success for user:", user.id);
       res.json({ 
         message: "Login successful", 
         user: { ...user, password: undefined },
         artistSlug
       });
     } catch (error: any) {
-      console.error("Login error:", error);
+      console.error("[Login] Error:", error.message, error.stack);
       res.status(500).json({ message: "Failed to login" });
     }
   });
