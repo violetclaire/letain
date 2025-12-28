@@ -2021,3 +2021,106 @@ export async function sendThreadReplyEmail({
     return { success: false, error: err.message };
   }
 }
+
+// Send thread access links to client
+export async function sendClientThreadAccessEmail({
+  toEmail,
+  clientName,
+  threads
+}: {
+  toEmail: string;
+  clientName: string;
+  threads: Array<{
+    threadToken: string;
+    artistName: string;
+    eventDate: string | Date | null;
+    status: string;
+  }>;
+}) {
+  console.log("Getting Resend client for thread access email...");
+  const { client, fromEmail } = await getResendClient();
+  
+  const safeClientName = sanitizeSenderName(clientName) || 'there';
+  
+  const threadLinks = threads.map(t => {
+    const eventDateStr = t.eventDate 
+      ? new Date(t.eventDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      : 'TBD';
+    const statusLabel = t.status === 'pending' ? 'Pending' : 
+                        t.status === 'accepted' ? 'Accepted' : 
+                        t.status === 'deposit_paid' ? 'Confirmed' : 
+                        t.status.charAt(0).toUpperCase() + t.status.slice(1);
+    return `
+      <tr>
+        <td style="padding: 12px; border-bottom: 1px solid hsl(36, 8%, 84%);">
+          <strong style="color: hsl(0, 0%, 10%);">${escapeHtml(t.artistName)}</strong><br>
+          <span style="font-size: 12px; color: hsl(0, 0%, 35%);">${eventDateStr} • ${statusLabel}</span>
+        </td>
+        <td style="padding: 12px; border-bottom: 1px solid hsl(36, 8%, 84%); text-align: right;">
+          <a href="https://${WHITELABEL_EMAIL_DOMAIN}/inquiry/${t.threadToken}" 
+             style="display: inline-block; background: hsl(0, 0%, 10%); color: hsl(36, 10%, 92%); 
+                    padding: 8px 16px; text-decoration: none; font-size: 12px;">View Thread</a>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Georgia', serif; background-color: #1A1A1A; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: #222; border-radius: 4px; overflow: hidden; }
+        .header { 
+          background-color: #1A1A1A;
+          padding: 28px; 
+          text-align: center;
+          border-bottom: 1px solid rgba(245, 240, 232, 0.1);
+        }
+        .header h1 { font-family: 'Fraunces', Georgia, serif; font-size: 24px; margin: 0; font-weight: normal; color: #F5F0E8; }
+        .content { padding: 32px; line-height: 1.7; color: #F5F0E8; background: hsl(36, 18%, 93%); }
+        .footer { text-align: center; padding: 20px; color: rgba(245, 240, 232, 0.5); font-size: 12px; background: #1A1A1A; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Your Inquiry Threads</h1>
+        </div>
+        <div class="content">
+          <p style="color: hsl(0, 0%, 10%);">Hi ${escapeHtml(safeClientName)},</p>
+          
+          <p style="color: hsl(0, 0%, 23%);">Here are the inquiry threads associated with your email:</p>
+          
+          <table style="width: 100%; border-collapse: collapse; margin: 24px 0;">
+            ${threadLinks}
+          </table>
+          
+          <p style="color: hsl(0, 0%, 35%); font-size: 13px;">Click "View Thread" to see your conversation with each artist.</p>
+        </div>
+        <div class="footer">
+          Your Private Secretary
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const senderEmail = `Your Secretary <${fromEmail}>`;
+  
+  try {
+    console.log("Sending thread access email to:", toEmail);
+    const result = await client.emails.send({
+      from: senderEmail,
+      to: toEmail.trim(),
+      subject: sanitizeSubject(`Your Inquiry Thread Links`),
+      html: htmlContent
+    });
+    console.log("Thread access email sent:", JSON.stringify(result));
+    return { success: true, result };
+  } catch (err: any) {
+    console.error("Failed to send thread access email:", err.message);
+    return { success: false, error: err.message };
+  }
+}

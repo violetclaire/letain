@@ -52,27 +52,25 @@ export default function ArtistLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative" style={{ background: "hsl(36 12% 88%)" }}>
-      <div className="estate-pinstripe" />
-      
+    <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md relative z-10"
+        className="w-full max-w-md"
       >
-        <div className="p-8 md:p-10 border" style={{ background: "hsl(36 18% 93%)", borderColor: "hsl(36 8% 75%)" }}>
+        <div className="p-8 md:p-10 border border-[#F5F0E8]/20 rounded">
           <div className="text-center mb-8">
-            <h1 className="text-3xl md:text-4xl mb-2 tracking-tight" style={{ fontFamily: "'Fraunces', Georgia, serif", color: "hsl(0 0% 10%)" }}>
+            <h1 className="text-3xl md:text-4xl mb-2 tracking-tight text-[#F5F0E8]" style={{ fontFamily: "'Fraunces', serif" }}>
               Artist Login
             </h1>
-            <p className="text-sm" style={{ color: "hsl(0 0% 35%)" }}>
+            <p className="text-sm text-[#F5F0E8]/60">
               Sign in to your dashboard
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-wide" style={{ color: "hsl(0 0% 35%)" }}>
+              <label className="text-[10px] uppercase tracking-[0.15em] text-[#F5F0E8]/40">
                 Email Address
               </label>
               <input
@@ -81,18 +79,13 @@ export default function ArtistLogin() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
                 required
-                className="w-full border px-4 py-3 text-sm focus:outline-none focus:ring-1"
-                style={{ 
-                  borderColor: "hsl(36 8% 75%)", 
-                  background: "white",
-                  color: "hsl(0 0% 10%)"
-                }}
+                className="w-full border border-[#F5F0E8]/20 bg-transparent px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#F5F0E8]/30 rounded"
                 data-testid="input-email"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-wide" style={{ color: "hsl(0 0% 35%)" }}>
+              <label className="text-[10px] uppercase tracking-[0.15em] text-[#F5F0E8]/40">
                 Password
               </label>
               <div className="relative">
@@ -102,19 +95,13 @@ export default function ArtistLogin() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   required
-                  className="w-full border px-4 py-3 text-sm focus:outline-none focus:ring-1 pr-12"
-                  style={{ 
-                    borderColor: "hsl(36 8% 75%)", 
-                    background: "white",
-                    color: "hsl(0 0% 10%)"
-                  }}
+                  className="w-full border border-[#F5F0E8]/20 bg-transparent px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 pr-12 placeholder:text-[#F5F0E8]/30 rounded"
                   data-testid="input-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2"
-                  style={{ color: "hsl(0 0% 35%)" }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#F5F0E8]/40 hover:text-[#F5F0E8]/70"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -122,17 +109,15 @@ export default function ArtistLogin() {
             </div>
 
             {error && (
-              <p className="text-red-600 text-sm text-center">{error}</p>
+              <div className="text-red-400 text-sm text-center bg-red-500/10 border border-red-500/20 p-3 rounded">
+                {error}
+              </div>
             )}
 
             <button
               type="submit"
               disabled={isLoading || !email.trim() || !password.trim()}
-              className="w-full py-3 text-sm uppercase tracking-wide transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              style={{ 
-                background: "hsl(0 0% 10%)", 
-                color: "hsl(36 10% 92%)"
-              }}
+              className="w-full bg-[#F5F0E8] text-[#1A1A1A] py-3 text-sm uppercase tracking-widest transition-colors disabled:opacity-50 flex items-center justify-center gap-2 rounded hover:bg-white"
               data-testid="button-login"
             >
               {isLoading ? (
@@ -146,15 +131,15 @@ export default function ArtistLogin() {
             </button>
           </form>
 
-          <div className="mt-6 pt-4 border-t text-center space-y-3" style={{ borderColor: "hsl(36 8% 80%)" }}>
-            <p className="text-xs" style={{ color: "hsl(0 0% 45%)" }}>
-              <a href="/forgot-password" className="underline hover:opacity-70">
+          <div className="mt-6 pt-4 border-t border-[#F5F0E8]/10 text-center space-y-3">
+            <p className="text-xs text-[#F5F0E8]/50">
+              <a href="/forgot-password" className="underline hover:text-[#F5F0E8]">
                 Forgot your password?
               </a>
             </p>
-            <p className="text-xs" style={{ color: "hsl(0 0% 45%)" }}>
+            <p className="text-xs text-[#F5F0E8]/50">
               New here?{" "}
-              <a href="/secretary" className="underline hover:opacity-70">
+              <a href="/secretary" className="underline hover:text-[#F5F0E8]">
                 Sign up
               </a>
             </p>

@@ -67,6 +67,15 @@ import RecoverAccess from "@/pages/RecoverAccess";
 import ArtistAdmin from "@/pages/ArtistAdmin";
 import ArtistLogin from "@/pages/ArtistLogin";
 
+// Domain-aware login - shows "Find Your Thread" on dateinquiry.com, full login on beauvette.app
+function DomainAwareLogin() {
+  const isWhiteLabelDomain = window.location.hostname.includes('dateinquiry');
+  if (isWhiteLabelDomain) {
+    return <RecoverAccess />;
+  }
+  return <Login />;
+}
+
 function InviteRedirectHandler() {
   const [location, setLocation] = useLocation();
   const { data: user } = useQuery({
@@ -92,7 +101,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Landing} />
-      <Route path="/login" component={Login} />
+      <Route path="/login" component={DomainAwareLogin} />
       <Route path="/artist-login" component={ArtistLogin} />
       <Route path="/signup" component={Signup} />
       <Route path="/forgot-password" component={ForgotPassword} />

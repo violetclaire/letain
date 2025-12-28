@@ -82,31 +82,31 @@ export default function ResetPassword() {
 
   if (isValidToken === null) {
     return (
-      <div className="min-h-screen bg-powder-blue flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-black/40" />
+      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#F5F0E8]/40" />
       </div>
     );
   }
 
   if (!isValidToken) {
     return (
-      <div className="min-h-screen bg-powder-blue flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
-          <div className="bg-cream p-8 rounded-sm shadow-lg border border-black/20 text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <XCircle className="w-8 h-8 text-red-600" />
+          <div className="bg-[#1A1A1A] p-8 rounded border border-[#F5F0E8]/20 text-center">
+            <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <XCircle className="w-8 h-8 text-red-400" />
             </div>
-            <h1 className="font-script text-3xl text-black mb-2">Invalid Link</h1>
-            <p className="text-sm text-black/60 mb-6">
+            <h1 className="text-2xl text-[#F5F0E8] mb-2" style={{ fontFamily: "'Fraunces', serif" }}>Invalid Link</h1>
+            <p className="text-sm text-[#F5F0E8]/60 mb-6">
               This password reset link is invalid or has expired. Please request a new one.
             </p>
             <button
               onClick={() => setLocation("/forgot-password")}
-              className="w-full bg-black text-white text-sm uppercase tracking-widest py-3 rounded hover:bg-gray-800 transition-colors"
+              className="w-full bg-[#F5F0E8] text-[#1A1A1A] text-sm uppercase tracking-widest py-3 rounded hover:bg-white transition-colors"
               data-testid="button-request-new"
             >
               Request New Link
@@ -118,25 +118,25 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="min-h-screen bg-powder-blue flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
       >
-        <div className="bg-cream p-8 rounded-sm shadow-lg border border-black/20">
+        <div className="bg-[#1A1A1A] p-8 rounded border border-[#F5F0E8]/20">
           {success ? (
             <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-green-600" />
+              <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-emerald-400" />
               </div>
-              <h1 className="font-script text-3xl text-black mb-2">Password Reset!</h1>
-              <p className="text-sm text-black/60 mb-6">
+              <h1 className="text-2xl text-[#F5F0E8] mb-2" style={{ fontFamily: "'Fraunces', serif" }}>Password Reset!</h1>
+              <p className="text-sm text-[#F5F0E8]/60 mb-6">
                 Your password has been successfully updated. You can now sign in with your new password.
               </p>
               <button
-                onClick={() => setLocation("/login")}
-                className="w-full bg-black text-white text-sm uppercase tracking-widest py-3 rounded hover:bg-gray-800 transition-colors"
+                onClick={() => setLocation("/artist-login")}
+                className="w-full bg-[#F5F0E8] text-[#1A1A1A] text-sm uppercase tracking-widest py-3 rounded hover:bg-white transition-colors"
                 data-testid="button-go-to-login"
               >
                 Sign In
@@ -145,15 +145,15 @@ export default function ResetPassword() {
           ) : (
             <>
               <div className="text-center mb-8">
-                <h1 className="font-script text-4xl text-black mb-2">Reset Password</h1>
-                <p className="text-sm text-black/60">
+                <h1 className="text-3xl text-[#F5F0E8] mb-2" style={{ fontFamily: "'Fraunces', serif" }}>Reset Password</h1>
+                <p className="text-sm text-[#F5F0E8]/60">
                   Enter your new password below
                 </p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-wide text-black/60">
+                  <label className="text-[10px] uppercase tracking-[0.15em] text-[#F5F0E8]/40">
                     New Password
                   </label>
                   <div className="relative">
@@ -163,24 +163,24 @@ export default function ResetPassword() {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Enter new password"
                       required
-                      className="w-full border border-black/20 bg-white rounded px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/30 pr-12"
+                      className="w-full border border-[#F5F0E8]/20 bg-transparent rounded px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 pr-12 placeholder:text-[#F5F0E8]/30"
                       data-testid="input-new-password"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-black/40 hover:text-black/70"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#F5F0E8]/40 hover:text-[#F5F0E8]/70"
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
-                  <p className="text-xs text-black/40">
+                  <p className="text-xs text-[#F5F0E8]/40">
                     At least 8 characters, one uppercase letter, and one number
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-wide text-black/60">
+                  <label className="text-[10px] uppercase tracking-[0.15em] text-[#F5F0E8]/40">
                     Confirm Password
                   </label>
                   <input
@@ -189,13 +189,13 @@ export default function ResetPassword() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Confirm new password"
                     required
-                    className="w-full border border-black/20 bg-white rounded px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/30"
+                    className="w-full border border-[#F5F0E8]/20 bg-transparent rounded px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#F5F0E8]/30"
                     data-testid="input-confirm-password"
                   />
                 </div>
 
                 {error && (
-                  <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded" data-testid="text-reset-error">
+                  <div className="text-red-400 text-sm text-center bg-red-500/10 border border-red-500/20 p-3 rounded" data-testid="text-reset-error">
                     {error}
                   </div>
                 )}
@@ -203,7 +203,7 @@ export default function ResetPassword() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-black text-white text-sm uppercase tracking-widest py-3 rounded hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full bg-[#F5F0E8] text-[#1A1A1A] text-sm uppercase tracking-widest py-3 rounded hover:bg-white transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                   data-testid="button-reset-submit"
                 >
                   {isLoading ? (

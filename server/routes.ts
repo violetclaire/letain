@@ -67,6 +67,7 @@ import {
   insertInquirySchema,
   trustedCircle,
   blockedDates,
+  inquiries,
   type FormConfig,
 } from "@shared/schema";
 import { db } from "./db";
@@ -9723,6 +9724,62 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
 
   // ===== INQUIRY THREAD ROUTES =====
+  
+  // Request access to inquiry threads by email (sends magic links to client)
+  app.post("/api/public/inquiry/request-access", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      
+      // Find all inquiries for this email
+      const inquiries = await db.query.inquiries.findMany({
+        where: eq(inquiries.clientEmail, email.toLowerCase().trim()),
+        orderBy: (inquiries, { desc }) => [desc(inquiries.createdAt)],
+        limit: 10,
+      });
+      
+      if (inquiries.length === 0) {
+        // Don't reveal if email exists or not for privacy
+        return res.json({ success: true, message: "If we found any threads, we've sent you access links." });
+      }
+      
+      // Send email with thread access links
+      try {
+        const { sendClientThreadAccessEmail } = await import('./emailService');
+        
+        // Get artist info for each inquiry
+        const threadsWithArtists = await Promise.all(
+          inquiries.map(async (inquiry) => {
+            const artist = await storage.getArtistProfile(inquiry.vendorId);
+            return {
+              threadToken: inquiry.threadToken,
+              artistName: artist?.businessName || 'Artist',
+              eventDate: inquiry.eventDate,
+              status: inquiry.status,
+            };
+          })
+        );
+        
+        await sendClientThreadAccessEmail({
+          toEmail: email,
+          clientName: inquiries[0].clientName || 'there',
+          threads: threadsWithArtists,
+        });
+        
+        console.log(`[ThreadAccess] Sent access links to ${email} for ${inquiries.length} threads`);
+      } catch (emailError) {
+        console.error("[ThreadAccess] Failed to send email:", emailError);
+      }
+      
+      res.json({ success: true, message: "If we found any threads, we've sent you access links." });
+    } catch (error: any) {
+      console.error("[ThreadAccess] Error:", error);
+      res.status(500).json({ message: "Something went wrong" });
+    }
+  });
   
   // Get inquiry by thread token (public - for artist viewing inquiry details)
   app.get("/api/public/inquiry/:threadToken", async (req, res) => {
