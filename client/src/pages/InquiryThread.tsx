@@ -232,7 +232,31 @@ export default function InquiryThread() {
           )}
         </section>
 
-        {/* 3. TOOL BELT (Only shows when status = PENDING) */}
+        {/* 3. CONVERSATION THREAD - Moved above actions for context */}
+        <section className="mb-10">
+          <h3 className="text-sm font-medium text-[#F5F0E8]/80 mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Thread Conversation</h3>
+          <div className="space-y-4">
+            {messages.length === 0 ? (
+              <p className="text-sm text-[#F5F0E8]/30 italic py-4">No messages yet</p>
+            ) : (
+              messages.map((msg) => {
+                const isArtist = msg.sentBy === "artist" || msg.sentBy === artist?.businessName;
+                return (
+                  <div key={msg.id} className={`flex ${isArtist ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-[80%] p-4 rounded ${isArtist ? "bg-[#F5F0E8]/10" : "bg-[#F5F0E8]/5 border border-[#F5F0E8]/10"}`}>
+                      <p className="text-sm text-[#F5F0E8]/80 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                      <p className="text-[10px] text-[#F5F0E8]/30 mt-2">
+                        {format(new Date(msg.sentAt), "h:mm a")}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </section>
+
+        {/* 4. TOOL BELT (Only shows when status = PENDING) */}
         {isPending && (
           <section className="mb-10">
             <div className="grid grid-cols-3 gap-4">
@@ -441,31 +465,7 @@ export default function InquiryThread() {
           </section>
         )}
 
-        {/* 5. CONVERSATION THREAD */}
-        <section className="mb-10">
-          <h3 className="text-sm font-medium text-[#F5F0E8]/80 mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Thread Conversation</h3>
-          <div className="space-y-4">
-            {messages.length === 0 ? (
-              <p className="text-sm text-[#F5F0E8]/30 italic py-4">No messages yet</p>
-            ) : (
-              messages.map((msg) => {
-                const isArtist = msg.sentBy === "artist" || msg.sentBy === artist?.businessName;
-                return (
-                  <div key={msg.id} className={`flex ${isArtist ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[80%] p-4 rounded ${isArtist ? "bg-[#F5F0E8]/10" : "bg-[#F5F0E8]/5 border border-[#F5F0E8]/10"}`}>
-                      <p className="text-sm text-[#F5F0E8]/80 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                      <p className="text-[10px] text-[#F5F0E8]/30 mt-2">
-                        {format(new Date(msg.sentAt), "h:mm a")}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </section>
-
-        {/* 6. QUICK TEMPLATES + 7. CUSTOM REPLY FORM */}
+        {/* 5. QUICK TEMPLATES + REPLY FORM */}
         {!isTerminal && (
           <section className="border-t border-[#F5F0E8]/10 pt-8">
             <div className="flex gap-3 mb-4 flex-wrap">
