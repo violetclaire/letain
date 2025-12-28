@@ -8330,19 +8330,43 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         console.log('[Inquiry] Auto-sent info sheet to', data.clientEmail);
       }
       
-      // Notify vendor of new inquiry
+      // Notify vendor of new inquiry via email
       if (vendor.email) {
         import('./emailService').then(async (emailService) => {
-          // Log vendor notification
-          await storage.createInquiryNotification({
-            inquiryId: inquiry.id,
-            type: 'vendor_alert',
-            channel: 'email',
-            recipientEmail: vendor.email!,
-            subject: `New inquiry from ${data.clientName}`,
-            content: `Inquiry for ${data.serviceType} on ${data.eventDate}`,
-            status: 'pending',
-          });
+          try {
+            const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
+            const artistProfile = await storage.getArtistProfile(data.vendorId);
+            
+            // Actually send the email to the artist
+            await emailService.sendInquiryNotificationEmail({
+              toEmail: vendor.email!,
+              vendorName: vendor.firstName || artistProfile?.businessName || 'Artist',
+              clientName: data.clientName,
+              clientEmail: data.clientEmail,
+              eventDate: data.eventDate ? new Date(data.eventDate).toLocaleDateString('en-US', { 
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+              }) : 'Date TBD',
+              eventLocation: data.eventLocation,
+              serviceType: data.serviceType,
+              inquiryLink: `${baseUrl}/inquiry/${inquiry.threadToken}`,
+            });
+            
+            // Log vendor notification
+            await storage.createInquiryNotification({
+              inquiryId: inquiry.id,
+              type: 'vendor_alert',
+              channel: 'email',
+              recipientEmail: vendor.email!,
+              subject: `New inquiry from ${data.clientName}`,
+              content: `Inquiry for ${data.serviceType} on ${data.eventDate}`,
+              status: 'sent',
+              sentAt: new Date(),
+            });
+            
+            console.log(`[Inquiry] Sent notification email to artist: ${vendor.email}`);
+          } catch (err) {
+            console.error('[Inquiry] Failed to send artist notification:', err);
+          }
         });
       }
       
