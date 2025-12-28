@@ -257,6 +257,18 @@ export default function ArtistDashboard() {
   const [inputText, setInputText] = useState("");
 
   useEffect(() => {
+    // CRITICAL: On dateinquiry.com, NEVER show this dashboard - redirect to simplified admin
+    if (isDateInquiry && !authLoading && isAuthenticated && user?.role === 'artist') {
+      const slug = (user as any).artistSlug;
+      if (slug) {
+        window.location.href = `/admin/${slug}`;
+        return;
+      }
+      // If no slug, redirect to artist-login
+      window.location.href = '/artist-login';
+      return;
+    }
+    
     if (!authLoading && !isAuthenticated) {
       toast({
         title: "Access Required",
@@ -289,7 +301,7 @@ export default function ArtistDashboard() {
     if (user) {
       fetchArtistData();
     }
-  }, [authLoading, isAuthenticated, user]);
+  }, [authLoading, isAuthenticated, user, isDateInquiry]);
 
   // Load profile image from user data
   useEffect(() => {
