@@ -37,8 +37,13 @@ export default function ArtistLogin() {
       
       // Redirect artists to their dashboard
       if (data.user?.role === "artist") {
-        // Stay on current domain, go to /artist
-        setLocation("/artist");
+        // On dateinquiry.com, go to simplified admin; otherwise full dashboard
+        const isDateInquiry = window.location.hostname.includes('dateinquiry');
+        if (isDateInquiry && data.artistSlug) {
+          setLocation(`/admin/${data.artistSlug}`);
+        } else {
+          setLocation("/artist");
+        }
       } else {
         setError("This login is for artists only");
       }

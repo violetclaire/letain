@@ -153,12 +153,15 @@ export async function setupAuth(app: Express) {
               case 'client':
                 return res.redirect("/client");
               case 'artist':
-                // Redirect artists to dateinquiry.com with their slug
-                const artistProfile = await storage.getArtistProfile(userId);
-                if (artistProfile?.artistSlug) {
-                  const dateinquiryBase = process.env.DATEINQUIRY_URL || 'https://dateinquiry.com';
-                  return res.redirect(`${dateinquiryBase}/admin/${artistProfile.artistSlug}`);
+                // Check if on dateinquiry domain - use simplified admin
+                const isDateInquiry = req.hostname.includes('dateinquiry');
+                if (isDateInquiry) {
+                  const artistProfile = await storage.getArtistProfile(userId);
+                  if (artistProfile?.artistSlug) {
+                    return res.redirect(`/admin/${artistProfile.artistSlug}`);
+                  }
                 }
+                // Beauvette or no slug - use full dashboard
                 return res.redirect("/artist");
               case 'planner':
                 return res.redirect("/planner");
