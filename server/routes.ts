@@ -9650,10 +9650,14 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // Secretary link creation - simplified artist onboarding
   app.post("/api/public/secretary", async (req, res) => {
     try {
-      const { businessName, email, instagram } = req.body;
+      const { businessName, email, instagram, password } = req.body;
       
       if (!businessName || !email) {
         return res.status(400).json({ error: "Business name and email are required" });
+      }
+      
+      if (password && password.length < 6) {
+        return res.status(400).json({ error: "Password must be at least 6 characters" });
       }
       
       // Generate URL-safe slug from business name (no dashes, just letters/numbers)
@@ -9697,12 +9701,14 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         // User exists but no artist profile - reuse the existing user
         user = existingUser;
       } else {
-        // Create new user
+        // Create new user with password
+        const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
         user = await storage.createPublicArtistUser({
           firstName: businessName.split(' ')[0],
           lastName: businessName.split(' ').slice(1).join(' ') || null,
           email,
           role: 'artist',
+          password: hashedPassword,
         });
       }
       
@@ -11378,8 +11384,38 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       // Get all inquiries for this artist
       const inquiries = await storage.getInquiriesByVendor(userId);
       
-      // Sort by createdAt descending (newest first)
-      const sortedInquiries = inquiries.sort((a, b) => {
+      // Also get threads (from embed form submissions)
+      const threads = await storage.getThreadsByArtist(profile.id);
+      
+      // Convert threads to inquiry-like format and combine
+      const threadItems = threads.map(thread => ({
+        id: thread.id,
+        threadToken: thread.threadPublicToken,
+        clientName: thread.clientName,
+        clientEmail: thread.clientEmail,
+        eventDate: thread.eventDate,
+        eventLocation: null,
+        status: thread.status || 'inquiry',
+        createdAt: thread.createdAt,
+        depositPaidAt: null,
+        isThread: true,
+      }));
+      
+      const inquiryItems = inquiries.map(inq => ({
+        id: inq.id,
+        threadToken: inq.threadToken,
+        clientName: inq.clientName,
+        clientEmail: inq.clientEmail,
+        eventDate: inq.eventDate,
+        eventLocation: inq.eventLocation,
+        status: inq.status,
+        createdAt: inq.createdAt,
+        depositPaidAt: (inq as any).depositPaidAt,
+        isThread: false,
+      }));
+      
+      // Combine and sort by createdAt descending
+      const allItems = [...threadItems, ...inquiryItems].sort((a, b) => {
         const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return dateB - dateA;
@@ -11392,17 +11428,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           artistSlug: profile.artistSlug,
           autoResponderMode: (profile as any).autoResponderMode || 'off',
         },
-        inquiries: sortedInquiries.map(inq => ({
-          id: inq.id,
-          threadToken: inq.threadToken,
-          clientName: inq.clientName,
-          clientEmail: inq.clientEmail,
-          eventDate: inq.eventDate,
-          eventLocation: inq.eventLocation,
-          status: inq.status,
-          createdAt: inq.createdAt,
-          depositPaidAt: (inq as any).depositPaidAt,
-        }))
+        inquiries: allItems
       });
     } catch (error: any) {
       console.error("[Artist Admin Session] Error:", error);
@@ -11720,8 +11746,38 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       // Get all inquiries for this artist
       const inquiries = await storage.getInquiriesByVendor(profile.userId);
       
-      // Sort by createdAt descending (newest first)
-      const sortedInquiries = inquiries.sort((a, b) => {
+      // Also get threads (from embed form submissions)
+      const threads = await storage.getThreadsByArtist(profile.id);
+      
+      // Convert threads to inquiry-like format and combine
+      const threadItems = threads.map(thread => ({
+        id: thread.id,
+        threadToken: thread.threadPublicToken,
+        clientName: thread.clientName,
+        clientEmail: thread.clientEmail,
+        eventDate: thread.eventDate,
+        eventLocation: null,
+        status: thread.status || 'inquiry',
+        createdAt: thread.createdAt,
+        depositPaidAt: null,
+        isThread: true,
+      }));
+      
+      const inquiryItems = inquiries.map(inq => ({
+        id: inq.id,
+        threadToken: inq.threadToken,
+        clientName: inq.clientName,
+        clientEmail: inq.clientEmail,
+        eventDate: inq.eventDate,
+        eventLocation: inq.eventLocation,
+        status: inq.status,
+        createdAt: inq.createdAt,
+        depositPaidAt: (inq as any).depositPaidAt,
+        isThread: false,
+      }));
+      
+      // Combine and sort by createdAt descending
+      const allItems = [...threadItems, ...inquiryItems].sort((a, b) => {
         const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return dateB - dateA;
@@ -11733,17 +11789,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           businessName: profile.businessName,
           artistSlug: profile.artistSlug,
         },
-        inquiries: sortedInquiries.map(inq => ({
-          id: inq.id,
-          threadToken: inq.threadToken,
-          clientName: inq.clientName,
-          clientEmail: inq.clientEmail,
-          eventDate: inq.eventDate,
-          eventLocation: inq.eventLocation,
-          status: inq.status,
-          createdAt: inq.createdAt,
-          depositPaidAt: (inq as any).depositPaidAt,
-        }))
+        inquiries: allItems
       });
     } catch (error: any) {
       console.error("[Artist Admin] Error:", error);

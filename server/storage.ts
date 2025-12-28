@@ -583,7 +583,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createPublicArtistUser(userData: { firstName?: string | null; lastName?: string | null; email?: string | null; role: string }): Promise<User> {
+  async createPublicArtistUser(userData: { firstName?: string | null; lastName?: string | null; email?: string | null; role: string; password?: string | null }): Promise<User> {
     const [user] = await db
       .insert(users)
       .values({
@@ -591,6 +591,7 @@ export class DatabaseStorage implements IStorage {
         lastName: userData.lastName || null,
         email: userData.email || null,
         role: userData.role,
+        password: userData.password || null,
       })
       .returning();
     return user;

@@ -72,7 +72,7 @@ import AccessVerify from "@/pages/AccessVerify";
 function DomainAwareLogin() {
   const isWhiteLabelDomain = window.location.hostname.includes('dateinquiry');
   if (isWhiteLabelDomain) {
-    return <RecoverAccess />;
+    return <ArtistLogin />;
   }
   return <Login />;
 }

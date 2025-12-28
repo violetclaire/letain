@@ -18,6 +18,7 @@ export default function SecretaryOnboarding() {
   const [formData, setFormData] = useState({
     businessName: "",
     email: "",
+    password: "",
   });
   const [error, setError] = useState("");
 
@@ -25,8 +26,13 @@ export default function SecretaryOnboarding() {
     e.preventDefault();
     setError("");
     
-    if (!formData.businessName.trim() || !formData.email.trim()) {
-      setError("Please enter your business name and email.");
+    if (!formData.businessName.trim() || !formData.email.trim() || !formData.password.trim()) {
+      setError("Please enter your business name, email, and password.");
+      return;
+    }
+    
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters.");
       return;
     }
     
@@ -253,6 +259,25 @@ document.getElementById('inquiry-form').addEventListener('submit', async (e) => 
             />
             <p className="text-[10px] text-[#2D2D2D]/40 mt-3">
               Inquiry notifications will be sent here
+            </p>
+          </div>
+
+          <div>
+            <label className="text-[10px] tracking-[0.3em] uppercase text-[#2D2D2D]/50 block mb-4">
+              Password
+            </label>
+            <input 
+              type="password" 
+              name="password" 
+              required
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              className="w-full bg-transparent border-0 border-b border-[#2D2D2D]/20 text-[#2D2D2D] placeholder:text-[#2D2D2D]/30 focus:border-[#2D2D2D]/50 focus:outline-none focus:ring-0 px-0 py-4 text-base"
+              placeholder="Create a password"
+              data-testid="input-password"
+            />
+            <p className="text-[10px] text-[#2D2D2D]/40 mt-3">
+              Use this to log in at dateinquiry.com/login
             </p>
           </div>
 
