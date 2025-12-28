@@ -37,6 +37,15 @@ export default function ArtistAdmin() {
   const [pendingAction, setPendingAction] = useState<'payment' | 'contract' | null>(null);
   const inquiriesRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  
+  // Standalone creation modals
+  const [showStandaloneInvoice, setShowStandaloneInvoice] = useState(false);
+  const [showStandaloneContract, setShowStandaloneContract] = useState(false);
+  const [standaloneClientName, setStandaloneClientName] = useState("");
+  const [standaloneClientEmail, setStandaloneClientEmail] = useState("");
+  const [standaloneAmount, setStandaloneAmount] = useState("");
+  const [standaloneDescription, setStandaloneDescription] = useState("");
+  const [creatingStandalone, setCreatingStandalone] = useState(false);
   const queryClient = useQueryClient();
   
   // Get auth state for session-based login
@@ -344,11 +353,11 @@ export default function ArtistAdmin() {
             </Link>
             <button
               onClick={() => {
-                setPendingAction('payment');
                 if (inquiries.length > 0) {
+                  setPendingAction('payment');
                   inquiriesRef.current?.scrollIntoView({ behavior: 'smooth' });
                 } else {
-                  toast({ title: "Select a client", description: "Add a client inquiry first, then select them to send an invoice" });
+                  setShowStandaloneInvoice(true);
                 }
               }}
               className={`flex items-center justify-center gap-2 p-4 border bg-[#222] transition-colors text-sm ${pendingAction === 'payment' ? 'border-green-500/50 bg-green-900/20' : 'border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'}`}
@@ -359,11 +368,11 @@ export default function ArtistAdmin() {
             </button>
             <button
               onClick={() => {
-                setPendingAction('contract');
                 if (inquiries.length > 0) {
+                  setPendingAction('contract');
                   inquiriesRef.current?.scrollIntoView({ behavior: 'smooth' });
                 } else {
-                  toast({ title: "Select a client", description: "Add a client inquiry first, then select them to send a contract" });
+                  setShowStandaloneContract(true);
                 }
               }}
               className={`flex items-center justify-center gap-2 p-4 border bg-[#222] transition-colors text-sm ${pendingAction === 'contract' ? 'border-blue-500/50 bg-blue-900/20' : 'border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'}`}
@@ -567,6 +576,240 @@ export default function ArtistAdmin() {
           )}
         </div>
       </main>
+
+      {/* Standalone Invoice Modal */}
+      {showStandaloneInvoice && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1A1A1A] border border-[#F5F0E8]/20 rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg mb-4" style={{ fontFamily: "'Fraunces', serif" }}>Create Invoice</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs text-[#F5F0E8]/60 mb-1">Client Name</label>
+                <input
+                  type="text"
+                  value={standaloneClientName}
+                  onChange={(e) => setStandaloneClientName(e.target.value)}
+                  placeholder="Jane Smith"
+                  className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                  data-testid="input-standalone-client-name"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[#F5F0E8]/60 mb-1">Client Email</label>
+                <input
+                  type="email"
+                  value={standaloneClientEmail}
+                  onChange={(e) => setStandaloneClientEmail(e.target.value)}
+                  placeholder="jane@example.com"
+                  className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                  data-testid="input-standalone-client-email"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[#F5F0E8]/60 mb-1">Amount ($)</label>
+                <input
+                  type="number"
+                  value={standaloneAmount}
+                  onChange={(e) => setStandaloneAmount(e.target.value)}
+                  placeholder="500"
+                  className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                  data-testid="input-standalone-amount"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[#F5F0E8]/60 mb-1">Description</label>
+                <input
+                  type="text"
+                  value={standaloneDescription}
+                  onChange={(e) => setStandaloneDescription(e.target.value)}
+                  placeholder="Bridal makeup deposit"
+                  className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                  data-testid="input-standalone-description"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowStandaloneInvoice(false);
+                  setStandaloneClientName("");
+                  setStandaloneClientEmail("");
+                  setStandaloneAmount("");
+                  setStandaloneDescription("");
+                }}
+                className="flex-1 px-4 py-2 border border-[#F5F0E8]/20 rounded text-sm hover:bg-[#F5F0E8]/5"
+                data-testid="button-cancel-standalone-invoice"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!standaloneClientName || !standaloneClientEmail || !standaloneAmount) {
+                    toast({ title: "Missing info", description: "Please fill in client name, email, and amount", variant: "destructive" });
+                    return;
+                  }
+                  setCreatingStandalone(true);
+                  try {
+                    const endpoint = token 
+                      ? `/api/public/standalone-invoice?token=${encodeURIComponent(token)}`
+                      : `/api/artist/standalone-invoice`;
+                    const res = await fetch(endpoint, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      credentials: 'include',
+                      body: JSON.stringify({
+                        clientName: standaloneClientName,
+                        clientEmail: standaloneClientEmail,
+                        amount: standaloneAmount,
+                        description: standaloneDescription,
+                      }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || "Failed to create invoice");
+                    toast({ title: "Invoice created", description: data.paymentLink ? "Payment link is ready" : "Invoice created successfully" });
+                    if (data.paymentLink) {
+                      navigator.clipboard.writeText(data.paymentLink);
+                      toast({ title: "Link copied", description: "Payment link copied to clipboard" });
+                    }
+                    setShowStandaloneInvoice(false);
+                    setStandaloneClientName("");
+                    setStandaloneClientEmail("");
+                    setStandaloneAmount("");
+                    setStandaloneDescription("");
+                  } catch (err: any) {
+                    toast({ title: "Error", description: err.message, variant: "destructive" });
+                  } finally {
+                    setCreatingStandalone(false);
+                  }
+                }}
+                disabled={creatingStandalone || !standaloneClientName || !standaloneClientEmail || !standaloneAmount}
+                className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 rounded text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                data-testid="button-create-standalone-invoice"
+              >
+                {creatingStandalone ? <Loader2 className="w-4 h-4 animate-spin" /> : <DollarSign className="w-4 h-4" />}
+                Create Invoice
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Standalone Contract Modal */}
+      {showStandaloneContract && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1A1A1A] border border-[#F5F0E8]/20 rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg mb-4" style={{ fontFamily: "'Fraunces', serif" }}>Create Contract</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs text-[#F5F0E8]/60 mb-1">Client Name</label>
+                <input
+                  type="text"
+                  value={standaloneClientName}
+                  onChange={(e) => setStandaloneClientName(e.target.value)}
+                  placeholder="Jane Smith"
+                  className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                  data-testid="input-standalone-contract-client-name"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[#F5F0E8]/60 mb-1">Client Email</label>
+                <input
+                  type="email"
+                  value={standaloneClientEmail}
+                  onChange={(e) => setStandaloneClientEmail(e.target.value)}
+                  placeholder="jane@example.com"
+                  className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                  data-testid="input-standalone-contract-client-email"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[#F5F0E8]/60 mb-1">Total Amount ($)</label>
+                <input
+                  type="number"
+                  value={standaloneAmount}
+                  onChange={(e) => setStandaloneAmount(e.target.value)}
+                  placeholder="1500"
+                  className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                  data-testid="input-standalone-contract-amount"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[#F5F0E8]/60 mb-1">Service Description</label>
+                <input
+                  type="text"
+                  value={standaloneDescription}
+                  onChange={(e) => setStandaloneDescription(e.target.value)}
+                  placeholder="Bridal makeup for wedding day"
+                  className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                  data-testid="input-standalone-contract-description"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowStandaloneContract(false);
+                  setStandaloneClientName("");
+                  setStandaloneClientEmail("");
+                  setStandaloneAmount("");
+                  setStandaloneDescription("");
+                }}
+                className="flex-1 px-4 py-2 border border-[#F5F0E8]/20 rounded text-sm hover:bg-[#F5F0E8]/5"
+                data-testid="button-cancel-standalone-contract"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!standaloneClientName || !standaloneClientEmail) {
+                    toast({ title: "Missing info", description: "Please fill in client name and email", variant: "destructive" });
+                    return;
+                  }
+                  setCreatingStandalone(true);
+                  try {
+                    const endpoint = token 
+                      ? `/api/public/standalone-contract?token=${encodeURIComponent(token)}`
+                      : `/api/artist/standalone-contract`;
+                    const res = await fetch(endpoint, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      credentials: 'include',
+                      body: JSON.stringify({
+                        clientName: standaloneClientName,
+                        clientEmail: standaloneClientEmail,
+                        totalAmount: standaloneAmount,
+                        description: standaloneDescription,
+                      }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || "Failed to create contract");
+                    toast({ title: "Contract created", description: data.signingLink ? "Contract sent for signing" : "Contract created successfully" });
+                    if (data.signingLink) {
+                      navigator.clipboard.writeText(data.signingLink);
+                      toast({ title: "Link copied", description: "Signing link copied to clipboard" });
+                    }
+                    setShowStandaloneContract(false);
+                    setStandaloneClientName("");
+                    setStandaloneClientEmail("");
+                    setStandaloneAmount("");
+                    setStandaloneDescription("");
+                  } catch (err: any) {
+                    toast({ title: "Error", description: err.message, variant: "destructive" });
+                  } finally {
+                    setCreatingStandalone(false);
+                  }
+                }}
+                disabled={creatingStandalone || !standaloneClientName || !standaloneClientEmail}
+                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                data-testid="button-create-standalone-contract"
+              >
+                {creatingStandalone ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                Create Contract
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

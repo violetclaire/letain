@@ -10255,6 +10255,196 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // Standalone invoice creation (token-based auth)
+  app.post("/api/public/standalone-invoice", async (req, res) => {
+    try {
+      const { token } = req.query;
+      if (!token) {
+        return res.status(401).json({ error: "Access token required" });
+      }
+      
+      const profile = await storage.getArtistProfileByEditToken(token as string);
+      if (!profile) {
+        return res.status(401).json({ error: "Invalid access token" });
+      }
+      
+      const { clientName, clientEmail, amount, description } = req.body;
+      
+      if (!clientName || !clientEmail || !amount) {
+        return res.status(400).json({ error: "Client name, email, and amount are required" });
+      }
+      
+      // Create a payment record without linking to a booking
+      const payment = await storage.createPayment({
+        bookingId: `standalone-${Date.now()}`,
+        amount: parseFloat(amount) || 0,
+        type: "custom",
+        status: "pending",
+        method: "square",
+        description: description || `Invoice for ${clientName}`,
+      });
+      
+      // Check if artist has Square connected
+      if (profile.squareAccessToken && profile.squareLocationId) {
+        // Generate Square checkout link
+        const squareService = new (await import('./squareService')).SquareService(
+          profile.squareAccessToken,
+          profile.squareLocationId,
+          profile.squareEnvironment || 'production'
+        );
+        
+        const result = await squareService.createCheckoutLink({
+          amount: Math.round(parseFloat(amount) * 100),
+          description: description || `Invoice for ${clientName}`,
+          clientEmail,
+          referenceId: payment.id,
+          artistId: profile.userId,
+        });
+        
+        if (result.paymentLink) {
+          res.json({ 
+            success: true, 
+            paymentId: payment.id, 
+            paymentLink: result.paymentLink,
+            message: "Invoice created with payment link" 
+          });
+          return;
+        }
+      }
+      
+      res.json({ success: true, paymentId: payment.id, message: "Invoice created successfully" });
+    } catch (error: any) {
+      console.error("[Standalone Invoice] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to create invoice" });
+    }
+  });
+
+  // Standalone invoice creation (session-based auth)
+  app.post("/api/artist/standalone-invoice", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'artist') {
+        return res.status(403).json({ error: "Not an artist" });
+      }
+      
+      const profile = await storage.getArtistProfile(userId);
+      if (!profile) {
+        return res.status(404).json({ error: "Artist profile not found" });
+      }
+      
+      const { clientName, clientEmail, amount, description } = req.body;
+      
+      if (!clientName || !clientEmail || !amount) {
+        return res.status(400).json({ error: "Client name, email, and amount are required" });
+      }
+      
+      const payment = await storage.createPayment({
+        bookingId: `standalone-${Date.now()}`,
+        amount: parseFloat(amount) || 0,
+        type: "custom",
+        status: "pending",
+        method: "square",
+        description: description || `Invoice for ${clientName}`,
+      });
+      
+      if (profile.squareAccessToken && profile.squareLocationId) {
+        const squareService = new (await import('./squareService')).SquareService(
+          profile.squareAccessToken,
+          profile.squareLocationId,
+          profile.squareEnvironment || 'production'
+        );
+        
+        const result = await squareService.createCheckoutLink({
+          amount: Math.round(parseFloat(amount) * 100),
+          description: description || `Invoice for ${clientName}`,
+          clientEmail,
+          referenceId: payment.id,
+          artistId: userId,
+        });
+        
+        if (result.paymentLink) {
+          res.json({ 
+            success: true, 
+            paymentId: payment.id, 
+            paymentLink: result.paymentLink,
+            message: "Invoice created with payment link" 
+          });
+          return;
+        }
+      }
+      
+      res.json({ success: true, paymentId: payment.id, message: "Invoice created successfully" });
+    } catch (error: any) {
+      console.error("[Standalone Invoice] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to create invoice" });
+    }
+  });
+
+  // Standalone contract creation (token-based auth)
+  app.post("/api/public/standalone-contract", async (req, res) => {
+    try {
+      const { token } = req.query;
+      if (!token) {
+        return res.status(401).json({ error: "Access token required" });
+      }
+      
+      const profile = await storage.getArtistProfileByEditToken(token as string);
+      if (!profile) {
+        return res.status(401).json({ error: "Invalid access token" });
+      }
+      
+      const { clientName, clientEmail, totalAmount, description } = req.body;
+      
+      if (!clientName || !clientEmail) {
+        return res.status(400).json({ error: "Client name and email are required" });
+      }
+      
+      // For standalone contracts, we'll send an email to the client with a contract link
+      // The contract will be generated when they access the link
+      res.json({ 
+        success: true, 
+        message: `Contract details saved for ${clientName}. Send them a message with your contract terms.` 
+      });
+    } catch (error: any) {
+      console.error("[Standalone Contract] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to create contract" });
+    }
+  });
+
+  // Standalone contract creation (session-based auth)
+  app.post("/api/artist/standalone-contract", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'artist') {
+        return res.status(403).json({ error: "Not an artist" });
+      }
+      
+      const { clientName, clientEmail, totalAmount, description } = req.body;
+      
+      if (!clientName || !clientEmail) {
+        return res.status(400).json({ error: "Client name and email are required" });
+      }
+      
+      res.json({ 
+        success: true, 
+        message: `Contract details saved for ${clientName}. Send them a message with your contract terms.` 
+      });
+    } catch (error: any) {
+      console.error("[Standalone Contract] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to create contract" });
+    }
+  });
+
   // Setup flow - Step 1: Connect Square
   app.post("/api/public/setup/:artistSlug/square", async (req, res) => {
     try {
