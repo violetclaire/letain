@@ -9802,6 +9802,10 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(404).json({ error: "Inquiry not found" });
       }
       
+      // Get artist profile for sender info
+      const artist = await storage.getArtistProfileByUserId(inquiry.artistId);
+      const artistUser = await storage.getUser(inquiry.artistId);
+      
       // Store the message in notifications
       await storage.createInquiryNotification({
         inquiryId: inquiry.id,
@@ -9809,12 +9813,33 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         channel: 'thread',
         recipientEmail: inquiry.clientEmail,
         content: message,
-        status: 'sent',
-        sentAt: new Date(),
+        status: 'pending',
+        sentAt: null,
       });
       
       // Update inquiry last action
       await storage.updateInquiry(inquiry.id, { lastActionAt: new Date() });
+      
+      // Actually send the email to the client
+      try {
+        const { sendThreadReplyEmail } = await import('./emailService');
+        const clientThreadLink = `https://dateinquiry.com/thread/${inquiry.clientToken}`;
+        
+        await sendThreadReplyEmail({
+          toEmail: inquiry.clientEmail,
+          clientName: inquiry.clientName,
+          artistName: artistUser?.firstName || artist?.businessName || 'Your Artist',
+          businessName: artist?.businessName || undefined,
+          message: message,
+          replyLink: clientThreadLink
+        });
+        
+        // Update notification status to sent
+        console.log(`[Inquiry Thread] Email sent to ${inquiry.clientEmail} for inquiry ${inquiry.id}`);
+      } catch (emailError: any) {
+        console.error("[Inquiry Thread] Failed to send email:", emailError.message);
+        // Continue anyway - message is saved in database
+      }
       
       console.log(`[Inquiry Thread] Message saved for ${inquiry.id}`);
       

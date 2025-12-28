@@ -1930,3 +1930,94 @@ export async function sendSettingsLinkEmail({
     return { success: false, error: err.message };
   }
 }
+
+// Send thread reply email to client
+export async function sendThreadReplyEmail({
+  toEmail,
+  clientName,
+  artistName,
+  businessName,
+  message,
+  replyLink
+}: {
+  toEmail: string;
+  clientName: string;
+  artistName: string;
+  businessName?: string;
+  message: string;
+  replyLink: string;
+}) {
+  console.log("Getting Resend client for thread reply email...");
+  const { client, fromEmail } = await getResendClient();
+  
+  const safeArtistName = sanitizeSenderName(artistName) || 'Your Artist';
+  const safeBusinessName = businessName ? sanitizeSenderName(businessName) : safeArtistName;
+  const safeClientName = sanitizeSenderName(clientName) || 'there';
+  const safeMessage = escapeHtml(message).replace(/\n/g, '<br>');
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Georgia', serif; background-color: #f5f1e8; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 0; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { 
+          background-color: hsl(36, 18%, 93%);
+          padding: 28px; 
+          text-align: center;
+          border-bottom: 1px solid hsl(36, 8%, 75%);
+        }
+        .header h1 { font-family: 'Fraunces', Georgia, serif; font-size: 24px; margin: 0; font-weight: normal; color: hsl(0, 0%, 10%); }
+        .content { padding: 32px; line-height: 1.7; color: hsl(0, 0%, 10%); }
+        .message-box { background: hsl(36, 24%, 95%); padding: 20px; margin: 20px 0; border-left: 3px solid hsl(42, 33%, 57%); }
+        .cta { text-align: center; margin: 28px 0; }
+        .cta a { display: inline-block; background: hsl(0, 0%, 10%); color: hsl(36, 10%, 92%); padding: 14px 28px; text-decoration: none; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; }
+        .footer { text-align: center; padding: 20px; color: hsl(0, 0%, 35%); font-size: 12px; border-top: 1px solid hsl(36, 8%, 84%); }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>${escapeHtml(safeBusinessName)}</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${escapeHtml(safeClientName)},</p>
+          
+          <p>${escapeHtml(safeArtistName)} sent you a message:</p>
+          
+          <div class="message-box">
+            ${safeMessage}
+          </div>
+          
+          <div class="cta">
+            <a href="${replyLink}">View & Reply</a>
+          </div>
+          
+          <p style="color: hsl(0, 0%, 35%); font-size: 13px;">Or copy this link: <a href="${replyLink}" style="color: hsl(42, 33%, 45%);">${replyLink}</a></p>
+        </div>
+        <div class="footer">
+          ${escapeHtml(safeBusinessName)}
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const senderEmail = `${safeBusinessName} <${fromEmail}>`;
+  
+  try {
+    console.log("Sending thread reply email to:", toEmail);
+    const result = await client.emails.send({
+      from: senderEmail,
+      to: toEmail.trim(),
+      subject: sanitizeSubject(`New message from ${safeBusinessName}`),
+      html: htmlContent
+    });
+    console.log("Thread reply email sent:", JSON.stringify(result));
+    return { success: true, result };
+  } catch (err: any) {
+    console.error("Failed to send thread reply email:", err.message);
+    return { success: false, error: err.message };
+  }
+}
