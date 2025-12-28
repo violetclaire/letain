@@ -12,6 +12,7 @@ export default function SecretaryOnboarding() {
     artistSlug: string;
     embedCode: string;
     inviteLink: string;
+    editToken: string;
   } | null>(null);
   
   const [formData, setFormData] = useState({
@@ -88,13 +89,15 @@ document.getElementById('inquiry-form').addEventListener('submit', async (e) => 
 <\/script>`;
       
       const inviteLink = `https://dateinquiry.com/${data.artistSlug}`;
+      const adminLink = `https://dateinquiry.com/${data.artistSlug}/settings?token=${data.editToken}`;
       
       setResult({
-        adminLink: `https://dateinquiry.com/artist`,
+        adminLink,
         businessName: formData.businessName,
         artistSlug: data.artistSlug,
         embedCode,
         inviteLink,
+        editToken: data.editToken,
       });
       setSuccess(true);
     } catch (err: any) {
@@ -183,7 +186,7 @@ document.getElementById('inquiry-form').addEventListener('submit', async (e) => 
 
           <div className="space-y-4">
             <a 
-              href={`/setup/${result.artistSlug}/square`}
+              href={`/setup/${result.artistSlug}/square?token=${result.editToken}`}
               className="block w-full border border-[#2D2D2D] py-5 text-xs tracking-[0.2em] uppercase hover:bg-[#2D2D2D] hover:text-[#F9F8F6] transition-all duration-500"
               data-testid="button-go-to-dashboard"
             >
