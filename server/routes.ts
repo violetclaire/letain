@@ -10557,6 +10557,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         artistSlug: profile.artistSlug,
         businessName: profile.businessName,
         artistName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : profile.businessName,
+        contactEmail: user?.email,
         infoSheetType: profile.infoSheetType || 'template',
         infoSheetContent: profile.infoSheetContent,
         infoSheetPdfUrl: profile.infoSheetPdfUrl,
