@@ -264,7 +264,9 @@ export default function ArtistDashboard() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/login";
+        // On dateinquiry.com, redirect to artist-login; otherwise /login
+        const loginPath = isDateInquiry ? "/artist-login" : "/login";
+        window.location.href = loginPath;
       }, 1000);
       return;
     }
