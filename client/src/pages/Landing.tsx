@@ -5,7 +5,7 @@ import { Menu, X } from "lucide-react";
 
 const CONTENT = {
   nav: {
-    brand: "Beauvette",
+    brand: "Your Private Secretary",
     cta: "Get your private link"
   },
   hero: {
@@ -69,7 +69,7 @@ const CONTENT = {
     headline: "We earn when you do.",
     fee: "1.5% infrastructure fee on top of what we already pay to process payments.",
     noSubscription: "No subscriptions. No monthly charges.",
-    example: "$500 booking = $7.50 Beauvette fee",
+    example: "$500 booking = $7.50 platform fee",
     keepLine: "Founding professionals lock in 1.5% forever.",
     comparison: ""
   },
@@ -87,7 +87,7 @@ const CONTENT = {
   },
   footer: {
     links: ["Instagram", "Contact", "Privacy"],
-    copyright: "© 2025 Beauvette"
+    copyright: "© 2025 Your Private Secretary"
   }
 };
 
@@ -119,7 +119,7 @@ export default function Landing() {
       {/* Top Bar */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-bg/95 backdrop-blur-sm">
         <div className="estate-container flex items-center justify-between py-8">
-          <div className="font-serif text-xl tracking-tight">Beauvette</div>
+          <div className="font-serif text-xl tracking-tight">Your Private Secretary</div>
           <nav className="hidden md:flex items-center gap-6">
             <button
               onClick={() => window.location.href = "https://dateinquiry.com/artist-login"}
