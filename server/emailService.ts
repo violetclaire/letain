@@ -283,26 +283,15 @@ export async function sendInfoSheetEmail({
     <html>
     <head>
       <style>
-        body { font-family: 'Georgia', serif; background-color: #f5f1e8; margin: 0; padding: 20px; }
-        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .header { 
-          background-color: #FAF7F2;
-          background-image: linear-gradient(45deg, rgba(107, 74, 85, 0.08) 25%, transparent 25%), 
-                            linear-gradient(-45deg, rgba(107, 74, 85, 0.08) 25%, transparent 25%), 
-                            linear-gradient(45deg, transparent 75%, rgba(107, 74, 85, 0.08) 75%), 
-                            linear-gradient(-45deg, transparent 75%, rgba(107, 74, 85, 0.08) 75%);
-          background-size: 16px 16px;
-          padding: 32px; 
-          text-align: center; 
-          border-bottom: 2px solid #C9A961; 
-        }
-        .header h1 { margin: 0; font-size: 28px; color: #262329; font-weight: normal; }
-        .header p { margin: 8px 0 0 0; font-size: 14px; color: #666; font-style: italic; }
-        .content { padding: 32px; color: #262329; line-height: 1.6; }
-        .vendor-name { font-size: 20px; color: #262329; font-weight: bold; margin-bottom: 8px; }
-        .inquiry-details { background: #f9f9f9; border-radius: 6px; padding: 16px; margin: 20px 0; border-left: 3px solid #C9A961; }
-        .info-sheet { background: #FAF7F2; border-radius: 6px; padding: 24px; margin: 24px 0; }
-        .footer { background: #262329; color: white; padding: 20px; text-align: center; font-size: 12px; }
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: #ffffff; margin: 0; padding: 24px; color: #1a1a1a; }
+        .container { max-width: 560px; margin: 0 auto; }
+        .header { padding: 24px 0; text-align: center; border-bottom: 1px solid #e5e5e5; }
+        .header h1 { margin: 0; font-size: 24px; color: #1a1a1a; font-weight: 600; }
+        .content { padding: 24px 0; color: #1a1a1a; line-height: 1.6; }
+        .details { background: #f9f9f9; padding: 16px; margin: 16px 0; border-left: 3px solid #1a1a1a; }
+        .info-content { padding: 16px 0; }
+        .button { display: inline-block; background: #1a1a1a; color: #ffffff !important; padding: 12px 24px; text-decoration: none; font-size: 14px; margin: 16px 0; }
+        .footer { padding: 24px 0; text-align: center; border-top: 1px solid #e5e5e5; color: #666; font-size: 12px; }
       </style>
     </head>
     <body>
@@ -311,40 +300,35 @@ export async function sendInfoSheetEmail({
           <h1>${escapeHtml(vendorName)}</h1>
         </div>
         <div class="content">
-          <p style="margin-bottom: 24px;">Thank you for your inquiry! Here's important information:</p>
+          <p>Thank you for your inquiry. Here is some information:</p>
           
-          <div class="inquiry-details">
-            <strong>Your Inquiry Details:</strong><br>
+          <div class="details">
+            <strong>Your Inquiry</strong><br>
             Service: ${escapeHtml(serviceType)}<br>
             Date: ${escapeHtml(eventDate)}
           </div>
           
-          <div class="info-sheet">
+          <div class="info-content">
             ${isPdfType 
-              ? `<p style="text-align: center; margin: 20px 0;">
-                  <a href="${pdfLink}" 
-                     style="display: inline-block; padding: 12px 24px; background: #262329; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;"
-                     target="_blank">
-                    View Pricing & Info Sheet
+              ? `<p style="text-align: center; margin: 24px 0;">
+                  <a href="${pdfLink}" class="button" target="_blank">
+                    View Info Sheet
                   </a>
-                </p>
-                <p style="text-align: center; color: #666; font-size: 13px;">
-                  Click above to view the full pricing and information sheet
                 </p>`
               : formattedContent
             }
           </div>
           
           ${chatLink ? `
-          <div style="text-align: center; margin: 32px 0; padding: 24px; background: linear-gradient(135deg, #6B4A55 0%, #5A1F2B 100%); border-radius: 8px;">
-            <p style="color: white; margin: 0 0 16px 0; font-size: 16px;">Have questions? Chat directly:</p>
+          <div style="text-align: center; margin: 24px 0; padding: 20px; background: #1a1a1a;">
+            <p style="color: #ffffff; margin: 0 0 12px 0; font-size: 14px;">Have questions?</p>
             <a href="${chatLink}" 
-               style="display: inline-block; padding: 14px 32px; background: white; color: #5A1F2B; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+               style="display: inline-block; padding: 12px 24px; background: #ffffff; color: #1a1a1a; text-decoration: none; font-size: 14px;">
               Continue Conversation
             </a>
           </div>
           ` : ''}
-          ${vendorEmail && !chatLink ? `<p style="margin-top: 24px; color: #666; font-size: 14px;">To continue the conversation, reply directly to <a href="mailto:${vendorEmail}" style="color: #E8B4B8;">${vendorEmail}</a></p>` : ''}
+          ${vendorEmail && !chatLink ? `<p style="margin-top: 16px; color: #666; font-size: 14px;">Reply to this email to continue the conversation.</p>` : ''}
         </div>
         <div class="footer">
           ${escapeHtml(vendorName)}
@@ -400,22 +384,16 @@ export async function sendInvoiceEmail({
     <html>
     <head>
       <style>
-        body { font-family: 'Georgia', serif; background-color: #f5f1e8; margin: 0; padding: 20px; }
-        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .header { 
-          background-color: #FAF7F2;
-          padding: 28px; 
-          text-align: center;
-          border-bottom: 1px solid rgba(107, 74, 85, 0.2);
-        }
-        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55; }
-        .content { padding: 32px; }
-        .amount { font-size: 32px; color: #3D5A3B; font-weight: bold; text-align: center; margin: 24px 0; }
-        .description { text-align: center; color: #666; font-size: 14px; margin-bottom: 24px; }
-        .event-date { text-align: center; color: #6B4A55; font-size: 13px; margin-bottom: 16px; font-style: italic; }
-        .button { display: inline-block; background: #3D5A3B; color: white !important; padding: 16px 32px; text-decoration: none; border-radius: 6px; font-size: 16px; letter-spacing: 1px; }
-        .button:hover { background: #4a6d48; }
-        .footer { text-align: center; padding: 20px; color: #888; font-size: 12px; border-top: 1px solid #eee; }
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: #ffffff; margin: 0; padding: 24px; color: #1a1a1a; }
+        .container { max-width: 560px; margin: 0 auto; }
+        .header { padding: 24px 0; text-align: center; border-bottom: 1px solid #e5e5e5; }
+        .header h1 { margin: 0; font-size: 24px; color: #1a1a1a; font-weight: 600; }
+        .content { padding: 24px 0; }
+        .amount { font-size: 32px; color: #1a1a1a; font-weight: bold; text-align: center; margin: 24px 0; }
+        .description { text-align: center; color: #666; font-size: 14px; margin-bottom: 16px; }
+        .event-date { text-align: center; color: #666; font-size: 13px; margin-bottom: 16px; }
+        .button { display: inline-block; background: #1a1a1a; color: #ffffff !important; padding: 14px 28px; text-decoration: none; font-size: 14px; }
+        .footer { padding: 24px 0; text-align: center; border-top: 1px solid #e5e5e5; color: #666; font-size: 12px; }
         .secure { text-align: center; color: #888; font-size: 11px; margin-top: 16px; }
       </style>
     </head>
@@ -426,19 +404,17 @@ export async function sendInvoiceEmail({
         </div>
         <div class="content">
           <p style="margin-bottom: 16px;">Hi ${escapeHtml(clientName)},</p>
-          <p style="margin-bottom: 24px;">Here's your invoice:</p>
+          <p style="margin-bottom: 24px;">Here is your invoice:</p>
           
           <div class="amount">${formattedAmount}</div>
           <div class="description">${escapeHtml(description)}</div>
           ${eventDate ? `<div class="event-date">Event Date: ${escapeHtml(eventDate)}</div>` : ''}
           
-          <p style="text-align: center; margin: 32px 0;">
+          <p style="text-align: center; margin: 24px 0;">
             <a href="${paymentLink}" class="button">Pay Now</a>
           </p>
           
-          <p class="secure">Secure payment powered by Square.</p>
-          
-          <p style="color: #888; font-size: 13px; margin-top: 24px;">Or copy this link: <a href="${paymentLink}" style="color: #E8B4B8;">${paymentLink}</a></p>
+          <p class="secure">Secure payment via Square</p>
         </div>
         <div class="footer">
           ${escapeHtml(vendorName)}
