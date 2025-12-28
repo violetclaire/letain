@@ -4686,7 +4686,7 @@ export default function ArtistDashboard() {
             {!invoiceLink ? (
               <>
                 <p className="text-xs ink-soft mb-4">
-                  Generate a payment link to send to your client. 1% platform fee applies, Square processing fees are separate.
+                  Generate a payment link to send to your client. 1.5% platform fee applies, Square processing fees are separate.
                 </p>
                 
                 <div className="space-y-4">
@@ -4723,12 +4723,12 @@ export default function ArtistDashboard() {
                         <span className="ink-main">${parseFloat(invoiceAmount).toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between mb-1">
-                        <span className="ink-soft">Platform Fee (1%):</span>
-                        <span className="text-pink">-${(parseFloat(invoiceAmount) * 0.01).toFixed(2)}</span>
+                        <span className="ink-soft">Platform Fee (1.5%):</span>
+                        <span className="text-pink">-${(parseFloat(invoiceAmount) * 0.015).toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between font-medium pt-1 border-t border-black/10">
                         <span className="ink-main">You Receive:</span>
-                        <span className="text-forest">${(parseFloat(invoiceAmount) * 0.99).toFixed(2)}</span>
+                        <span className="text-forest">${(parseFloat(invoiceAmount) * 0.985).toFixed(2)}</span>
                       </div>
                       <p className="text-[0.65rem] ink-soft mt-2">
                         * Square processing fees (~2.6% + $0.10) are separate

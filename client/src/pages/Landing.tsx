@@ -67,10 +67,10 @@ const CONTENT = {
   },
   pricing: {
     headline: "We earn when you do.",
-    fee: "1% infrastructure fee on top of what we already pay to process payments.",
+    fee: "1.5% infrastructure fee on top of what we already pay to process payments.",
     noSubscription: "No subscriptions. No monthly charges.",
-    example: "$500 booking = $5 Beauvette fee",
-    keepLine: "Founding professionals lock in 1% forever.",
+    example: "$500 booking = $7.50 Beauvette fee",
+    keepLine: "Founding professionals lock in 1.5% forever.",
     comparison: ""
   },
   proof: {
