@@ -9686,8 +9686,11 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         if (existingArtistProfile) {
           const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
           return res.json({
+            success: true,
             secretaryLink: `${baseUrl}/inquire/${existingArtistProfile.artistSlug}`,
             artistSlug: existingArtistProfile.artistSlug,
+            editToken: existingArtistProfile.editToken,
+            baseUrl,
             message: "You already have an account! Here's your existing secretary link."
           });
         }
