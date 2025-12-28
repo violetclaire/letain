@@ -97,6 +97,8 @@ export default function ArtistSettings() {
       return res.json();
     },
     onSuccess: () => {
+      // Reset local state first so refetch shows the saved value
+      setLocalSuccessMessage(null);
       queryClient.invalidateQueries({ queryKey: ["/api/artist/settings", token, useSessionAuth] });
       toast({
         title: "Settings saved",
@@ -606,8 +608,14 @@ export default function ArtistSettings() {
                       if (debounceRef.current) clearTimeout(debounceRef.current);
                       debounceRef.current = setTimeout(() => {
                         updateSettings.mutate({ formSuccessMessage: value });
-                        setLocalSuccessMessage(null);
-                      }, 800);
+                      }, 1500);
+                    }}
+                    onBlur={() => {
+                      // Save immediately when leaving the field
+                      if (debounceRef.current) clearTimeout(debounceRef.current);
+                      if (localSuccessMessage !== null) {
+                        updateSettings.mutate({ formSuccessMessage: localSuccessMessage });
+                      }
                     }}
                     placeholder="Thank you! I'll respond shortly."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6B4A55]/20 focus:border-[#6B4A55]"
