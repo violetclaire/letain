@@ -43,7 +43,7 @@ export default function ArtistSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   
   const artistSlug = params?.artistSlug || "";
   const searchParams = new URLSearchParams(window.location.search);
@@ -205,6 +205,15 @@ export default function ArtistSettings() {
       setUploading(false);
     }
   };
+
+  // Wait for auth to finish loading before deciding if link is invalid
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-4">
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    );
+  }
 
   if (!token && !useSessionAuth) {
     return (
