@@ -418,8 +418,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let artistSlug: string | null = null;
       if (user.role === 'artist') {
         console.log("[Login] Getting artist profile...");
-        const artistProfile = await storage.getArtistProfileByUserId(user.id);
-        artistSlug = artistProfile?.slug || null;
+        const artistProfile = await storage.getArtistProfile(user.id);
+        artistSlug = artistProfile?.artistSlug || null;
         console.log("[Login] Artist slug:", artistSlug);
       }
 
@@ -9874,7 +9874,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       }
       
       // Get artist profile for sender info
-      const artist = await storage.getArtistProfileByUserId(inquiry.artistId);
+      const artist = await storage.getArtistProfile(inquiry.artistId);
       const artistUser = await storage.getUser(inquiry.artistId);
       
       // Store the message in notifications
