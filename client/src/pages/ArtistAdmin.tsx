@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, useSearch, Link, useLocation } from "wouter";
 import { format } from "date-fns";
-import { Loader2, Settings, Calendar, Users, Copy, Check, Mail, CheckCircle, LogOut, FileText, DollarSign, Clock, ChevronDown } from "lucide-react";
+import { Loader2, Settings, Calendar, Users, Copy, Check, Mail, CheckCircle, LogOut, FileText, DollarSign, Clock, ChevronDown, Menu, X, HelpCircle } from "lucide-react";
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -41,6 +41,7 @@ export default function ArtistAdmin() {
   // Standalone creation modals
   const [showStandaloneInvoice, setShowStandaloneInvoice] = useState(false);
   const [showStandaloneContract, setShowStandaloneContract] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [standaloneClientName, setStandaloneClientName] = useState("");
   const [standaloneClientEmail, setStandaloneClientEmail] = useState("");
   const [standaloneAmount, setStandaloneAmount] = useState("");
@@ -291,7 +292,7 @@ export default function ArtistAdmin() {
 
   return (
     <div className="min-h-screen bg-[#1A1A1A] text-[#F5F0E8]" style={{ fontFamily: "'Inter', sans-serif" }}>
-      <header className="px-8 md:px-16 py-8 border-b border-[#F5F0E8]/10">
+      <header className="px-8 md:px-16 py-8 border-b border-[#F5F0E8]/10 relative">
         <div className="flex justify-between items-start">
           <div>
             <p className="text-[10px] uppercase tracking-[0.2em] text-[#F5F0E8]/40 mb-1">Your Secretary</p>
@@ -300,41 +301,64 @@ export default function ArtistAdmin() {
             </h1>
             <p className="text-sm text-[#F5F0E8]/50">Inquiries Dashboard</p>
           </div>
-          <nav className="flex items-center gap-4 text-sm">
-            <Link 
-              href={`/${getActualSlug()}/calendar${authParam}`}
-              className="flex items-center gap-2 text-[#F5F0E8]/60 hover:text-[#F5F0E8] transition-colors"
-              data-testid="nav-calendar"
-            >
-              <Calendar className="w-4 h-4" />
-              <span className="hidden sm:inline">Calendar</span>
-            </Link>
-            <Link 
-              href={`/${getActualSlug()}/circle${authParam}`}
-              className="flex items-center gap-2 text-[#F5F0E8]/60 hover:text-[#F5F0E8] transition-colors"
-              data-testid="nav-circle"
-            >
-              <Users className="w-4 h-4" />
-              <span className="hidden sm:inline">Circle</span>
-            </Link>
-            <Link 
-              href={`/${getActualSlug()}/settings${authParam}`}
-              className="flex items-center gap-2 text-[#F5F0E8]/60 hover:text-[#F5F0E8] transition-colors"
-              data-testid="nav-settings"
-            >
-              <Settings className="w-4 h-4" />
-              <span className="hidden sm:inline">Settings</span>
-            </Link>
-            {useSessionAuth && (
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 text-[#F5F0E8]/40 hover:text-[#F5F0E8]/70 transition-colors"
-                data-testid="button-logout"
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="p-2 text-[#F5F0E8]/60 hover:text-[#F5F0E8] transition-colors"
+            data-testid="button-menu"
+          >
+            {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+          
+          {menuOpen && (
+            <div className="absolute top-full right-8 md:right-16 mt-2 w-56 bg-[#222] border border-[#F5F0E8]/20 shadow-lg z-50">
+              <Link 
+                href={`/${getActualSlug()}/calendar${authParam}`}
+                className="flex items-center gap-3 px-4 py-3 text-sm text-[#F5F0E8]/80 hover:bg-[#F5F0E8]/10 transition-colors border-b border-[#F5F0E8]/10"
+                onClick={() => setMenuOpen(false)}
+                data-testid="nav-calendar"
               >
-                <LogOut className="w-4 h-4" />
-              </button>
-            )}
-          </nav>
+                <Calendar className="w-4 h-4" />
+                Availability
+              </Link>
+              <Link 
+                href={`/${getActualSlug()}/circle${authParam}`}
+                className="flex items-center gap-3 px-4 py-3 text-sm text-[#F5F0E8]/80 hover:bg-[#F5F0E8]/10 transition-colors border-b border-[#F5F0E8]/10"
+                onClick={() => setMenuOpen(false)}
+                data-testid="nav-circle"
+              >
+                <Users className="w-4 h-4" />
+                Network
+              </Link>
+              <Link 
+                href={`/${getActualSlug()}/settings${authParam}`}
+                className="flex items-center gap-3 px-4 py-3 text-sm text-[#F5F0E8]/80 hover:bg-[#F5F0E8]/10 transition-colors border-b border-[#F5F0E8]/10"
+                onClick={() => setMenuOpen(false)}
+                data-testid="nav-settings"
+              >
+                <Settings className="w-4 h-4" />
+                Update Settings
+              </Link>
+              <a 
+                href="mailto:support@dateinquiry.com"
+                className="flex items-center gap-3 px-4 py-3 text-sm text-[#F5F0E8]/80 hover:bg-[#F5F0E8]/10 transition-colors border-b border-[#F5F0E8]/10"
+                onClick={() => setMenuOpen(false)}
+                data-testid="nav-help"
+              >
+                <HelpCircle className="w-4 h-4" />
+                Help
+              </a>
+              {useSessionAuth && (
+                <button
+                  onClick={() => { setMenuOpen(false); handleLogout(); }}
+                  className="flex items-center gap-3 px-4 py-3 text-sm text-[#F5F0E8]/50 hover:bg-[#F5F0E8]/10 transition-colors w-full text-left"
+                  data-testid="button-logout"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </header>
 

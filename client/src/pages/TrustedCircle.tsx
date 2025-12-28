@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
 import { useState } from "react";
 import { Loader2, ArrowLeft, Plus, X, Users, Send } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface CircleMember {
   id: string;
@@ -17,9 +18,13 @@ export default function TrustedCircle() {
   const [, params] = useRoute("/:artistSlug/circle");
   const queryClient = useQueryClient();
   const slug = params?.artistSlug;
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   
   const searchParams = new URLSearchParams(window.location.search);
   const token = searchParams.get("token") || "";
+  
+  // Use session auth if logged in as artist and no token provided
+  const useSessionAuth = !token && isAuthenticated && user?.role === 'artist';
   
   const [showAddModal, setShowAddModal] = useState(false);
   const [newMemberName, setNewMemberName] = useState("");
@@ -27,8 +32,16 @@ export default function TrustedCircle() {
   const [inviteNote, setInviteNote] = useState("");
 
   const { data, isLoading, error } = useQuery({
-    queryKey: [`/api/public/trusted-circle`, token],
+    queryKey: [`/api/trusted-circle`, token, useSessionAuth],
     queryFn: async () => {
+      if (useSessionAuth) {
+        const res = await fetch(`/api/artist/trusted-circle`, { credentials: 'include' });
+        if (!res.ok) {
+          if (res.status === 401) throw new Error("Access denied");
+          throw new Error("Failed to load trusted circle");
+        }
+        return res.json();
+      }
       const res = await fetch(`/api/public/trusted-circle?token=${token}`);
       if (!res.ok) {
         if (res.status === 401) throw new Error("Access denied");
@@ -36,21 +49,23 @@ export default function TrustedCircle() {
       }
       return res.json();
     },
-    enabled: !!token,
+    enabled: !!token || useSessionAuth,
   });
 
   const addMember = useMutation({
     mutationFn: async (member: { name: string; email: string; note?: string }) => {
-      const res = await fetch(`/api/public/trusted-circle?token=${token}`, {
+      const url = useSessionAuth ? `/api/artist/trusted-circle` : `/api/public/trusted-circle?token=${token}`;
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: useSessionAuth ? 'include' : 'same-origin',
         body: JSON.stringify(member),
       });
       if (!res.ok) throw new Error("Failed to add member");
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/public/trusted-circle`, token] });
+      queryClient.invalidateQueries({ queryKey: [`/api/trusted-circle`, token, useSessionAuth] });
       setShowAddModal(false);
       setNewMemberName("");
       setNewMemberEmail("");
@@ -60,18 +75,20 @@ export default function TrustedCircle() {
 
   const removeMember = useMutation({
     mutationFn: async (memberId: string) => {
-      const res = await fetch(`/api/public/trusted-circle/${memberId}?token=${token}`, {
+      const url = useSessionAuth ? `/api/artist/trusted-circle/${memberId}` : `/api/public/trusted-circle/${memberId}?token=${token}`;
+      const res = await fetch(url, {
         method: "DELETE",
+        credentials: useSessionAuth ? 'include' : 'same-origin',
       });
       if (!res.ok) throw new Error("Failed to remove member");
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/public/trusted-circle`, token] });
+      queryClient.invalidateQueries({ queryKey: [`/api/trusted-circle`, token, useSessionAuth] });
     },
   });
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <div className="min-h-screen bg-[#F9F8F6] flex items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-[#2D2D2D]/30" />
@@ -79,7 +96,7 @@ export default function TrustedCircle() {
     );
   }
 
-  if (!token) {
+  if (!token && !useSessionAuth) {
     return (
       <div className="min-h-screen bg-[#F9F8F6] flex items-center justify-center px-8">
         <div className="text-center max-w-md">
@@ -113,7 +130,7 @@ export default function TrustedCircle() {
     <div className="min-h-screen bg-[#F9F8F6] text-[#2D2D2D]" style={{ fontFamily: "'Inter', sans-serif" }}>
       <header className="px-8 md:px-16 py-8 border-b border-[#2D2D2D]/10">
         <Link 
-          href={`/admin/${slug}?token=${token}`}
+          href={useSessionAuth ? `/admin/${slug}` : `/admin/${slug}?token=${token}`}
           className="inline-flex items-center gap-2 text-sm text-[#2D2D2D]/60 hover:text-[#2D2D2D] transition-colors mb-4"
         >
           <ArrowLeft className="w-4 h-4" />

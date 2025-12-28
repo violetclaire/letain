@@ -10205,9 +10205,9 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
             })
           : 'Date TBD';
         
-        // Build chat link for client to respond
+        // Build inquiry link for client to respond
         const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
-        const chatLink = `${baseUrl}/chat/${inquiry.threadToken}`;
+        const chatLink = `${baseUrl}/inquiry/${inquiry.threadToken}`;
         
         // Determine which content to send based on action type
         const infoContent = action === 'accept-planner' 
@@ -11194,6 +11194,122 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       res.json({ success: true });
     } catch (error: any) {
       console.error("[Trusted Circle Remove] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Session-based Trusted Circle endpoints (for logged-in artists)
+  app.get("/api/artist/trusted-circle", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'artist') {
+        return res.status(401).json({ error: "Not authorized" });
+      }
+      
+      const profile = await storage.getArtistProfile(userId);
+      if (!profile) {
+        return res.status(404).json({ error: "Artist profile not found" });
+      }
+      
+      const members = await db.select()
+        .from(trustedCircle)
+        .where(eq(trustedCircle.referrerId, userId));
+      
+      res.json({
+        artistProfile: {
+          id: profile.id,
+          businessName: profile.businessName,
+          artistSlug: profile.artistSlug,
+        },
+        members: members.map(m => ({
+          id: m.id,
+          name: m.refereeName,
+          email: m.refereeEmail,
+          status: m.status,
+          addedAt: m.createdAt,
+        })),
+      });
+    } catch (error: any) {
+      console.error("[Session Trusted Circle Get] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  app.post("/api/artist/trusted-circle", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'artist') {
+        return res.status(401).json({ error: "Not authorized" });
+      }
+      
+      const parseResult = addTrustedCircleMemberSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: parseResult.error.errors[0]?.message || "Invalid input" });
+      }
+      
+      const { name, email } = parseResult.data;
+      
+      const [newMember] = await db.insert(trustedCircle)
+        .values({
+          referrerId: userId,
+          refereeName: name,
+          refereeEmail: email,
+          status: 'pending',
+          inviteToken: randomUUID(),
+        })
+        .returning();
+      
+      res.json({
+        success: true,
+        member: {
+          id: newMember.id,
+          name: newMember.refereeName,
+          email: newMember.refereeEmail,
+          status: newMember.status,
+          addedAt: newMember.createdAt,
+        },
+      });
+    } catch (error: any) {
+      console.error("[Session Trusted Circle Add] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  app.delete("/api/artist/trusted-circle/:memberId", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'artist') {
+        return res.status(401).json({ error: "Not authorized" });
+      }
+      
+      const { memberId } = req.params;
+      
+      await db.delete(trustedCircle)
+        .where(
+          and(
+            eq(trustedCircle.id, memberId),
+            eq(trustedCircle.referrerId, userId)
+          )
+        );
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("[Session Trusted Circle Remove] Error:", error);
       res.status(500).json({ error: error.message });
     }
   });
