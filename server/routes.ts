@@ -10918,6 +10918,58 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
   
+  // Artist admin dashboard - session-based auth (for logged in artists)
+  app.get("/api/artist/admin-data", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'artist') {
+        return res.status(403).json({ error: "Not an artist" });
+      }
+      
+      const profile = await storage.getArtistProfile(userId);
+      if (!profile) {
+        return res.status(404).json({ error: "Artist profile not found" });
+      }
+      
+      // Get all inquiries for this artist
+      const inquiries = await storage.getInquiriesByVendor(userId);
+      
+      // Sort by createdAt descending (newest first)
+      const sortedInquiries = inquiries.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+      });
+      
+      res.json({
+        artist: {
+          id: profile.id,
+          businessName: profile.businessName,
+          artistSlug: profile.artistSlug,
+        },
+        inquiries: sortedInquiries.map(inq => ({
+          id: inq.id,
+          threadToken: inq.threadToken,
+          clientName: inq.clientName,
+          clientEmail: inq.clientEmail,
+          eventDate: inq.eventDate,
+          eventLocation: inq.eventLocation,
+          status: inq.status,
+          createdAt: inq.createdAt,
+          depositPaidAt: (inq as any).depositPaidAt,
+        }))
+      });
+    } catch (error: any) {
+      console.error("[Artist Admin Session] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Artist admin dashboard (slug + token required for security)
   app.get("/api/public/artist-admin/:slug", async (req, res) => {
     try {
