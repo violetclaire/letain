@@ -209,9 +209,15 @@ export default function ArtistSettings() {
         new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
       );
       
-      const res = await fetch(`/api/public/artists/settings/upload?token=${token}`, {
+      // Use session-based endpoint if logged in, otherwise use token-based
+      const uploadUrl = useSessionAuth 
+        ? `/api/artist/settings/upload`
+        : `/api/public/artists/settings/upload?token=${token}`;
+      
+      const res = await fetch(uploadUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: useSessionAuth ? 'include' : 'same-origin',
         body: JSON.stringify({
           fileName: file.name,
           fileData: base64,
@@ -220,10 +226,11 @@ export default function ArtistSettings() {
       });
 
       if (!res.ok) {
-        throw new Error("Upload failed");
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Upload failed");
       }
 
-      queryClient.invalidateQueries({ queryKey: ["/api/public/artists/settings", token] });
+      queryClient.invalidateQueries({ queryKey: ["/api/artist/settings", token, useSessionAuth] });
       
       toast({
         title: "File uploaded",

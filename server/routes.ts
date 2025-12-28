@@ -10560,6 +10560,60 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
   
+  // Upload info sheet file - session-based auth
+  app.post("/api/artist/settings/upload", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'artist') {
+        return res.status(403).json({ error: "Not an artist" });
+      }
+      
+      const profile = await storage.getArtistProfile(userId);
+      if (!profile) {
+        return res.status(404).json({ error: "Artist profile not found" });
+      }
+      
+      const { fileName, fileData, mimeType } = req.body;
+      if (!fileName || !fileData || !mimeType) {
+        return res.status(400).json({ error: "fileName, fileData, and mimeType are required" });
+      }
+      
+      // Validate file type
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(mimeType)) {
+        return res.status(400).json({ error: "Only PDF and image files are allowed" });
+      }
+      
+      const objectService = new ObjectStorageService();
+      const timestamp = Date.now();
+      const safeName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const objectPath = `public/info-sheets/${profile.artistSlug}/${timestamp}-${safeName}`;
+      
+      // Decode base64 and upload
+      const fileBuffer = Buffer.from(fileData, 'base64');
+      const publicUrl = await objectService.uploadBuffer(objectPath, fileBuffer, mimeType);
+      
+      // Update profile with new info sheet URL
+      await storage.updateArtistProfile(userId, {
+        infoSheetPdfUrl: publicUrl,
+        infoSheetType: 'pdf',
+      });
+      
+      res.json({
+        success: true,
+        url: publicUrl,
+      });
+    } catch (error: any) {
+      console.error("[Artist Info Sheet Upload Session] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Upload info sheet file by edit token (no login required)
   app.post("/api/public/artists/settings/upload", async (req, res) => {
     try {
