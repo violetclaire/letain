@@ -291,7 +291,7 @@ export default function ArtistSettings() {
       <header className="bg-[#3d1a22]">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-4">
           <button
-            onClick={() => setLocation(`/${artistSlug}`)}
+            onClick={() => setLocation(`/admin/${settings.artistSlug || artistSlug}${token ? `?token=${token}` : ''}`)}
             className="text-[#f5f3ef]/70 hover:text-[#f5f3ef] transition-colors"
             data-testid="button-back"
           >

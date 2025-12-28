@@ -11209,7 +11209,20 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       // Check if slug is already taken by another artist
       const existingProfile = await storage.getArtistProfileBySlug(sanitizedSlug);
       if (existingProfile && String(existingProfile.userId) !== String(userId)) {
-        return res.status(409).json({ error: "This slug is already taken" });
+        console.log(`[Slug Conflict] Slug "${sanitizedSlug}" requested by userId: ${userId} but owned by userId: ${existingProfile.userId}`);
+        return res.status(409).json({ 
+          error: "This link is registered to another account. Contact support if you believe this is an error.",
+          debug: { requestedSlug: sanitizedSlug }
+        });
+      }
+      
+      // If user is trying to set the same slug they already have, that's fine
+      if (profile.artistSlug === sanitizedSlug) {
+        return res.json({
+          success: true,
+          artistSlug: sanitizedSlug,
+          message: `Your link is already: dateinquiry.com/${sanitizedSlug}`
+        });
       }
       
       const updatedProfile = await storage.updateArtistProfile(userId, { artistSlug: sanitizedSlug });

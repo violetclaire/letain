@@ -330,21 +330,6 @@ export default function ArtistAdmin() {
       </header>
 
       <main className="max-w-4xl mx-auto px-8 md:px-16 py-12">
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          <div className="p-6 border border-[#F5F0E8]/10 text-center bg-[#222]">
-            <p className="text-3xl font-light" style={{ fontFamily: "'Fraunces', serif" }}>{pendingCount}</p>
-            <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F0E8]/50 mt-2">Pending</p>
-          </div>
-          <div className="p-6 border border-[#F5F0E8]/10 text-center bg-[#222]">
-            <p className="text-3xl font-light" style={{ fontFamily: "'Fraunces', serif" }}>{acceptedCount}</p>
-            <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F0E8]/50 mt-2">Accepted</p>
-          </div>
-          <div className="p-6 border border-[#F5F0E8]/10 text-center bg-[#222]">
-            <p className="text-3xl font-light text-green-400" style={{ fontFamily: "'Fraunces', serif" }}>{depositCount}</p>
-            <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F0E8]/50 mt-2">Booked</p>
-          </div>
-        </div>
-
         {/* Quick Actions */}
         <div className="mb-10">
           <p className="text-[10px] uppercase tracking-[0.2em] text-[#F5F0E8]/40 mb-4">Quick Actions</p>
@@ -359,33 +344,33 @@ export default function ArtistAdmin() {
             </Link>
             <button
               onClick={() => {
-                if (inquiries.length === 0) {
-                  toast({ title: "No inquiries yet", description: "You need inquiries to send payments" });
-                  return;
-                }
                 setPendingAction('payment');
-                inquiriesRef.current?.scrollIntoView({ behavior: 'smooth' });
+                if (inquiries.length > 0) {
+                  inquiriesRef.current?.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                  toast({ title: "Select a client", description: "Add a client inquiry first, then select them to send an invoice" });
+                }
               }}
               className={`flex items-center justify-center gap-2 p-4 border bg-[#222] transition-colors text-sm ${pendingAction === 'payment' ? 'border-green-500/50 bg-green-900/20' : 'border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'}`}
               data-testid="action-send-payment"
             >
               <DollarSign className="w-4 h-4 text-[#F5F0E8]/60" />
-              <span>Send Payment</span>
+              <span>Create Invoice</span>
             </button>
             <button
               onClick={() => {
-                if (inquiries.length === 0) {
-                  toast({ title: "No inquiries yet", description: "You need inquiries to send contracts" });
-                  return;
-                }
                 setPendingAction('contract');
-                inquiriesRef.current?.scrollIntoView({ behavior: 'smooth' });
+                if (inquiries.length > 0) {
+                  inquiriesRef.current?.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                  toast({ title: "Select a client", description: "Add a client inquiry first, then select them to send a contract" });
+                }
               }}
               className={`flex items-center justify-center gap-2 p-4 border bg-[#222] transition-colors text-sm ${pendingAction === 'contract' ? 'border-blue-500/50 bg-blue-900/20' : 'border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'}`}
               data-testid="action-send-contract"
             >
               <FileText className="w-4 h-4 text-[#F5F0E8]/60" />
-              <span>Send Contract</span>
+              <span>Create Contract</span>
             </button>
           </div>
         </div>
