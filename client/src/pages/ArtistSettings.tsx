@@ -60,6 +60,8 @@ export default function ArtistSettings() {
   const [uploading, setUploading] = useState(false);
   const [localSuccessMessage, setLocalSuccessMessage] = useState<string | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const [editingSlug, setEditingSlug] = useState(false);
+  const [newSlug, setNewSlug] = useState("");
 
   const { data: settings, isLoading, error } = useQuery<ArtistSettingsData>({
     queryKey: ["/api/artist/settings", token, useSessionAuth],
@@ -101,6 +103,41 @@ export default function ArtistSettings() {
       toast({
         title: "Error",
         description: "Failed to save settings. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const updateSlug = useMutation({
+    mutationFn: async (slug: string) => {
+      const res = await fetch(`/api/artist/slug`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include',
+        body: JSON.stringify({ newSlug: slug })
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to update link");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/artist/settings", token, useSessionAuth] });
+      toast({
+        title: "Link updated",
+        description: data.message || "Your form link has been updated."
+      });
+      setEditingSlug(false);
+      // Redirect to new slug URL
+      if (data.artistSlug) {
+        setLocation(`/${data.artistSlug}/settings`);
+      }
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to update link. Please try again.",
         variant: "destructive"
       });
     }
@@ -289,6 +326,62 @@ export default function ArtistSettings() {
                 <p className={`text-[10px] mt-0.5 ${(settings.autoResponderMode === 'off' || !settings.autoResponderMode) ? 'text-[#3d1a22]/60' : 'text-[#f5f3ef]/50'}`}>Manual review only</p>
               </label>
             </div>
+          </section>
+
+          {/* Your Form Link */}
+          <section className="bg-white rounded-xl p-6 shadow-sm">
+            <h2 className="text-lg font-serif text-[#6B4A55] mb-2">Your Form Link</h2>
+            <p className="text-gray-600 text-sm mb-4">
+              This is the link clients use to inquire about your services.
+            </p>
+            
+            {editingSlug ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">dateinquiry.com/</span>
+                  <input
+                    type="text"
+                    value={newSlug}
+                    onChange={(e) => setNewSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
+                    placeholder="yourname"
+                    className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6B4A55]"
+                    data-testid="input-new-slug"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => updateSlug.mutate(newSlug)}
+                    disabled={updateSlug.isPending || !newSlug || newSlug.length < 3}
+                    className="bg-[#6B4A55] hover:bg-[#5a3d47] text-white"
+                    data-testid="button-save-slug"
+                  >
+                    {updateSlug.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => { setEditingSlug(false); setNewSlug(""); }}
+                    data-testid="button-cancel-slug"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="flex-1 bg-[#FAF8F5] rounded-lg px-4 py-3">
+                  <p className="text-sm font-medium text-[#6B4A55]">dateinquiry.com/{settings.artistSlug}</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setEditingSlug(true); setNewSlug(settings.artistSlug || ""); }}
+                  data-testid="button-edit-slug"
+                >
+                  <Settings2 className="w-4 h-4 mr-1" />
+                  Edit
+                </Button>
+              </div>
+            )}
           </section>
 
           {/* Upload Your Info Sheet */}
