@@ -33,34 +33,25 @@ export default function ArtistLogin() {
         return;
       }
 
-      const result = await refetch();
-      
       // Redirect artists to their dashboard
       if (data.user?.role === "artist") {
-        // On dateinquiry.com, go to simplified admin; otherwise full dashboard
         const isDateInquiry = window.location.hostname.includes('dateinquiry');
-        // Get artistSlug from login response or refetched user data
-        const slug = data.artistSlug || (result.data as any)?.artistSlug;
         
-        if (isDateInquiry && slug) {
-          setLocation(`/admin/${slug}`);
-        } else if (isDateInquiry) {
-          // Fallback: fetch the slug separately if missing
-          try {
-            const profileRes = await fetch('/api/artist/profile', { credentials: 'include' });
-            if (profileRes.ok) {
-              const profile = await profileRes.json();
-              if (profile?.artistSlug) {
-                setLocation(`/admin/${profile.artistSlug}`);
-                return;
-              }
+        if (isDateInquiry) {
+          // On dateinquiry.com - always fetch fresh user data to get slug
+          const userRes = await fetch('/api/auth/user', { credentials: 'include' });
+          if (userRes.ok) {
+            const userData = await userRes.json();
+            if (userData?.artistSlug) {
+              window.location.href = `/admin/${userData.artistSlug}`;
+              return;
             }
-          } catch (e) {
-            console.error('Failed to get artist slug:', e);
           }
-          // Last resort fallback
-          setLocation("/artist");
+          // Fallback if no slug found
+          window.location.href = "/artist";
         } else {
+          // On beauvette.app - go to full dashboard
+          await refetch();
           setLocation("/artist");
         }
       } else {
