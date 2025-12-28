@@ -63,7 +63,8 @@ export default function ArtistLogin() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/public/artist/request-login", {
+      // Use resend-access endpoint which uses existing editToken (more reliable)
+      const response = await fetch("/api/public/artist/resend-access", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.toLowerCase().trim() }),
