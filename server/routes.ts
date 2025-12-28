@@ -10951,6 +10951,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           id: profile.id,
           businessName: profile.businessName,
           artistSlug: profile.artistSlug,
+          autoResponderMode: (profile as any).autoResponderMode || 'off',
         },
         inquiries: sortedInquiries.map(inq => ({
           id: inq.id,
