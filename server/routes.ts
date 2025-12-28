@@ -9763,6 +9763,62 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // ===== ARTIST ACCESS RECOVERY =====
+  
+  // Resend artist dashboard access link
+  app.post("/api/public/artist/resend-access", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+      
+      const user = await storage.getUserByEmail(email.toLowerCase().trim());
+      if (!user) {
+        // Don't reveal if email exists
+        return res.json({ success: true, message: "If we found your account, we've sent you access links." });
+      }
+      
+      const profile = await storage.getArtistProfile(user.id);
+      if (!profile) {
+        return res.json({ success: true, message: "If we found your account, we've sent you access links." });
+      }
+      
+      // Generate new edit token if needed
+      let editToken = profile.editToken;
+      if (!editToken) {
+        editToken = randomUUID();
+        await storage.updateArtistProfile(user.id, { editToken });
+      }
+      
+      // Send access email
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
+      const settingsUrl = `${baseUrl}/${profile.artistSlug}/settings?token=${editToken}`;
+      const calendarUrl = `${baseUrl}/inquire/${profile.artistSlug}`;
+      
+      try {
+        const { sendArtistWelcomeEmail } = await import('./emailService');
+        await sendArtistWelcomeEmail({
+          toEmail: email,
+          artistName: profile.businessName || 'Artist',
+          businessName: profile.businessName || 'Your Business',
+          calendarUrl,
+          settingsUrl
+        });
+        console.log(`[AccessRecovery] Sent access email to ${email}`);
+      } catch (emailError) {
+        console.error("[AccessRecovery] Failed to send email:", emailError);
+        return res.status(500).json({ error: "Failed to send email" });
+      }
+      
+      res.json({ success: true, message: "Access link sent to your email!" });
+    } catch (error: any) {
+      console.error("[AccessRecovery] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ===== INQUIRY THREAD ROUTES =====
   
   // Request access to inquiry threads by email (sends magic links to client)
