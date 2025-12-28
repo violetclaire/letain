@@ -60,14 +60,20 @@ export default function ArtistAdmin() {
     onSuccess: () => setEmailSent(true),
   });
 
+  // Get the actual artistSlug from loaded data (or fallback to URL slug)
+  const getActualSlug = () => {
+    if (data?.artist?.artistSlug) return data.artist.artistSlug;
+    return slug;
+  };
+
   const handleCopyInquiryLink = () => {
-    navigator.clipboard.writeText(`https://dateinquiry.com/${slug}`);
+    navigator.clipboard.writeText(`https://dateinquiry.com/${getActualSlug()}`);
     setLinkCopied(true);
     setTimeout(() => setLinkCopied(false), 2000);
   };
   
   const handleCopyLink = () => {
-    const link = `https://dateinquiry.com/${slug}`;
+    const link = `https://dateinquiry.com/${getActualSlug()}`;
     navigator.clipboard.writeText(link);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -181,7 +187,7 @@ export default function ArtistAdmin() {
                 <p className="text-[10px] uppercase tracking-wide text-[#F5F0E8]/50 mb-2">Your Inquiry Link</p>
                 <div className="flex gap-2">
                   <div className="flex-1 bg-[#F5F0E8]/5 px-3 py-2 text-xs text-[#F5F0E8]/70 rounded truncate">
-                    dateinquiry.com/{slug}
+                    dateinquiry.com/{getActualSlug()}
                   </div>
                   <button
                     type="button"
