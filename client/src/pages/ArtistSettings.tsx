@@ -113,7 +113,8 @@ export default function ArtistSettings() {
 
   const updateSlug = useMutation({
     mutationFn: async (slug: string) => {
-      const res = await fetch(`/api/artist/slug`, {
+      const url = token ? `/api/public/artist/slug?token=${token}` : `/api/artist/slug`;
+      const res = await fetch(url, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: 'include',
@@ -132,9 +133,10 @@ export default function ArtistSettings() {
         description: data.message || "Your form link has been updated."
       });
       setEditingSlug(false);
-      // Redirect to new slug URL
+      // Redirect to new slug URL with token preserved
       if (data.artistSlug) {
-        setLocation(`/${data.artistSlug}/settings`);
+        const tokenParam = data.editToken ? `?token=${data.editToken}` : (token ? `?token=${token}` : '');
+        setLocation(`/${data.artistSlug}/settings${tokenParam}`);
       }
     },
     onError: (err: any) => {

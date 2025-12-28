@@ -11240,6 +11240,64 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // Update artist slug - token-based auth (for magic link users)
+  app.patch("/api/public/artist/slug", async (req, res) => {
+    try {
+      const { token } = req.query;
+      const { newSlug } = req.body;
+      
+      if (!token) {
+        return res.status(401).json({ error: "Access token required" });
+      }
+      
+      if (!newSlug || typeof newSlug !== 'string') {
+        return res.status(400).json({ error: "New slug is required" });
+      }
+      
+      // Find artist by edit token
+      const profile = await storage.getArtistProfileByEditToken(token as string);
+      if (!profile) {
+        return res.status(401).json({ error: "Invalid access token" });
+      }
+      
+      // Sanitize slug - lowercase, alphanumeric only
+      const sanitizedSlug = newSlug.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (sanitizedSlug.length < 3) {
+        return res.status(400).json({ error: "Slug must be at least 3 characters" });
+      }
+      
+      // Check if slug is already taken by another artist
+      const existingProfile = await storage.getArtistProfileBySlug(sanitizedSlug);
+      if (existingProfile && String(existingProfile.userId) !== String(profile.userId)) {
+        return res.status(409).json({ 
+          error: "This link is already taken. Try a different name."
+        });
+      }
+      
+      // If same slug, just return success
+      if (profile.artistSlug === sanitizedSlug) {
+        return res.json({
+          success: true,
+          artistSlug: sanitizedSlug,
+          editToken: profile.editToken,
+          message: `Your link is already: dateinquiry.com/${sanitizedSlug}`
+        });
+      }
+      
+      const updatedProfile = await storage.updateArtistProfile(profile.userId, { artistSlug: sanitizedSlug });
+      
+      res.json({
+        success: true,
+        artistSlug: updatedProfile?.artistSlug,
+        editToken: profile.editToken,
+        message: `Your new link is: dateinquiry.com/${sanitizedSlug}`
+      });
+    } catch (error: any) {
+      console.error("[Public Artist Slug Update] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Artist admin dashboard (slug + token required for security)
   app.get("/api/public/artist-admin/:slug", async (req, res) => {
     try {
