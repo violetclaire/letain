@@ -335,7 +335,7 @@ export default function ArtistAdmin() {
           <p className="text-[10px] uppercase tracking-[0.2em] text-[#F5F0E8]/40 mb-4">Quick Actions</p>
           <div className="grid grid-cols-3 gap-3">
             <Link
-              href={`/${getActualSlug()}/calendar${authParam}`}
+              href={`/artist/schedules${authParam}`}
               className="flex items-center justify-center gap-2 p-4 border border-[#F5F0E8]/20 bg-[#222] hover:border-[#F5F0E8]/40 transition-colors text-sm"
               data-testid="action-create-schedule"
             >
