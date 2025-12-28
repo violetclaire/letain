@@ -151,7 +151,11 @@ export default function ArtistSettings() {
 
   const updateEmail = useMutation({
     mutationFn: async (email: string) => {
-      const res = await fetch(`/api/artist/email`, {
+      // Use token-based endpoint when token is present, session-based otherwise
+      const endpoint = token 
+        ? `/api/public/artist/email?token=${encodeURIComponent(token)}`
+        : `/api/artist/email`;
+      const res = await fetch(endpoint, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: 'include',

@@ -11149,6 +11149,46 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // Update artist contact email - token-based auth (for magic link users)
+  app.patch("/api/public/artist/email", async (req, res) => {
+    try {
+      const { token } = req.query;
+      const { email } = req.body;
+      
+      if (!token) {
+        return res.status(401).json({ error: "Access token required" });
+      }
+      
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({ error: "Email is required" });
+      }
+      
+      // Find artist by edit token
+      const profile = await storage.getArtistProfileByEditToken(token as string);
+      if (!profile) {
+        return res.status(401).json({ error: "Invalid access token" });
+      }
+      
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: "Invalid email format" });
+      }
+      
+      // Update the user's email
+      await storage.updateUser(profile.userId, { email: email.toLowerCase().trim() });
+      
+      res.json({
+        success: true,
+        email: email.toLowerCase().trim(),
+        message: "Contact email updated successfully"
+      });
+    } catch (error: any) {
+      console.error("[Public Artist Email Update] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Update artist contact email - session-based auth
   app.patch("/api/artist/email", async (req, res) => {
     try {
