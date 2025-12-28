@@ -35,11 +35,9 @@ export default function ArtistLogin() {
 
       await refetch();
       
-      // Redirect artists to their admin dashboard on dateinquiry.com
-      if (data.user?.role === "artist" && data.artistSlug) {
-        // Use window.location for cross-domain redirect
-        window.location.href = `https://dateinquiry.com/admin/${data.artistSlug}`;
-      } else if (data.user?.role === "artist") {
+      // Redirect artists to their dashboard
+      if (data.user?.role === "artist") {
+        // Stay on current domain, go to /artist
         setLocation("/artist");
       } else {
         setError("This login is for artists only");
