@@ -1,9 +1,10 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, useSearch, Link, useLocation } from "wouter";
 import { format } from "date-fns";
-import { Loader2, Settings, Calendar, Users, Copy, Check, Mail, CheckCircle, LogOut } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Loader2, Settings, Calendar, Users, Copy, Check, Mail, CheckCircle, LogOut, FileText, DollarSign, Clock, ChevronDown } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 interface Inquiry {
   id: string;
@@ -32,6 +33,9 @@ export default function ArtistAdmin() {
   const [email, setEmail] = useState("");
   const [emailSent, setEmailSent] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'payment' | 'contract' | null>(null);
+  const inquiriesRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
   
   // Get auth state for session-based login
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
@@ -301,7 +305,7 @@ export default function ArtistAdmin() {
       </header>
 
       <main className="max-w-4xl mx-auto px-8 md:px-16 py-12">
-        <div className="grid grid-cols-3 gap-4 mb-12">
+        <div className="grid grid-cols-3 gap-4 mb-8">
           <div className="p-6 border border-[#F5F0E8]/10 text-center bg-[#222]">
             <p className="text-3xl font-light" style={{ fontFamily: "'Fraunces', serif" }}>{pendingCount}</p>
             <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F0E8]/50 mt-2">Pending</p>
@@ -316,7 +320,61 @@ export default function ArtistAdmin() {
           </div>
         </div>
 
-        <div className="space-y-4">
+        {/* Quick Actions */}
+        <div className="mb-10">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#F5F0E8]/40 mb-4">Quick Actions</p>
+          <div className="grid grid-cols-3 gap-3">
+            <Link
+              href={`/${slug}/calendar${authParam}`}
+              className="flex items-center justify-center gap-2 p-4 border border-[#F5F0E8]/20 bg-[#222] hover:border-[#F5F0E8]/40 transition-colors text-sm"
+              data-testid="action-create-schedule"
+            >
+              <Clock className="w-4 h-4 text-[#F5F0E8]/60" />
+              <span>Create Schedule</span>
+            </Link>
+            <button
+              onClick={() => {
+                if (inquiries.length === 0) {
+                  toast({ title: "No inquiries yet", description: "You need inquiries to send payments" });
+                  return;
+                }
+                setPendingAction('payment');
+                inquiriesRef.current?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className={`flex items-center justify-center gap-2 p-4 border bg-[#222] transition-colors text-sm ${pendingAction === 'payment' ? 'border-green-500/50 bg-green-900/20' : 'border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'}`}
+              data-testid="action-send-payment"
+            >
+              <DollarSign className="w-4 h-4 text-[#F5F0E8]/60" />
+              <span>Send Payment</span>
+            </button>
+            <button
+              onClick={() => {
+                if (inquiries.length === 0) {
+                  toast({ title: "No inquiries yet", description: "You need inquiries to send contracts" });
+                  return;
+                }
+                setPendingAction('contract');
+                inquiriesRef.current?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className={`flex items-center justify-center gap-2 p-4 border bg-[#222] transition-colors text-sm ${pendingAction === 'contract' ? 'border-blue-500/50 bg-blue-900/20' : 'border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'}`}
+              data-testid="action-send-contract"
+            >
+              <FileText className="w-4 h-4 text-[#F5F0E8]/60" />
+              <span>Send Contract</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-4" ref={inquiriesRef}>
+          {pendingAction && inquiries.length > 0 && (
+            <div className={`p-4 border text-center text-sm ${pendingAction === 'payment' ? 'border-green-500/30 bg-green-900/10 text-green-300' : 'border-blue-500/30 bg-blue-900/10 text-blue-300'}`}>
+              <span className="flex items-center justify-center gap-2">
+                <ChevronDown className="w-4 h-4 animate-bounce" />
+                Select a client to {pendingAction === 'payment' ? 'send payment' : 'send contract'}
+                <button onClick={() => setPendingAction(null)} className="ml-2 text-xs underline opacity-70 hover:opacity-100">Cancel</button>
+              </span>
+            </div>
+          )}
           {inquiries.length === 0 ? (
             <div className="text-center py-16 border border-dashed border-[#F5F0E8]/20 bg-[#222]">
               <p className="text-[#F5F0E8]/50">No inquiries yet</p>
@@ -325,11 +383,20 @@ export default function ArtistAdmin() {
           ) : (
             inquiries.map((inquiry) => {
               const velocity = getVelocity(inquiry);
+              const handleInquiryClick = (e: React.MouseEvent) => {
+                if (pendingAction) {
+                  e.preventDefault();
+                  const tab = pendingAction === 'payment' ? 'payment' : 'contract';
+                  window.location.href = `/inquiry/${inquiry.threadToken}?tab=${tab}`;
+                  setPendingAction(null);
+                }
+              };
               return (
                 <a
                   key={inquiry.id}
                   href={`/inquiry/${inquiry.threadToken}`}
-                  className="block p-6 border border-[#F5F0E8]/10 hover:border-[#F5F0E8]/30 bg-[#222] transition-all"
+                  onClick={handleInquiryClick}
+                  className={`block p-6 border bg-[#222] transition-all ${pendingAction ? (pendingAction === 'payment' ? 'border-green-500/30 hover:border-green-500/60 hover:bg-green-900/10' : 'border-blue-500/30 hover:border-blue-500/60 hover:bg-blue-900/10') : 'border-[#F5F0E8]/10 hover:border-[#F5F0E8]/30'}`}
                   data-testid={`inquiry-row-${inquiry.id}`}
                 >
                   <div className="flex justify-between items-start">
