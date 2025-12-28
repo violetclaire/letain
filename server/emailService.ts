@@ -1758,28 +1758,22 @@ export async function sendArtistWelcomeEmail({
           <p>Your inquiry link for <strong>${escapeHtml(businessName)}</strong> is now live and ready to receive inquiries.</p>
           
           <div class="link-box">
-            <p style="margin: 0 0 8px 0; color: #666; font-size: 14px;">Your inquiry link:</p>
+            <p style="margin: 0 0 8px 0; color: #666; font-size: 14px;">Your inquiry link (share this with clients):</p>
             <a href="${calendarUrl}">${calendarUrl}</a>
           </div>
-          
-          <p style="text-align: center;">
-            <a href="${calendarUrl}" class="button">View My Link</a>
-          </p>
           
           <div class="tips">
             <h3>Next Steps:</h3>
             <ul>
-              <li>Add your inquiry link to your Instagram bio</li>
-              <li>Share it in your stories when clients ask about booking</li>
-              <li>Upload your pricing/info sheet so clients get all the details</li>
+              <li>Copy and add this link to your Instagram bio</li>
+              <li>Share it when clients ask about booking</li>
             </ul>
           </div>
           
           ${settingsUrl ? `
-          <div class="link-box" style="margin-top: 24px;">
-            <p style="margin: 0 0 8px 0; color: #666; font-size: 14px;">Manage your settings & upload your info sheet:</p>
-            <a href="${settingsUrl}" class="button" style="display: inline-block; margin: 8px 0 0 0;">My Settings</a>
-          </div>
+          <p style="text-align: center; margin: 24px 0;">
+            <a href="${settingsUrl}" class="button">Open My Dashboard</a>
+          </p>
           ` : ''}
           
           <p>Your secretary is ready to work for you.</p>
