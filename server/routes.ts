@@ -11059,6 +11059,54 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // Update artist slug - session-based auth
+  app.patch("/api/artist/slug", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'artist') {
+        return res.status(403).json({ error: "Not an artist" });
+      }
+      
+      const profile = await storage.getArtistProfile(userId);
+      if (!profile) {
+        return res.status(404).json({ error: "Artist profile not found" });
+      }
+      
+      const { newSlug } = req.body;
+      if (!newSlug || typeof newSlug !== 'string') {
+        return res.status(400).json({ error: "New slug is required" });
+      }
+      
+      // Sanitize slug - lowercase, alphanumeric only
+      const sanitizedSlug = newSlug.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (sanitizedSlug.length < 3) {
+        return res.status(400).json({ error: "Slug must be at least 3 characters" });
+      }
+      
+      // Check if slug is already taken by another artist
+      const existingProfile = await storage.getArtistProfileBySlug(sanitizedSlug);
+      if (existingProfile && existingProfile.userId !== userId) {
+        return res.status(409).json({ error: "This slug is already taken" });
+      }
+      
+      const updatedProfile = await storage.updateArtistProfile(userId, { artistSlug: sanitizedSlug });
+      
+      res.json({
+        success: true,
+        artistSlug: updatedProfile?.artistSlug,
+        message: `Your new link is: dateinquiry.com/${sanitizedSlug}`
+      });
+    } catch (error: any) {
+      console.error("[Artist Slug Update] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Artist admin dashboard (slug + token required for security)
   app.get("/api/public/artist-admin/:slug", async (req, res) => {
     try {
