@@ -395,10 +395,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.log("[Login] User found, id:", user.id, "role:", user.role);
 
-      // Check if user has a password (might be Replit OAuth user)
+      // Check if user has a password set
       if (!user.password) {
-        console.log("[Login] User has no password (OAuth user)");
-        return res.status(401).json({ message: "Please use your original login method" });
+        console.log("[Login] User has no password set");
+        return res.status(401).json({ message: "No password set for this account. Click 'Get a login link instead' below." });
       }
 
       // Verify password
