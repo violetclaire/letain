@@ -35,10 +35,15 @@ interface AIChatPanelProps {
 
 export default function AIChatPanel({ userId, userName, onAvailabilityUpdate, onInviteClick }: AIChatPanelProps) {
   const { toast } = useToast();
+  
+  // Domain detection for white-label branding
+  const isDateInquiry = typeof window !== 'undefined' && window.location.hostname.includes('dateinquiry');
+  const assistantName = isDateInquiry ? "Your Secretary" : "Beauvette Assistant";
+  
   const welcomeMessage: Message = {
     id: "welcome",
     role: "assistant",
-    content: `Hi ${userName || "there"}! I'm your Beauvette assistant. I can help you manage your availability, upload inspiration photos, and answer questions about your bookings. Just type, speak, or attach photos!`,
+    content: `Hi ${userName || "there"}! I'm your assistant. I can help you manage your availability, upload inspiration photos, and answer questions about your bookings. Just type, speak, or attach photos!`,
     timestamp: new Date()
   };
   const [messages, setMessages] = useState<Message[]>([welcomeMessage]);
@@ -433,7 +438,7 @@ export default function AIChatPanel({ userId, userName, onAvailabilityUpdate, on
               <Bot size={14} className="text-white" />
             </div>
             <div>
-              <h3 className="font-header text-sm ink-main">Beauvette Assistant</h3>
+              <h3 className="font-header text-sm ink-main">{assistantName}</h3>
               <p className="text-[0.65rem] ink-soft">Voice, text, or upload photos</p>
             </div>
           </div>

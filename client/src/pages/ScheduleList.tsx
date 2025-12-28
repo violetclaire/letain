@@ -53,7 +53,7 @@ export default function ScheduleList() {
   const [aiInput, setAiInput] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiMessages, setAiMessages] = useState<{role: 'user' | 'assistant', content: string}[]>([
-    { role: 'assistant', content: "Beauvette Assistant at your service! Tell me about the schedule you want to create. For example: \"Create a 3-day schedule for the Johnson Wedding on December 14-16 at the Grand Hotel, bride ready by 2pm\"" }
+    { role: 'assistant', content: "Your assistant at your service! Tell me about the schedule you want to create. For example: \"Create a 3-day schedule for the Johnson Wedding on December 14-16 at the Grand Hotel, bride ready by 2pm\"" }
   ]);
   const [pendingScheduleData, setPendingScheduleData] = useState<any>(null);
   const aiChatRef = useRef<HTMLDivElement>(null);
@@ -474,7 +474,7 @@ export default function ScheduleList() {
                   <Bot size={14} className="text-white" />
                 </div>
                 <div>
-                  <h3 className="font-header text-sm">Beauvette Assistant</h3>
+                  <h3 className="font-header text-sm">{typeof window !== 'undefined' && window.location.hostname.includes('dateinquiry') ? 'Your Secretary' : 'Beauvette Assistant'}</h3>
                   <p className="text-[0.65rem] text-gray-500">At your service - describe your schedule</p>
                 </div>
               </div>

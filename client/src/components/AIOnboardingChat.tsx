@@ -174,7 +174,7 @@ export default function AIOnboardingChat({ onDatesMentioned }: AIOnboardingChatP
             <Bot size={18} className="text-white" />
           </div>
           <div>
-            <h3 className="font-header text-sm ink-main">Beauvette Assistant</h3>
+            <h3 className="font-header text-sm ink-main">{typeof window !== 'undefined' && window.location.hostname.includes('dateinquiry') ? 'Your Secretary' : 'Beauvette Assistant'}</h3>
             <p className="text-xs ink-soft">Ask me anything about availability</p>
           </div>
         </div>
