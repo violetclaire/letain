@@ -33,14 +33,33 @@ export default function ArtistLogin() {
         return;
       }
 
-      await refetch();
+      const result = await refetch();
       
       // Redirect artists to their dashboard
       if (data.user?.role === "artist") {
         // On dateinquiry.com, go to simplified admin; otherwise full dashboard
         const isDateInquiry = window.location.hostname.includes('dateinquiry');
-        if (isDateInquiry && data.artistSlug) {
-          setLocation(`/admin/${data.artistSlug}`);
+        // Get artistSlug from login response or refetched user data
+        const slug = data.artistSlug || (result.data as any)?.artistSlug;
+        
+        if (isDateInquiry && slug) {
+          setLocation(`/admin/${slug}`);
+        } else if (isDateInquiry) {
+          // Fallback: fetch the slug separately if missing
+          try {
+            const profileRes = await fetch('/api/artist/profile', { credentials: 'include' });
+            if (profileRes.ok) {
+              const profile = await profileRes.json();
+              if (profile?.artistSlug) {
+                setLocation(`/admin/${profile.artistSlug}`);
+                return;
+              }
+            }
+          } catch (e) {
+            console.error('Failed to get artist slug:', e);
+          }
+          // Last resort fallback
+          setLocation("/artist");
         } else {
           setLocation("/artist");
         }
