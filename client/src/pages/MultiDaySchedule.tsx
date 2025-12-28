@@ -320,10 +320,7 @@ export default function MultiDaySchedule({ tokens }: { tokens: string }) {
         </div>
 
         <div className="text-center mt-8 text-sm text-gray-500">
-          <p>Powered by Beauvette</p>
-          <p className="mt-1">
-            <a href="/" className="text-gray-400 hover:text-gray-600 underline" data-testid="link-home">Explore Beauvette</a>
-          </p>
+          <p>Your Private Secretary</p>
         </div>
       </div>
 

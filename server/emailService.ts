@@ -835,7 +835,7 @@ export async function sendContractSignedNotification({
     <body>
       <div class="container">
         <div class="header">
-          <h1>Beauvette</h1>
+          <h1 style="font-family: Georgia, serif; font-size: 24px; color: #1a1a1a;">Contract Signed</h1>
           </div>
         <div class="content">
           <div class="success-icon">
@@ -856,18 +856,18 @@ export async function sendContractSignedNotification({
           </div>
           
           <p style="color: #666; font-size: 14px;">
-            The signed contract is now stored in your Beauvette dashboard. You can view it anytime from your Contracts page.
+            The signed contract is now stored in your dashboard. You can view it anytime from your Contracts page.
           </p>
         </div>
         <div class="footer">
-          Sent via Beauvette
+          Your Private Secretary
         </div>
       </div>
     </body>
     </html>
   `;
 
-  const senderEmail = 'Beauvette <notifications@dateinquiry.com>';
+  const senderEmail = 'Your Secretary <notifications@dateinquiry.com>';
   
   try {
     console.log("Sending contract signed notification to:", toEmail);
@@ -1138,7 +1138,7 @@ export async function sendGeneralEmail({
   const { client } = await getResendClient();
   const baseUrl = getBaseUrl();
 
-  const safeSenderName = sanitizeSenderName(senderName) || 'Beauvette User';
+  const safeSenderName = sanitizeSenderName(senderName) || 'Your Artist';
   const safeBody = escapeHtml(body).replace(/\n/g, '<br>');
   const safeSubject = sanitizeSubject(subject);
   
@@ -1708,7 +1708,7 @@ export async function sendWaitlistConfirmationEmail({
     </html>
   `;
 
-  const senderEmail = 'Beauvette <notifications@dateinquiry.com>';
+  const senderEmail = 'Your Secretary <notifications@dateinquiry.com>';
   
   try {
     console.log("Sending waitlist confirmation email to:", toEmail);
@@ -1818,7 +1818,7 @@ export async function sendArtistWelcomeEmail({
     </html>
   `;
 
-  const senderEmail = 'Beauvette <notifications@dateinquiry.com>';
+  const senderEmail = 'Your Secretary <notifications@dateinquiry.com>';
   
   try {
     console.log("Sending artist welcome email to:", toEmail);
