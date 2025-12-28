@@ -352,7 +352,7 @@ export default function VendorProfile() {
 
         {/* Info Text */}
         <p className="text-xs text-center text-black/50 leading-relaxed max-w-sm mx-auto">
-          This date is available to request services for. We will reach out to the vendor for confirmation and if so you can both chat more and/or secure services. The Beauvette assistant will help facilitate.
+          This date is available to request services for. We will reach out to the vendor for confirmation and if so you can both chat more and/or secure services. Your secretary will help facilitate.
         </p>
       </div>
 

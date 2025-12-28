@@ -548,7 +548,7 @@ export default function AdminDashboard() {
             <header className="flex items-baseline justify-between mb-8">
               <div>
                 <h1 className="font-script text-3xl ink-main">
-                  Beauvette
+                  Your Private Secretary
                 </h1>
                 <p className="mt-1 text-[0.7rem] uppercase tracking-[0.22em] ink-soft">
                   Admin Dashboard

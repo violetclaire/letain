@@ -111,7 +111,7 @@ export default function ChatInvite() {
   return (
     <div className="min-h-screen bg-[#FAF9F7] flex flex-col">
       <header className="px-6 py-4 bg-white border-b border-[#2C2C2C] flex items-center justify-center">
-        <h1 className="font-script text-2xl text-[#2C2C2C]">Beauvette</h1>
+        <h1 className="font-script text-2xl text-[#2C2C2C]">Your Private Secretary</h1>
       </header>
 
       <div className="flex-1 flex items-center justify-center p-4">

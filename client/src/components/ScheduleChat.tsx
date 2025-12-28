@@ -95,7 +95,7 @@ export default function ScheduleChat({ shareToken, guestName }: ScheduleChatProp
           <div className="flex items-center justify-between p-4 border-b bg-[#6B4A55] text-white rounded-t-xl">
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5" />
-              <span className="font-medium">Beauvette AI</span>
+              <span className="font-medium">AI Assistant</span>
             </div>
             <button
               onClick={() => setIsOpen(false)}
@@ -132,7 +132,7 @@ export default function ScheduleChat({ shareToken, guestName }: ScheduleChatProp
                     data-testid={`chat-message-${msg.id}`}
                   >
                     <p className="text-xs font-medium mb-1 opacity-70">
-                      {msg.senderType === 'ai' ? 'Beauvette AI' : msg.senderName}
+                      {msg.senderType === 'ai' ? 'AI Assistant' : msg.senderName}
                     </p>
                     <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                     {msg.metadata?.changeDescription && (

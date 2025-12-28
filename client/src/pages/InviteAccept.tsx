@@ -70,7 +70,7 @@ export default function InviteAccept() {
     onSuccess: () => {
       setAccepted(true);
       toast({
-        title: "Welcome to Beauvette!",
+        title: "Welcome!",
         description: "Your profile has been created. Redirecting to your dashboard...",
       });
       setTimeout(() => {
@@ -134,7 +134,7 @@ export default function InviteAccept() {
             <div className="w-16 h-16 rounded-full bg-[#3D5A3B]/20 flex items-center justify-center mx-auto mb-4">
               <Check className="h-8 w-8 text-[#3D5A3B]" />
             </div>
-            <h2 className="text-xl font-serif text-[#262329] mb-2">Welcome to Beauvette!</h2>
+            <h2 className="text-xl font-serif text-[#262329] mb-2">Welcome!</h2>
             <p className="text-[#262329]/60">Redirecting you to your dashboard...</p>
           </CardContent>
         </Card>
@@ -148,7 +148,7 @@ export default function InviteAccept() {
         <div className="border border-[#C9A961]/30">
         <CardHeader className="text-center pb-2 pt-8">
           <CardTitle className="text-4xl text-[#262329] mb-2" style={{ fontFamily: "'Pinyon Script', 'Dancing Script', cursive", fontWeight: 400 }}>
-            Beauvette
+            Your Private Secretary
           </CardTitle>
           <CardDescription className="text-sm text-[#262329]/60 tracking-wide">
             The first platform for businesses and their clients

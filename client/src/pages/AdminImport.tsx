@@ -155,11 +155,11 @@ export default function AdminImport() {
   };
 
   const generateClientEmail = (firstName: string, inviteLink: string, eventDate: string) => {
-    return `Subject: Welcome to Beauvette - Your Wedding Beauty Portal
+    return `Subject: Welcome - Your Wedding Beauty Portal
 
 Hi ${firstName}!
 
-I'm so excited to work with you on your special day! I've created a personal account for you on Beauvette, my wedding beauty platform.
+I'm so excited to work with you on your special day! I've created a personal account for you on my wedding beauty platform.
 
 Through your portal, you'll be able to:
 ✨ View your booking details and timeline
@@ -176,15 +176,15 @@ I can't wait to help make you feel absolutely radiant!
 
 With love,
 Violet
-Beauvette | Your Private Secretary`;
+Your Private Secretary`;
   };
 
   const generatePlannerEmail = (firstName: string, clientName: string, inviteLink: string, eventDate: string) => {
-    return `Subject: Beauvette Collaboration - ${clientName}'s Wedding
+    return `Subject: Collaboration - ${clientName}'s Wedding
 
 Hi ${firstName}!
 
-I'm thrilled to be working with you on ${clientName}'s wedding! I've set up a coordinator account for you on Beauvette, my wedding beauty platform.
+I'm thrilled to be working with you on ${clientName}'s wedding! I've set up a coordinator account for you on my wedding beauty platform.
 
 Through your portal, you'll be able to:
 📋 View all your clients' booking details
@@ -201,7 +201,7 @@ Looking forward to creating something beautiful together!
 
 Best,
 Violet
-Beauvette | Your Private Secretary`;
+Your Private Secretary`;
   };
 
   const processBatchImport = async () => {

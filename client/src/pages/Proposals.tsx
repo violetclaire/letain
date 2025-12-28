@@ -847,7 +847,7 @@ export default function Proposals() {
                   
                   {/* Footer */}
                   <div className="p-4 text-center border-t border-[#2C2C2C] text-sm text-[#666]">
-                    Sent via <span className="text-[#2C2C2C]">Beauvette</span>
+                    Sent via <span className="text-[#2C2C2C]">Your Private Secretary</span>
                   </div>
                 </div>
               </div>

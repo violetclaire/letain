@@ -276,7 +276,7 @@ export default function VendorImport() {
     // Server-side generation avoids antivirus false positives from client-side Blob creation
     const link = document.createElement('a');
     link.href = '/api/template/booking-csv';
-    link.download = 'beauvette-booking-template.csv';
+    link.download = 'booking-template.csv';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -320,7 +320,7 @@ export default function VendorImport() {
           </Button>
           <div>
             <h1 className="text-2xl font-serif text-[#262329]">Import Your Bookings</h1>
-            <p className="text-sm text-[#262329]/60">Bring your existing 2026-2027 bookings into Beauvette</p>
+            <p className="text-sm text-[#262329]/60">Bring your existing 2026-2027 bookings into your dashboard</p>
           </div>
         </div>
       </header>

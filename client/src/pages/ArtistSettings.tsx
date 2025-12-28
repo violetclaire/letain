@@ -593,7 +593,7 @@ export default function ArtistSettings() {
               <h2 className="text-lg font-serif text-[#6B4A55]">Your Contact Form</h2>
             </div>
             <p className="text-gray-600 text-sm mb-6">
-              Add this to your website's contact page. Clients stay on your site, see your brand. No redirects, no Beauvette branding visible anywhere.
+              Add this to your website's contact page. Clients stay on your site, see your brand. No redirects, invisible to your clients.
             </p>
             
             <div className="space-y-4">

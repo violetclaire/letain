@@ -291,7 +291,7 @@ export default function PlannerDashboard() {
     if (!generatedMockup) return;
     const link = document.createElement('a');
     link.href = generatedMockup;
-    link.download = `beauvette-mockup-${Date.now()}.png`;
+    link.download = `mockup-${Date.now()}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -330,10 +330,10 @@ export default function PlannerDashboard() {
             <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-4">
               <div>
                 <h1 className="font-script text-3xl ink-main">
-                  Beauvette
+                  Your Private Secretary
                 </h1>
                 <p className="mt-1 text-[0.7rem] uppercase tracking-[0.22em] ink-soft">
-                  Your Private Secretary
+                  Beauty Booking Made Simple
                 </p>
                 <p className="mt-2 font-script text-xl ink-main">
                   Bonjour, {user?.firstName || 'there'}
@@ -833,7 +833,7 @@ export default function PlannerDashboard() {
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
             <h3 className="font-header text-lg ink-main mb-4">Invite Someone to Chat</h3>
             <p className="text-xs ink-soft mb-4">
-              Enter their email. They'll receive an invite link to create a Beauvette profile.
+              Enter their email. They'll receive an invite link to create a profile.
             </p>
             <input
               type="email"

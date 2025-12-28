@@ -145,7 +145,7 @@ export const CDI_EVENT_TYPES = {
 } as const;
 
 // CDI Three-Dimension Analysis System Prompt
-const CDI_DIMENSION_SYSTEM_PROMPT = `You are the Choreography Depth Index (CDI) Engine for Beauvette.
+const CDI_DIMENSION_SYSTEM_PROMPT = `You are the Choreography Depth Index (CDI) Engine for a wedding services platform.
 
 CDI quantifies the "invisible labor" of coordination—the untracked work of trust-building, timing, and emotional choreography that makes complex multi-party services succeed or fail.
 

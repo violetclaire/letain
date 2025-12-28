@@ -488,161 +488,50 @@ export default function PublicOnboarding() {
           className="w-full max-w-md bg-[#FFFEF9] p-1 border border-[#2C2C2C]"
         >
           <div className="border border-[#2C2C2C] p-8">
-            {!hasShared ? (
-              <>
-                <div className="text-center mb-8">
-                  <div className="w-16 h-16 border border-[#2C2C2C] flex items-center justify-center mx-auto mb-4">
-                    <Check className="w-8 h-8 text-[#2C2C2C]" />
-                  </div>
-                  <h2 className="font-header text-2xl text-[#2C2C2C] mb-2">Perfect</h2>
-                  <p className="text-[#666]">Your calendar is live at:</p>
-                </div>
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 border border-[#2C2C2C] flex items-center justify-center mx-auto mb-4">
+                <Check className="w-8 h-8 text-[#2C2C2C]" />
+              </div>
+              <h2 className="font-header text-2xl text-[#2C2C2C] mb-2">Welcome!</h2>
+              <p className="text-[#666] leading-relaxed">Your inquiry link for social media and email signatures:</p>
+            </div>
 
-                <div className="bg-[#FAF9F7] p-4 mb-6 border border-[#2C2C2C]">
-                  <p className="text-center font-medium text-[#2C2C2C] break-all text-sm">{calendarUrl}</p>
-                </div>
+            <div className="bg-[#FAF9F7] p-4 mb-6 border border-[#2C2C2C]">
+              <p className="text-center font-medium text-[#2C2C2C] break-all text-sm">{calendarUrl}</p>
+            </div>
 
-                <div className="bg-[#FAF9F7] p-4 mb-6 border border-[#2C2C2C]">
-                  <p className="text-center font-medium text-[#2C2C2C] text-sm tracking-wide uppercase">
-                    Add this link to your Instagram bio now
-                  </p>
-                  <p className="text-center text-xs text-[#666] mt-1">We'll wait.</p>
-                </div>
+            <div className="flex gap-3 mb-6">
+              <button
+                onClick={copyLink}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#FAF9F7] text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#f0efe9] transition-colors"
+                data-testid="button-copy-link"
+              >
+                <Copy size={18} />
+                Copy Link
+              </button>
+              <button
+                onClick={shareToInstagram}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border border-[#2C2C2C] text-[#2C2C2C] hover:bg-[#FAF9F7] transition-colors"
+                data-testid="button-open-instagram"
+              >
+                <Instagram size={18} />
+                Open Instagram
+              </button>
+            </div>
 
-                <div className="flex gap-3 mb-6">
-                  <button
-                    onClick={copyLink}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#FAF9F7] text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#f0efe9] transition-colors"
-                    data-testid="button-copy-link"
-                  >
-                    <Copy size={18} />
-                    Copy Link
-                  </button>
-                  <button
-                    onClick={shareToInstagram}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border border-[#2C2C2C] text-[#2C2C2C] hover:bg-[#FAF9F7] transition-colors"
-                    data-testid="button-open-instagram"
-                  >
-                    <Instagram size={18} />
-                    Open Instagram
-                  </button>
-                </div>
+            <p className="text-xs text-[#666] text-center mb-6">
+              Use this link for inquiries that don't come through your website contact form.
+            </p>
 
-                <label className="flex items-start gap-3 p-4 border border-[#2C2C2C] cursor-pointer hover:bg-[#FAF9F7] transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={hasShared}
-                    onChange={(e) => {
-                      if (e.target.checked) handleConfirmShare();
-                    }}
-                    className="mt-1 w-5 h-5 accent-[#2C2C2C]"
-                    data-testid="checkbox-shared"
-                  />
-                  <span className="text-[#2C2C2C] text-sm">
-                    I shared my link to Instagram
-                  </span>
-                </label>
-
-                {settingsUrl && (
-                  <div className="mt-6 p-4 border-2 border-[#8B4513] bg-[#FFF8F0]">
-                    <div className="flex items-center gap-2 mb-3">
-                      <KeyRound size={18} className="text-[#8B4513]" />
-                      <h3 className="font-header text-sm text-[#8B4513] font-medium">Save your admin link</h3>
-                    </div>
-                    <p className="text-xs text-[#666] mb-3">
-                      This is your private link to manage bookings and settings. Save it somewhere safe or check your email.
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(settingsUrl);
-                          toast({
-                            title: "Admin link copied!",
-                            description: "Save this link in your notes or bookmarks"
-                          });
-                        }}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-[#8B4513] text-white text-sm hover:bg-[#6B3510] transition-colors"
-                        data-testid="button-copy-admin-link"
-                      >
-                        <Copy size={14} />
-                        Copy Admin Link
-                      </button>
-                      <button
-                        onClick={() => window.open(settingsUrl, '_blank')}
-                        className="flex items-center justify-center gap-2 px-3 py-2 border border-[#8B4513] text-[#8B4513] text-sm hover:bg-[#FFF0E0] transition-colors"
-                        data-testid="button-open-settings"
-                      >
-                        <ExternalLink size={14} />
-                        Open
-                      </button>
-                    </div>
-                    <p className="text-xs text-[#666] mt-3 flex items-center gap-1">
-                      <Mail size={12} />
-                      We also sent this link to your email
-                    </p>
-                  </div>
-                )}
-
-                <div className="mt-6 text-center">
-                  <a 
-                    href="/analytics" 
-                    className="text-sm text-[#666] hover:text-[#2C2C2C] underline"
-                    data-testid="link-analytics"
-                  >
-                    Want to be on our Top Responsive Artists leaderboard?
-                  </a>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="text-center mb-8">
-                  <div className="w-16 h-16 border border-[#2C2C2C] flex items-center justify-center mx-auto mb-4">
-                    <Share2 className="w-8 h-8 text-[#2C2C2C]" />
-                  </div>
-                  <h2 className="font-header text-2xl text-[#2C2C2C] mb-4">You're all set</h2>
-                  <p className="text-[#666] leading-relaxed">
-                    Your calendar is ready to receive inquiries. Share your link to start booking clients.
-                  </p>
-                </div>
-
-                {referralResults.length > 0 && referralResults.some(r => !r.isOnPlatform) && (
-                  <div className="mb-6 p-4 border border-[#2C2C2C] bg-[#FAF9F7]">
-                    <h3 className="font-header text-sm text-[#2C2C2C] mb-3">Invite your trusted artists to Beauvette:</h3>
-                    <div className="space-y-3">
-                      {referralResults.filter(r => !r.isOnPlatform).map((referral, idx) => (
-                        <div key={idx} className="flex items-center justify-between gap-2">
-                          <span className="text-sm text-[#666]">@{referral.handle.replace('@', '')}</span>
-                          <button
-                            onClick={() => {
-                              if (referral.inviteLink) {
-                                navigator.clipboard.writeText(referral.inviteLink);
-                                toast({ title: "Link copied!", description: "DM this link to invite them" });
-                              }
-                            }}
-                            className="text-xs px-3 py-1 border border-[#2C2C2C] text-[#2C2C2C] hover:bg-[#f0efe9] transition-colors flex items-center gap-1"
-                            data-testid={`button-copy-invite-${idx}`}
-                          >
-                            <Copy size={12} />
-                            Copy Invite
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-xs text-[#666] mt-3">DM these links to invite them to create their calendar!</p>
-                  </div>
-                )}
-
-                <div className="flex justify-center">
-                  <button
-                    onClick={() => setLocation(`/${artistSlug}`)}
-                    className="flex items-center justify-center gap-2 px-6 py-3 bg-[#FAF9F7] text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#f0efe9] transition-colors"
-                    data-testid="button-view-calendar"
-                  >
-                    <Calendar size={18} />
-                    View My Calendar
-                  </button>
-                </div>
-              </>
+            {settingsUrl && (
+              <button
+                onClick={() => window.open(settingsUrl, '_blank')}
+                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#2C2C2C] text-white hover:bg-[#1a1a1a] transition-colors"
+                data-testid="button-go-to-dashboard"
+              >
+                My Dashboard
+                <ArrowRight size={18} />
+              </button>
             )}
           </div>
         </motion.div>
@@ -653,7 +542,7 @@ export default function PublicOnboarding() {
   return (
     <div className="min-h-screen bg-[#FAF9F7] flex flex-col">
       <header className="px-6 py-4 bg-[#FFFEF9] border-b border-[#2C2C2C]">
-        <h1 className="font-script text-2xl text-[#2C2C2C] text-center">Beauvette</h1>
+        <h1 className="font-script text-2xl text-[#2C2C2C] text-center">Your Private Secretary</h1>
       </header>
 
       <div className="flex-1 flex flex-col items-center justify-center p-4">

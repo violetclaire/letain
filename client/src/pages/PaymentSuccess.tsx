@@ -156,7 +156,7 @@ export default function PaymentSuccess() {
                 transition={{ delay: 1.2, duration: 0.5 }}
                 className="text-[0.65rem] uppercase tracking-[0.15em] text-black/50 mt-6 pt-4 border-t border-powder-blue/30"
               >
-                Beauvette | Your Private Secretary
+                Your Private Secretary
               </motion.p>
             </div>
           </div>

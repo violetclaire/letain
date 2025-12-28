@@ -474,7 +474,7 @@ export default function ScheduleList() {
                   <Bot size={14} className="text-white" />
                 </div>
                 <div>
-                  <h3 className="font-header text-sm">{typeof window !== 'undefined' && window.location.hostname.includes('dateinquiry') ? 'Your Secretary' : 'Beauvette Assistant'}</h3>
+                  <h3 className="font-header text-sm">Your Secretary</h3>
                   <p className="text-[0.65rem] text-gray-500">At your service - describe your schedule</p>
                 </div>
               </div>

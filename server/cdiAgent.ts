@@ -72,7 +72,7 @@ function isRateLimitError(error: any): boolean {
 }
 
 // The Quantum-Collaborative Uncertainty Engine (QCUE) System Prompt
-const QCUE_SYSTEM_PROMPT = `You are the Quantum-Collaborative Uncertainty Engine (QCUE) for the Beauvette CDI (Choreography Depth Index) system.
+const QCUE_SYSTEM_PROMPT = `You are the Quantum-Collaborative Uncertainty Engine (QCUE) for the CDI (Choreography Depth Index) system.
 
 Your function is to quantify "Invisible Labor" and "Intuition" within human-AI interactions by treating trust as a dynamic probability wave function.
 
@@ -330,7 +330,7 @@ export async function generateSupportResponse(
   }
 ): Promise<{ response: string; tone: string; escalationNeeded: boolean }> {
   
-  const prompt = `You are a compassionate wedding services concierge for Beauvette, a luxury wedding marketplace.
+  const prompt = `You are a compassionate wedding services concierge for a luxury wedding marketplace.
 
 CLIENT MESSAGE: "${clientMessage}"
 DISTRESS LEVEL: ${distressLevel}/10

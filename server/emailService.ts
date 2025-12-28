@@ -1722,28 +1722,24 @@ export async function sendArtistWelcomeEmail({
     <html>
     <head>
       <style>
-        body { font-family: 'Georgia', serif; background-color: #f5f1e8; margin: 0; padding: 20px; }
-        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: #FAF9F7; margin: 0; padding: 20px; color: #1a1a1a; }
+        .container { max-width: 560px; margin: 0 auto; background: white; overflow: hidden; }
         .header { 
-          background-color: #FAF7F2;
-          background-image:
-            repeating-linear-gradient(0deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px),
-            repeating-linear-gradient(90deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px);
+          background-color: #FAF9F7;
           padding: 28px; 
           text-align: center;
-          border-bottom: 1px solid rgba(107, 74, 85, 0.2);
+          border-bottom: 1px solid #e5e5e5;
         }
-        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55; }
-        .header p { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin: 8px 0 0 0; color: #6B4A55; opacity: 0.8; }
-        .content { padding: 32px; }
-        .greeting { font-size: 20px; color: #6B4A55; margin-bottom: 16px; }
-        .link-box { background: #f5f1e8; padding: 16px; border-radius: 6px; margin: 24px 0; text-align: center; word-break: break-all; }
-        .link-box a { color: #6B4A55; font-weight: 600; text-decoration: none; font-size: 16px; }
-        .button { display: inline-block; background: #6B4A55; color: white !important; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-size: 14px; letter-spacing: 1px; margin: 16px 0; }
-        .tips { background: #faf8f5; padding: 20px; border-radius: 6px; margin: 24px 0; }
-        .tips h3 { color: #6B4A55; margin: 0 0 12px 0; font-size: 16px; }
-        .tips ul { margin: 0; padding-left: 20px; color: #666; }
-        .tips li { margin: 8px 0; }
+        .header h1 { font-family: 'Fraunces', Georgia, serif; font-size: 24px; margin: 0; font-weight: 400; color: #1a1a1a; letter-spacing: -0.02em; }
+        .content { padding: 32px; line-height: 1.6; }
+        .greeting { font-size: 18px; color: #1a1a1a; margin-bottom: 16px; }
+        .link-box { background: #f5f5f5; padding: 16px; margin: 24px 0; text-align: center; word-break: break-all; border-left: 3px solid #1a1a1a; }
+        .link-box a { color: #1a1a1a; font-weight: 600; text-decoration: underline; font-size: 14px; }
+        .button { display: inline-block; background: #1a1a1a; color: white !important; padding: 14px 28px; text-decoration: none; font-size: 14px; margin: 16px 0; }
+        .tips { background: #f9f9f9; padding: 20px; margin: 24px 0; border-left: 3px solid #1a1a1a; }
+        .tips h3 { color: #1a1a1a; margin: 0 0 12px 0; font-size: 14px; font-weight: 600; }
+        .tips ul { margin: 0; padding-left: 20px; color: #444; }
+        .tips li { margin: 8px 0; font-size: 14px; }
         .footer { text-align: center; padding: 20px; color: #888; font-size: 12px; border-top: 1px solid #eee; }
       </style>
     </head>

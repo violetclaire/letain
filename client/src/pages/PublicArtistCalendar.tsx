@@ -289,7 +289,7 @@ export default function PublicArtistCalendar() {
           >
             <ArrowLeft size={20} className="text-[#2C2C2C]" />
           </button>
-          <h1 className="font-script text-2xl text-[#2C2C2C]">Beauvette</h1>
+          <h1 className="font-script text-2xl text-[#2C2C2C]">Your Private Secretary</h1>
         </header>
 
         <div className="flex-1 flex items-center justify-center p-4">
@@ -390,7 +390,7 @@ export default function PublicArtistCalendar() {
     <div className="min-h-screen bg-[#FAF9F7] flex flex-col">
       <header className="px-6 py-4 bg-[#FFFEF9] border-b border-[#2C2C2C] flex items-center justify-between">
         <div className="w-16" />
-        <h1 className="font-script text-2xl text-[#2C2C2C]">Beauvette</h1>
+        <h1 className="font-script text-2xl text-[#2C2C2C]">Your Private Secretary</h1>
         <button
           onClick={() => setLocation("/login")}
           className="text-sm text-[#2C2C2C] hover:underline"
@@ -544,7 +544,7 @@ export default function PublicArtistCalendar() {
                           View Calendar
                         </button>
                       ) : (
-                        <span className="text-xs text-[#666]">Not on Beauvette yet</span>
+                        <span className="text-xs text-[#666]">Not a member yet</span>
                       )}
                     </div>
                   ))}
@@ -568,10 +568,10 @@ export default function PublicArtistCalendar() {
 
       <footer className="px-6 py-4 bg-[#FFFEF9] border-t border-[#2C2C2C] text-center">
         <p className="text-xs text-[#666] mb-2">
-          © 2025 Beauvette. Your Private Secretary.
+          © 2025 Your Private Secretary.
         </p>
         <a href="/login" className="text-xs text-[#2C2C2C] hover:underline">
-          Already using Beauvette? Sign in
+          Already a member? Sign in
         </a>
       </footer>
     </div>

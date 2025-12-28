@@ -373,7 +373,7 @@ export function generateContractPdfHtml(
   </div>
 
   <div class="footer">
-    <p style="margin-top: 40px; border-top: 1px solid #ddd; padding-top: 15px;">This contract was created through Beauvette.</p>
+    <p style="margin-top: 40px; border-top: 1px solid #ddd; padding-top: 15px;">This contract was created through Your Private Secretary.</p>
   </div>
 </body>
 </html>

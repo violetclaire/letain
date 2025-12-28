@@ -53,7 +53,7 @@ export default function PublicAnalytics() {
   return (
     <div className="min-h-screen bg-[#FAF9F7]">
       <header className="px-6 py-4 bg-[#FFFEF9] border-b border-[#2C2C2C]">
-        <h1 className="font-script text-2xl text-[#2C2C2C] text-center">Beauvette</h1>
+        <h1 className="font-script text-2xl text-[#2C2C2C] text-center">Your Private Secretary</h1>
       </header>
 
       <main className="max-w-4xl mx-auto p-4 space-y-6">
@@ -63,7 +63,7 @@ export default function PublicAnalytics() {
           className="text-center py-6"
         >
           <h2 className="font-header text-2xl text-[#2C2C2C] mb-2 tracking-wide uppercase">
-            Beauvette Metrics
+            Platform Metrics
           </h2>
           <p className="text-sm text-[#666]">Last 24 Hours</p>
         </motion.div>
@@ -249,7 +249,7 @@ export default function PublicAnalytics() {
 
       <footer className="px-6 py-4 bg-[#FFFEF9] border-t border-[#2C2C2C] text-center">
         <p className="text-xs text-[#666] mb-2">
-          © 2025 Beauvette. Your Private Secretary.
+          © 2025 Your Private Secretary.
         </p>
         <div className="flex items-center justify-center gap-4">
           <a href="/" className="text-xs text-[#2C2C2C] hover:underline">Home</a>

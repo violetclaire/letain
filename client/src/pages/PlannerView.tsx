@@ -71,7 +71,7 @@ export default function PlannerView({ bookingId }: PlannerViewProps) {
       <div className="max-w-3xl mx-auto p-4 md:p-8">
         <div className="mb-6">
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-            <span className="font-medium text-[#5A1F2B]">Beauvette</span>
+            <span className="font-medium text-[#5A1F2B]">Your Private Secretary</span>
             <span>•</span>
             <span>Booking Details</span>
           </div>
@@ -210,7 +210,7 @@ export default function PlannerView({ bookingId }: PlannerViewProps) {
           </Card>
 
           <div className="text-center text-sm text-gray-500 py-4">
-            <p>This booking is shared via <span className="font-medium text-[#5A1F2B]">Beauvette</span></p>
+            <p>This booking is shared via <span className="font-medium text-[#5A1F2B]">Your Private Secretary</span></p>
             <p className="mt-1">For questions, please contact the artist directly.</p>
           </div>
         </div>

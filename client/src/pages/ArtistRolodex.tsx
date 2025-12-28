@@ -122,7 +122,7 @@ export default function ArtistRolodex() {
               <Sparkles className="w-5 h-5 text-[#C9A961]" />
             </div>
             <div>
-              <h3 className="font-header text-sm ink-main mb-1">Beauvette learns who you work with best</h3>
+              <h3 className="font-header text-sm ink-main mb-1">Your Secretary learns who you work with best</h3>
               <p className="text-xs text-gray-600 leading-relaxed">
                 Build your trusted network here. When you're unavailable for a booking, we'll recommend your favorites first. 
                 If they're also booked, we'll suggest vendors from their trusted networks - so clients always get someone great.
@@ -136,7 +136,7 @@ export default function ArtistRolodex() {
           <div className="bg-cream p-4 sm:p-6 rounded-lg shadow-sm border border-black/10 mb-6">
             <h2 className="font-header text-lg mb-4">Invite to Your Network</h2>
             <p className="text-sm text-gray-600 mb-4">
-              Invite vendors you love working with. They'll get a beautiful invitation to join Beauvette.
+              Invite vendors you love working with. They'll get a beautiful invitation to join.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -239,7 +239,7 @@ export default function ArtistRolodex() {
             <h3 className="font-header text-lg mb-2">Start Building Your Network</h3>
             <p className="text-gray-600 mb-4 max-w-md mx-auto">
               Invite wedding planners, photographers, and other vendors you love working with. 
-              Beauvette will learn your preferences and help connect you with the right people.
+              Your Secretary will learn your preferences and help connect you with the right people.
             </p>
             <Button
               onClick={() => setShowInviteForm(true)}
@@ -315,7 +315,7 @@ function ContactCard({ contact }: { contact: NetworkContact }) {
             )}
             {contact.isOnPlatform && (
               <span className="text-xs bg-[#3D5A3B]/10 text-[#3D5A3B] px-2 py-0.5 rounded-full flex-shrink-0">
-                On Beauvette
+                Member
               </span>
             )}
           </div>

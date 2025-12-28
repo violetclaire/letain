@@ -200,7 +200,7 @@ export default function SearchResults() {
                 <ArrowLeft size={14} /> Back
               </button>
               <h1 className="font-script text-3xl ink-main">
-                Beauvette
+                Your Private Secretary
               </h1>
               <div className="w-16" />
             </div>
@@ -359,7 +359,7 @@ export default function SearchResults() {
                       </button>
                       
                       <p className="text-[0.65rem] text-center text-black/50 mt-2 leading-relaxed">
-                        Select a date to request services. We'll reach out to the vendor for confirmation. The Beauvette assistant will help facilitate.
+                        Select a date to request services. We'll reach out to the vendor for confirmation. Your secretary will help facilitate.
                       </p>
                     </div>
                   </div>

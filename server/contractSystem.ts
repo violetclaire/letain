@@ -172,10 +172,10 @@ export function buildContractHtml(contract: any, client: any, artistName: string
       
       <div style="margin-top: 24px;">
         <p><strong>Payment:</strong></p>
-        <p>A square invoice will be sent via Square Beauvette</p>
+        <p>A Square invoice will be sent for payment</p>
         <ul style="margin-top: 8px;">
           <li>Retainer amount is to hold the date: ${formatCurrency(contract.depositAmount || 0)}. No date is guaranteed without the signed contract and retainer amount. Retainer is non refundable and required at the same time.</li>
-          <li>Payment of Balance: Two weeks before wedding date the Client will pay the Artist the remaining balance of ${formatCurrency((contract.totalAmount || 0) - (contract.depositAmount || 0))} via Square Beauvette Link</li>
+          <li>Payment of Balance: Two weeks before wedding date the Client will pay the Artist the remaining balance of ${formatCurrency((contract.totalAmount || 0) - (contract.depositAmount || 0))} via Square invoice</li>
         </ul>
       </div>
     </body>

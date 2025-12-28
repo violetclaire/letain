@@ -168,7 +168,7 @@ export default function VendorOnboarding() {
       if (res.ok) {
         toast({
           title: "Onboarding Complete!",
-          description: "You're all set. Welcome to Beauvette!"
+          description: "You're all set. Welcome!"
         });
         setLocation("/artist");
       }
@@ -237,7 +237,7 @@ export default function VendorOnboarding() {
       <div className="max-w-3xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="font-script text-4xl ink-main mb-2">Beauvette</h1>
+          <h1 className="font-script text-4xl ink-main mb-2">Your Private Secretary</h1>
           <p className="text-sm ink-soft uppercase tracking-widest">Vendor Setup</p>
           <p className="mt-2 text-sm ink-soft">Get ready in 5 minutes</p>
         </div>
@@ -600,7 +600,7 @@ export default function VendorOnboarding() {
                 <h2 className="text-2xl font-semibold mb-2">You're All Set!</h2>
                 <p className="ink-soft mb-6 max-w-md mx-auto">
                   Your vendor account is configured and ready to receive inquiries. 
-                  Welcome to Beauvette!
+                  Welcome!
                 </p>
                 
                 <div className="max-w-sm mx-auto bg-gray-50 rounded-lg p-4 mb-6 text-left text-sm">

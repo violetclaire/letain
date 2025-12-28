@@ -32,7 +32,7 @@ export default function Privacy() {
           <section>
             <h2 className="font-medium text-[#5A1F2B] text-base mb-2">Your Privacy Matters</h2>
             <p>
-              At Beauvette, we understand that you're entrusting us with personal details about your clients and business. We take that responsibility seriously and are committed to protecting your information.
+              We understand that you're entrusting us with personal details about your clients and business. We take that responsibility seriously and are committed to protecting your information.
             </p>
           </section>
 
@@ -52,7 +52,7 @@ export default function Privacy() {
               <li>All data is encrypted in transit using SSL/TLS</li>
               <li>Information is stored on secure, enterprise-grade servers</li>
               <li>Payment processing is handled by Square, a PCI-compliant provider</li>
-              <li>Access to your data is limited to vetted Beauvette team members and artists you choose to work with</li>
+              <li>Access to your data is limited to vetted team members and artists you choose to work with</li>
             </ul>
           </section>
 
@@ -89,8 +89,8 @@ export default function Privacy() {
             <h2 className="font-medium text-[#5A1F2B] text-base mb-2">Questions?</h2>
             <p>
               If you have any questions about our privacy practices, please contact us at{" "}
-              <a href="mailto:violet@beauvette.com" className="text-[#5A1F2B] underline">
-                violet@beauvette.com
+              <a href="mailto:support@dateinquiry.com" className="text-[#5A1F2B] underline">
+                support@dateinquiry.com
               </a>
             </p>
           </section>

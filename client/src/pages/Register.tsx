@@ -130,7 +130,7 @@ export default function Register() {
             className="text-6xl lg:text-7xl text-[#6B4A55] mb-4"
             style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic" }}
           >
-            Beauvette
+            Your Private Secretary
           </motion.h1>
           <motion.p 
             initial={{ opacity: 0 }}
@@ -138,7 +138,7 @@ export default function Register() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-sm text-[#6B4A55]/70 tracking-[0.3em] uppercase"
           >
-            Your Private Secretary
+            Beauty Booking Made Simple
           </motion.p>
         </div>
       </div>
@@ -151,10 +151,10 @@ export default function Register() {
             className="text-4xl text-[#6B4A55] mb-2"
             style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic" }}
           >
-            Beauvette
+            Your Private Secretary
           </h1>
           <p className="text-xs text-[#6B4A55]/70 tracking-[0.2em] uppercase">
-            Your Private Secretary
+            Beauty Booking Made Simple
           </p>
         </div>
 

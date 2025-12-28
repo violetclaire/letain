@@ -46,7 +46,7 @@ export default function ClientDashboard() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { from: "other", text: "Welcome to Beauvette! Select a contact to start chatting.", senderName: "System" }
+    { from: "other", text: "Welcome! Select a contact to start chatting.", senderName: "System" }
   ]);
   const [inputText, setInputText] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -382,10 +382,10 @@ export default function ClientDashboard() {
           <header className="flex items-baseline justify-between mb-6">
             <div>
               <h1 className="font-script text-3xl ink-main">
-                Beauvette
+                Your Private Secretary
               </h1>
               <p className="mt-1 text-[0.7rem] uppercase tracking-[0.22em] ink-soft">
-                Your Private Secretary
+                Beauty Booking Made Simple
               </p>
               <p className="mt-2 font-script text-xl ink-main">
                 Bonjour, {user?.firstName || 'there'}
@@ -708,7 +708,7 @@ export default function ClientDashboard() {
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
             <h3 className="font-header text-lg ink-main mb-4">Invite Someone to Chat</h3>
             <p className="text-xs ink-soft mb-4">
-              Enter their email address. They'll need to create a Beauvette profile to start chatting with you.
+              Enter their email address. They'll need to create a profile to start chatting with you.
             </p>
             
             <input
@@ -758,7 +758,7 @@ export default function ClientDashboard() {
               <button
                 onClick={() => {
                   setShowEmergencyModal(false);
-                  const supportContact = { id: "support", fullName: "Beauvette Support", role: "support", email: "support@beauvette.com" };
+                  const supportContact = { id: "support", fullName: "Support", role: "support", email: "support@dateinquiry.com" };
                   handleSelectContact(supportContact);
                 }}
                 className="w-full flex items-center gap-3 p-3 border border-[#c5ccd8] rounded hover:border-black transition-colors"

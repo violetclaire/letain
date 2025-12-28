@@ -220,7 +220,7 @@ async function getResendClient() {
   return { client: new Resend(apiKey), fromEmail };
 }
 
-const SYSTEM_PROMPT = `You are Beauvette's AI assistant - a powerful helper for beauty vendors. You can do EVERYTHING in the app:
+const SYSTEM_PROMPT = `You are the AI assistant for Your Private Secretary - a powerful helper for beauty vendors. You can do EVERYTHING in the app:
 
 CRITICAL: Keep responses SHORT (2-3 sentences). Be helpful and get things done.
 
@@ -445,7 +445,7 @@ User message: ${message}`;
           role: "model",
           parts: [
             {
-              text: 'I understand. I\'m Beauvette\'s full-featured AI assistant. I can create bookings, contracts, send thank you emails, generate images, search your data, manage availability, and update your portfolio. Just tell me what you need!',
+              text: 'I understand. I\'m your full-featured AI assistant. I can create bookings, contracts, send thank you emails, generate images, search your data, manage availability, and update your portfolio. Just tell me what you need!',
             },
           ],
         },
@@ -744,27 +744,27 @@ export async function sendThankYouEmailFromAI(
 
     const artist = await storage.getUser(artistId);
     const artistProfile = await storage.getArtistProfile(artistId);
-    const senderName = artistProfile?.businessName || artist?.firstName || "Beauvette Artist";
+    const senderName = artistProfile?.businessName || artist?.firstName || "Your Secretary";
 
     const htmlContent = `
-      <div style="font-family: 'Georgia', serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background: linear-gradient(135deg, #FAF7F2 0%, #F5F1E8 100%);">
+      <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background: #FAF7F2;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #6B4A55; font-size: 28px; margin: 0; font-weight: normal;">Beauvette</h1>
+          <h1 style="color: #1a1a1a; font-size: 28px; margin: 0; font-weight: normal;">Your Private Secretary</h1>
                   </div>
         
-        <div style="background: white; border-radius: 8px; padding: 40px; box-shadow: 0 2px 10px rgba(107, 74, 85, 0.1);">
-          <h2 style="color: #6B4A55; font-size: 22px; margin-bottom: 20px;">Dear ${email.recipientName},</h2>
+        <div style="background: white; padding: 40px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);">
+          <h2 style="color: #1a1a1a; font-size: 22px; margin-bottom: 20px;">Dear ${email.recipientName},</h2>
           
           <p style="color: #333; line-height: 1.8; font-size: 16px; white-space: pre-wrap;">${email.message}</p>
           
           <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #E8E4DE;">
-            <p style="color: #6B4A55; margin: 0;">With gratitude,</p>
+            <p style="color: #1a1a1a; margin: 0;">With gratitude,</p>
             <p style="color: #333; font-weight: 600; margin: 5px 0;">${senderName}</p>
           </div>
         </div>
         
         <p style="text-align: center; color: #8B7355; font-size: 12px; margin-top: 30px;">
-          Sent with love via Beauvette
+          Your Private Secretary
         </p>
       </div>
     `;
@@ -772,7 +772,7 @@ export async function sendThankYouEmailFromAI(
     const emailSubject = `Thank You${email.occasion ? ` - ${email.occasion}` : ""} from ${senderName}`;
     
     await resend.emails.send({
-      from: fromEmail || "Beauvette <no-reply@beauvette.com>",
+      from: fromEmail || "Your Secretary <notifications@dateinquiry.com>",
       to: email.recipientEmail,
       subject: emailSubject,
       html: htmlContent,
@@ -1003,7 +1003,7 @@ export async function forwardCommunicationToArtist(
     const { client: resend, fromEmail } = await getResendClient();
     const artistProfile = await storage.getArtistProfile(artistId);
     const artist = await storage.getUser(artistId);
-    const senderName = artistProfile?.businessName || artist?.firstName || "Beauvette";
+    const senderName = artistProfile?.businessName || artist?.firstName || "Your Secretary";
 
     const formattedDate = log.createdAt ? new Date(log.createdAt).toLocaleDateString('en-US', {
       weekday: 'long',
@@ -1015,13 +1015,13 @@ export async function forwardCommunicationToArtist(
     }) : 'Unknown date';
 
     const htmlContent = `
-      <div style="font-family: 'Georgia', serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background: linear-gradient(135deg, #FAF7F2 0%, #F5F1E8 100%);">
+      <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background: #FAF7F2;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #6B4A55; font-size: 28px; margin: 0; font-weight: normal;">Beauvette</h1>
+          <h1 style="color: #1a1a1a; font-size: 28px; margin: 0; font-weight: normal;">Your Private Secretary</h1>
           <p style="color: #8B7355; font-size: 12px; letter-spacing: 2px; margin-top: 5px;">COMMUNICATION RECORD</p>
         </div>
         
-        <div style="background: white; border-radius: 8px; padding: 40px; box-shadow: 0 2px 10px rgba(107, 74, 85, 0.1);">
+        <div style="background: white; padding: 40px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);">
           <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #E8E4DE;">
             <p style="color: #8B7355; margin: 0; font-size: 12px; text-transform: uppercase;">Type</p>
             <p style="color: #333; margin: 5px 0 0; font-size: 16px;">${log.communicationType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
@@ -1044,18 +1044,18 @@ export async function forwardCommunicationToArtist(
           
           <div>
             <p style="color: #8B7355; margin: 0; font-size: 12px; text-transform: uppercase;">Content</p>
-            <div style="color: #333; margin-top: 10px; padding: 15px; background: #F8F6F3; border-radius: 4px; white-space: pre-wrap; font-size: 14px; line-height: 1.6;">${log.content}</div>
+            <div style="color: #333; margin-top: 10px; padding: 15px; background: #F8F6F3; white-space: pre-wrap; font-size: 14px; line-height: 1.6;">${log.content}</div>
           </div>
         </div>
         
         <p style="text-align: center; color: #8B7355; font-size: 12px; margin-top: 30px;">
-          This is your copy of a communication sent via Beauvette
+          Your Private Secretary
         </p>
       </div>
     `;
 
     await resend.emails.send({
-      from: fromEmail || "Beauvette <no-reply@beauvette.com>",
+      from: fromEmail || "Your Secretary <notifications@dateinquiry.com>",
       to: artistEmail,
       subject: `[Copy] ${log.subject || log.communicationType} - Sent to ${log.recipientName}`,
       html: htmlContent,

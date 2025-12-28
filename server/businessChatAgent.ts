@@ -38,7 +38,7 @@ function isRateLimitError(error: any): boolean {
   );
 }
 
-const INVISIBLE_LABOR_SYSTEM_PROMPT = `You are the Invisible Labor Analysis Engine for Beauvette, a wedding services platform.
+const INVISIBLE_LABOR_SYSTEM_PROMPT = `You are the Invisible Labor Analysis Engine for a wedding services platform.
 
 Your purpose is to analyze internal business chat messages between vendors, planners, and team members to detect and quantify the "invisible labor" that happens behind the scenes.
 

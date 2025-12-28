@@ -113,7 +113,7 @@ export async function sendBookingReminder(
   appointmentDate: string,
   appointmentTime: string
 ): Promise<SendSmsResult> {
-  const message = `Hi ${clientName}! This is a reminder about your upcoming ${serviceName} appointment with ${vendorName} on ${appointmentDate} at ${appointmentTime}. Reply CONFIRM to confirm or call us if you need to reschedule. - Beauvette`;
+  const message = `Hi ${clientName}! This is a reminder about your upcoming ${serviceName} appointment with ${vendorName} on ${appointmentDate} at ${appointmentTime}. Reply CONFIRM to confirm or call us if you need to reschedule.`;
   
   return sendSms(clientPhone, message);
 }
@@ -126,7 +126,7 @@ export async function sendBookingConfirmation(
   appointmentDate: string,
   appointmentTime: string
 ): Promise<SendSmsResult> {
-  const message = `Hi ${clientName}! Your ${serviceName} appointment with ${vendorName} is confirmed for ${appointmentDate} at ${appointmentTime}. We look forward to seeing you! - Beauvette`;
+  const message = `Hi ${clientName}! Your ${serviceName} appointment with ${vendorName} is confirmed for ${appointmentDate} at ${appointmentTime}. We look forward to seeing you!`;
   
   return sendSms(clientPhone, message);
 }
@@ -143,7 +143,7 @@ export async function sendPaymentReminder(
     currency: 'USD'
   }).format(amount);
   
-  const message = `Hi ${clientName}! This is a friendly reminder that your payment of ${formattedAmount} to ${vendorName} is due on ${dueDate}. Please log in to your Beauvette account to complete your payment. - Beauvette`;
+  const message = `Hi ${clientName}! This is a friendly reminder that your payment of ${formattedAmount} to ${vendorName} is due on ${dueDate}. Please complete your payment via the link sent to your email.`;
   
   return sendSms(clientPhone, message);
 }
@@ -154,7 +154,7 @@ export async function sendScheduleNotification(
   eventName: string,
   scheduleLink: string
 ): Promise<SendSmsResult> {
-  const message = `${senderName} has shared a schedule with you for "${eventName}". View it here: ${scheduleLink} - Beauvette`;
+  const message = `${senderName} has shared a schedule with you for "${eventName}". View it here: ${scheduleLink}`;
   
   return sendSms(recipientPhone, message);
 }
@@ -163,7 +163,7 @@ export async function sendCustomNotification(
   phone: string,
   message: string
 ): Promise<SendSmsResult> {
-  const fullMessage = message.endsWith('- Beauvette') ? message : `${message} - Beauvette`;
+  const fullMessage = message;
   return sendSms(phone, fullMessage);
 }
 

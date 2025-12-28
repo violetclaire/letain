@@ -273,7 +273,7 @@ export default function ContractSigning({ token }: ContractSigningProps) {
               className="text-2xl text-[#6B4A55]"
               style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic" }}
             >
-              Beauvette
+              Your Private Secretary
             </h1>
             <p className="text-xs text-[#6B4A55]/60 tracking-widest uppercase">Contract Signing</p>
           </div>
@@ -555,7 +555,7 @@ export default function ContractSigning({ token }: ContractSigningProps) {
                 )}
 
                 <p className="text-xs text-center text-gray-400">
-                  Secured by Beauvette • Your data is encrypted
+                  Secured • Your data is encrypted
                 </p>
               </CardContent>
             </Card>

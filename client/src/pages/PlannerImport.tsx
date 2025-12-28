@@ -270,14 +270,14 @@ export default function PlannerImport() {
 
   const downloadTemplate = () => {
     const template = `Client First,Client Last,Client Email,Vendor First,Vendor Last,Vendor Email,Event Date,Location,Total,Deposit,Service Type
-Sarah,Johnson,sarah@email.com,Violet,Herod,violet@beauvette.com,2026-05-15,The Grand Ballroom,2500,500,Bridal Beauty
+Sarah,Johnson,sarah@email.com,Violet,Rose,violet@example.com,2026-05-15,The Grand Ballroom,2500,500,Bridal Beauty
 Jessica,Williams,jess@email.com,Emma,Rose,emma@beauty.com,2026-06-20,Sunset Gardens,3000,600,Hair & Makeup`;
 
     const blob = new Blob([template], { type: 'text/plain; charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'beauvette-planner-import-template.csv';
+    a.download = 'planner-import-template.csv';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -322,7 +322,7 @@ Jessica,Williams,jess@email.com,Emma,Rose,emma@beauty.com,2026-06-20,Sunset Gard
           </Button>
           <div>
             <h1 className="text-2xl font-serif text-[#262329]">Import Client Bookings</h1>
-            <p className="text-sm text-[#262329]/60">Bring your existing client-vendor bookings into Beauvette</p>
+            <p className="text-sm text-[#262329]/60">Bring your existing client-vendor bookings into your dashboard</p>
           </div>
         </div>
       </header>
@@ -391,7 +391,7 @@ Jessica,Williams,jess@email.com,Emma,Rose,emma@beauty.com,2026-06-20,Sunset Gard
                 <Textarea
                   value={rawData}
                   onChange={(e) => setRawData(e.target.value)}
-                  placeholder={`Sarah, Johnson, sarah@email.com, Violet, Herod, violet@beauvette.com, May 15 2026, The Grand Ballroom, 2500, 500, Bridal Beauty
+                  placeholder={`Sarah, Johnson, sarah@email.com, Violet, Rose, violet@example.com, May 15 2026, The Grand Ballroom, 2500, 500, Bridal Beauty
 Jessica, Williams, jess@email.com, Emma, Rose, emma@beauty.com, 6/20/2026, Sunset Gardens, 3000, 600, Hair & Makeup`}
                   rows={12}
                   className="font-mono text-sm"

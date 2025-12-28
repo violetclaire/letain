@@ -21,7 +21,7 @@ export default function AIOnboardingChat({ onDatesMentioned }: AIOnboardingChatP
   const welcomeMessage: Message = {
     id: "welcome",
     role: "assistant",
-    content: "Welcome to Beauvette! I'm here to help you find the perfect beauty artist for your special day.\n\nTell me about your event - when is it, and what services are you looking for?",
+    content: "Welcome! I'm here to help you find the perfect beauty artist for your special day.\n\nTell me about your event - when is it, and what services are you looking for?",
     timestamp: new Date()
   };
 
@@ -174,7 +174,7 @@ export default function AIOnboardingChat({ onDatesMentioned }: AIOnboardingChatP
             <Bot size={18} className="text-white" />
           </div>
           <div>
-            <h3 className="font-header text-sm ink-main">{typeof window !== 'undefined' && window.location.hostname.includes('dateinquiry') ? 'Your Secretary' : 'Beauvette Assistant'}</h3>
+            <h3 className="font-header text-sm ink-main">Your Secretary</h3>
             <p className="text-xs ink-soft">Ask me anything about availability</p>
           </div>
         </div>

@@ -116,7 +116,7 @@ export default function ProfileSettings() {
       const data = await res.json();
       if (res.ok) {
         queryClient.invalidateQueries({ queryKey: ["user"] });
-        toast({ title: "Username Saved!", description: `Your profile link is now beauvette.com/${usernameData.username.toLowerCase()}` });
+        toast({ title: "Username Saved!", description: `Your profile link is now dateinquiry.com/${usernameData.username.toLowerCase()}` });
         setUsernameData(prev => ({ ...prev, isSaving: false, isAvailable: null }));
       } else {
         setUsernameData(prev => ({ ...prev, isSaving: false, error: data.error || "Failed to save username" }));
@@ -686,7 +686,7 @@ export default function ProfileSettings() {
       </div>
     </div>
   `).join('')}
-  <div class="footer">Beauvette | Your Private Secretary</div>
+  <div class="footer">Your Private Secretary</div>
 </body>
 </html>`;
     const blob = new Blob([menuHtml], { type: 'text/html' });
@@ -982,7 +982,7 @@ export default function ProfileSettings() {
           {/* Custom Username / Profile Link */}
           <div className="card-frame rounded-lg p-6 mb-6 bg-gradient-to-r from-[#5A1F2B]/10 to-[#B8D4E3]/30 border-2 border-[#5A1F2B]/30">
             <h2 className="font-header text-lg ink-main mb-2 flex items-center gap-2">
-              <Link2 size={18} /> Your Beauvette Link
+              <Link2 size={18} /> Your Profile Link
             </h2>
             <p className="text-sm text-black/60 mb-4">
               Choose a custom username for your profile link. This is what you'll share on social media.
@@ -993,7 +993,7 @@ export default function ProfileSettings() {
               <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">Username</label>
               <div className="flex items-center gap-2">
                 <div className="flex-1 flex items-center border border-black/20 bg-white rounded overflow-hidden">
-                  <span className="px-3 py-2 bg-gray-100 text-sm text-black/50 border-r border-black/10">beauvette.com/</span>
+                  <span className="px-3 py-2 bg-gray-100 text-sm text-black/50 border-r border-black/10">dateinquiry.com/</span>
                   <input
                     type="text"
                     value={usernameData.username}
@@ -1945,7 +1945,7 @@ Thank you for considering us for your special day!`}
               <div className="flex-1">
                 <h3 className="font-medium text-sm ink-main">Service Quality Monitoring</h3>
                 <p className="text-xs text-black/60 mt-1">
-                  Allow Beauvette to use automated monitoring to ensure the best experience. 
+                  Allow automated monitoring to ensure the best experience. 
                   This helps us detect and resolve issues proactively.
                 </p>
                 <p className="text-xs text-black/40 mt-2">

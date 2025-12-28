@@ -289,7 +289,7 @@ export default function ArtistIntake() {
                   data-testid="checkbox-consent"
                 />
                 <span className="text-xs text-black/60">
-                  I consent to Beauvette using automated service quality monitoring to ensure the best experience. 
+                  I consent to automated service quality monitoring to ensure the best experience. 
                   This helps us detect and resolve any issues proactively. You can opt out anytime in your profile settings.
                 </span>
               </label>

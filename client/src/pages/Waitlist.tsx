@@ -312,7 +312,7 @@ export default function Waitlist() {
                     </div>
                     
                     <p className="text-xs text-center text-[#5A1F2B]/50 mt-4">
-                      🔒 Your information is encrypted and only shared with vetted Beauvette artists
+                      🔒 Your information is encrypted and only shared with vetted artists
                     </p>
                   </form>
                 </div>

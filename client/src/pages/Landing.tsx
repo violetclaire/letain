@@ -512,7 +512,7 @@ export default function Landing() {
       <footer className="estate-prose py-12 pb-20 md:pb-16 text-sm text-mutedink">
         <div className="flex gap-6">
           <a 
-            href="https://www.instagram.com/beauvetteapp" 
+            href="https://www.instagram.com/dateinquiry" 
             target="_blank" 
             rel="noopener noreferrer" 
             className="underline hover:text-ink transition-colors"
@@ -521,7 +521,7 @@ export default function Landing() {
             Instagram
           </a>
           <a 
-            href="mailto:violet@beauvette.com" 
+            href="mailto:support@dateinquiry.com" 
             className="underline hover:text-ink transition-colors"
             data-testid="link-footer-contact"
           >

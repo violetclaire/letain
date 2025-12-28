@@ -40,7 +40,7 @@ export default function ClientIntake() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      toast({ title: "Welcome to Beauvette!", description: "Your profile has been created." });
+      toast({ title: "Welcome!", description: "Your profile has been created." });
       setLocation("/client");
     },
     onError: () => {
@@ -230,7 +230,7 @@ export default function ClientIntake() {
             {/* How Did You Hear About Us */}
             <div className="space-y-2">
               <label className="text-xs uppercase tracking-wide text-black/70">
-                How did you hear about Beauvette?
+                How did you hear about us?
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {howHeardOptions.map(option => (
@@ -262,7 +262,7 @@ export default function ClientIntake() {
                   data-testid="checkbox-consent"
                 />
                 <span className="text-xs text-black/60">
-                  I consent to Beauvette using automated service quality monitoring to ensure the best experience. 
+                  I consent to automated service quality monitoring to ensure the best experience. 
                   This helps us detect and resolve any issues proactively. You can opt out anytime in your profile settings.
                 </span>
               </label>

@@ -11,7 +11,7 @@ export function HouseSketch({ className, size = "medium" }: { className?: string
     <div className={`${sizeClasses[size]} ${className || ""}`}>
       <img 
         src={houseImage} 
-        alt="Beauvette" 
+        alt="Secretary" 
         className="w-full h-auto object-contain"
       />
     </div>

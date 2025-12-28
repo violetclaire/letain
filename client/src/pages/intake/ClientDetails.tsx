@@ -53,7 +53,7 @@ export default function ClientDetails() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      toast({ title: "Welcome to Beauvette!", description: "Let's find you the perfect vendor." });
+      toast({ title: "Welcome!", description: "Let's find you the perfect vendor." });
       setLocation(`/search?service=${serviceType}`);
     },
     onError: () => {

@@ -52,7 +52,7 @@ export async function processScheduleChat(input: ScheduleChatInput): Promise<Sch
   const scheduleContext = formatScheduleContext(input);
   
   // AI is READ-ONLY: Can answer questions about the schedule but cannot modify anything
-  const systemPrompt = `You are Beauvette AI, a friendly assistant helping guests with their wedding day beauty schedule. You can answer questions about appointment times, locations, and team members.
+  const systemPrompt = `You are an AI assistant helping guests with their wedding day beauty schedule. You can answer questions about appointment times, locations, and team members.
 
 ${scheduleContext}
 

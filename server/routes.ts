@@ -276,10 +276,10 @@ function generateContractHtml(contract: any, client: any, artistName: string): s
       
       <div style="margin-top: 24px;">
         <p><strong>Payment:</strong></p>
-        <p>A square invoice will be sent via Square Beauvette</p>
+        <p>A Square invoice will be sent for payment</p>
         <ul style="margin-top: 8px;">
           <li>Retainer amount is to hold the date: ${formatCurrency(contract.depositAmount || 0)}. No date is guaranteed without the signed contract and retainer amount. Retainer is non refundable and required at the same time.</li>
-          <li>Payment of Balance: Two weeks before wedding date the Client will pay the Artist the remaining balance of ${formatCurrency((contract.totalAmount || 0) - (contract.depositAmount || 0))} via Square Beauvette Link</li>
+          <li>Payment of Balance: Two weeks before wedding date the Client will pay the Artist the remaining balance of ${formatCurrency((contract.totalAmount || 0) - (contract.depositAmount || 0))} via Square invoice</li>
         </ul>
       </div>
     </div>
@@ -2792,7 +2792,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         <body>
           <div class="container">
             <div class="header">
-              <h1>Beauvette</h1>
+              <h1>Your Private Secretary</h1>
               </div>
             <div class="content">
               <p>Hi ${clientName},</p>
@@ -2803,7 +2803,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               </div>` : ''}
             </div>
             <div class="footer">
-              Sent via Beauvette
+              Your Private Secretary
             </div>
           </div>
         </body>
@@ -2811,7 +2811,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       `;
 
       const result = await resendClient.emails.send({
-        from: 'Beauvette <violet@beauvette.com>',
+        from: 'Your Secretary <notifications@dateinquiry.com>',
         to: toEmail.trim(),
         subject: subject,
         html: htmlContent
@@ -4337,7 +4337,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const currentDate = new Date();
-      const schedulePrompt = `You are a schedule creation assistant for Beauvette, a wedding beauty services platform.
+      const schedulePrompt = `You are a schedule creation assistant for a wedding beauty services platform.
       
 Your job is to extract schedule details from the user's natural language input and return structured JSON.
 
@@ -4987,7 +4987,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         if (aiResponse?.response) {
           await storage.createScheduleChatMessage({
             scheduleId: schedule.id,
-            senderName: 'Beauvette AI',
+            senderName: 'AI Assistant',
             senderType: 'ai',
             content: aiResponse.response,
           });
@@ -4997,7 +4997,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         // Create fallback AI response
         await storage.createScheduleChatMessage({
           scheduleId: schedule.id,
-          senderName: 'Beauvette AI',
+          senderName: 'AI Assistant',
           senderType: 'ai',
           content: "Thanks for your message! I've noted that down. Feel free to add any other notes or questions about the schedule.",
         });
@@ -5110,7 +5110,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       const user = await storage.getUser(userId);
       const senderName = user?.firstName && user?.lastName 
         ? `${user.firstName} ${user.lastName}` 
-        : user?.firstName || 'Beauvette';
+        : user?.firstName || 'Your Secretary';
       
       // Send the email
       const emailService = await import("./emailService");
@@ -5747,7 +5747,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
             to: vendor.email,
             subject: `New message from ${clientName} - AI replied`,
             body: vendorNotification,
-            senderName: 'Beauvette AI Secretary',
+            senderName: 'AI Secretary',
           }).catch((err: any) => console.error('[Chat Message Email] Error:', err));
         });
       }
@@ -12558,7 +12558,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         try {
           await smsService.sendSMS(
             artist.phone,
-            `New inquiry from ${clientName} (${source || 'external form'}) for ${parsedEventDate ? new Date(parsedEventDate).toLocaleDateString() : 'TBD'}. Check Beauvette!`
+            `New inquiry from ${clientName} (${source || 'external form'}) for ${parsedEventDate ? new Date(parsedEventDate).toLocaleDateString() : 'TBD'}. Check your dashboard!`
           );
         } catch (smsError) {
           console.error('[Public Webhook] SMS notification error:', smsError);

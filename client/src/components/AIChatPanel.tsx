@@ -38,7 +38,7 @@ export default function AIChatPanel({ userId, userName, onAvailabilityUpdate, on
   
   // Domain detection for white-label branding
   const isDateInquiry = typeof window !== 'undefined' && window.location.hostname.includes('dateinquiry');
-  const assistantName = isDateInquiry ? "Your Secretary" : "Beauvette Assistant";
+  const assistantName = "Your Secretary";
   
   const welcomeMessage: Message = {
     id: "welcome",
