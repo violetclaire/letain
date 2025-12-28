@@ -9656,12 +9656,11 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(400).json({ error: "Business name and email are required" });
       }
       
-      // Generate URL-safe slug from business name
+      // Generate URL-safe slug from business name (no dashes, just letters/numbers)
       function generateSlug(name: string): string {
         let slug = name.toLowerCase().trim();
-        slug = slug.replace(/'/g, "").replace(/\s+/g, "-");
-        slug = slug.replace(/[^a-z0-9-]/g, "");
-        slug = slug.replace(/-+/g, "-").replace(/^-|-$/g, "");
+        slug = slug.replace(/'/g, "").replace(/\s+/g, ""); // Remove spaces entirely
+        slug = slug.replace(/[^a-z0-9]/g, ""); // Only letters and numbers
         return slug;
       }
       
