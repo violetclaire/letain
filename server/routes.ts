@@ -10970,6 +10970,95 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // Artist settings - session-based auth (for logged in artists)
+  app.get("/api/artist/settings", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'artist') {
+        return res.status(403).json({ error: "Not an artist" });
+      }
+      
+      const profile = await storage.getArtistProfile(userId);
+      if (!profile) {
+        return res.status(404).json({ error: "Artist profile not found" });
+      }
+      
+      res.json({
+        userId: profile.userId,
+        artistSlug: profile.artistSlug,
+        businessName: profile.businessName,
+        artistName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || profile.businessName,
+        infoSheetType: profile.infoSheetType || 'template',
+        infoSheetContent: profile.infoSheetContent,
+        infoSheetPdfUrl: profile.infoSheetPdfUrl,
+        infoSheetEnabled: profile.infoSheetEnabled ?? true,
+        formSuccessMessage: profile.formSuccessMessage,
+        autoResponderMode: (profile as any).autoResponderMode || 'off',
+        politeDeclineTemplate: (profile as any).politeDeclineTemplate,
+        referralListTemplate: (profile as any).referralListTemplate,
+        pricingInfo: (profile as any).pricingInfo,
+        plannerInfoSheet: (profile as any).plannerInfoSheet,
+        plannerPricing: (profile as any).plannerPricing,
+      });
+    } catch (error: any) {
+      console.error("[Artist Settings Session] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update artist settings - session-based auth
+  app.patch("/api/artist/settings", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'artist') {
+        return res.status(403).json({ error: "Not an artist" });
+      }
+      
+      const profile = await storage.getArtistProfile(userId);
+      if (!profile) {
+        return res.status(404).json({ error: "Artist profile not found" });
+      }
+      
+      const { infoSheetType, infoSheetContent, infoSheetPdfUrl, infoSheetEnabled, formSuccessMessage, autoResponderMode, politeDeclineTemplate, referralListTemplate, pricingInfo, plannerInfoSheet, plannerPricing } = req.body;
+      
+      const updateData: any = {};
+      if (infoSheetType !== undefined) updateData.infoSheetType = infoSheetType;
+      if (infoSheetContent !== undefined) updateData.infoSheetContent = infoSheetContent;
+      if (infoSheetPdfUrl !== undefined) updateData.infoSheetPdfUrl = infoSheetPdfUrl;
+      if (infoSheetEnabled !== undefined) updateData.infoSheetEnabled = infoSheetEnabled;
+      if (formSuccessMessage !== undefined) updateData.formSuccessMessage = formSuccessMessage;
+      if (autoResponderMode !== undefined) updateData.autoResponderMode = autoResponderMode;
+      if (politeDeclineTemplate !== undefined) updateData.politeDeclineTemplate = politeDeclineTemplate;
+      if (referralListTemplate !== undefined) updateData.referralListTemplate = referralListTemplate;
+      if (pricingInfo !== undefined) updateData.pricingInfo = pricingInfo;
+      if (plannerInfoSheet !== undefined) updateData.plannerInfoSheet = plannerInfoSheet;
+      if (plannerPricing !== undefined) updateData.plannerPricing = plannerPricing;
+      
+      const updatedProfile = await storage.updateArtistProfile(userId, updateData);
+      
+      res.json({
+        success: true,
+        infoSheetType: updatedProfile?.infoSheetType,
+        infoSheetPdfUrl: updatedProfile?.infoSheetPdfUrl,
+        infoSheetEnabled: updatedProfile?.infoSheetEnabled,
+        formSuccessMessage: updatedProfile?.formSuccessMessage,
+      });
+    } catch (error: any) {
+      console.error("[Artist Settings Update Session] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Artist admin dashboard (slug + token required for security)
   app.get("/api/public/artist-admin/:slug", async (req, res) => {
     try {

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Upload, FileText, Check, ArrowLeft, Image, ExternalLink, Loader2, Copy, Code, Settings2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -42,10 +43,14 @@ export default function ArtistSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user, isAuthenticated } = useAuth();
   
   const artistSlug = params?.artistSlug || "";
   const searchParams = new URLSearchParams(window.location.search);
   const token = searchParams.get("token") || "";
+  
+  // Support both token and session-based auth
+  const useSessionAuth = isAuthenticated && user?.role === 'artist';
   
   // Use current origin for internal links
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://dateinquiry.com';
@@ -57,27 +62,36 @@ export default function ArtistSettings() {
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const { data: settings, isLoading, error } = useQuery<ArtistSettingsData>({
-    queryKey: ["/api/public/artists/settings", token],
+    queryKey: ["/api/artist/settings", token, useSessionAuth],
     queryFn: async () => {
+      // If using session auth, call the authenticated endpoint
+      if (useSessionAuth) {
+        const res = await fetch(`/api/artist/settings`, { credentials: 'include' });
+        if (!res.ok) throw new Error("Failed to load settings");
+        return res.json();
+      }
+      // Otherwise use token auth
       const res = await fetch(`/api/public/artists/settings?token=${token}`);
       if (!res.ok) throw new Error("Invalid or expired settings link");
       return res.json();
     },
-    enabled: !!token
+    enabled: !!token || useSessionAuth
   });
 
   const updateSettings = useMutation({
     mutationFn: async (data: Partial<ArtistSettingsData>) => {
-      const res = await fetch(`/api/public/artists/settings?token=${token}`, {
+      const url = useSessionAuth ? `/api/artist/settings` : `/api/public/artists/settings?token=${token}`;
+      const res = await fetch(url, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: useSessionAuth ? 'include' : 'same-origin',
         body: JSON.stringify(data)
       });
       if (!res.ok) throw new Error("Failed to update settings");
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/public/artists/settings", token] });
+      queryClient.invalidateQueries({ queryKey: ["/api/artist/settings", token, useSessionAuth] });
       toast({
         title: "Settings saved",
         description: "Your info sheet settings have been updated."
