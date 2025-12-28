@@ -50,8 +50,9 @@ export default function ArtistSettings() {
   const searchParams = new URLSearchParams(window.location.search);
   const token = searchParams.get("token") || "";
   
-  // Support both token and session-based auth
-  const useSessionAuth = isAuthenticated && user?.role === 'artist';
+  // Token auth takes priority - if token is present, always use it
+  // This prevents stale sessions from interfering with magic link access
+  const useSessionAuth = !token && isAuthenticated && user?.role === 'artist';
   
   // Use current origin for internal links
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://dateinquiry.com';
