@@ -11090,7 +11090,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       
       // Check if slug is already taken by another artist
       const existingProfile = await storage.getArtistProfileBySlug(sanitizedSlug);
-      if (existingProfile && existingProfile.userId !== userId) {
+      if (existingProfile && String(existingProfile.userId) !== String(userId)) {
         return res.status(409).json({ error: "This slug is already taken" });
       }
       
