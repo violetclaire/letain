@@ -24,6 +24,7 @@ interface ArtistSettingsData {
   artistSlug: string;
   businessName: string;
   artistName: string;
+  contactEmail?: string;
   infoSheetType: 'template' | 'custom' | 'pdf';
   infoSheetContent?: string;
   infoSheetPdfUrl?: string;
@@ -62,6 +63,8 @@ export default function ArtistSettings() {
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const [editingSlug, setEditingSlug] = useState(false);
   const [newSlug, setNewSlug] = useState("");
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
 
   const { data: settings, isLoading, error } = useQuery<ArtistSettingsData>({
     queryKey: ["/api/artist/settings", token, useSessionAuth],
@@ -138,6 +141,37 @@ export default function ArtistSettings() {
       toast({
         title: "Error",
         description: err.message || "Failed to update link. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const updateEmail = useMutation({
+    mutationFn: async (email: string) => {
+      const res = await fetch(`/api/artist/email`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include',
+        body: JSON.stringify({ email })
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to update email");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/artist/settings", token, useSessionAuth] });
+      toast({
+        title: "Email updated",
+        description: data.message || "Your contact email has been updated."
+      });
+      setEditingEmail(false);
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to update email. Please try again.",
         variant: "destructive"
       });
     }
@@ -385,6 +419,59 @@ export default function ArtistSettings() {
                   size="sm"
                   onClick={() => { setEditingSlug(true); setNewSlug(settings.artistSlug || ""); }}
                   data-testid="button-edit-slug"
+                >
+                  <Settings2 className="w-4 h-4 mr-1" />
+                  Edit
+                </Button>
+              </div>
+            )}
+          </section>
+
+          {/* Contact Email */}
+          <section className="bg-white rounded-xl p-6 shadow-sm">
+            <h2 className="text-lg font-serif text-[#6B4A55] mb-2">Contact Email</h2>
+            <p className="text-gray-600 text-sm mb-4">
+              This email appears in Reply-To on client emails. Make sure it's correct.
+            </p>
+            
+            {editingEmail ? (
+              <div className="space-y-3">
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value.toLowerCase().trim())}
+                  placeholder="your@email.com"
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6B4A55]"
+                  data-testid="input-new-email"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => updateEmail.mutate(newEmail)}
+                    disabled={updateEmail.isPending || !newEmail || !newEmail.includes('@')}
+                    className="bg-[#6B4A55] hover:bg-[#5a3d47] text-white"
+                    data-testid="button-save-email"
+                  >
+                    {updateEmail.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => { setEditingEmail(false); setNewEmail(""); }}
+                    data-testid="button-cancel-email"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="flex-1 bg-[#FAF8F5] rounded-lg px-4 py-3">
+                  <p className="text-sm font-medium text-[#6B4A55]">{settings.contactEmail || 'Not set'}</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setEditingEmail(true); setNewEmail(settings.contactEmail || ""); }}
+                  data-testid="button-edit-email"
                 >
                   <Settings2 className="w-4 h-4 mr-1" />
                   Edit

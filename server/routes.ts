@@ -11018,6 +11018,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         artistSlug: profile.artistSlug,
         businessName: profile.businessName,
         artistName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || profile.businessName,
+        contactEmail: user.email,
         infoSheetType: profile.infoSheetType || 'template',
         infoSheetContent: profile.infoSheetContent,
         infoSheetPdfUrl: profile.infoSheetPdfUrl,
@@ -11032,6 +11033,44 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       });
     } catch (error: any) {
       console.error("[Artist Settings Session] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update artist contact email - session-based auth
+  app.patch("/api/artist/email", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'artist') {
+        return res.status(403).json({ error: "Not an artist" });
+      }
+      
+      const { email } = req.body;
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({ error: "Email is required" });
+      }
+      
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: "Invalid email format" });
+      }
+      
+      // Update the user's email
+      await storage.updateUser(userId, { email: email.toLowerCase().trim() });
+      
+      res.json({
+        success: true,
+        email: email.toLowerCase().trim(),
+        message: "Contact email updated successfully"
+      });
+    } catch (error: any) {
+      console.error("[Artist Email Update] Error:", error);
       res.status(500).json({ error: error.message });
     }
   });
