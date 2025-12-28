@@ -9691,7 +9691,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
           return res.json({
             success: true,
-            secretaryLink: `${baseUrl}/inquire/${existingArtistProfile.artistSlug}`,
+            secretaryLink: `${baseUrl}/${existingArtistProfile.artistSlug}`,
             artistSlug: existingArtistProfile.artistSlug,
             editToken: existingArtistProfile.editToken,
             baseUrl,
@@ -9737,7 +9737,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       
       // Build the secretary link
       const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
-      const secretaryLink = `${baseUrl}/inquire/${artistSlug}`;
+      const secretaryLink = `${baseUrl}/${artistSlug}`;
       
       // Send welcome email
       try {
@@ -9913,7 +9913,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       // Send access email
       const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
       const settingsUrl = `${baseUrl}/${profile.artistSlug}/settings?token=${editToken}`;
-      const calendarUrl = `${baseUrl}/inquire/${profile.artistSlug}`;
+      const calendarUrl = `${baseUrl}/${profile.artistSlug}`;
       
       try {
         const { sendArtistWelcomeEmail } = await import('./emailService');
