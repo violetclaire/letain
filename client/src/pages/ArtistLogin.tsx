@@ -38,7 +38,12 @@ export default function ArtistLogin() {
         const isDateInquiry = window.location.hostname.includes('dateinquiry');
         
         if (isDateInquiry) {
-          // On dateinquiry.com - always fetch fresh user data to get slug
+          // On dateinquiry.com - use slug from login response
+          if (data.artistSlug) {
+            window.location.href = `/admin/${data.artistSlug}`;
+            return;
+          }
+          // Fallback: try fetching from /api/auth/user
           const userRes = await fetch('/api/auth/user', { credentials: 'include' });
           if (userRes.ok) {
             const userData = await userRes.json();
@@ -47,8 +52,8 @@ export default function ArtistLogin() {
               return;
             }
           }
-          // Fallback if no slug found
-          window.location.href = "/artist";
+          // Final fallback - show error
+          setError("Could not find your artist profile. Please contact support.");
         } else {
           // On beauvette.app - go to full dashboard
           await refetch();
