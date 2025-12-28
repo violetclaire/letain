@@ -66,6 +66,7 @@ import ThreadPage from "@/pages/ThreadPage";
 import RecoverAccess from "@/pages/RecoverAccess";
 import ArtistAdmin from "@/pages/ArtistAdmin";
 import ArtistLogin from "@/pages/ArtistLogin";
+import AccessVerify from "@/pages/AccessVerify";
 
 // Domain-aware login - shows "Find Your Thread" on dateinquiry.com, full login on beauvette.app
 function DomainAwareLogin() {
@@ -103,6 +104,7 @@ function Router() {
       <Route path="/" component={Landing} />
       <Route path="/login" component={DomainAwareLogin} />
       <Route path="/artist-login" component={ArtistLogin} />
+      <Route path="/access/:code" component={AccessVerify} />
       <Route path="/signup" component={Signup} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password" component={ResetPassword} />

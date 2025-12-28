@@ -2096,3 +2096,67 @@ export async function sendClientThreadAccessEmail({
     return { success: false, error: err.message };
   }
 }
+
+export async function sendLoginLinkEmail({
+  toEmail,
+  artistName,
+  loginUrl
+}: {
+  toEmail: string;
+  artistName: string;
+  loginUrl: string;
+}) {
+  const { client, fromEmail } = await getResendClient();
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Inter', -apple-system, sans-serif; background-color: #1A1A1A; margin: 0; padding: 40px 20px; }
+        .container { max-width: 480px; margin: 0 auto; background: #242424; border-radius: 8px; overflow: hidden; border: 1px solid rgba(245, 240, 232, 0.1); }
+        .content { padding: 40px 32px; text-align: center; }
+        .greeting { font-size: 24px; color: #F5F0E8; margin-bottom: 16px; font-weight: 500; }
+        .message { color: rgba(245, 240, 232, 0.6); font-size: 15px; line-height: 1.6; margin-bottom: 32px; }
+        .button { display: inline-block; background: #F5F0E8; color: #1A1A1A !important; padding: 16px 40px; text-decoration: none; border-radius: 4px; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; font-weight: 500; }
+        .button:hover { background: white; }
+        .note { color: rgba(245, 240, 232, 0.4); font-size: 12px; margin-top: 32px; }
+        .footer { text-align: center; padding: 20px 32px; color: rgba(245, 240, 232, 0.3); font-size: 11px; border-top: 1px solid rgba(245, 240, 232, 0.1); }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="content">
+          <p class="greeting">Hello, ${escapeHtml(artistName)}</p>
+          
+          <p class="message">Click the button below to sign in to your dashboard. This link will expire in 24 hours.</p>
+          
+          <a href="${loginUrl}" class="button">Sign In</a>
+          
+          <p class="note">If you didn't request this link, you can safely ignore this email.</p>
+        </div>
+        <div class="footer">
+          Your Private Secretary
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const senderEmail = `Your Secretary <${fromEmail}>`;
+  
+  try {
+    console.log("Sending login link email to:", toEmail);
+    const result = await client.emails.send({
+      from: senderEmail,
+      to: toEmail.trim(),
+      subject: "Your login link",
+      html: htmlContent
+    });
+    console.log("Login link email sent:", JSON.stringify(result));
+    return { success: true, result };
+  } catch (err: any) {
+    console.error("Failed to send login link email:", err.message);
+    return { success: false, error: err.message };
+  }
+}

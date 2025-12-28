@@ -9763,6 +9763,118 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // ===== ARTIST LOGIN (Magic Link) =====
+  
+  // Request login link - sends email with short-lived login token
+  app.post("/api/public/artist/request-login", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+      
+      const normalizedEmail = email.toLowerCase().trim();
+      const user = await storage.getUserByEmail(normalizedEmail);
+      
+      // Always return success to prevent email enumeration
+      if (!user) {
+        console.log(`[Login] No user found for ${normalizedEmail}`);
+        return res.json({ success: true });
+      }
+      
+      const profile = await storage.getArtistProfile(user.id);
+      if (!profile) {
+        console.log(`[Login] No artist profile for user ${user.id}`);
+        return res.json({ success: true });
+      }
+      
+      // Generate a short login code (8 chars, alphanumeric)
+      const loginCode = randomUUID().replace(/-/g, '').substring(0, 12);
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      
+      // Store in artistProfiles.loginToken field (we'll use editToken for now and add loginCode)
+      // For simplicity, we'll encode loginCode:artistSlug in the URL
+      await storage.updateArtistProfile(user.id, { 
+        loginCode,
+        loginCodeExpiresAt: expiresAt
+      });
+      
+      // Send login email
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
+      const loginUrl = `${baseUrl}/access/${loginCode}`;
+      
+      try {
+        const { sendLoginLinkEmail } = await import('./emailService');
+        await sendLoginLinkEmail({
+          toEmail: normalizedEmail,
+          artistName: profile.businessName || 'there',
+          loginUrl
+        });
+        console.log(`[Login] Sent login link to ${normalizedEmail}`);
+      } catch (emailError) {
+        console.error("[Login] Failed to send email:", emailError);
+        return res.status(500).json({ error: "Failed to send email" });
+      }
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("[Login] Error:", error);
+      res.status(500).json({ error: "Something went wrong" });
+    }
+  });
+  
+  // Verify login code and create session
+  app.get("/api/public/artist/login/:code", async (req, res) => {
+    try {
+      const { code } = req.params;
+      
+      if (!code || code.length < 8) {
+        return res.redirect('/login?error=invalid');
+      }
+      
+      // Find artist by login code
+      const profile = await db.query.artistProfiles.findFirst({
+        where: eq(artistProfiles.loginCode, code)
+      });
+      
+      if (!profile) {
+        console.log(`[Login] Invalid code: ${code}`);
+        return res.redirect('/login?error=invalid');
+      }
+      
+      // Check expiration
+      if (profile.loginCodeExpiresAt && new Date(profile.loginCodeExpiresAt) < new Date()) {
+        console.log(`[Login] Expired code for artist ${profile.artistSlug}`);
+        return res.redirect('/login?error=expired');
+      }
+      
+      // Get user for session
+      const user = await storage.getUser(profile.userId);
+      if (!user) {
+        return res.redirect('/login?error=invalid');
+      }
+      
+      // Clear the login code (one-time use)
+      await storage.updateArtistProfile(profile.userId, { 
+        loginCode: null,
+        loginCodeExpiresAt: null
+      });
+      
+      // Create session
+      (req.session as any).userId = user.id;
+      (req.session as any).artistId = profile.userId;
+      
+      console.log(`[Login] Session created for artist ${profile.artistSlug}`);
+      
+      // Redirect to dashboard
+      res.redirect(`/admin/${profile.artistSlug}`);
+    } catch (error: any) {
+      console.error("[Login] Verify error:", error);
+      res.redirect('/login?error=error');
+    }
+  });
+
   // ===== ARTIST ACCESS RECOVERY =====
   
   // Resend artist dashboard access link

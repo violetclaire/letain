@@ -199,6 +199,9 @@ export const artistProfiles = pgTable("artist_profiles", {
   customResponse: text("custom_response"), // Personalized auto-response message
   plannerInfoSheet: text("planner_info_sheet"), // Wedding planner specific info sheet
   plannerPricing: text("planner_pricing"), // Planner-specific pricing sheet
+  // Magic link login
+  loginCode: varchar("login_code").unique(),
+  loginCodeExpiresAt: timestamp("login_code_expires_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
