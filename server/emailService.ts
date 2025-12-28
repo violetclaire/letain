@@ -1650,19 +1650,19 @@ export async function sendWaitlistConfirmationEmail({
     <body>
       <div class="container">
         <div class="header">
-          <h1>Beauvette</h1>
+          <h1>Your Private Secretary</h1>
           </div>
         <div class="content">
           <p>You're on the list!</p>
           
-          <p>Thank you for joining the Beauvette waitlist. We're building something special for brides and beauty enthusiasts, and we can't wait to share it with you.</p>
+          <p>Thank you for joining the waitlist. We're building something special for beauty artists and their clients, and we can't wait to share it with you.</p>
           
           ${eventDateStr || location || servicesStr ? `
           <div class="details">
             <p><strong>Your Event Details:</strong></p>
-            ${eventDateStr ? `<p>📅 Event Date: ${eventDateStr}</p>` : ''}
-            ${location ? `<p>📍 Location: ${escapeHtml(location)}</p>` : ''}
-            ${servicesStr ? `<p>💄 Services: ${escapeHtml(servicesStr)}</p>` : ''}
+            ${eventDateStr ? `<p>Event Date: ${eventDateStr}</p>` : ''}
+            ${location ? `<p>Location: ${escapeHtml(location)}</p>` : ''}
+            ${servicesStr ? `<p>Services: ${escapeHtml(servicesStr)}</p>` : ''}
           </div>
           ` : ''}
           
@@ -1670,14 +1670,14 @@ export async function sendWaitlistConfirmationEmail({
           
           <p>If you have any questions, please email <a href="mailto:notifications@dateinquiry.com" style="color: #6B4A55;">notifications@dateinquiry.com</a>.</p>
           
-          <p>Already working with a beauty artist you love? Send them this link to join: <a href="https://dateinquiry.com/onboarding" style="color: #6B4A55;">dateinquiry.com/onboarding</a></p>
+          <p>Already working with a beauty artist you love? Send them this link to join: <a href="https://dateinquiry.com/secretary" style="color: #6B4A55;">dateinquiry.com/secretary</a></p>
           
           <p>In the meantime, save this email so you can easily find us when the time comes.</p>
           
-          <p>With love,<br>The Beauvette Team</p>
+          <p>Warmly,<br>Your Private Secretary</p>
         </div>
         <div class="footer">
-          <a href="${getBaseUrl()}" style="color: #6B4A55;">Beauvette</a>
+          Your Private Secretary
         </div>
       </div>
     </body>
@@ -1691,7 +1691,7 @@ export async function sendWaitlistConfirmationEmail({
     const result = await client.emails.send({
       from: senderEmail,
       to: toEmail.trim(),
-      subject: "You're on the Beauvette Waitlist! ✨",
+      subject: "You're on the waitlist!",
       html: htmlContent
     });
     console.log("Waitlist confirmation email sent:", JSON.stringify(result));
@@ -1750,27 +1750,27 @@ export async function sendArtistWelcomeEmail({
     <body>
       <div class="container">
         <div class="header">
-          <h1>Beauvette</h1>
+          <h1>Your Private Secretary</h1>
           </div>
         <div class="content">
-          <p class="greeting">Welcome to Beauvette, ${escapeHtml(artistName)}!</p>
+          <p class="greeting">Welcome, ${escapeHtml(artistName)}!</p>
           
-          <p>Your calendar for <strong>${escapeHtml(businessName)}</strong> is now live and ready to receive inquiries.</p>
+          <p>Your inquiry link for <strong>${escapeHtml(businessName)}</strong> is now live and ready to receive inquiries.</p>
           
           <div class="link-box">
-            <p style="margin: 0 0 8px 0; color: #666; font-size: 14px;">Your calendar link:</p>
+            <p style="margin: 0 0 8px 0; color: #666; font-size: 14px;">Your inquiry link:</p>
             <a href="${calendarUrl}">${calendarUrl}</a>
           </div>
           
           <p style="text-align: center;">
-            <a href="${calendarUrl}" class="button">View My Calendar</a>
+            <a href="${calendarUrl}" class="button">View My Link</a>
           </p>
           
           <div class="tips">
             <h3>Next Steps:</h3>
             <ul>
-              <li>Add your calendar link to your Instagram bio</li>
-              <li>Share it in your stories when clients ask about availability</li>
+              <li>Add your inquiry link to your Instagram bio</li>
+              <li>Share it in your stories when clients ask about booking</li>
               <li>Upload your pricing/info sheet so clients get all the details</li>
             </ul>
           </div>
@@ -1782,12 +1782,12 @@ export async function sendArtistWelcomeEmail({
           </div>
           ` : ''}
           
-          <p>We're excited to have you on Beauvette!</p>
+          <p>Your secretary is ready to work for you.</p>
           
-          <p>With love,<br>The Beauvette Team</p>
+          <p>Warmly,<br>Your Private Secretary</p>
         </div>
         <div class="footer">
-          <a href="https://dateinquiry.com" style="color: #6B4A55;">Beauvette</a>
+          ${escapeHtml(businessName)}
         </div>
       </div>
     </body>
@@ -1801,7 +1801,7 @@ export async function sendArtistWelcomeEmail({
     const result = await client.emails.send({
       from: senderEmail,
       to: toEmail.trim(),
-      subject: `Welcome to Beauvette, ${artistName}! Your calendar is live`,
+      subject: `Welcome! Your inquiry link is live`,
       html: htmlContent
     });
     console.log("Artist welcome email sent:", JSON.stringify(result));
