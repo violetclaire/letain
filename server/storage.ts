@@ -638,7 +638,7 @@ export class DatabaseStorage implements IStorage {
     return !existing;
   }
 
-  async updateUser(id: string, data: Partial<{ email: string; firstName: string; lastName: string; phone: string; profileImageUrl: string; squareMerchantId: string; squareAccessToken: string; squareRefreshToken: string; squareTokenExpiresAt: Date; cdiConsentGiven: boolean; cdiConsentDate: Date; cdiOptOut: boolean }>): Promise<User | undefined> {
+  async updateUser(id: string, data: Partial<{ email: string; firstName: string; lastName: string; phone: string; profileImageUrl: string; squareMerchantId: string; squareAccessToken: string; squareRefreshToken: string; squareTokenExpiresAt: Date; cdiConsentGiven: boolean; cdiConsentDate: Date; cdiOptOut: boolean; password: string; passwordResetToken: string | null; passwordResetExpires: Date | null }>): Promise<User | undefined> {
     const [updated] = await db
       .update(users)
       .set({ ...data, updatedAt: new Date() })
