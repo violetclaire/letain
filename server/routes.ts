@@ -10011,7 +10011,6 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       // Check if viewer is the artist (logged in as this artist)
       const viewerUserId = getAuthUserId(req);
       const isArtist = viewerUserId && viewerUserId === inquiry.vendorId;
-      console.log('[InquiryThread] Debug:', { viewerUserId, inquiryVendorId: inquiry.vendorId, isArtist });
       
       const messages = notifications
         .filter(n => ['artist_reply', 'info_sheet', 'referral_list', 'polite_decline'].includes(n.type))
