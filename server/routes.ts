@@ -11548,9 +11548,41 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(403).json({ error: "Not an artist" });
       }
       
+      console.log("[AdminData] Looking up profile for userId:", userId, "email:", user.email);
       const profile = await storage.getArtistProfile(userId);
       if (!profile) {
-        return res.status(404).json({ error: "Artist profile not found" });
+        // Try email fallback
+        console.log("[AdminData] No profile by userId, trying email...");
+        const profileByEmail = await storage.getArtistByEmail(user.email!);
+        if (profileByEmail) {
+          console.log("[AdminData] Found by email! userId mismatch:", profileByEmail.userId, "vs", userId);
+          // Fix the mismatch by updating the profile's userId
+          await storage.updateArtistProfile(profileByEmail.userId, { userId: userId } as any);
+          console.log("[AdminData] Fixed userId mismatch, profile now linked to:", userId);
+          // Continue with the fixed profile
+          const fixedProfile = await storage.getArtistProfile(userId);
+          if (fixedProfile) {
+            // Return with fixed profile
+            const inquiries = await storage.getInquiriesByVendor(userId);
+            const threads = await storage.getThreadsByArtist(fixedProfile.id);
+            return res.json({
+              artist: { ...fixedProfile, userId: undefined },
+              inquiries: inquiries.map(inq => ({
+                id: inq.id,
+                threadToken: inq.threadToken,
+                clientName: inq.clientName,
+                clientEmail: inq.clientEmail,
+                eventDate: inq.eventDate,
+                eventLocation: inq.eventLocation,
+                status: inq.status,
+                createdAt: inq.createdAt,
+                depositPaidAt: (inq as any).depositPaidAt,
+                isThread: false,
+              })),
+            });
+          }
+        }
+        return res.status(404).json({ error: `Artist profile not found for userId=${userId}, email=${user.email}` });
       }
       
       // Get all inquiries for this artist
@@ -11901,14 +11933,18 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const { slug } = req.params;
       const { token } = req.query;
       
+      console.log("[ArtistAdmin] Looking up slug:", slug);
+      
       if (!token) {
         return res.status(401).json({ error: "Access token required" });
       }
       
       const profile = await storage.getArtistProfileBySlug(slug);
       if (!profile) {
-        return res.status(404).json({ error: "Artist not found" });
+        console.log("[ArtistAdmin] No profile found for slug:", slug);
+        return res.status(404).json({ error: `Artist not found for slug: ${slug}` });
       }
+      console.log("[ArtistAdmin] Found profile:", profile.id, "actualSlug:", profile.artistSlug);
       
       // Verify the edit token matches
       if (profile.editToken !== token) {
