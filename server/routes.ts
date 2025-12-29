@@ -12447,23 +12447,30 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const { slug } = req.params;
       const { token } = req.query;
       
-      console.log("[ArtistAdmin] Looking up slug:", slug);
+      console.log("[ArtistAdmin] Looking up slug:", slug, "token:", token ? "provided" : "missing");
       
       if (!token) {
         return res.status(401).json({ error: "Access token required" });
       }
       
-      const profile = await storage.getArtistProfileBySlug(slug);
-      if (!profile) {
-        console.log("[ArtistAdmin] No profile found for slug:", slug);
-        return res.status(404).json({ error: `Artist not found for slug: ${slug}` });
-      }
-      console.log("[ArtistAdmin] Found profile:", profile.id, "actualSlug:", profile.artistSlug);
+      // Look up profile by token directly (more reliable than slug + token verification)
+      let profile = await storage.getArtistProfileByEditToken(token as string);
       
-      // Verify the edit token matches
-      if (profile.editToken !== token) {
-        return res.status(401).json({ error: "Invalid access token" });
+      // Fallback: try by slug and verify token
+      if (!profile) {
+        profile = await storage.getArtistProfileBySlug(slug);
+        if (profile && profile.editToken !== token) {
+          console.log("[ArtistAdmin] Token mismatch for slug:", slug);
+          return res.status(401).json({ error: "Invalid access token" });
+        }
       }
+      
+      if (!profile) {
+        console.log("[ArtistAdmin] No profile found for token or slug:", slug);
+        return res.status(404).json({ error: `Artist not found` });
+      }
+      
+      console.log("[ArtistAdmin] Found profile:", profile.id, "actualSlug:", profile.artistSlug);
       
       // Get all inquiries for this artist
       const inquiries = await storage.getInquiriesByVendor(profile.userId);
