@@ -11872,6 +11872,34 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
   
+  // Debug endpoint to check database state (temporary)
+  app.get("/api/debug/db-state", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      const allProfiles = await db.select({
+        id: artistProfiles.id,
+        slug: artistProfiles.artistSlug,
+        bizName: artistProfiles.businessName,
+        userId: artistProfiles.userId,
+        status: artistProfiles.verificationStatus
+      }).from(artistProfiles);
+      
+      const allUsers = await db.select({
+        id: users.id,
+        email: users.email,
+        role: users.role
+      }).from(users);
+      
+      res.json({
+        sessionUserId: userId || "NO SESSION",
+        profiles: allProfiles,
+        users: allUsers
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Artist admin dashboard - session-based auth (for logged in artists)
   app.get("/api/artist/admin-data", async (req, res) => {
     try {
