@@ -11873,6 +11873,42 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
   
+  // Debug endpoint to test admin-data directly
+  app.get("/api/debug/admin-test", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.json({ error: "NO SESSION", step: "session check" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.json({ error: "USER NOT FOUND", userId, step: "user lookup" });
+      }
+      
+      const profile = await storage.getArtistProfile(userId);
+      if (profile) {
+        return res.json({ 
+          success: true, 
+          step: "direct lookup",
+          profile: { slug: profile.artistSlug, bizName: profile.businessName, userId: profile.userId }
+        });
+      }
+      
+      // Fallback search
+      const allProfiles = await db.select().from(artistProfiles);
+      return res.json({ 
+        error: "NO PROFILE BY USERID",
+        userId,
+        userEmail: user.email,
+        step: "fallback",
+        allProfileUserIds: allProfiles.map(p => ({ slug: p.artistSlug, userId: p.userId }))
+      });
+    } catch (error: any) {
+      res.json({ error: error.message, step: "exception" });
+    }
+  });
+
   // Debug endpoint to check database state (temporary)
   app.get("/api/debug/db-state", async (req, res) => {
     try {
