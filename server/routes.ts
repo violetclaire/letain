@@ -9970,55 +9970,6 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
-  // Diagnostic page to see profile state
-  app.get("/api/admin/diagnose/:email", async (req, res) => {
-    try {
-      const email = decodeURIComponent(req.params.email).toLowerCase();
-      const user = await storage.getUserByEmail(email);
-      
-      if (!user) {
-        return res.json({ error: "No user found with email: " + email, user: null, profiles: [] });
-      }
-      
-      // Get profile by user ID
-      const profileByUserId = await storage.getArtistProfile(user.id);
-      
-      // Get profile by email
-      const profileByEmail = await storage.getArtistProfileByEmail(email);
-      
-      // Get all profiles for debugging
-      const allProfiles = await db.select({
-        id: artistProfiles.id,
-        userId: artistProfiles.userId,
-        artistSlug: artistProfiles.artistSlug,
-        businessName: artistProfiles.businessName,
-        verificationStatus: artistProfiles.verificationStatus,
-        onboardingCompleted: artistProfiles.onboardingCompleted,
-      }).from(artistProfiles).limit(20);
-      
-      res.json({
-        user: { id: user.id, email: user.email, role: user.role },
-        profileByUserId: profileByUserId ? {
-          id: profileByUserId.id,
-          userId: profileByUserId.userId,
-          artistSlug: profileByUserId.artistSlug,
-          businessName: profileByUserId.businessName,
-          verificationStatus: profileByUserId.verificationStatus,
-        } : null,
-        profileByEmail: profileByEmail ? {
-          id: profileByEmail.id,
-          userId: profileByEmail.userId,
-          artistSlug: profileByEmail.artistSlug,
-          businessName: profileByEmail.businessName,
-          verificationStatus: profileByEmail.verificationStatus,
-        } : null,
-        allProfiles,
-      });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
   // Simple admin page to approve profiles
   app.get("/api/admin/approve-page", async (req, res) => {
     const html = `
@@ -11904,29 +11855,41 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         let foundProfile = await storage.getArtistProfileByEmail(user.email!);
         
         // Method 2: Search all profiles for one that might belong to this user
-        // by checking if user's email matches profile businessName pattern or instagram
         if (!foundProfile) {
           console.log("[AdminData] Email lookup failed, scanning all profiles...");
-          // Get any profile where the userId in artist_profiles might be orphaned
-          // We'll need to get the user's previous profile by checking artistSlug in users
           const allProfiles = await db.select().from(artistProfiles);
-          // Look for profile where businessName contains user's name or email prefix
           const emailPrefix = user.email?.split('@')[0]?.toLowerCase() || '';
           const firstName = user.firstName?.toLowerCase() || '';
           const lastName = user.lastName?.toLowerCase() || '';
           
+          // First try: exact email prefix or name matching
           foundProfile = allProfiles.find(p => {
             const bizName = p.businessName?.toLowerCase() || '';
             const slug = p.artistSlug?.toLowerCase() || '';
-            // Check if slug or business name contains user's email prefix or name
             return slug.includes(emailPrefix) || 
                    bizName.includes(emailPrefix) ||
                    (firstName && (bizName.includes(firstName) || slug.includes(firstName))) ||
                    (lastName && (bizName.includes(lastName) || slug.includes(lastName)));
           });
           
+          // Second try: find any unlinked profile (userId is null or matches)
+          if (!foundProfile) {
+            foundProfile = allProfiles.find(p => 
+              p.userId === userId || p.userId === null || p.userId === ''
+            );
+            if (foundProfile) {
+              console.log("[AdminData] Found unlinked profile:", foundProfile.artistSlug);
+            }
+          }
+          
+          // Third try: if only one profile exists and user is an artist, it's probably theirs
+          if (!foundProfile && allProfiles.length === 1) {
+            foundProfile = allProfiles[0];
+            console.log("[AdminData] Only one profile exists, assuming ownership:", foundProfile.artistSlug);
+          }
+          
           if (foundProfile) {
-            console.log("[AdminData] Found likely match by name/slug:", foundProfile.businessName, foundProfile.artistSlug);
+            console.log("[AdminData] Found likely match:", foundProfile.businessName, foundProfile.artistSlug);
           }
         }
         
