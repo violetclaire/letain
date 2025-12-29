@@ -118,8 +118,8 @@ export default function Landing() {
       <div className="estate-pinstripe" />
       {/* Top Bar */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-bg/95 backdrop-blur-sm">
-        <div className="estate-container flex items-center justify-between py-8">
-          <div className="font-serif text-xl tracking-tight">Your Private Secretary</div>
+        <div className="estate-container flex items-center justify-between py-4 md:py-8">
+          <div className="font-serif text-lg md:text-xl tracking-tight flex-shrink-0">Your Private Secretary</div>
           <nav className="hidden md:flex items-center gap-6">
             <button
               onClick={() => window.location.href = "https://dateinquiry.com/artist-login"}
@@ -138,7 +138,7 @@ export default function Landing() {
           </nav>
           <button 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 -mr-2"
+            className="md:hidden p-2 -mr-2 flex-shrink-0"
             aria-label="Toggle menu"
             data-testid="button-mobile-menu"
           >
@@ -150,7 +150,7 @@ export default function Landing() {
         <AnimatePresence>
           {mobileMenuOpen && (
             <motion.div 
-              className="md:hidden fixed inset-0 top-[72px] bg-bg z-40"
+              className="md:hidden fixed inset-x-0 top-[56px] bottom-0 bg-bg z-30"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
