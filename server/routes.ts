@@ -11873,7 +11873,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
   
-  // Debug endpoint to test admin-data directly
+  // Debug endpoint to test admin-data directly - full flow
   app.get("/api/debug/admin-test", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId;
@@ -11887,25 +11887,40 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       }
       
       const profile = await storage.getArtistProfile(userId);
-      if (profile) {
+      if (!profile) {
+        const allProfiles = await db.select().from(artistProfiles);
         return res.json({ 
-          success: true, 
-          step: "direct lookup",
-          profile: { slug: profile.artistSlug, bizName: profile.businessName, userId: profile.userId }
+          error: "NO PROFILE BY USERID",
+          userId,
+          userEmail: user.email,
+          step: "profile lookup",
+          allProfileUserIds: allProfiles.map(p => ({ slug: p.artistSlug, usrId: p.userId }))
         });
       }
       
-      // Fallback search
-      const allProfiles = await db.select().from(artistProfiles);
+      // Try to get inquiries and threads like admin-data does
+      let inquiries, threads;
+      try {
+        inquiries = await storage.getInquiriesByVendor(userId);
+      } catch (e: any) {
+        return res.json({ error: e.message, step: "getInquiriesByVendor", userId });
+      }
+      
+      try {
+        threads = await storage.getThreadsByArtist(profile.id);
+      } catch (e: any) {
+        return res.json({ error: e.message, step: "getThreadsByArtist", profileId: profile.id });
+      }
+      
       return res.json({ 
-        error: "NO PROFILE BY USERID",
-        userId,
-        userEmail: user.email,
-        step: "fallback",
-        allProfileUserIds: allProfiles.map(p => ({ slug: p.artistSlug, userId: p.userId }))
+        success: true, 
+        step: "complete",
+        profile: { slug: profile.artistSlug, bizName: profile.businessName, userId: profile.userId },
+        inquiryCount: inquiries?.length || 0,
+        threadCount: threads?.length || 0
       });
     } catch (error: any) {
-      res.json({ error: error.message, step: "exception" });
+      res.json({ error: error.message, step: "exception", stack: error.stack?.substring(0, 500) });
     }
   });
 
