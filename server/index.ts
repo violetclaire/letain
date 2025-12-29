@@ -6,6 +6,21 @@ import { registerRoutes } from "./routes";
 import { startCronJobs } from "./cronJobs";
 import { serveStatic } from "./static";
 import { startScheduledEmailJob } from './scheduledEmailJob';
+import { db } from "./db";
+import { sql } from "drizzle-orm";
+
+// Ensure database schema has required columns (runs on startup)
+async function ensureDatabaseSchema() {
+  try {
+    // Add missing sentiment columns to inquiries table
+    await db.execute(sql`ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS sentiment text`);
+    await db.execute(sql`ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS sentiment_score integer`);
+    await db.execute(sql`ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS sentiment_analysis jsonb`);
+    console.log("[DB] Schema migration completed");
+  } catch (error) {
+    console.error("[DB] Schema migration error (may be harmless):", error);
+  }
+}
 
 const app = express();
 
@@ -140,6 +155,9 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
+    // Run startup migrations to ensure schema is up to date
+    await ensureDatabaseSchema();
+    
     const httpServer = await registerRoutes(app);
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
