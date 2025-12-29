@@ -259,18 +259,18 @@ export default function ArtistSettings() {
   // Wait for auth to finish loading before deciding if link is invalid
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-4">
-        <p className="text-gray-600">Loading...</p>
+      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4">
+        <p className="text-[#F5F0E8]/60">Loading...</p>
       </div>
     );
   }
 
   if (!token && !useSessionAuth) {
     return (
-      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4">
         <div className="text-center">
-          <h1 className="text-2xl font-serif text-[#6B4A55] mb-4">Invalid Link</h1>
-          <p className="text-gray-600">This settings link is missing or invalid. Please use the link from your welcome email.</p>
+          <h1 className="text-2xl font-serif text-[#F5F0E8] mb-4">Invalid Link</h1>
+          <p className="text-[#F5F0E8]/60">This settings link is missing or invalid. Please use the link from your welcome email.</p>
         </div>
       </div>
     );
@@ -278,37 +278,37 @@ export default function ArtistSettings() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center">
-        <div className="animate-pulse text-[#6B4A55]">Loading...</div>
+      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center">
+        <div className="animate-pulse text-[#F5F0E8]/60">Loading...</div>
       </div>
     );
   }
 
   if (error || !settings) {
     return (
-      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4">
         <div className="text-center">
-          <h1 className="text-2xl font-serif text-[#6B4A55] mb-4">Link Expired or Invalid</h1>
-          <p className="text-gray-600">This settings link may have expired or is invalid. Please contact support if you need access.</p>
+          <h1 className="text-2xl font-serif text-[#F5F0E8] mb-4">Link Expired or Invalid</h1>
+          <p className="text-[#F5F0E8]/60">This settings link may have expired or is invalid. Please contact support if you need access.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f3ef]">
-      <header className="bg-[#3d1a22]">
+    <div className="min-h-screen bg-[#1A1A1A]">
+      <header className="border-b border-[#F5F0E8]/10">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-4">
           <button
             onClick={() => setLocation(`/admin/${settings.artistSlug || artistSlug}${token ? `?token=${token}` : ''}`)}
-            className="text-[#f5f3ef]/70 hover:text-[#f5f3ef] transition-colors"
+            className="text-[#F5F0E8]/70 hover:text-[#F5F0E8] transition-colors"
             data-testid="button-back"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-xl font-serif text-[#f5f3ef]">{settings.businessName}</h1>
-            <p className="text-sm text-[#f5f3ef]/60">Settings</p>
+            <h1 className="text-xl font-serif text-[#F5F0E8]">{settings.businessName}</h1>
+            <p className="text-sm text-[#F5F0E8]/60">Settings</p>
           </div>
         </div>
       </header>
@@ -320,90 +320,90 @@ export default function ArtistSettings() {
           className="space-y-8"
         >
           {/* Response Settings Section */}
-          <section className="bg-[#3d1a22] rounded-xl p-6 shadow-sm">
-            <p className="text-[10px] tracking-[0.3em] uppercase text-[#f5f3ef]/50 mb-2">Response Settings</p>
-            <h2 className="text-lg font-serif text-[#f5f3ef] mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <section className="border border-[#F5F0E8]/10 rounded p-6">
+            <p className="text-[10px] tracking-[0.3em] uppercase text-[#F5F0E8]/40 mb-2">Response Settings</p>
+            <h2 className="text-lg font-serif text-[#F5F0E8] mb-2" style={{ fontFamily: "'Fraunces', serif" }}>
               Auto-Responder Mode
             </h2>
-            <p className="text-[#f5f3ef]/70 text-sm mb-5">
+            <p className="text-[#F5F0E8]/60 text-sm mb-5">
               Control how you respond to new inquiries.
             </p>
 
             <div className="grid grid-cols-2 gap-2">
               {/* Smart */}
-              <label className={`flex flex-col items-center justify-center text-center px-3 py-3 rounded-lg cursor-pointer transition-all ${
+              <label className={`flex flex-col items-center justify-center text-center px-3 py-3 rounded cursor-pointer transition-all ${
                 settings.autoResponderMode === 'smart' 
-                  ? 'bg-[#f5f3ef] ring-2 ring-[#f5f3ef]' 
-                  : 'border border-[#f5f3ef]/20 hover:border-[#f5f3ef]/40'
+                  ? 'bg-[#F5F0E8] ring-1 ring-[#F5F0E8]' 
+                  : 'border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'
               }`}>
                 <input type="radio" name="autoResponderMode" value="smart" checked={settings.autoResponderMode === 'smart'} onChange={() => updateSettings.mutate({ autoResponderMode: 'smart' })} className="sr-only" data-testid="radio-smart" />
-                <p className={`font-medium text-sm ${settings.autoResponderMode === 'smart' ? 'text-[#3d1a22]' : 'text-[#f5f3ef]'}`}>Smart</p>
-                <p className={`text-[10px] mt-0.5 ${settings.autoResponderMode === 'smart' ? 'text-[#3d1a22]/60' : 'text-[#f5f3ef]/50'}`}>Calendar-aware</p>
+                <p className={`font-medium text-sm ${settings.autoResponderMode === 'smart' ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Smart</p>
+                <p className={`text-[10px] mt-0.5 ${settings.autoResponderMode === 'smart' ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>Calendar-aware</p>
               </label>
 
               {/* Info Sheet */}
-              <label className={`flex flex-col items-center justify-center text-center px-3 py-3 rounded-lg cursor-pointer transition-all ${
+              <label className={`flex flex-col items-center justify-center text-center px-3 py-3 rounded cursor-pointer transition-all ${
                 settings.autoResponderMode === 'info_sheet' 
-                  ? 'bg-[#f5f3ef] ring-2 ring-[#f5f3ef]' 
-                  : 'border border-[#f5f3ef]/20 hover:border-[#f5f3ef]/40'
+                  ? 'bg-[#F5F0E8] ring-1 ring-[#F5F0E8]' 
+                  : 'border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'
               }`}>
                 <input type="radio" name="autoResponderMode" value="info_sheet" checked={settings.autoResponderMode === 'info_sheet'} onChange={() => updateSettings.mutate({ autoResponderMode: 'info_sheet' })} className="sr-only" data-testid="radio-info-sheet" />
-                <p className={`font-medium text-sm ${settings.autoResponderMode === 'info_sheet' ? 'text-[#3d1a22]' : 'text-[#f5f3ef]'}`}>Info Sheet</p>
-                <p className={`text-[10px] mt-0.5 ${settings.autoResponderMode === 'info_sheet' ? 'text-[#3d1a22]/60' : 'text-[#f5f3ef]/50'}`}>Auto-send always</p>
+                <p className={`font-medium text-sm ${settings.autoResponderMode === 'info_sheet' ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Info Sheet</p>
+                <p className={`text-[10px] mt-0.5 ${settings.autoResponderMode === 'info_sheet' ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>Auto-send always</p>
               </label>
 
               {/* Paused + Refer */}
-              <label className={`flex flex-col items-center justify-center text-center px-3 py-3 rounded-lg cursor-pointer transition-all ${
+              <label className={`flex flex-col items-center justify-center text-center px-3 py-3 rounded cursor-pointer transition-all ${
                 settings.autoResponderMode === 'paused_with_referral' 
-                  ? 'bg-[#f5f3ef] ring-2 ring-[#f5f3ef]' 
-                  : 'border border-[#f5f3ef]/20 hover:border-[#f5f3ef]/40'
+                  ? 'bg-[#F5F0E8] ring-1 ring-[#F5F0E8]' 
+                  : 'border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'
               }`}>
                 <input type="radio" name="autoResponderMode" value="paused_with_referral" checked={settings.autoResponderMode === 'paused_with_referral'} onChange={() => updateSettings.mutate({ autoResponderMode: 'paused_with_referral' })} className="sr-only" data-testid="radio-paused-referral" />
-                <p className={`font-medium text-sm ${settings.autoResponderMode === 'paused_with_referral' ? 'text-[#3d1a22]' : 'text-[#f5f3ef]'}`}>Paused + Refer</p>
-                <p className={`text-[10px] mt-0.5 ${settings.autoResponderMode === 'paused_with_referral' ? 'text-[#3d1a22]/60' : 'text-[#f5f3ef]/50'}`}>Send to circle</p>
+                <p className={`font-medium text-sm ${settings.autoResponderMode === 'paused_with_referral' ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Paused + Refer</p>
+                <p className={`text-[10px] mt-0.5 ${settings.autoResponderMode === 'paused_with_referral' ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>Send to circle</p>
               </label>
 
               {/* Paused */}
-              <label className={`flex flex-col items-center justify-center text-center px-3 py-3 rounded-lg cursor-pointer transition-all ${
+              <label className={`flex flex-col items-center justify-center text-center px-3 py-3 rounded cursor-pointer transition-all ${
                 settings.autoResponderMode === 'paused' 
-                  ? 'bg-[#f5f3ef] ring-2 ring-[#f5f3ef]' 
-                  : 'border border-[#f5f3ef]/20 hover:border-[#f5f3ef]/40'
+                  ? 'bg-[#F5F0E8] ring-1 ring-[#F5F0E8]' 
+                  : 'border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'
               }`}>
                 <input type="radio" name="autoResponderMode" value="paused" checked={settings.autoResponderMode === 'paused'} onChange={() => updateSettings.mutate({ autoResponderMode: 'paused' })} className="sr-only" data-testid="radio-paused" />
-                <p className={`font-medium text-sm ${settings.autoResponderMode === 'paused' ? 'text-[#3d1a22]' : 'text-[#f5f3ef]'}`}>Paused</p>
-                <p className={`text-[10px] mt-0.5 ${settings.autoResponderMode === 'paused' ? 'text-[#3d1a22]/60' : 'text-[#f5f3ef]/50'}`}>No response</p>
+                <p className={`font-medium text-sm ${settings.autoResponderMode === 'paused' ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Paused</p>
+                <p className={`text-[10px] mt-0.5 ${settings.autoResponderMode === 'paused' ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>No response</p>
               </label>
 
               {/* Off - spans full width */}
-              <label className={`col-span-2 flex flex-col items-center justify-center text-center px-3 py-2.5 rounded-lg cursor-pointer transition-all ${
+              <label className={`col-span-2 flex flex-col items-center justify-center text-center px-3 py-2.5 rounded cursor-pointer transition-all ${
                 (settings.autoResponderMode === 'off' || !settings.autoResponderMode)
-                  ? 'bg-[#f5f3ef] ring-2 ring-[#f5f3ef]' 
-                  : 'border border-[#f5f3ef]/20 hover:border-[#f5f3ef]/40'
+                  ? 'bg-[#F5F0E8] ring-1 ring-[#F5F0E8]' 
+                  : 'border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'
               }`}>
                 <input type="radio" name="autoResponderMode" value="off" checked={settings.autoResponderMode === 'off' || !settings.autoResponderMode} onChange={() => updateSettings.mutate({ autoResponderMode: 'off' })} className="sr-only" data-testid="radio-off" />
-                <p className={`font-medium text-sm ${(settings.autoResponderMode === 'off' || !settings.autoResponderMode) ? 'text-[#3d1a22]' : 'text-[#f5f3ef]'}`}>Off</p>
-                <p className={`text-[10px] mt-0.5 ${(settings.autoResponderMode === 'off' || !settings.autoResponderMode) ? 'text-[#3d1a22]/60' : 'text-[#f5f3ef]/50'}`}>Manual review only</p>
+                <p className={`font-medium text-sm ${(settings.autoResponderMode === 'off' || !settings.autoResponderMode) ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Off</p>
+                <p className={`text-[10px] mt-0.5 ${(settings.autoResponderMode === 'off' || !settings.autoResponderMode) ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>Manual review only</p>
               </label>
             </div>
           </section>
 
           {/* Your Form Link */}
-          <section className="bg-white rounded-xl p-6 shadow-sm">
-            <h2 className="text-lg font-serif text-[#6B4A55] mb-2">Your Form Link</h2>
-            <p className="text-gray-600 text-sm mb-4">
+          <section className="border border-[#F5F0E8]/10 rounded p-6">
+            <h2 className="text-lg font-serif text-[#F5F0E8] mb-2">Your Form Link</h2>
+            <p className="text-[#F5F0E8]/60 text-sm mb-4">
               This is the link clients use to inquire about your services.
             </p>
             
             {editingSlug ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">dateinquiry.com/</span>
+                  <span className="text-sm text-[#F5F0E8]/50">dateinquiry.com/</span>
                   <input
                     type="text"
                     value={newSlug}
                     onChange={(e) => setNewSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
                     placeholder="yourname"
-                    className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6B4A55]"
+                    className="flex-1 border border-[#F5F0E8]/20 bg-transparent rounded px-3 py-2 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50"
                     data-testid="input-new-slug"
                   />
                 </div>
@@ -411,7 +411,7 @@ export default function ArtistSettings() {
                   <Button
                     onClick={() => updateSlug.mutate(newSlug)}
                     disabled={updateSlug.isPending || !newSlug || newSlug.length < 3}
-                    className="bg-[#6B4A55] hover:bg-[#5a3d47] text-white"
+                    className="bg-[#F5F0E8] hover:bg-white text-[#1A1A1A]"
                     data-testid="button-save-slug"
                   >
                     {updateSlug.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
@@ -419,6 +419,7 @@ export default function ArtistSettings() {
                   <Button
                     variant="outline"
                     onClick={() => { setEditingSlug(false); setNewSlug(""); }}
+                    className="border-[#F5F0E8]/30 text-[#F5F0E8] hover:bg-[#F5F0E8]/10"
                     data-testid="button-cancel-slug"
                   >
                     Cancel
@@ -427,13 +428,14 @@ export default function ArtistSettings() {
               </div>
             ) : (
               <div className="flex items-center gap-3">
-                <div className="flex-1 bg-[#FAF8F5] rounded-lg px-4 py-3">
-                  <p className="text-sm font-medium text-[#6B4A55]">dateinquiry.com/{settings.artistSlug}</p>
+                <div className="flex-1 bg-[#222] rounded px-4 py-3">
+                  <p className="text-sm font-medium text-[#F5F0E8]">dateinquiry.com/{settings.artistSlug}</p>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => { setEditingSlug(true); setNewSlug(settings.artistSlug || ""); }}
+                  className="border-[#F5F0E8]/30 text-[#F5F0E8] hover:bg-[#F5F0E8]/10"
                   data-testid="button-edit-slug"
                 >
                   <Settings2 className="w-4 h-4 mr-1" />
@@ -444,9 +446,9 @@ export default function ArtistSettings() {
           </section>
 
           {/* Contact Email */}
-          <section className="bg-white rounded-xl p-6 shadow-sm">
-            <h2 className="text-lg font-serif text-[#6B4A55] mb-2">Contact Email</h2>
-            <p className="text-gray-600 text-sm mb-4">
+          <section className="border border-[#F5F0E8]/10 rounded p-6">
+            <h2 className="text-lg font-serif text-[#F5F0E8] mb-2">Contact Email</h2>
+            <p className="text-[#F5F0E8]/60 text-sm mb-4">
               This email appears in Reply-To on client emails. Make sure it's correct.
             </p>
             
@@ -457,14 +459,14 @@ export default function ArtistSettings() {
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value.toLowerCase().trim())}
                   placeholder="your@email.com"
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6B4A55]"
+                  className="w-full border border-[#F5F0E8]/20 bg-transparent rounded px-3 py-2 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50"
                   data-testid="input-new-email"
                 />
                 <div className="flex gap-2">
                   <Button
                     onClick={() => updateEmail.mutate(newEmail)}
                     disabled={updateEmail.isPending || !newEmail || !newEmail.includes('@')}
-                    className="bg-[#6B4A55] hover:bg-[#5a3d47] text-white"
+                    className="bg-[#F5F0E8] hover:bg-white text-[#1A1A1A]"
                     data-testid="button-save-email"
                   >
                     {updateEmail.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
@@ -472,6 +474,7 @@ export default function ArtistSettings() {
                   <Button
                     variant="outline"
                     onClick={() => { setEditingEmail(false); setNewEmail(""); }}
+                    className="border-[#F5F0E8]/30 text-[#F5F0E8] hover:bg-[#F5F0E8]/10"
                     data-testid="button-cancel-email"
                   >
                     Cancel
@@ -480,13 +483,14 @@ export default function ArtistSettings() {
               </div>
             ) : (
               <div className="flex items-center gap-3">
-                <div className="flex-1 bg-[#FAF8F5] rounded-lg px-4 py-3">
-                  <p className="text-sm font-medium text-[#6B4A55]">{settings.contactEmail || 'Not set'}</p>
+                <div className="flex-1 bg-[#222] rounded px-4 py-3">
+                  <p className="text-sm font-medium text-[#F5F0E8]">{settings.contactEmail || 'Not set'}</p>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => { setEditingEmail(true); setNewEmail(settings.contactEmail || ""); }}
+                  className="border-[#F5F0E8]/30 text-[#F5F0E8] hover:bg-[#F5F0E8]/10"
                   data-testid="button-edit-email"
                 >
                   <Settings2 className="w-4 h-4 mr-1" />
@@ -497,47 +501,47 @@ export default function ArtistSettings() {
           </section>
 
           {/* Upload Your Info Sheet */}
-          <section className="bg-white rounded-xl p-6 shadow-sm">
-            <h2 className="text-lg font-serif text-[#6B4A55] mb-2">Upload Your Info Sheet</h2>
-            <p className="text-gray-600 text-sm mb-6">
+          <section className="border border-[#F5F0E8]/10 rounded p-6">
+            <h2 className="text-lg font-serif text-[#F5F0E8] mb-2">Upload Your Info Sheet</h2>
+            <p className="text-[#F5F0E8]/60 text-sm mb-6">
               Your pricing guide or info sheet. Sent to clients when you accept their inquiry.
             </p>
 
             <div className="space-y-4">
               {settings.infoSheetPdfUrl && (
-                <div className="bg-[#FAF8F5] rounded-lg p-4">
+                <div className="bg-[#222] rounded p-4">
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-[#6B4A55] rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div className="w-12 h-12 bg-[#F5F0E8] rounded flex items-center justify-center flex-shrink-0">
                       {settings.infoSheetPdfUrl.match(/\.(jpg|jpeg|png|webp)$/i) ? (
-                        <Image className="w-6 h-6 text-white" />
+                        <Image className="w-6 h-6 text-[#1A1A1A]" />
                       ) : (
-                        <FileText className="w-6 h-6 text-white" />
+                        <FileText className="w-6 h-6 text-[#1A1A1A]" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-[#6B4A55] truncate">Current Info Sheet</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-sm font-medium text-[#F5F0E8] truncate">Current Info Sheet</p>
+                      <p className="text-xs text-[#F5F0E8]/50">
                         {settings.infoSheetPdfUrl.match(/\.(jpg|jpeg|png|webp)$/i) ? 'Image' : 'PDF'} uploaded
                       </p>
                       <a
                         href={settings.infoSheetPdfUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-sm text-[#6B4A55] hover:underline mt-2"
+                        className="inline-flex items-center gap-1 text-sm text-[#F5F0E8] hover:underline mt-2"
                         data-testid="link-view-info-sheet"
                       >
                         <ExternalLink className="w-4 h-4" />
                         View current file
                       </a>
                     </div>
-                    <div className="flex items-center text-green-600">
+                    <div className="flex items-center text-green-400">
                       <Check className="w-5 h-5" />
                     </div>
                   </div>
                 </div>
               )}
 
-              <div className="border border-dashed border-gray-300 rounded-lg p-4 hover:border-[#6B4A55] transition-colors">
+              <div className="border border-dashed border-[#F5F0E8]/20 rounded p-4 hover:border-[#F5F0E8]/40 transition-colors">
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -549,22 +553,22 @@ export default function ArtistSettings() {
                 
                 {uploading ? (
                   <div className="flex items-center justify-center gap-3 py-2">
-                    <Loader2 className="w-5 h-5 text-[#6B4A55] animate-spin" />
-                    <p className="text-gray-600 text-sm">Uploading...</p>
+                    <Loader2 className="w-5 h-5 text-[#F5F0E8] animate-spin" />
+                    <p className="text-[#F5F0E8]/60 text-sm">Uploading...</p>
                   </div>
                 ) : (
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Upload className="w-5 h-5 text-gray-400" />
+                      <Upload className="w-5 h-5 text-[#F5F0E8]/40" />
                       <div>
-                        <p className="text-sm text-gray-600">PDF, JPG, PNG, or WebP</p>
+                        <p className="text-sm text-[#F5F0E8]/60">PDF, JPG, PNG, or WebP</p>
                       </div>
                     </div>
                     <Button
                       onClick={() => fileInputRef.current?.click()}
                       variant="outline"
                       size="sm"
-                      className="border-[#6B4A55] text-[#6B4A55] hover:bg-[#6B4A55] hover:text-white"
+                      className="border-[#F5F0E8]/30 text-[#F5F0E8] hover:bg-[#F5F0E8] hover:text-[#1A1A1A]"
                       data-testid="button-upload-file"
                     >
                       {settings.infoSheetPdfUrl ? 'Replace' : 'Upload'}
@@ -575,30 +579,30 @@ export default function ArtistSettings() {
             </div>
           </section>
 
-          <section className="bg-white rounded-xl p-6 shadow-sm">
+          <section className="border border-[#F5F0E8]/10 rounded p-6">
             <div className="flex items-center gap-2 mb-4">
-              <Settings2 className="w-5 h-5 text-[#6B4A55]" />
-              <h2 className="text-lg font-serif text-[#6B4A55]">Customize Your Inquiry Form</h2>
+              <Settings2 className="w-5 h-5 text-[#F5F0E8]" />
+              <h2 className="text-lg font-serif text-[#F5F0E8]">Customize Your Inquiry Form</h2>
             </div>
-            <p className="text-gray-600 text-sm mb-6">
+            <p className="text-[#F5F0E8]/60 text-sm mb-6">
               Add, remove, or reorder fields on your inquiry form. Core fields (name, email, date) cannot be removed but can be customized.
             </p>
             
             <FormDesigner artistId={settings.userId} token={token} />
           </section>
 
-          <section className="bg-white rounded-xl p-6 shadow-sm">
+          <section className="border border-[#F5F0E8]/10 rounded p-6">
             <div className="flex items-center gap-2 mb-4">
-              <Code className="w-5 h-5 text-[#6B4A55]" />
-              <h2 className="text-lg font-serif text-[#6B4A55]">Your Contact Form</h2>
+              <Code className="w-5 h-5 text-[#F5F0E8]" />
+              <h2 className="text-lg font-serif text-[#F5F0E8]">Your Contact Form</h2>
             </div>
-            <p className="text-gray-600 text-sm mb-6">
+            <p className="text-[#F5F0E8]/60 text-sm mb-6">
               Add this to your website's contact page. Clients stay on your site, see your brand. No redirects, invisible to your clients.
             </p>
             
             <div className="space-y-4">
                 <div className="mb-4">
-                  <Label className="text-sm text-gray-700 mb-2 block">Success Message (shown after client submits)</Label>
+                  <Label className="text-sm text-[#F5F0E8]/70 mb-2 block">Success Message (shown after client submits)</Label>
                   <input
                     type="text"
                     value={localSuccessMessage !== null ? localSuccessMessage : (settings.formSuccessMessage || "Thank you! I'll respond shortly.")}
@@ -618,7 +622,7 @@ export default function ArtistSettings() {
                       }
                     }}
                     placeholder="Thank you! I'll respond shortly."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6B4A55]/20 focus:border-[#6B4A55]"
+                    className="w-full px-3 py-2 border border-[#F5F0E8]/20 bg-transparent rounded text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50"
                     data-testid="input-success-message"
                   />
                 </div>
@@ -730,20 +734,20 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
                       navigator.clipboard.writeText(embedCode);
                       toast({ title: "Embed code copied!" });
                     }}
-                    className="border-[#6B4A55] text-[#6B4A55]"
+                    className="border-[#F5F0E8]/30 text-[#F5F0E8] hover:bg-[#F5F0E8]/10"
                     data-testid="button-copy-embed-code"
                   >
                     <Copy className="w-4 h-4 mr-2" />
                     Copy Embed Code
                   </Button>
                 </div>
-                <p className="text-xs text-gray-500 mt-3">
+                <p className="text-xs text-[#F5F0E8]/50 mt-3">
                   Style the form and success message however you want. Client never leaves your site, never sees any redirect.
                 </p>
                 
-                <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                  <p className="text-xs text-amber-800 font-medium mb-1">For Instagram / Social Media:</p>
-                  <p className="text-xs text-amber-700">
+                <div className="mt-4 p-3 bg-[#222] border border-[#F5F0E8]/10 rounded">
+                  <p className="text-xs text-[#F5F0E8]/70 font-medium mb-1">For Instagram / Social Media:</p>
+                  <p className="text-xs text-[#F5F0E8]/50">
                     Share your own website's contact page URL (e.g., themakeupdolls.com/contact). 
                     Clients see only your brand, never ours.
                   </p>
