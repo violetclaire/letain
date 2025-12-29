@@ -202,6 +202,7 @@ export interface IStorage {
   // Artist Profiles
   getArtistProfile(userId: string): Promise<ArtistProfile | undefined>;
   getArtistProfileByInstagram(instagramHandle: string): Promise<ArtistProfile | undefined>;
+  getArtistProfileByEmail(email: string): Promise<ArtistProfile | undefined>;
   createArtistProfile(profile: InsertArtistProfile): Promise<ArtistProfile>;
   updateArtistProfile(userId: string, profile: Partial<ArtistProfile>): Promise<ArtistProfile | undefined>;
   searchArtists(location?: string, eventDate?: Date, service?: string): Promise<Array<User & { profile: ArtistProfile }>>;
@@ -789,6 +790,20 @@ export class DatabaseStorage implements IStorage {
     const [profile] = await db.select().from(artistProfiles)
       .where(sql`LOWER(${artistProfiles.instagramHandle}) = ${cleanHandle}`);
     return profile || undefined;
+  }
+
+  async getArtistProfileByEmail(email: string): Promise<ArtistProfile | undefined> {
+    const lowerEmail = email.toLowerCase();
+    // First try to find user by email, then get their profile
+    const [user] = await db.select().from(users).where(sql`LOWER(${users.email}) = ${lowerEmail}`);
+    if (user) {
+      // Try to get profile by this user's ID first
+      const [profileByUser] = await db.select().from(artistProfiles).where(eq(artistProfiles.userId, user.id));
+      if (profileByUser) return profileByUser;
+    }
+    // Also search artist_profiles directly by any email-like field if they have one
+    // Some profiles might have businessEmail or similar
+    return undefined;
   }
 
   async createArtistProfile(profile: InsertArtistProfile): Promise<ArtistProfile> {

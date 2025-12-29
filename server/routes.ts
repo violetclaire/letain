@@ -68,6 +68,7 @@ import {
   trustedCircle,
   blockedDates,
   inquiries,
+  artistProfiles,
   type FormConfig,
 } from "@shared/schema";
 import { db } from "./db";
@@ -11549,40 +11550,57 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       }
       
       console.log("[AdminData] Looking up profile for userId:", userId, "email:", user.email);
-      const profile = await storage.getArtistProfile(userId);
+      let profile = await storage.getArtistProfile(userId);
+      
       if (!profile) {
-        // Try email fallback
-        console.log("[AdminData] No profile by userId, trying email...");
-        const profileByEmail = await storage.getArtistByEmail(user.email!);
-        if (profileByEmail) {
-          console.log("[AdminData] Found by email! userId mismatch:", profileByEmail.userId, "vs", userId);
-          // Fix the mismatch by updating the profile's userId
-          await storage.updateArtistProfile(profileByEmail.userId, { userId: userId } as any);
-          console.log("[AdminData] Fixed userId mismatch, profile now linked to:", userId);
-          // Continue with the fixed profile
-          const fixedProfile = await storage.getArtistProfile(userId);
-          if (fixedProfile) {
-            // Return with fixed profile
-            const inquiries = await storage.getInquiriesByVendor(userId);
-            const threads = await storage.getThreadsByArtist(fixedProfile.id);
-            return res.json({
-              artist: { ...fixedProfile, userId: undefined },
-              inquiries: inquiries.map(inq => ({
-                id: inq.id,
-                threadToken: inq.threadToken,
-                clientName: inq.clientName,
-                clientEmail: inq.clientEmail,
-                eventDate: inq.eventDate,
-                eventLocation: inq.eventLocation,
-                status: inq.status,
-                createdAt: inq.createdAt,
-                depositPaidAt: (inq as any).depositPaidAt,
-                isThread: false,
-              })),
-            });
+        // Try various fallback methods to find the profile
+        console.log("[AdminData] No profile by userId, trying fallbacks...");
+        
+        // Method 1: Try by email (searches users table first)
+        let foundProfile = await storage.getArtistProfileByEmail(user.email!);
+        
+        // Method 2: Search all profiles for one that might belong to this user
+        // by checking if user's email matches profile businessName pattern or instagram
+        if (!foundProfile) {
+          console.log("[AdminData] Email lookup failed, scanning all profiles...");
+          // Get any profile where the userId in artist_profiles might be orphaned
+          // We'll need to get the user's previous profile by checking artistSlug in users
+          const allProfiles = await db.select().from(artistProfiles);
+          // Look for profile where businessName contains user's name or email prefix
+          const emailPrefix = user.email?.split('@')[0]?.toLowerCase() || '';
+          const firstName = user.firstName?.toLowerCase() || '';
+          const lastName = user.lastName?.toLowerCase() || '';
+          
+          foundProfile = allProfiles.find(p => {
+            const bizName = p.businessName?.toLowerCase() || '';
+            const slug = p.artistSlug?.toLowerCase() || '';
+            // Check if slug or business name contains user's email prefix or name
+            return slug.includes(emailPrefix) || 
+                   bizName.includes(emailPrefix) ||
+                   (firstName && (bizName.includes(firstName) || slug.includes(firstName))) ||
+                   (lastName && (bizName.includes(lastName) || slug.includes(lastName)));
+          });
+          
+          if (foundProfile) {
+            console.log("[AdminData] Found likely match by name/slug:", foundProfile.businessName, foundProfile.artistSlug);
           }
         }
-        return res.status(404).json({ error: `Artist profile not found for userId=${userId}, email=${user.email}` });
+        
+        if (foundProfile) {
+          console.log("[AdminData] Found profile! Fixing userId mismatch:", foundProfile.userId, "→", userId);
+          // Fix the mismatch by updating the profile's userId
+          await db.update(artistProfiles)
+            .set({ userId: userId })
+            .where(eq(artistProfiles.id, foundProfile.id));
+          console.log("[AdminData] Fixed userId mismatch, profile now linked to:", userId);
+          
+          // Continue with the fixed profile
+          profile = await storage.getArtistProfile(userId);
+        }
+        
+        if (!profile) {
+          return res.status(404).json({ error: `Artist profile not found for userId=${userId}, email=${user.email}. Tried email lookup and name matching.` });
+        }
       }
       
       // Get all inquiries for this artist
