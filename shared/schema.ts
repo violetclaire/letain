@@ -660,6 +660,18 @@ export const inquiries = pgTable("inquiries", {
     preferredStyles?: string[];
     inspirationUrls?: string[];
   }>(),
+  // AI sentiment analysis of client's initial message
+  sentiment: text("sentiment"), // 'positive', 'neutral', 'negative', 'distressed'
+  sentimentScore: integer("sentiment_score"), // 0-100 confidence score
+  sentimentAnalysis: jsonb("sentiment_analysis").$type<{
+    anxietyLevel?: number;
+    frustrationLevel?: number;
+    confusionLevel?: number;
+    satisfactionLevel?: number;
+    urgencyLevel?: number;
+    distressSignals?: Array<{ type: string; severity: number; evidence: string }>;
+    aiRationale?: string;
+  }>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
