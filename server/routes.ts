@@ -69,6 +69,7 @@ import {
   blockedDates,
   inquiries,
   artistProfiles,
+  users,
   type FormConfig,
 } from "@shared/schema";
 import { db } from "./db";
