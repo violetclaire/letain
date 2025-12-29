@@ -24,6 +24,10 @@ async function ensureDatabaseSchema() {
 
 const app = express();
 
+// Trust proxy - required for rate limiting behind reverse proxy (Replit deployment)
+// This ensures req.ip returns the real client IP, not the proxy IP
+app.set('trust proxy', 1);
+
 // CORS configuration for external form submissions
 const allowedOrigins = [
   'https://beauvette.app',

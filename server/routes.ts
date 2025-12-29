@@ -18,11 +18,13 @@ import { logActivity, getRecentActivity, getTodayActivity } from "./activityServ
 // Rate limiter for auth endpoints to prevent brute force attacks
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts per window
+  max: 20, // 20 attempts per window (increased to prevent lockouts)
   message: { message: "Too many login attempts, please try again after 15 minutes" },
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Only count failed attempts
+  // trust proxy is set in index.ts, so express-rate-limit will use the correct client IP
+  validate: { trustProxy: false, xForwardedForHeader: false },
 });
 
 // Zod schemas for auth input validation
