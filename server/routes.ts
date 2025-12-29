@@ -11873,6 +11873,48 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
   
+  // Debug endpoint to check token lookup (no auth required)
+  app.get("/api/debug/token-check", async (req, res) => {
+    try {
+      const token = req.query.token as string;
+      const slug = req.query.slug as string;
+      
+      if (!token && !slug) {
+        return res.json({ error: "Provide ?token=xxx or ?slug=xxx" });
+      }
+      
+      let profileByToken = null;
+      let profileBySlug = null;
+      
+      if (token) {
+        profileByToken = await storage.getArtistProfileByEditToken(token);
+      }
+      if (slug) {
+        profileBySlug = await storage.getArtistProfileBySlug(slug);
+      }
+      
+      res.json({
+        tokenProvided: !!token,
+        slugProvided: !!slug,
+        foundByToken: profileByToken ? {
+          slug: profileByToken.artistSlug,
+          bizName: profileByToken.businessName,
+          hasUserId: !!profileByToken.userId
+        } : null,
+        foundBySlug: profileBySlug ? {
+          slug: profileBySlug.artistSlug,
+          bizName: profileBySlug.businessName,
+          hasUserId: !!profileBySlug.userId,
+          storedTokenPrefix: profileBySlug.editToken?.substring(0, 8) + "...",
+          providedTokenPrefix: token?.substring(0, 8) + "...",
+          tokensMatch: profileBySlug.editToken === token
+        } : null
+      });
+    } catch (error: any) {
+      res.json({ error: error.message });
+    }
+  });
+
   // Debug endpoint to test admin-data directly - full flow
   app.get("/api/debug/admin-test", async (req, res) => {
     try {
