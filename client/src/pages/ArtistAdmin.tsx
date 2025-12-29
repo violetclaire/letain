@@ -122,9 +122,9 @@ export default function ArtistAdmin() {
   const { data, isLoading, error } = useQuery({
     queryKey: [`/api/artist-admin/${slug}`, token, useSessionAuth],
     queryFn: async () => {
-      // If using session auth, call the authenticated endpoint
+      // If using session auth, call the authenticated endpoint WITH the slug
       if (useSessionAuth) {
-        const res = await fetch(`/api/artist/admin-data`, {
+        const res = await fetch(`/api/artist/admin-data?slug=${encodeURIComponent(slug)}`, {
           credentials: 'include'
         });
         if (!res.ok) {

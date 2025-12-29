@@ -11964,10 +11964,51 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       if (!user) {
         return res.status(403).json({ error: "User not found" });
       }
-      // Don't require artist role - we'll auto-fix if profile exists
       
-      console.log("[AdminData] Looking up profile for userId:", userId, "email:", user.email, "role:", user.role);
-      let profile = await storage.getArtistProfile(userId);
+      // Get requested slug from query parameter
+      const requestedSlug = req.query.slug as string | undefined;
+      console.log("[AdminData] userId:", userId, "email:", user.email, "requestedSlug:", requestedSlug);
+      
+      let profile = null;
+      
+      // If slug provided, look up by slug first
+      if (requestedSlug) {
+        profile = await storage.getArtistProfileBySlug(requestedSlug);
+        if (profile) {
+          console.log("[AdminData] Found profile by slug:", requestedSlug, "profile.userId:", profile.userId);
+          
+          // Check if this profile belongs to the user or is unclaimed
+          if (profile.userId && profile.userId !== userId) {
+            return res.status(403).json({ error: "Access denied - this profile belongs to another user" });
+          }
+          
+          // If profile exists but not linked to this user, link it now
+          if (!profile.userId || profile.userId !== userId) {
+            console.log("[AdminData] Linking unclaimed profile to user:", requestedSlug);
+            await db.update(artistProfiles)
+              .set({ 
+                userId: userId,
+                verificationStatus: 'approved',
+                onboardingCompleted: true
+              })
+              .where(eq(artistProfiles.id, profile.id));
+            
+            // Also ensure user role is artist
+            await db.update(users)
+              .set({ role: 'artist' })
+              .where(eq(users.id, userId));
+            
+            // Reload profile with updated data
+            profile = await storage.getArtistProfileBySlug(requestedSlug);
+          }
+        }
+      }
+      
+      // Fallback: look up by userId if no slug or slug lookup failed
+      if (!profile) {
+        console.log("[AdminData] Looking up profile by userId:", userId);
+        profile = await storage.getArtistProfile(userId);
+      }
       
       if (!profile) {
         // Try various fallback methods to find the profile
