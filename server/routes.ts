@@ -11873,14 +11873,15 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
   
-  // Debug endpoint to check token lookup (no auth required)
+  // Debug endpoint to check token lookup AND full admin flow (no auth required)
   app.get("/api/debug/token-check", async (req, res) => {
     try {
       const token = req.query.token as string;
       const slug = req.query.slug as string;
+      const fullTest = req.query.full === 'true';
       
       if (!token && !slug) {
-        return res.json({ error: "Provide ?token=xxx or ?slug=xxx" });
+        return res.json({ error: "Provide ?token=xxx or ?slug=xxx. Add &full=true to test full flow." });
       }
       
       let profileByToken = null;
@@ -11893,13 +11894,14 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         profileBySlug = await storage.getArtistProfileBySlug(slug);
       }
       
-      res.json({
+      const result: any = {
         tokenProvided: !!token,
         slugProvided: !!slug,
         foundByToken: profileByToken ? {
           slug: profileByToken.artistSlug,
           bizName: profileByToken.businessName,
-          hasUserId: !!profileByToken.userId
+          hasUserId: !!profileByToken.userId,
+          userId: profileByToken.userId
         } : null,
         foundBySlug: profileBySlug ? {
           slug: profileBySlug.artistSlug,
@@ -11909,7 +11911,28 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           providedTokenPrefix: token?.substring(0, 8) + "...",
           tokensMatch: profileBySlug.editToken === token
         } : null
-      });
+      };
+      
+      // Full test: try to load inquiries and threads like the admin route does
+      if (fullTest && profileByToken) {
+        try {
+          const inquiries = await storage.getInquiriesByVendor(profileByToken.userId!);
+          result.inquiriesCount = inquiries?.length || 0;
+        } catch (e: any) {
+          result.inquiriesError = e.message;
+        }
+        
+        try {
+          const threads = await storage.getThreadsByArtist(profileByToken.id);
+          result.threadsCount = threads?.length || 0;
+        } catch (e: any) {
+          result.threadsError = e.message;
+        }
+        
+        result.fullTestPassed = !result.inquiriesError && !result.threadsError;
+      }
+      
+      res.json(result);
     } catch (error: any) {
       res.json({ error: error.message });
     }
