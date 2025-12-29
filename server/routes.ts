@@ -424,18 +424,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // If user is an artist, get their slug for redirect
       let artistSlug: string | null = null;
+      let artistProfileDebug: string | null = null;
       if (user.role === 'artist') {
-        console.log("[Login] Getting artist profile...");
+        console.log("[Login] Getting artist profile for userId:", user.id);
         const artistProfile = await storage.getArtistProfile(user.id);
-        artistSlug = artistProfile?.artistSlug || null;
-        console.log("[Login] Artist slug:", artistSlug);
+        if (artistProfile) {
+          artistSlug = artistProfile.artistSlug || null;
+          console.log("[Login] Artist profile found, slug:", artistSlug);
+        } else {
+          // Try to find by email as fallback
+          console.log("[Login] No profile found by userId, trying email lookup...");
+          const profileByEmail = await storage.getArtistByEmail(user.email!);
+          if (profileByEmail) {
+            artistSlug = profileByEmail.artistSlug || null;
+            artistProfileDebug = `Found by email, userId mismatch: profile.userId=${profileByEmail.userId} vs user.id=${user.id}`;
+            console.log("[Login]", artistProfileDebug);
+          } else {
+            artistProfileDebug = `No artist profile found for userId=${user.id} or email=${user.email}`;
+            console.log("[Login]", artistProfileDebug);
+          }
+        }
       }
 
       console.log("[Login] Success for user:", user.id);
       res.json({ 
         message: "Login successful", 
         user: { ...user, password: undefined },
-        artistSlug
+        artistSlug,
+        artistProfileDebug
       });
     } catch (error: any) {
       console.error("[Login] Error:", error.message, error.stack);

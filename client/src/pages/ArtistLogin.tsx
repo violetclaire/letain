@@ -45,7 +45,9 @@ export default function ArtistLogin() {
               return;
             }
           }
-          setError("Could not find your artist profile.");
+          // Show debug info to help diagnose the issue
+          const debugInfo = data.artistProfileDebug || "Unknown reason";
+          setError(`Could not find your artist profile. Debug: ${debugInfo}`);
         }
       } else {
         setError("This login is for artists only");
