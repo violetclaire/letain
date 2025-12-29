@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, useSearch, Link, useLocation } from "wouter";
 import { format } from "date-fns";
-import { Loader2, Settings, Calendar, Users, Copy, Check, Mail, CheckCircle, LogOut, FileText, DollarSign, Clock, ChevronDown, Menu, X, HelpCircle } from "lucide-react";
+import { Loader2, Settings, Calendar, Users, Copy, Check, Mail, CheckCircle, LogOut, FileText, DollarSign, Clock, ChevronDown, Menu, X, HelpCircle, Trash2 } from "lucide-react";
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -47,7 +47,30 @@ export default function ArtistAdmin() {
   const [standaloneAmount, setStandaloneAmount] = useState("");
   const [standaloneDescription, setStandaloneDescription] = useState("");
   const [creatingStandalone, setCreatingStandalone] = useState(false);
+  const [deletingInquiryToken, setDeletingInquiryToken] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  
+  // Delete inquiry mutation
+  const deleteInquiry = useMutation({
+    mutationFn: async (threadToken: string) => {
+      const res = await fetch(`/api/public/inquiry/${threadToken}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/artists", slug] });
+      toast({ title: "Client removed" });
+      setDeletingInquiryToken(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to remove", description: error.message, variant: "destructive" });
+    },
+  });
   
   // Get auth state for session-based login
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
@@ -572,9 +595,23 @@ export default function ArtistAdmin() {
                     <p className="text-xs text-[#F5F0E8]/40">
                       Received {format(new Date(inquiry.createdAt), "MMM d 'at' h:mm a")}
                     </p>
-                    <p className={`text-xs ${velocity.color}`}>
-                      {velocity.text}
-                    </p>
+                    <div className="flex items-center gap-3">
+                      <p className={`text-xs ${velocity.color}`}>
+                        {velocity.text}
+                      </p>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setDeletingInquiryToken(inquiry.threadToken);
+                        }}
+                        className="p-1.5 rounded hover:bg-red-500/10 text-[#F5F0E8]/30 hover:text-red-400 transition-colors"
+                        title="Remove client"
+                        data-testid={`button-delete-inquiry-${inquiry.id}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </a>
               );
@@ -832,6 +869,36 @@ export default function ArtistAdmin() {
               >
                 {creatingStandalone ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
                 Create Contract
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingInquiryToken && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1A1A1A] border border-[#F5F0E8]/20 rounded-lg p-6 max-w-sm w-full">
+            <h3 className="text-lg mb-2" style={{ fontFamily: "'Fraunces', serif" }}>Remove Client?</h3>
+            <p className="text-sm text-[#F5F0E8]/60 mb-6">
+              This will permanently delete this inquiry and all related data. This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeletingInquiryToken(null)}
+                className="flex-1 px-4 py-2 border border-[#F5F0E8]/20 rounded text-sm hover:bg-[#F5F0E8]/5"
+                data-testid="button-cancel-delete"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => deleteInquiry.mutate(deletingInquiryToken)}
+                disabled={deleteInquiry.isPending}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                data-testid="button-confirm-delete"
+              >
+                {deleteInquiry.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                Remove
               </button>
             </div>
           </div>

@@ -509,6 +509,7 @@ export interface IStorage {
   getInquiriesByVendor(vendorId: string): Promise<Inquiry[]>;
   getInquiriesByClient(clientEmail: string): Promise<Inquiry[]>;
   updateInquiry(id: string, data: Partial<InsertInquiry>): Promise<Inquiry | undefined>;
+  deleteInquiry(id: string): Promise<void>;
   getExpiredHolds(now: Date): Promise<Inquiry[]>;
   getActiveInquiries(): Promise<Inquiry[]>;
   
@@ -2467,6 +2468,11 @@ export class DatabaseStorage implements IStorage {
       .where(eq(inquiries.id, id))
       .returning();
     return updated || undefined;
+  }
+  
+  async deleteInquiry(id: string): Promise<void> {
+    await db.delete(inquiryNotifications).where(eq(inquiryNotifications.inquiryId, id));
+    await db.delete(inquiries).where(eq(inquiries.id, id));
   }
   
   async getExpiredHolds(now: Date): Promise<Inquiry[]> {

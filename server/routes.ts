@@ -10683,6 +10683,26 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // Delete inquiry (artist only)
+  app.delete("/api/public/inquiry/:threadToken", async (req, res) => {
+    try {
+      const { threadToken } = req.params;
+      
+      const inquiry = await storage.getInquiryByThreadToken(threadToken);
+      if (!inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+      
+      // Delete the inquiry
+      await storage.deleteInquiry(inquiry.id);
+      
+      res.json({ success: true, message: "Inquiry deleted" });
+    } catch (error: any) {
+      console.error("[Inquiry] Error deleting inquiry:", error);
+      res.status(500).json({ error: error.message || "Failed to delete inquiry" });
+    }
+  });
+
   // Create contract from inquiry thread
   app.post("/api/public/inquiry/:threadToken/create-contract", async (req, res) => {
     try {
