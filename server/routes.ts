@@ -9970,6 +9970,59 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // Simple admin page to approve profiles
+  app.get("/api/admin/approve-page", async (req, res) => {
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head><title>Approve Profile</title>
+    <style>
+      body { font-family: Arial, sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; }
+      input, button { padding: 10px; margin: 5px 0; width: 100%; font-size: 16px; }
+      button { background: #4CAF50; color: white; border: none; cursor: pointer; }
+      button:hover { background: #45a049; }
+      #result { margin-top: 20px; padding: 15px; border-radius: 5px; }
+      .success { background: #d4edda; color: #155724; }
+      .error { background: #f8d7da; color: #721c24; }
+    </style>
+    </head>
+    <body>
+      <h1>Approve Artist Profile</h1>
+      <input type="text" id="slug" placeholder="Artist slug (e.g. themakeupdolls)" value="themakeupdolls">
+      <input type="email" id="email" placeholder="Your email (optional)">
+      <button onclick="approve()">Approve Profile</button>
+      <div id="result"></div>
+      <script>
+        async function approve() {
+          const slug = document.getElementById('slug').value;
+          const email = document.getElementById('email').value;
+          const result = document.getElementById('result');
+          try {
+            const resp = await fetch('/api/public/artist/approve-profile', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({artistSlug: slug, email: email || undefined})
+            });
+            const data = await resp.json();
+            if (data.success) {
+              result.className = 'success';
+              result.innerHTML = '<strong>Success!</strong><br>' + data.message + 
+                '<br><br><a href="' + data.loginUrl + '">Go to Login</a>';
+            } else {
+              result.className = 'error';
+              result.innerHTML = '<strong>Error:</strong> ' + (data.error || 'Unknown error');
+            }
+          } catch(e) {
+            result.className = 'error';
+            result.innerHTML = '<strong>Error:</strong> ' + e.message;
+          }
+        }
+      </script>
+    </body>
+    </html>`;
+    res.type('html').send(html);
+  });
+
   // Approve a pending artist profile (for recovering hidden profiles)
   app.post("/api/public/artist/approve-profile", async (req, res) => {
     try {
