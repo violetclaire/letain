@@ -57,7 +57,8 @@ export default function ArtistAdmin() {
   const token = urlParams.get('token');
   
   // Determine auth method: session (logged in user) or token
-  const useSessionAuth = isAuthenticated && user?.role === 'artist';
+  // Allow any authenticated user to try - backend will check role and auto-fix if needed
+  const useSessionAuth = isAuthenticated;
 
   const requestLink = useMutation({
     mutationFn: async () => {
