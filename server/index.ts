@@ -16,6 +16,8 @@ async function ensureDatabaseSchema() {
     await db.execute(sql`ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS sentiment text`);
     await db.execute(sql`ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS sentiment_score integer`);
     await db.execute(sql`ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS sentiment_analysis jsonb`);
+    // Add away_message column to users table
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS away_message text`);
     console.log("[DB] Schema migration completed");
   } catch (error) {
     console.error("[DB] Schema migration error (may be harmless):", error);
