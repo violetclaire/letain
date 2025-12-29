@@ -9970,6 +9970,68 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // Quick profile creation (for rebuilding lost profiles)
+  app.post("/api/public/artist/quick-create", async (req, res) => {
+    try {
+      const { email, businessName, password } = req.body;
+      
+      if (!email || !businessName) {
+        return res.status(400).json({ error: "Email and businessName are required" });
+      }
+      
+      const normalizedEmail = email.toLowerCase().trim();
+      const artistSlug = businessName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      
+      // Check if profile already exists
+      const existingProfile = await storage.getArtistProfileBySlug(artistSlug);
+      if (existingProfile) {
+        return res.status(409).json({ error: `Profile with slug "${artistSlug}" already exists` });
+      }
+      
+      // Check if user exists, create if not
+      let user = await storage.getUserByEmail(normalizedEmail);
+      if (!user) {
+        // Create user
+        const bcrypt = await import('bcryptjs');
+        const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
+        user = await storage.createUser({
+          email: normalizedEmail,
+          password: hashedPassword,
+          role: 'artist',
+          firstName: businessName.split(' ')[0],
+        });
+      } else {
+        // Update user role to artist
+        await storage.updateUser(user.id, { role: 'artist' });
+      }
+      
+      // Create artist profile
+      const editToken = randomUUID();
+      const profile = await storage.createArtistProfile({
+        userId: user.id,
+        businessName: businessName,
+        artistSlug: artistSlug,
+        editToken: editToken,
+        onboardingCompleted: true,
+      });
+      
+      console.log(`[QuickCreate] Created profile "${artistSlug}" for user ${user.id}`);
+      
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
+      res.json({ 
+        success: true,
+        message: `Profile "${businessName}" created successfully!`,
+        artistSlug: artistSlug,
+        dashboardUrl: `${baseUrl}/admin/${artistSlug}`,
+        publicUrl: `${baseUrl}/${artistSlug}`,
+        loginUrl: `${baseUrl}/artist-login`
+      });
+    } catch (error: any) {
+      console.error("[QuickCreate] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Search for artist profiles (helps find profiles for linking)
   app.get("/api/public/artist/search", async (req, res) => {
     try {
