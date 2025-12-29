@@ -423,70 +423,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("[Login] Setting session...");
       (req.session as any).userId = user.id;
 
-      // If user is an artist, get their slug for redirect
+      // Try to get artist profile for redirect (check for ALL users, not just role='artist')
       let artistSlug: string | null = null;
       let artistProfileDebug: string | null = null;
-      if (user.role === 'artist') {
-        console.log("[Login] Getting artist profile for userId:", user.id);
-        let artistProfile = await storage.getArtistProfile(user.id);
+      // Always check for artist profile regardless of role
+      console.log("[Login] Checking for artist profile, userId:", user.id, "role:", user.role);
+      let artistProfile = await storage.getArtistProfile(user.id);
+      
+      // AUTO-FIX: If no profile found by userId, search ALL profiles and link the first matching one
+      if (!artistProfile) {
+        console.log("[Login] No profile by userId, searching all profiles...");
+        const allProfiles = await db.select().from(artistProfiles);
+        console.log("[Login] Found", allProfiles.length, "total profiles");
         
-        // AUTO-FIX: If no profile found by userId, search ALL profiles and link the first matching one
-        if (!artistProfile) {
-          console.log("[Login] No profile by userId, searching all profiles...");
-          const allProfiles = await db.select().from(artistProfiles);
-          console.log("[Login] Found", allProfiles.length, "total profiles");
-          
-          // Find any profile that might belong to this user
-          const emailPrefix = email.split('@')[0].toLowerCase();
-          let matchedProfile = allProfiles.find(p => {
-            const slug = p.artistSlug?.toLowerCase() || '';
-            const bizName = p.businessName?.toLowerCase() || '';
-            return slug.includes(emailPrefix) || bizName.includes(emailPrefix);
-          });
-          
-          // If no match by email, just take the first available profile (for single-user setups)
-          if (!matchedProfile && allProfiles.length > 0) {
-            matchedProfile = allProfiles[0];
-            console.log("[Login] Using first available profile:", matchedProfile.artistSlug);
-          }
-          
-          if (matchedProfile) {
-            console.log("[Login] AUTO-FIX: Linking profile", matchedProfile.artistSlug, "to user", user.id);
-            // Fix the profile: set userId and approve it
-            await db.update(artistProfiles)
-              .set({ 
-                userId: user.id,
-                verificationStatus: 'approved',
-                onboardingCompleted: true
-              })
-              .where(eq(artistProfiles.id, matchedProfile.id));
-            
-            // Also ensure user role is artist
-            await db.update(users)
-              .set({ role: 'artist' })
-              .where(eq(users.id, user.id));
-            
-            artistProfile = matchedProfile;
-            artistSlug = matchedProfile.artistSlug || null;
-            console.log("[Login] AUTO-FIX complete, slug:", artistSlug);
-          }
-        } else {
-          artistSlug = artistProfile.artistSlug || null;
-          console.log("[Login] Artist profile found, slug:", artistSlug);
-          
-          // Also auto-approve if pending
-          if ((artistProfile as any).verificationStatus === 'pending') {
-            console.log("[Login] AUTO-FIX: Approving pending profile");
-            await db.update(artistProfiles)
-              .set({ verificationStatus: 'approved' })
-              .where(eq(artistProfiles.id, artistProfile.id));
-          }
+        // Find any profile that might belong to this user
+        const emailPrefix = email.split('@')[0].toLowerCase();
+        let matchedProfile = allProfiles.find(p => {
+          const slug = p.artistSlug?.toLowerCase() || '';
+          const bizName = p.businessName?.toLowerCase() || '';
+          return slug.includes(emailPrefix) || bizName.includes(emailPrefix);
+        });
+        
+        // If no match by email, just take the first available profile (for single-user setups)
+        if (!matchedProfile && allProfiles.length > 0) {
+          matchedProfile = allProfiles[0];
+          console.log("[Login] Using first available profile:", matchedProfile.artistSlug);
         }
         
-        if (!artistSlug) {
-          artistProfileDebug = `No artist profile found for userId=${user.id} or email=${email}`;
-          console.log("[Login]", artistProfileDebug);
+        if (matchedProfile) {
+          console.log("[Login] AUTO-FIX: Linking profile", matchedProfile.artistSlug, "to user", user.id);
+          // Fix the profile: set userId and approve it
+          await db.update(artistProfiles)
+            .set({ 
+              userId: user.id,
+              verificationStatus: 'approved',
+              onboardingCompleted: true
+            })
+            .where(eq(artistProfiles.id, matchedProfile.id));
+          
+          // Also ensure user role is artist
+          await db.update(users)
+            .set({ role: 'artist' })
+            .where(eq(users.id, user.id));
+          
+          artistProfile = matchedProfile;
+          artistSlug = matchedProfile.artistSlug || null;
+          console.log("[Login] AUTO-FIX complete, slug:", artistSlug);
         }
+      } else {
+        artistSlug = artistProfile.artistSlug || null;
+        console.log("[Login] Artist profile found, slug:", artistSlug);
+        
+        // Also auto-approve if pending
+        if ((artistProfile as any).verificationStatus === 'pending') {
+          console.log("[Login] AUTO-FIX: Approving pending profile");
+          await db.update(artistProfiles)
+            .set({ verificationStatus: 'approved' })
+            .where(eq(artistProfiles.id, artistProfile.id));
+        }
+      }
+      
+      if (!artistSlug) {
+        artistProfileDebug = `No artist profile found for userId=${user.id} or email=${email}`;
+        console.log("[Login]", artistProfileDebug);
       }
 
       console.log("[Login] Success for user:", user.id);
