@@ -300,7 +300,7 @@ export async function sendInfoSheetEmail({
           <h1>${escapeHtml(vendorName)}</h1>
         </div>
         <div class="content">
-          <p>Thank you for your inquiry. Here is some information:</p>
+          <p>Thank you so much for reaching out! Here is my pricing and info sheet.</p>
           
           <div class="details">
             <strong>Your Inquiry</strong><br>
@@ -318,6 +318,8 @@ export async function sendInfoSheetEmail({
               : formattedContent
             }
           </div>
+          
+          <p style="margin: 16px 0; color: #1a1a1a;">Please let me know if you have any questions!</p>
           
           ${chatLink ? `
           <div style="text-align: center; margin: 24px 0; padding: 20px; background: #1a1a1a;">
@@ -1404,7 +1406,7 @@ export async function sendInquiryNotificationEmail({
         ${safeLocation ? `<p><strong>Location:</strong> ${safeLocation}</p>` : ''}
       </div>
       ${safeMessage && safeMessage !== 'No message provided' ? `<p style="margin-top: 16px; font-style: italic; padding-left: 12px; border-left: 2px solid #ddd;">${safeMessage}</p>` : ''}
-      <a href="${inquiryLink}" class="button">Respond Now</a>
+      <a href="${inquiryLink}" class="button">Review Inquiry</a>
       <p class="signature">${safeVendorName}</p>
     </body>
     </html>

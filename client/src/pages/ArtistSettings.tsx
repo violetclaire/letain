@@ -323,66 +323,41 @@ export default function ArtistSettings() {
           <section className="border border-[#F5F0E8]/10 rounded p-6">
             <p className="text-[10px] tracking-[0.3em] uppercase text-[#F5F0E8]/40 mb-2">Response Settings</p>
             <h2 className="text-lg font-serif text-[#F5F0E8] mb-2" style={{ fontFamily: "'Fraunces', serif" }}>
-              Auto-Responder Mode
+              Response Mode
             </h2>
             <p className="text-[#F5F0E8]/60 text-sm mb-5">
-              Control how you respond to new inquiries.
+              Choose how you handle new inquiries.
             </p>
 
-            <div className="grid grid-cols-2 gap-2">
-              {/* Smart */}
-              <label className={`flex flex-col items-center justify-center text-center px-3 py-3 rounded cursor-pointer transition-all ${
-                settings.autoResponderMode === 'smart' 
+            <div className="space-y-3">
+              {/* Smart Response - Default */}
+              <label className={`flex items-start gap-4 p-4 rounded cursor-pointer transition-all ${
+                (settings.autoResponderMode === 'smart' || settings.autoResponderMode === 'off' || !settings.autoResponderMode)
                   ? 'bg-[#F5F0E8] ring-1 ring-[#F5F0E8]' 
                   : 'border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'
               }`}>
-                <input type="radio" name="autoResponderMode" value="smart" checked={settings.autoResponderMode === 'smart'} onChange={() => updateSettings.mutate({ autoResponderMode: 'smart' })} className="sr-only" data-testid="radio-smart" />
-                <p className={`font-medium text-sm ${settings.autoResponderMode === 'smart' ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Smart</p>
-                <p className={`text-[10px] mt-0.5 ${settings.autoResponderMode === 'smart' ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>Calendar-aware</p>
+                <input type="radio" name="autoResponderMode" value="smart" checked={settings.autoResponderMode === 'smart' || settings.autoResponderMode === 'off' || !settings.autoResponderMode} onChange={() => updateSettings.mutate({ autoResponderMode: 'smart' })} className="sr-only" data-testid="radio-smart" />
+                <div className="flex-1">
+                  <p className={`font-medium text-sm ${(settings.autoResponderMode === 'smart' || settings.autoResponderMode === 'off' || !settings.autoResponderMode) ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Smart Response</p>
+                  <p className={`text-xs mt-1 ${(settings.autoResponderMode === 'smart' || settings.autoResponderMode === 'off' || !settings.autoResponderMode) ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>
+                    Review each inquiry, then one-click to accept (sends pricing sheet to clients, availability to planners), refer to your circle, or decline
+                  </p>
+                </div>
               </label>
 
-              {/* Info Sheet */}
-              <label className={`flex flex-col items-center justify-center text-center px-3 py-3 rounded cursor-pointer transition-all ${
-                settings.autoResponderMode === 'info_sheet' 
+              {/* Vacation / Auto Response */}
+              <label className={`flex items-start gap-4 p-4 rounded cursor-pointer transition-all ${
+                (settings.autoResponderMode === 'paused' || settings.autoResponderMode === 'paused_with_referral')
                   ? 'bg-[#F5F0E8] ring-1 ring-[#F5F0E8]' 
                   : 'border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'
               }`}>
-                <input type="radio" name="autoResponderMode" value="info_sheet" checked={settings.autoResponderMode === 'info_sheet'} onChange={() => updateSettings.mutate({ autoResponderMode: 'info_sheet' })} className="sr-only" data-testid="radio-info-sheet" />
-                <p className={`font-medium text-sm ${settings.autoResponderMode === 'info_sheet' ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Info Sheet</p>
-                <p className={`text-[10px] mt-0.5 ${settings.autoResponderMode === 'info_sheet' ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>Auto-send always</p>
-              </label>
-
-              {/* Paused + Refer */}
-              <label className={`flex flex-col items-center justify-center text-center px-3 py-3 rounded cursor-pointer transition-all ${
-                settings.autoResponderMode === 'paused_with_referral' 
-                  ? 'bg-[#F5F0E8] ring-1 ring-[#F5F0E8]' 
-                  : 'border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'
-              }`}>
-                <input type="radio" name="autoResponderMode" value="paused_with_referral" checked={settings.autoResponderMode === 'paused_with_referral'} onChange={() => updateSettings.mutate({ autoResponderMode: 'paused_with_referral' })} className="sr-only" data-testid="radio-paused-referral" />
-                <p className={`font-medium text-sm ${settings.autoResponderMode === 'paused_with_referral' ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Paused + Refer</p>
-                <p className={`text-[10px] mt-0.5 ${settings.autoResponderMode === 'paused_with_referral' ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>Send to circle</p>
-              </label>
-
-              {/* Paused */}
-              <label className={`flex flex-col items-center justify-center text-center px-3 py-3 rounded cursor-pointer transition-all ${
-                settings.autoResponderMode === 'paused' 
-                  ? 'bg-[#F5F0E8] ring-1 ring-[#F5F0E8]' 
-                  : 'border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'
-              }`}>
-                <input type="radio" name="autoResponderMode" value="paused" checked={settings.autoResponderMode === 'paused'} onChange={() => updateSettings.mutate({ autoResponderMode: 'paused' })} className="sr-only" data-testid="radio-paused" />
-                <p className={`font-medium text-sm ${settings.autoResponderMode === 'paused' ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Paused</p>
-                <p className={`text-[10px] mt-0.5 ${settings.autoResponderMode === 'paused' ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>No response</p>
-              </label>
-
-              {/* Off - spans full width */}
-              <label className={`col-span-2 flex flex-col items-center justify-center text-center px-3 py-2.5 rounded cursor-pointer transition-all ${
-                (settings.autoResponderMode === 'off' || !settings.autoResponderMode)
-                  ? 'bg-[#F5F0E8] ring-1 ring-[#F5F0E8]' 
-                  : 'border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'
-              }`}>
-                <input type="radio" name="autoResponderMode" value="off" checked={settings.autoResponderMode === 'off' || !settings.autoResponderMode} onChange={() => updateSettings.mutate({ autoResponderMode: 'off' })} className="sr-only" data-testid="radio-off" />
-                <p className={`font-medium text-sm ${(settings.autoResponderMode === 'off' || !settings.autoResponderMode) ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Off</p>
-                <p className={`text-[10px] mt-0.5 ${(settings.autoResponderMode === 'off' || !settings.autoResponderMode) ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>Manual review only</p>
+                <input type="radio" name="autoResponderMode" value="paused" checked={settings.autoResponderMode === 'paused' || settings.autoResponderMode === 'paused_with_referral'} onChange={() => updateSettings.mutate({ autoResponderMode: 'paused' })} className="sr-only" data-testid="radio-vacation" />
+                <div className="flex-1">
+                  <p className={`font-medium text-sm ${(settings.autoResponderMode === 'paused' || settings.autoResponderMode === 'paused_with_referral') ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Vacation / Away</p>
+                  <p className={`text-xs mt-1 ${(settings.autoResponderMode === 'paused' || settings.autoResponderMode === 'paused_with_referral') ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>
+                    Automatically send a custom message to all new inquiries while you're unavailable
+                  </p>
+                </div>
               </label>
             </div>
           </section>

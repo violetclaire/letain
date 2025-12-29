@@ -438,10 +438,10 @@ export default function ArtistAdmin() {
         {useSessionAuth && (
           <div className="mb-10">
             <p className="text-[10px] uppercase tracking-[0.2em] text-[#F5F0E8]/40 mb-4">Response Mode</p>
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <label 
-                className={`cursor-pointer p-3 border text-center transition-colors ${
-                  artist.autoResponderMode === 'smart' 
+                className={`cursor-pointer p-4 border transition-colors ${
+                  (artist.autoResponderMode === 'smart' || artist.autoResponderMode === 'off' || !artist.autoResponderMode)
                     ? 'bg-[#F5F0E8] border-[#F5F0E8] text-[#1A1A1A]' 
                     : 'bg-[#222] border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'
                 }`}
@@ -451,88 +451,31 @@ export default function ArtistAdmin() {
                   type="radio" 
                   name="autoResponderMode" 
                   value="smart" 
-                  checked={artist.autoResponderMode === 'smart'} 
+                  checked={artist.autoResponderMode === 'smart' || artist.autoResponderMode === 'off' || !artist.autoResponderMode} 
                   onChange={() => updateAutoResponder.mutate('smart')} 
                   className="sr-only" 
                 />
-                <p className={`font-medium text-sm ${artist.autoResponderMode === 'smart' ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Smart</p>
-                <p className={`text-[10px] mt-0.5 ${artist.autoResponderMode === 'smart' ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>Calendar-aware</p>
+                <p className={`font-medium text-sm ${(artist.autoResponderMode === 'smart' || artist.autoResponderMode === 'off' || !artist.autoResponderMode) ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Smart Response</p>
+                <p className={`text-xs mt-1 ${(artist.autoResponderMode === 'smart' || artist.autoResponderMode === 'off' || !artist.autoResponderMode) ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>Review + one-click accept</p>
               </label>
               <label 
-                className={`cursor-pointer p-3 border text-center transition-colors ${
-                  artist.autoResponderMode === 'info_sheet' 
+                className={`cursor-pointer p-4 border transition-colors ${
+                  (artist.autoResponderMode === 'paused' || artist.autoResponderMode === 'paused_with_referral')
                     ? 'bg-[#F5F0E8] border-[#F5F0E8] text-[#1A1A1A]' 
                     : 'bg-[#222] border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'
                 }`}
-                data-testid="mode-info-sheet"
-              >
-                <input 
-                  type="radio" 
-                  name="autoResponderMode" 
-                  value="info_sheet" 
-                  checked={artist.autoResponderMode === 'info_sheet'} 
-                  onChange={() => updateAutoResponder.mutate('info_sheet')} 
-                  className="sr-only" 
-                />
-                <p className={`font-medium text-sm ${artist.autoResponderMode === 'info_sheet' ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Info Sheet</p>
-                <p className={`text-[10px] mt-0.5 ${artist.autoResponderMode === 'info_sheet' ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>Auto-send always</p>
-              </label>
-              <label 
-                className={`cursor-pointer p-3 border text-center transition-colors ${
-                  artist.autoResponderMode === 'paused_with_referral' 
-                    ? 'bg-[#F5F0E8] border-[#F5F0E8] text-[#1A1A1A]' 
-                    : 'bg-[#222] border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'
-                }`}
-                data-testid="mode-paused-referral"
-              >
-                <input 
-                  type="radio" 
-                  name="autoResponderMode" 
-                  value="paused_with_referral" 
-                  checked={artist.autoResponderMode === 'paused_with_referral'} 
-                  onChange={() => updateAutoResponder.mutate('paused_with_referral')} 
-                  className="sr-only" 
-                />
-                <p className={`font-medium text-sm ${artist.autoResponderMode === 'paused_with_referral' ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Paused + Refer</p>
-                <p className={`text-[10px] mt-0.5 ${artist.autoResponderMode === 'paused_with_referral' ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>Send to circle</p>
-              </label>
-              <label 
-                className={`cursor-pointer p-3 border text-center transition-colors ${
-                  artist.autoResponderMode === 'paused' 
-                    ? 'bg-[#F5F0E8] border-[#F5F0E8] text-[#1A1A1A]' 
-                    : 'bg-[#222] border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'
-                }`}
-                data-testid="mode-paused"
+                data-testid="mode-vacation"
               >
                 <input 
                   type="radio" 
                   name="autoResponderMode" 
                   value="paused" 
-                  checked={artist.autoResponderMode === 'paused'} 
+                  checked={artist.autoResponderMode === 'paused' || artist.autoResponderMode === 'paused_with_referral'} 
                   onChange={() => updateAutoResponder.mutate('paused')} 
                   className="sr-only" 
                 />
-                <p className={`font-medium text-sm ${artist.autoResponderMode === 'paused' ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Paused</p>
-                <p className={`text-[10px] mt-0.5 ${artist.autoResponderMode === 'paused' ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>No response</p>
-              </label>
-              <label 
-                className={`cursor-pointer p-3 border text-center transition-colors ${
-                  (artist.autoResponderMode === 'off' || !artist.autoResponderMode)
-                    ? 'bg-[#F5F0E8] border-[#F5F0E8] text-[#1A1A1A]' 
-                    : 'bg-[#222] border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'
-                }`}
-                data-testid="mode-off"
-              >
-                <input 
-                  type="radio" 
-                  name="autoResponderMode" 
-                  value="off" 
-                  checked={artist.autoResponderMode === 'off' || !artist.autoResponderMode} 
-                  onChange={() => updateAutoResponder.mutate('off')} 
-                  className="sr-only" 
-                />
-                <p className={`font-medium text-sm ${(artist.autoResponderMode === 'off' || !artist.autoResponderMode) ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Off</p>
-                <p className={`text-[10px] mt-0.5 ${(artist.autoResponderMode === 'off' || !artist.autoResponderMode) ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>Manual only</p>
+                <p className={`font-medium text-sm ${(artist.autoResponderMode === 'paused' || artist.autoResponderMode === 'paused_with_referral') ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Vacation / Away</p>
+                <p className={`text-xs mt-1 ${(artist.autoResponderMode === 'paused' || artist.autoResponderMode === 'paused_with_referral') ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>Auto-reply while unavailable</p>
               </label>
             </div>
           </div>
