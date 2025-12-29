@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import Uppy from "@uppy/core";
 import AwsS3 from "@uppy/aws-s3";
+import DOMPurify from "dompurify";
 
 export default function ArtistDashboard() {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
@@ -4199,7 +4200,7 @@ export default function ArtistDashboard() {
                   <h4 className="text-xs uppercase tracking-wide ink-soft font-semibold mb-2">Contract Terms</h4>
                   <div 
                     className="prose prose-sm max-w-none text-xs"
-                    dangerouslySetInnerHTML={{ __html: viewingContract.contractHtml }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(viewingContract.contractHtml) }}
                   />
                 </div>
               )}

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CheckCircle2, FileText, AlertCircle, Loader2, Pen, Type, Calendar, MapPin, DollarSign, Clock, ChevronDown, Download, Mail, Shield } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import DOMPurify from "dompurify";
 
 interface ContractSigningProps {
   token: string;
@@ -356,7 +357,7 @@ export default function ContractSigning({ token }: ContractSigningProps) {
               >
                 <div 
                   className="prose prose-sm max-w-none contract-content"
-                  dangerouslySetInnerHTML={{ __html: contract.contractHtml }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(contract.contractHtml) }}
                 />
               </div>
             </Card>
