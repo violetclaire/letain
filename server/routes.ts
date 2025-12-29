@@ -164,39 +164,11 @@ export function getAuthUserId(req: any): string | null {
 }
 
 // Helper to analyze sentiment of inquiry messages using CDI agent
-async function analyzeInquirySentiment(inquiryId: string, message: string, context?: { clientName?: string; eventDate?: Date }) {
-  try {
-    await loadCDI();
-    if (!cdiAgent?.analyzeChatMessage) {
-      console.log('[Sentiment] CDI agent not available');
-      return;
-    }
-    
-    const analysis = await cdiAgent.analyzeChatMessage(message, {
-      clientName: context?.clientName,
-      eventDate: context?.eventDate?.toISOString(),
-      bookingStatus: 'inquiry',
-    });
-    
-    // Update inquiry with sentiment data
-    await storage.updateInquiry(inquiryId, {
-      sentiment: analysis.sentiment,
-      sentimentScore: analysis.confidenceScore,
-      sentimentAnalysis: {
-        anxietyLevel: analysis.rawMetrics?.anxietyLevel,
-        frustrationLevel: analysis.rawMetrics?.frustrationLevel,
-        confusionLevel: analysis.rawMetrics?.confusionLevel,
-        satisfactionLevel: analysis.rawMetrics?.satisfactionLevel,
-        urgencyLevel: analysis.rawMetrics?.urgencyLevel,
-        distressSignals: analysis.distressSignals,
-        aiRationale: analysis.aiRationale,
-      },
-    } as any);
-    
-    console.log(`[Sentiment] Analyzed inquiry ${inquiryId}: ${analysis.sentiment} (confidence: ${analysis.confidenceScore}%)`);
-  } catch (err) {
-    console.error('[Sentiment] Failed to analyze inquiry:', err);
-  }
+// DISABLED: Automatic analysis disabled to save AI costs. Will be re-enabled with manual "liaison" button later.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function analyzeInquirySentiment(_inquiryId: string, _message: string, _context?: { clientName?: string; eventDate?: Date }) {
+  // Feature disabled for now - can be re-enabled when liaison button is added
+  return;
 }
 
 // Helper to parse date strings as local time to avoid timezone issues

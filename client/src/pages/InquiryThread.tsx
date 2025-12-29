@@ -18,19 +18,6 @@ interface Inquiry {
   status: string;
   createdAt?: string;
   depositPaidAt?: string;
-  // AI sentiment analysis
-  sentiment?: 'positive' | 'neutral' | 'negative' | 'distressed';
-  sentimentScore?: number;
-  sentimentAnalysis?: {
-    anxietyLevel?: number;
-    frustrationLevel?: number;
-    confusionLevel?: number;
-    satisfactionLevel?: number;
-    urgencyLevel?: number;
-    distressSignals?: Array<{ type: string; severity: number; evidence: string }>;
-    aiRationale?: string;
-    suggestedAction?: string;
-  };
 }
 
 interface ArtistProfile {
@@ -262,51 +249,6 @@ export default function InquiryThread() {
             </div>
           )}
 
-          {/* AI Communication Coach (Artist Only) */}
-          {isArtist && inquiry.sentiment && (
-            <details className="mt-4 group" data-testid="ai-coach">
-              <summary className="flex items-center gap-2 cursor-pointer list-none text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40 hover:text-[#F5F0E8]/60">
-                <span className="transition-transform group-open:rotate-90">▸</span>
-                Communication Coach
-                <span className={`ml-1 w-2 h-2 rounded-full ${
-                  inquiry.sentiment === 'positive' ? 'bg-green-500' :
-                  inquiry.sentiment === 'negative' ? 'bg-orange-500' :
-                  inquiry.sentiment === 'distressed' ? 'bg-red-500' :
-                  'bg-[#F5F0E8]/30'
-                }`} />
-              </summary>
-              <div className="mt-3 bg-[#F5F0E8]/5 border border-[#F5F0E8]/10 p-4 rounded">
-                {/* Actionable suggestion - the main value */}
-                {inquiry.sentimentAnalysis?.suggestedAction && (
-                  <div className="mb-3 pb-3 border-b border-[#F5F0E8]/10">
-                    <p className="text-[10px] tracking-[0.1em] uppercase text-[#F5F0E8]/40 mb-1">Try this</p>
-                    <p className="text-sm text-[#F5F0E8]/80">
-                      {inquiry.sentimentAnalysis.suggestedAction}
-                    </p>
-                  </div>
-                )}
-                {/* Quick observation */}
-                {inquiry.sentimentAnalysis?.aiRationale && (
-                  <p className="text-xs text-[#F5F0E8]/50 leading-relaxed italic">
-                    {inquiry.sentimentAnalysis.aiRationale}
-                  </p>
-                )}
-                {/* Red flags if any */}
-                {inquiry.sentimentAnalysis?.distressSignals && inquiry.sentimentAnalysis.distressSignals.length > 0 && (
-                  <div className="mt-3 pt-2 border-t border-[#F5F0E8]/5">
-                    <span className="text-[10px] text-orange-400/80">Heads up:</span>
-                    <ul className="mt-1 space-y-1">
-                      {inquiry.sentimentAnalysis.distressSignals.map((signal, idx) => (
-                        <li key={idx} className="text-xs text-[#F5F0E8]/40">
-                          {signal.evidence}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </details>
-          )}
         </section>
 
         {/* 3. CONVERSATION THREAD - Moved above actions for context */}
