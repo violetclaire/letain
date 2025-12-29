@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Loader2, Mail, Eye, EyeOff } from "lucide-react";
+import { Loader2, Mail, Eye, EyeOff, Link2 } from "lucide-react";
 
 export default function ArtistLogin() {
   const [, setLocation] = useLocation();
@@ -12,6 +12,10 @@ export default function ArtistLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const [showMagicLink, setShowMagicLink] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [showLinkProfile, setShowLinkProfile] = useState(false);
+  const [artistSlug, setArtistSlug] = useState("");
+  const [linkSuccess, setLinkSuccess] = useState(false);
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,6 +91,43 @@ export default function ArtistLogin() {
     }
   };
 
+  const handleLinkProfile = async (e: React.FormEvent, confirmLink = false) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+    setNeedsConfirmation(false);
+
+    try {
+      const response = await fetch("/api/public/artist/link-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          email: email.toLowerCase().trim(),
+          artistSlug: artistSlug.toLowerCase().trim(),
+          confirmLink
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.needsConfirmation) {
+          setNeedsConfirmation(true);
+          setError(data.message);
+        } else {
+          setError(data.error || "Something went wrong");
+        }
+        return;
+      }
+
+      setLinkSuccess(true);
+    } catch (err) {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (magicLinkSent) {
     return (
       <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
@@ -116,6 +157,143 @@ export default function ArtistLogin() {
             >
               Use a different email
             </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (linkSuccess) {
+    return (
+      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md"
+        >
+          <div className="p-8 md:p-10 border border-[#F5F0E8]/20 rounded text-center">
+            <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-green-500/20 flex items-center justify-center">
+              <Link2 className="w-8 h-8 text-green-400" />
+            </div>
+            <h1 className="text-2xl md:text-3xl mb-3 tracking-tight text-[#F5F0E8]" style={{ fontFamily: "'Fraunces', serif" }}>
+              Profile Linked!
+            </h1>
+            <p className="text-sm text-[#F5F0E8]/60 mb-6">
+              Your profile has been connected to your account. You can now sign in.
+            </p>
+            <button
+              onClick={() => {
+                setLinkSuccess(false);
+                setShowLinkProfile(false);
+                setArtistSlug("");
+              }}
+              className="w-full bg-[#F5F0E8] text-[#1A1A1A] py-3 text-sm uppercase tracking-widest transition-colors rounded hover:bg-white"
+              data-testid="button-back-to-login"
+            >
+              Back to Sign In
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (showLinkProfile) {
+    return (
+      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md"
+        >
+          <div className="p-8 md:p-10 border border-[#F5F0E8]/20 rounded">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl md:text-4xl mb-2 tracking-tight text-[#F5F0E8]" style={{ fontFamily: "'Fraunces', serif" }}>
+                Link Your Profile
+              </h1>
+              <p className="text-sm text-[#F5F0E8]/60">
+                Connect your existing artist profile to your account
+              </p>
+            </div>
+
+            <form onSubmit={(e) => handleLinkProfile(e, false)} className="space-y-5">
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-[0.15em] text-[#F5F0E8]/40">
+                  Your Email
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  required
+                  className="w-full border border-[#F5F0E8]/20 bg-transparent px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#F5F0E8]/30 rounded"
+                  data-testid="input-email-link"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-[0.15em] text-[#F5F0E8]/40">
+                  Your Profile URL Slug
+                </label>
+                <input
+                  type="text"
+                  value={artistSlug}
+                  onChange={(e) => setArtistSlug(e.target.value)}
+                  placeholder="e.g. themakeupdolls"
+                  required
+                  className="w-full border border-[#F5F0E8]/20 bg-transparent px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#F5F0E8]/30 rounded"
+                  data-testid="input-artist-slug"
+                />
+                <p className="text-xs text-[#F5F0E8]/40">
+                  This is the part after dateinquiry.com/ in your profile URL
+                </p>
+              </div>
+
+              {error && (
+                <div className="text-red-400 text-sm text-center bg-red-500/10 border border-red-500/20 p-3 rounded">
+                  {error}
+                  {needsConfirmation && (
+                    <button
+                      type="button"
+                      onClick={(e) => handleLinkProfile(e as any, true)}
+                      className="block w-full mt-3 bg-red-500/20 border border-red-500/40 py-2 rounded text-red-300 hover:bg-red-500/30"
+                    >
+                      Yes, link it to my account
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isLoading || !email.trim() || !artistSlug.trim()}
+                className="w-full bg-[#F5F0E8] text-[#1A1A1A] py-3 text-sm uppercase tracking-widest transition-colors disabled:opacity-50 flex items-center justify-center gap-2 rounded hover:bg-white"
+                data-testid="button-link-profile"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Linking...
+                  </>
+                ) : (
+                  "Link Profile"
+                )}
+              </button>
+            </form>
+
+            <div className="mt-6 pt-4 border-t border-[#F5F0E8]/10 text-center">
+              <button
+                onClick={() => {
+                  setShowLinkProfile(false);
+                  setError("");
+                  setNeedsConfirmation(false);
+                }}
+                className="text-xs text-[#F5F0E8]/50 hover:text-[#F5F0E8] underline"
+              >
+                Back to sign in
+              </button>
+            </div>
           </div>
         </motion.div>
       </div>
@@ -281,6 +459,13 @@ export default function ArtistLogin() {
               className="text-xs text-[#F5F0E8]/50 hover:text-[#F5F0E8] underline"
             >
               Forgot password? Get a login link instead
+            </button>
+            <button
+              onClick={() => setShowLinkProfile(true)}
+              className="text-xs text-[#F5F0E8]/50 hover:text-[#F5F0E8] underline block w-full"
+              data-testid="button-link-existing-profile"
+            >
+              Have an existing profile? Link it to your account
             </button>
             <p className="text-xs text-[#F5F0E8]/50">
               New here?{" "}

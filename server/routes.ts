@@ -9970,6 +9970,63 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // Link artist profile to user account (for fixing orphaned profiles)
+  app.post("/api/public/artist/link-profile", async (req, res) => {
+    try {
+      const { email, artistSlug, confirmLink } = req.body;
+      
+      if (!email || !artistSlug) {
+        return res.status(400).json({ error: "Email and artistSlug are required" });
+      }
+      
+      const normalizedEmail = email.toLowerCase().trim();
+      const normalizedSlug = artistSlug.toLowerCase().trim();
+      
+      // Find the user by email
+      const user = await storage.getUserByEmail(normalizedEmail);
+      if (!user) {
+        return res.status(404).json({ error: "No user account found with this email. Please create an account first at /artist-login." });
+      }
+      
+      // Find the artist profile by slug
+      const profile = await storage.getArtistProfileBySlug(normalizedSlug);
+      if (!profile) {
+        return res.status(404).json({ error: `No artist profile found with slug "${artistSlug}"` });
+      }
+      
+      // Check if profile is already linked to a different user
+      if (profile.userId && profile.userId !== user.id) {
+        // If not confirming, ask for confirmation
+        if (!confirmLink) {
+          return res.status(409).json({ 
+            error: "This profile is linked to a different account",
+            needsConfirmation: true,
+            message: `The "${profile.businessName}" profile is currently linked to a different user. Do you want to link it to your account instead?`
+          });
+        }
+      }
+      
+      // Update the artist profile to link to this user
+      await storage.updateArtistProfile(profile.userId, { userId: user.id } as any);
+      
+      // Also update the user's role to artist if not already
+      if (user.role !== 'artist') {
+        await storage.updateUser(user.id, { role: 'artist' });
+      }
+      
+      console.log(`[LinkProfile] Linked profile "${profile.artistSlug}" to user ${user.id} (${user.email})`);
+      
+      res.json({ 
+        success: true, 
+        message: `Successfully linked "${profile.businessName}" to your account. You can now log in at /artist-login.`,
+        artistSlug: profile.artistSlug
+      });
+    } catch (error: any) {
+      console.error("[LinkProfile] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ===== INQUIRY THREAD ROUTES =====
   
   // Request access to inquiry threads by email (sends magic links to client)
