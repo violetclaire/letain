@@ -435,7 +435,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else {
           // Try to find by email as fallback
           console.log("[Login] No profile found by userId, trying email lookup...");
-          const profileByEmail = await storage.getArtistByEmail(user.email!);
+          const profileByEmail = await storage.getArtistProfileByEmail(user.email!);
           if (profileByEmail) {
             artistSlug = profileByEmail.artistSlug || null;
             artistProfileDebug = `Found by email, userId mismatch: profile.userId=${profileByEmail.userId} vs user.id=${user.id}`;
