@@ -3,7 +3,18 @@ import { useRoute } from "wouter";
 import { format } from "date-fns";
 import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, Send, X, Check } from "lucide-react";
+import { Loader2, Send, X, Check, Plus, Trash2, Eye } from "lucide-react";
+
+interface ServiceItem {
+  clientType: string;
+  service: string;
+  qty: number;
+  price: number;
+}
+
+const CLIENT_TYPES = ["Bride", "Bridesmaid", "Mother of Bride", "Mother of Groom", "Flower Girl", "Guest", "Other"];
+
+const defaultServiceItem: ServiceItem = { clientType: "Bride", service: "", qty: 1, price: 0 };
 
 interface Inquiry {
   id: string;
@@ -54,12 +65,31 @@ export default function InquiryThread() {
   const [replyMessage, setReplyMessage] = useState("");
   const [showContractForm, setShowContractForm] = useState(false);
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
+  const [showContractReview, setShowContractReview] = useState(false);
+  const [serviceItems, setServiceItems] = useState<ServiceItem[]>([{ ...defaultServiceItem }]);
   const [contractData, setContractData] = useState({
-    packageDetails: "",
-    totalAmount: "",
     depositAmount: "",
     eventLocation: "",
+    travelFee: "",
   });
+  
+  // Calculate totals from service items
+  const servicesTotal = serviceItems.reduce((sum, item) => sum + (item.qty * item.price), 0);
+  const travelFee = parseFloat(contractData.travelFee) || 0;
+  const grandTotal = servicesTotal + travelFee;
+  
+  // Service item management
+  const addServiceItem = () => setServiceItems([...serviceItems, { ...defaultServiceItem }]);
+  const removeServiceItem = (index: number) => {
+    if (serviceItems.length > 1) {
+      setServiceItems(serviceItems.filter((_, i) => i !== index));
+    }
+  };
+  const updateServiceItem = (index: number, field: keyof ServiceItem, value: any) => {
+    const updated = [...serviceItems];
+    updated[index] = { ...updated[index], [field]: field === 'qty' || field === 'price' ? Number(value) : value };
+    setServiceItems(updated);
+  };
   const [invoiceData, setInvoiceData] = useState({
     type: "deposit",
     amount: "",
@@ -97,12 +127,40 @@ export default function InquiryThread() {
   });
 
   const contractMutation = useMutation({
-    mutationFn: async (data: typeof contractData) => {
-      return apiRequest("POST", `/api/public/inquiry/${threadToken}/create-contract`, data);
+    mutationFn: async () => {
+      // Filter out empty service lines
+      const validItems = serviceItems.filter(item => item.service.trim());
+      
+      // Build packageDetails string for backward compatibility
+      const packageDetails = validItems
+        .map(item => `${item.clientType}: ${item.service} (x${item.qty}) - $${(item.qty * item.price).toFixed(2)}`)
+        .join('\n');
+      
+      const payload = {
+        // New format with service items
+        serviceItems: validItems.map(item => ({
+          clientType: item.clientType,
+          service: item.service,
+          qty: item.qty,
+          price: Math.round(item.price * 100), // Convert to cents
+          total: Math.round(item.qty * item.price * 100),
+        })),
+        // Legacy fields for backward compatibility
+        packageDetails,
+        totalAmount: grandTotal.toFixed(2), // String for legacy
+        depositAmount: contractData.depositAmount || "0",
+        eventLocation: contractData.eventLocation,
+        travelFee: Math.round(travelFee * 100),
+      };
+      return apiRequest("POST", `/api/public/inquiry/${threadToken}/create-contract`, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/public/inquiry/${threadToken}`] });
+      // Reset all form state
       setShowContractForm(false);
+      setShowContractReview(false);
+      setServiceItems([{ ...defaultServiceItem }]);
+      setContractData({ depositAmount: "", eventLocation: "", travelFee: "" });
     },
   });
 
@@ -324,37 +382,95 @@ export default function InquiryThread() {
                   <p className="text-[10px] opacity-50 mt-1">Create & send for signing</p>
                 </button>
 
-                {showContractForm && (
+                {showContractForm && !showContractReview && (
                   <div className="border border-[#F5F0E8]/10 rounded p-6">
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        contractMutation.mutate(contractData);
-                      }}
-                      className="space-y-5"
-                    >
-                      <div>
-                        <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40 block mb-2">Package Description</label>
-                        <textarea
-                          value={contractData.packageDetails}
-                          onChange={(e) => setContractData({ ...contractData, packageDetails: e.target.value })}
-                          rows={2}
-                          className="w-full bg-transparent border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-3 py-2 resize-none"
-                          placeholder="Bridal hair & makeup, 3 bridesmaids..."
-                        />
+                    <div className="space-y-5">
+                      <div className="flex items-center justify-between mb-4">
+                        <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40">Services</label>
+                        <button
+                          type="button"
+                          onClick={addServiceItem}
+                          className="flex items-center gap-1 text-xs text-[#F5F0E8]/60 hover:text-[#F5F0E8] transition-colors"
+                        >
+                          <Plus size={14} /> Add Service
+                        </button>
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40 block mb-2">Total Amount ($)</label>
-                          <input
-                            type="number"
-                            value={contractData.totalAmount}
-                            onChange={(e) => setContractData({ ...contractData, totalAmount: e.target.value })}
-                            step="0.01"
-                            className="w-full bg-transparent border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-3 py-2"
-                            placeholder="1500.00"
-                          />
+                      
+                      <div className="space-y-3">
+                        {serviceItems.map((item, index) => (
+                          <div key={index} className="grid grid-cols-12 gap-2 items-center">
+                            <select
+                              value={item.clientType}
+                              onChange={(e) => updateServiceItem(index, 'clientType', e.target.value)}
+                              className="col-span-3 bg-[#1A1A1A] border border-[#F5F0E8]/20 rounded text-xs text-[#F5F0E8] px-2 py-2"
+                            >
+                              {CLIENT_TYPES.map(type => (
+                                <option key={type} value={type}>{type}</option>
+                              ))}
+                            </select>
+                            <input
+                              type="text"
+                              value={item.service}
+                              onChange={(e) => updateServiceItem(index, 'service', e.target.value)}
+                              placeholder="Hair & Makeup"
+                              className="col-span-4 bg-transparent border border-[#F5F0E8]/20 rounded text-xs text-[#F5F0E8] px-2 py-2"
+                            />
+                            <input
+                              type="number"
+                              value={item.qty}
+                              onChange={(e) => updateServiceItem(index, 'qty', e.target.value)}
+                              min="1"
+                              className="col-span-1 bg-transparent border border-[#F5F0E8]/20 rounded text-xs text-[#F5F0E8] px-2 py-2 text-center"
+                            />
+                            <div className="col-span-3 flex items-center gap-1">
+                              <span className="text-[#F5F0E8]/40 text-xs">$</span>
+                              <input
+                                type="number"
+                                value={item.price || ''}
+                                onChange={(e) => updateServiceItem(index, 'price', e.target.value)}
+                                placeholder="0"
+                                step="0.01"
+                                className="flex-1 bg-transparent border border-[#F5F0E8]/20 rounded text-xs text-[#F5F0E8] px-2 py-2"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeServiceItem(index)}
+                              className="col-span-1 text-[#F5F0E8]/30 hover:text-red-400 transition-colors"
+                              disabled={serviceItems.length === 1}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <div className="border-t border-[#F5F0E8]/10 pt-4 space-y-3">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-[#F5F0E8]/60">Services Total</span>
+                          <span className="text-[#F5F0E8]">${servicesTotal.toFixed(2)}</span>
                         </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[#F5F0E8]/60 text-sm">Travel Fee</span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-[#F5F0E8]/40 text-xs">$</span>
+                            <input
+                              type="number"
+                              value={contractData.travelFee}
+                              onChange={(e) => setContractData({ ...contractData, travelFee: e.target.value })}
+                              step="0.01"
+                              className="w-24 bg-transparent border border-[#F5F0E8]/20 rounded text-xs text-[#F5F0E8] px-2 py-1 text-right"
+                              placeholder="0"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex justify-between text-sm font-medium border-t border-[#F5F0E8]/10 pt-3">
+                          <span className="text-[#F5F0E8]">Grand Total</span>
+                          <span className="text-[#F5F0E8]">${grandTotal.toFixed(2)}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40 block mb-2">Deposit Amount ($)</label>
                           <input
@@ -366,25 +482,98 @@ export default function InquiryThread() {
                             placeholder="500.00"
                           />
                         </div>
+                        <div>
+                          <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40 block mb-2">Event Location</label>
+                          <input
+                            type="text"
+                            value={contractData.eventLocation}
+                            onChange={(e) => setContractData({ ...contractData, eventLocation: e.target.value })}
+                            className="w-full bg-transparent border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-3 py-2"
+                            placeholder="Hotel name, address..."
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40 block mb-2">Event Location</label>
-                        <input
-                          type="text"
-                          value={contractData.eventLocation}
-                          onChange={(e) => setContractData({ ...contractData, eventLocation: e.target.value })}
-                          className="w-full bg-transparent border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-3 py-2"
-                          placeholder="Hotel name, address..."
-                        />
-                      </div>
+                      
                       <button
-                        type="submit"
-                        disabled={contractMutation.isPending}
-                        className="w-full py-3 bg-[#F5F0E8] text-[#1A1A1A] text-sm rounded hover:bg-white transition-all disabled:opacity-50"
+                        type="button"
+                        onClick={() => setShowContractReview(true)}
+                        disabled={serviceItems.every(i => !i.service)}
+                        className="w-full py-3 bg-[#F5F0E8] text-[#1A1A1A] text-sm rounded hover:bg-white transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                       >
-                        {contractMutation.isPending ? "Sending..." : "Create & Send Contract"}
+                        <Eye size={16} /> Review Contract
                       </button>
-                    </form>
+                    </div>
+                  </div>
+                )}
+                
+                {showContractReview && (
+                  <div className="border border-[#F5F0E8]/10 rounded p-6">
+                    <h4 className="text-sm font-medium text-[#F5F0E8] mb-4">Contract Review</h4>
+                    
+                    <div className="bg-[#222] rounded p-4 mb-4 text-sm">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="text-[#F5F0E8]/40 text-left">
+                            <th className="pb-2">Client</th>
+                            <th className="pb-2">Service</th>
+                            <th className="pb-2 text-center">Qty</th>
+                            <th className="pb-2 text-right">Price</th>
+                            <th className="pb-2 text-right">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-[#F5F0E8]">
+                          {serviceItems.filter(i => i.service).map((item, i) => (
+                            <tr key={i} className="border-t border-[#F5F0E8]/10">
+                              <td className="py-2">{item.clientType}</td>
+                              <td className="py-2">{item.service}</td>
+                              <td className="py-2 text-center">{item.qty}</td>
+                              <td className="py-2 text-right">${item.price.toFixed(2)}</td>
+                              <td className="py-2 text-right">${(item.qty * item.price).toFixed(2)}</td>
+                            </tr>
+                          ))}
+                          {travelFee > 0 && (
+                            <tr className="border-t border-[#F5F0E8]/10">
+                              <td className="py-2" colSpan={4}>Travel Fee</td>
+                              <td className="py-2 text-right">${travelFee.toFixed(2)}</td>
+                            </tr>
+                          )}
+                        </tbody>
+                        <tfoot>
+                          <tr className="border-t border-[#F5F0E8]/30 font-medium">
+                            <td className="pt-2" colSpan={4}>Grand Total</td>
+                            <td className="pt-2 text-right">${grandTotal.toFixed(2)}</td>
+                          </tr>
+                          <tr className="text-[#F5F0E8]/60">
+                            <td colSpan={4}>Deposit Due</td>
+                            <td className="text-right">${parseFloat(contractData.depositAmount || '0').toFixed(2)}</td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                      
+                      {contractData.eventLocation && (
+                        <p className="mt-4 text-xs text-[#F5F0E8]/60">
+                          Location: {contractData.eventLocation}
+                        </p>
+                      )}
+                    </div>
+                    
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowContractReview(false)}
+                        className="flex-1 py-3 border border-[#F5F0E8]/30 text-[#F5F0E8] text-sm rounded hover:border-[#F5F0E8] transition-all"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => contractMutation.mutate()}
+                        disabled={contractMutation.isPending}
+                        className="flex-1 py-3 bg-[#F5F0E8] text-[#1A1A1A] text-sm rounded hover:bg-white transition-all disabled:opacity-50"
+                      >
+                        {contractMutation.isPending ? "Sending..." : "Send Contract"}
+                      </button>
+                    </div>
                   </div>
                 )}
 
