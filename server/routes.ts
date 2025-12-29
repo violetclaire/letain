@@ -9988,10 +9988,31 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(404).json({ error: "No user account found with this email. Please create an account first at /artist-login." });
       }
       
-      // Find the artist profile by slug
-      const profile = await storage.getArtistProfileBySlug(normalizedSlug);
+      // Find the artist profile by slug (try multiple lookup methods)
+      let profile = await storage.getArtistProfileBySlug(normalizedSlug);
+      
+      // Fallback 1: Try finding by username in users table
       if (!profile) {
-        return res.status(404).json({ error: `No artist profile found with slug "${artistSlug}"` });
+        const userByUsername = await storage.getUserByUsername(normalizedSlug);
+        if (userByUsername) {
+          profile = await storage.getArtistProfile(userByUsername.id);
+        }
+      }
+      
+      // Fallback 2: Try finding by business name (case insensitive partial match)
+      if (!profile) {
+        const allProfiles = await db.query.artistProfiles.findMany();
+        const matchingProfile = allProfiles.find(p => {
+          const businessNameSlug = p.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || '';
+          return businessNameSlug === normalizedSlug.replace(/[^a-z0-9]/g, '');
+        });
+        if (matchingProfile) {
+          profile = matchingProfile;
+        }
+      }
+      
+      if (!profile) {
+        return res.status(404).json({ error: `No artist profile found with slug "${artistSlug}". Try your business name instead.` });
       }
       
       // Check if profile is already linked to a different user
