@@ -671,6 +671,7 @@ export const inquiries = pgTable("inquiries", {
     urgencyLevel?: number;
     distressSignals?: Array<{ type: string; severity: number; evidence: string }>;
     aiRationale?: string;
+    suggestedAction?: string;
   }>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),
