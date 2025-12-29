@@ -70,7 +70,7 @@ const CONTENT = {
     fee: "1.5% infrastructure fee on top of what we already pay to process payments.",
     noSubscription: "No subscriptions. No monthly charges.",
     example: "$500 booking = $7.50 platform fee",
-    keepLine: "Founding professionals lock in 1.5% forever.",
+    keepLine: "",
     comparison: ""
   },
   proof: {
