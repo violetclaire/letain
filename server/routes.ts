@@ -9970,6 +9970,42 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // Search for artist profiles (helps find profiles for linking)
+  app.get("/api/public/artist/search", async (req, res) => {
+    try {
+      const query = (req.query.q as string || '').toLowerCase().trim();
+      if (!query || query.length < 2) {
+        return res.status(400).json({ error: "Search query must be at least 2 characters" });
+      }
+      
+      const allProfiles = await db.query.artistProfiles.findMany();
+      const matches = allProfiles.filter(p => {
+        const slug = (p.artistSlug || '').toLowerCase();
+        const name = (p.businessName || '').toLowerCase();
+        const nameSlug = name.replace(/[^a-z0-9]/g, '');
+        const querySlug = query.replace(/[^a-z0-9]/g, '');
+        
+        return slug.includes(query) || 
+               name.includes(query) || 
+               nameSlug.includes(querySlug) ||
+               slug.includes(querySlug);
+      }).slice(0, 10);
+      
+      res.json({ 
+        results: matches.map(p => ({
+          id: p.id,
+          businessName: p.businessName,
+          artistSlug: p.artistSlug,
+          hasSlug: !!p.artistSlug
+        })),
+        count: matches.length
+      });
+    } catch (error: any) {
+      console.error("[ArtistSearch] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Link artist profile to user account (for fixing orphaned profiles)
   app.post("/api/public/artist/link-profile", async (req, res) => {
     try {
@@ -10004,7 +10040,20 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         const allProfiles = await db.query.artistProfiles.findMany();
         const matchingProfile = allProfiles.find(p => {
           const businessNameSlug = p.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || '';
-          return businessNameSlug === normalizedSlug.replace(/[^a-z0-9]/g, '');
+          const querySlug = normalizedSlug.replace(/[^a-z0-9]/g, '');
+          return businessNameSlug === querySlug || businessNameSlug.includes(querySlug) || querySlug.includes(businessNameSlug);
+        });
+        if (matchingProfile) {
+          profile = matchingProfile;
+        }
+      }
+      
+      // Fallback 3: Partial match on business name
+      if (!profile) {
+        const allProfiles = await db.query.artistProfiles.findMany();
+        const matchingProfile = allProfiles.find(p => {
+          const name = (p.businessName || '').toLowerCase();
+          return name.includes(normalizedSlug) || normalizedSlug.includes(name.replace(/[^a-z0-9]/g, ''));
         });
         if (matchingProfile) {
           profile = matchingProfile;
@@ -10012,7 +10061,13 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       }
       
       if (!profile) {
-        return res.status(404).json({ error: `No artist profile found with slug "${artistSlug}". Try your business name instead.` });
+        // List any profiles we found for debugging
+        const allProfiles = await db.query.artistProfiles.findMany();
+        const profileList = allProfiles.slice(0, 5).map(p => p.businessName || p.artistSlug || 'unnamed').join(', ');
+        return res.status(404).json({ 
+          error: `No artist profile found matching "${artistSlug}".`,
+          hint: allProfiles.length > 0 ? `Found ${allProfiles.length} profiles including: ${profileList}` : "No profiles exist in the database."
+        });
       }
       
       // Check if profile is already linked to a different user
