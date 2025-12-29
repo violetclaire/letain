@@ -11975,16 +11975,27 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       if (requestedSlug) {
         profile = await storage.getArtistProfileBySlug(requestedSlug);
         if (profile) {
-          console.log("[AdminData] Found profile by slug:", requestedSlug, "profile.userId:", profile.userId);
+          console.log("[AdminData] Found profile by slug:", requestedSlug, "profile.userId:", profile.userId, "session userId:", userId);
           
-          // Check if this profile belongs to the user or is unclaimed
-          if (profile.userId && profile.userId !== userId) {
-            return res.status(403).json({ error: "Access denied - this profile belongs to another user" });
-          }
+          // Check if this profile can be claimed by this user
+          const profileUserId = profile.userId;
+          const isUnclaimed = !profileUserId || profileUserId === '';
+          const isAlreadyOwned = profileUserId === userId;
           
-          // If profile exists but not linked to this user, link it now
-          if (!profile.userId || profile.userId !== userId) {
-            console.log("[AdminData] Linking unclaimed profile to user:", requestedSlug);
+          // Check if user's email matches the profile (for legacy data)
+          const emailPrefix = user.email?.split('@')[0]?.toLowerCase() || '';
+          const bizName = profile.businessName?.toLowerCase() || '';
+          const slugLower = profile.artistSlug?.toLowerCase() || '';
+          const emailMatches = emailPrefix && (slugLower.includes(emailPrefix) || bizName.includes(emailPrefix) || emailPrefix.includes(slugLower));
+          
+          console.log("[AdminData] isUnclaimed:", isUnclaimed, "isAlreadyOwned:", isAlreadyOwned, "emailMatches:", emailMatches);
+          
+          if (isAlreadyOwned) {
+            // Already linked correctly, continue
+            console.log("[AdminData] Profile already owned by this user");
+          } else if (isUnclaimed || emailMatches) {
+            // Unclaimed or email matches - link to this user
+            console.log("[AdminData] Linking profile to user:", requestedSlug);
             await db.update(artistProfiles)
               .set({ 
                 userId: userId,
@@ -12000,6 +12011,11 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
             
             // Reload profile with updated data
             profile = await storage.getArtistProfileBySlug(requestedSlug);
+            console.log("[AdminData] Profile linked successfully");
+          } else {
+            // Profile belongs to someone else
+            console.log("[AdminData] Access denied - profile belongs to different user");
+            return res.status(403).json({ error: "Access denied - this profile belongs to another user" });
           }
         }
       }
