@@ -163,6 +163,42 @@ export function getAuthUserId(req: any): string | null {
   return null;
 }
 
+// Helper to analyze sentiment of inquiry messages using CDI agent
+async function analyzeInquirySentiment(inquiryId: string, message: string, context?: { clientName?: string; eventDate?: Date }) {
+  try {
+    await loadCDI();
+    if (!cdiAgent?.analyzeChatMessage) {
+      console.log('[Sentiment] CDI agent not available');
+      return;
+    }
+    
+    const analysis = await cdiAgent.analyzeChatMessage(message, {
+      clientName: context?.clientName,
+      eventDate: context?.eventDate?.toISOString(),
+      bookingStatus: 'inquiry',
+    });
+    
+    // Update inquiry with sentiment data
+    await storage.updateInquiry(inquiryId, {
+      sentiment: analysis.sentiment,
+      sentimentScore: analysis.confidenceScore,
+      sentimentAnalysis: {
+        anxietyLevel: analysis.rawMetrics?.anxietyLevel,
+        frustrationLevel: analysis.rawMetrics?.frustrationLevel,
+        confusionLevel: analysis.rawMetrics?.confusionLevel,
+        satisfactionLevel: analysis.rawMetrics?.satisfactionLevel,
+        urgencyLevel: analysis.rawMetrics?.urgencyLevel,
+        distressSignals: analysis.distressSignals,
+        aiRationale: analysis.aiRationale,
+      },
+    } as any);
+    
+    console.log(`[Sentiment] Analyzed inquiry ${inquiryId}: ${analysis.sentiment} (confidence: ${analysis.confidenceScore}%)`);
+  } catch (err) {
+    console.error('[Sentiment] Failed to analyze inquiry:', err);
+  }
+}
+
 // Helper to parse date strings as local time to avoid timezone issues
 // When a date string like "2026-01-01" is passed to new Date(), it's interpreted as UTC midnight
 // which can shift to the previous day in local time for timezones behind UTC
@@ -8277,6 +8313,14 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       
       const inquiry = await storage.createInquiry(data);
       
+      // Analyze sentiment of client message (async - don't block response)
+      if (data.message) {
+        analyzeInquirySentiment(inquiry.id, data.message, {
+          clientName: data.clientName,
+          eventDate: data.eventDate ? new Date(data.eventDate) : undefined,
+        }).catch(err => console.error('[Sentiment] Background analysis failed:', err));
+      }
+      
       // Check auto-responder mode (off, info_sheet, smart, paused)
       const artistProfile = await storage.getArtistProfile(data.vendorId);
       const autoResponderMode = artistProfile?.autoResponderMode || 'off';
@@ -10037,6 +10081,10 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         createdAt: inquiry.createdAt,
         depositPaidAt: (inquiry as any).depositPaidAt,
         infoSheetSentAt: inquiry.infoSheetSentAt,
+        // AI sentiment analysis (artist only)
+        sentiment: (inquiry as any).sentiment,
+        sentimentScore: (inquiry as any).sentimentScore,
+        sentimentAnalysis: (inquiry as any).sentimentAnalysis,
       } : {
         id: inquiry.id,
         threadToken: inquiry.threadToken,
@@ -11970,6 +12018,12 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         metadata: { source: 'public_calendar', artistSlug }
       });
       
+      // Analyze sentiment (async)
+      if (message) {
+        analyzeInquirySentiment(inquiry.id, message, { clientName, eventDate: new Date(eventDate) })
+          .catch(err => console.error('[Sentiment] Background analysis failed:', err));
+      }
+      
       // Track analytics event
       await storage.createAnalyticsEvent({
         eventType: 'chat_started',
@@ -12117,6 +12171,12 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         status: 'pending',
         metadata: { source: 'external_form', artistSlug }
       });
+      
+      // Analyze sentiment (async)
+      if (message) {
+        analyzeInquirySentiment(inquiry.id, message, { clientName, eventDate: new Date(eventDate) })
+          .catch(err => console.error('[Sentiment] Background analysis failed:', err));
+      }
       
       // Track analytics
       await storage.createAnalyticsEvent({
@@ -12609,6 +12669,12 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       });
       
       console.log(`[Public Webhook] Created inquiry ${inquiry.id} for artist ${artistSlug} from ${source || 'external'}`);
+      
+      // Analyze sentiment (async)
+      if (fullMessage) {
+        analyzeInquirySentiment(inquiry.id, fullMessage, { clientName, eventDate: parsedEventDate })
+          .catch(err => console.error('[Sentiment] Background analysis failed:', err));
+      }
       
       // Get the artist for notifications
       const artist = await storage.getUser(artistProfile.userId);

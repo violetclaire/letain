@@ -18,6 +18,18 @@ interface Inquiry {
   status: string;
   createdAt?: string;
   depositPaidAt?: string;
+  // AI sentiment analysis
+  sentiment?: 'positive' | 'neutral' | 'negative' | 'distressed';
+  sentimentScore?: number;
+  sentimentAnalysis?: {
+    anxietyLevel?: number;
+    frustrationLevel?: number;
+    confusionLevel?: number;
+    satisfactionLevel?: number;
+    urgencyLevel?: number;
+    distressSignals?: Array<{ type: string; severity: number; evidence: string }>;
+    aiRationale?: string;
+  };
 }
 
 interface ArtistProfile {
@@ -246,6 +258,45 @@ export default function InquiryThread() {
               <p className="text-sm text-[#F5F0E8]/70 leading-relaxed whitespace-pre-wrap">
                 {inquiry.message}
               </p>
+            </div>
+          )}
+
+          {/* AI Sentiment Analysis (Artist Only) */}
+          {isArtist && inquiry.sentiment && (
+            <div className="mt-4 bg-[#F5F0E8]/5 border border-[#F5F0E8]/10 p-4 rounded" data-testid="sentiment-analysis">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40">AI Insight</span>
+                <span className={`px-2 py-0.5 text-[10px] tracking-[0.1em] uppercase rounded ${
+                  inquiry.sentiment === 'positive' ? 'bg-green-500/20 text-green-400' :
+                  inquiry.sentiment === 'negative' ? 'bg-orange-500/20 text-orange-400' :
+                  inquiry.sentiment === 'distressed' ? 'bg-red-500/20 text-red-400' :
+                  'bg-[#F5F0E8]/10 text-[#F5F0E8]/60'
+                }`}>
+                  {inquiry.sentiment}
+                </span>
+                {inquiry.sentimentScore !== undefined && (
+                  <span className="text-[10px] text-[#F5F0E8]/30">
+                    {inquiry.sentimentScore}% confidence
+                  </span>
+                )}
+              </div>
+              {inquiry.sentimentAnalysis?.aiRationale && (
+                <p className="text-xs text-[#F5F0E8]/50 leading-relaxed">
+                  {inquiry.sentimentAnalysis.aiRationale}
+                </p>
+              )}
+              {inquiry.sentimentAnalysis?.distressSignals && inquiry.sentimentAnalysis.distressSignals.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-[#F5F0E8]/5">
+                  <span className="text-[10px] text-red-400/80">Distress signals detected:</span>
+                  <ul className="mt-1 space-y-1">
+                    {inquiry.sentimentAnalysis.distressSignals.map((signal, idx) => (
+                      <li key={idx} className="text-xs text-[#F5F0E8]/40">
+                        {signal.evidence}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
         </section>
