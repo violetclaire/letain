@@ -134,7 +134,7 @@ export default function InquiryThread() {
     );
   }
 
-  const { inquiry, artist, messages = [] }: { inquiry: Inquiry; artist: ArtistProfile; messages: ThreadMessage[] } = data;
+  const { inquiry, artist, messages = [], isArtist = false }: { inquiry: Inquiry; artist: ArtistProfile; messages: ThreadMessage[]; isArtist: boolean } = data;
   const slug = artist?.artistSlug;
   const onboardingComplete = artist?.onboardingCompleted;
 
@@ -178,38 +178,54 @@ export default function InquiryThread() {
       {/* 1. HEADER */}
       <header className="flex justify-between items-center px-6 md:px-12 py-6 border-b border-[#F5F0E8]/10">
         <div>
-          <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F0E8]/40 mb-1">Inquiry Thread</p>
+          <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F0E8]/40 mb-1">
+            {isArtist ? 'Inquiry Thread' : 'Your Inquiry'}
+          </p>
           <h1 className="text-sm tracking-[0.15em] text-[#F5F0E8]/80" style={{ fontFamily: "'Playfair Display', serif" }}>
             {artist?.businessName || "Artist"}
           </h1>
         </div>
-        <div className="flex items-center gap-6">
-          <div className="text-right">
-            <p className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40">Velocity</p>
-            <p className={`text-sm font-medium ${velocityColor}`}>{getVelocity()}</p>
+        {isArtist && (
+          <div className="flex items-center gap-6">
+            <div className="text-right">
+              <p className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40">Velocity</p>
+              <p className={`text-sm font-medium ${velocityColor}`}>{getVelocity()}</p>
+            </div>
+            <a 
+              href={`/admin/${slug}`}
+              className="text-xs text-[#F5F0E8]/50 hover:text-[#F5F0E8] underline"
+              data-testid="link-dashboard"
+            >
+              Dashboard
+            </a>
           </div>
-          <a 
-            href={`/admin/${slug}`}
-            className="text-xs text-[#F5F0E8]/50 hover:text-[#F5F0E8] underline"
-            data-testid="link-dashboard"
-          >
-            Dashboard
-          </a>
-        </div>
+        )}
       </header>
 
       <main className="max-w-2xl mx-auto px-6 md:px-12 py-10">
-        {/* 2. CLIENT INFO SECTION */}
+        {/* 2. CLIENT/INQUIRY INFO SECTION */}
         <section className="mb-10">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F0E8]/40 mb-2">inquiry from</p>
-              <h2 className="text-2xl text-[#F5F0E8] mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>
-                {inquiry.clientName}
-              </h2>
-              <p className="text-sm text-[#F5F0E8]/50">{inquiry.clientEmail}</p>
-              {inquiry.clientPhone && (
-                <p className="text-sm text-[#F5F0E8]/50">{inquiry.clientPhone}</p>
+              {isArtist ? (
+                <>
+                  <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F0E8]/40 mb-2">inquiry from</p>
+                  <h2 className="text-2xl text-[#F5F0E8] mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>
+                    {inquiry.clientName}
+                  </h2>
+                  <p className="text-sm text-[#F5F0E8]/50">{inquiry.clientEmail}</p>
+                  {inquiry.clientPhone && (
+                    <p className="text-sm text-[#F5F0E8]/50">{inquiry.clientPhone}</p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F0E8]/40 mb-2">hello</p>
+                  <h2 className="text-2xl text-[#F5F0E8] mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>
+                    {inquiry.clientName}
+                  </h2>
+                  <p className="text-sm text-[#F5F0E8]/50">Thank you for your inquiry</p>
+                </>
               )}
             </div>
             <div className="text-right">
@@ -217,13 +233,15 @@ export default function InquiryThread() {
               <p className="text-lg text-[#F5F0E8]" style={{ fontFamily: "'Playfair Display', serif" }}>
                 {format(new Date(inquiry.eventDate), "MMM d, yyyy")}
               </p>
-              <span className={`inline-block mt-2 px-3 py-1 text-[10px] tracking-[0.15em] uppercase rounded ${statusBadge.color}`}>
-                {statusBadge.text}
-              </span>
+              {isArtist && (
+                <span className={`inline-block mt-2 px-3 py-1 text-[10px] tracking-[0.15em] uppercase rounded ${statusBadge.color}`}>
+                  {statusBadge.text}
+                </span>
+              )}
             </div>
           </div>
 
-          {inquiry.message && (
+          {isArtist && inquiry.message && (
             <div className="bg-[#F5F0E8]/5 border border-[#F5F0E8]/10 p-5 rounded">
               <p className="text-sm text-[#F5F0E8]/70 leading-relaxed whitespace-pre-wrap">
                 {inquiry.message}
@@ -256,8 +274,8 @@ export default function InquiryThread() {
           </div>
         </section>
 
-        {/* 4. TOOL BELT (Only shows when status = PENDING) */}
-        {isPending && (
+        {/* 4. TOOL BELT (Only shows when status = PENDING and viewer is artist) */}
+        {isArtist && isPending && (
           <section className="mb-10">
             <div className="grid grid-cols-3 gap-4">
               <button
@@ -291,8 +309,8 @@ export default function InquiryThread() {
           </section>
         )}
 
-        {/* 4. BOOKING ACTIONS (Only shows when status = ACCEPTED) */}
-        {isAccepted && (
+        {/* 4. BOOKING ACTIONS (Only shows when status = ACCEPTED and viewer is artist) */}
+        {isArtist && isAccepted && (
           <section className="mb-10">
             <h3 className="text-sm font-medium text-[#F5F0E8]/80 mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Next Steps</h3>
             <div className="space-y-3">
@@ -444,29 +462,29 @@ export default function InquiryThread() {
           </section>
         )}
 
-        {/* Terminal status messages */}
+        {/* Terminal status messages - Artist only for internal statuses */}
         {inquiry.status.toLowerCase() === "deposit_paid" && (
           <section className="mb-10 text-center py-6">
             <Check className="w-10 h-10 text-emerald-400 mx-auto mb-3" />
-            <p className="text-emerald-400 font-medium">Deposit Received</p>
-            <p className="text-xs text-[#F5F0E8]/40 mt-1">Booking confirmed</p>
+            <p className="text-emerald-400 font-medium">{isArtist ? 'Deposit Received' : 'Booking Confirmed'}</p>
+            <p className="text-xs text-[#F5F0E8]/40 mt-1">{isArtist ? 'Booking confirmed' : 'Thank you for your payment'}</p>
           </section>
         )}
 
-        {inquiry.status.toLowerCase() === "referred" && (
+        {isArtist && inquiry.status.toLowerCase() === "referred" && (
           <section className="mb-10 text-center py-6">
             <p className="text-sm text-[#F5F0E8]/50">This inquiry has been referred to your trusted circle.</p>
           </section>
         )}
 
-        {inquiry.status.toLowerCase() === "declined" && (
+        {isArtist && inquiry.status.toLowerCase() === "declined" && (
           <section className="mb-10 text-center py-6">
             <p className="text-sm text-[#F5F0E8]/50">This inquiry has been politely declined.</p>
           </section>
         )}
 
-        {/* 5. QUICK TEMPLATES + REPLY FORM */}
-        {!isTerminal && (
+        {/* 5. QUICK TEMPLATES + REPLY FORM (Artist only) */}
+        {isArtist && !isTerminal && (
           <section className="border-t border-[#F5F0E8]/10 pt-8">
             <div className="flex gap-3 mb-4 flex-wrap">
               <button
@@ -519,10 +537,22 @@ export default function InquiryThread() {
             </div>
           </section>
         )}
+        
+        {/* Client view - Simple status message */}
+        {!isArtist && !isTerminal && (
+          <section className="border-t border-[#F5F0E8]/10 pt-8 text-center">
+            <p className="text-sm text-[#F5F0E8]/60">
+              {artist?.businessName || 'Your artist'} will be in touch with you soon.
+            </p>
+            <p className="text-xs text-[#F5F0E8]/40 mt-2">
+              Check your email for updates.
+            </p>
+          </section>
+        )}
       </main>
 
-      {/* MODALS */}
-      {activeModal && (
+      {/* MODALS (Artist only) */}
+      {isArtist && activeModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-6 z-50" onClick={() => setActiveModal(null)}>
           <div className="bg-[#1A1A1A] border border-[#F5F0E8]/20 max-w-md w-full rounded-lg p-6" onClick={(e) => e.stopPropagation()}>
             {activeModal === "accept" && (

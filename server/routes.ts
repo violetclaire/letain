@@ -10008,6 +10008,10 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const artist = await storage.getArtistProfile(inquiry.vendorId);
       const notifications = await storage.getInquiryNotifications(inquiry.id);
       
+      // Check if viewer is the artist (logged in as this artist)
+      const viewerUserId = getAuthUserId(req);
+      const isArtist = viewerUserId && viewerUserId === inquiry.vendorId;
+      
       const messages = notifications
         .filter(n => ['artist_reply', 'info_sheet', 'referral_list', 'polite_decline'].includes(n.type))
         .map(n => ({
@@ -10015,42 +10019,58 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           type: n.type,
           content: n.content || '',
           sentAt: n.sentAt || n.createdAt,
-          sentBy: n.type === 'artist_reply' ? 'You' : 'System',
+          sentBy: n.type === 'artist_reply' ? (isArtist ? 'You' : artist?.businessName || 'Artist') : 'System',
         }));
       
+      // For clients, only send limited data
+      const inquiryData = isArtist ? {
+        id: inquiry.id,
+        threadToken: inquiry.threadToken,
+        clientName: inquiry.clientName,
+        clientEmail: inquiry.clientEmail,
+        clientPhone: inquiry.clientPhone,
+        eventDate: inquiry.eventDate,
+        eventType: inquiry.eventType,
+        eventLocation: inquiry.eventLocation,
+        message: inquiry.message,
+        status: inquiry.status,
+        createdAt: inquiry.createdAt,
+        depositPaidAt: (inquiry as any).depositPaidAt,
+        infoSheetSentAt: inquiry.infoSheetSentAt,
+      } : {
+        id: inquiry.id,
+        threadToken: inquiry.threadToken,
+        clientName: inquiry.clientName,
+        eventDate: inquiry.eventDate,
+        eventLocation: inquiry.eventLocation,
+        status: inquiry.status,
+      };
+      
+      // For clients, only send public artist info
+      const artistData = artist ? (isArtist ? {
+        id: artist.id,
+        userId: artist.userId,
+        businessName: artist.businessName,
+        artistSlug: artist.artistSlug,
+        squareAccessToken: artist.squareAccessToken ? true : false,
+        contractTemplate: artist.contractTemplate ? true : false,
+        prettyLinks: artist.prettyLinks,
+        onboardingCompleted: artist.onboardingCompleted,
+        infoSheetContent: artist.infoSheetContent,
+        pricingInfo: (artist as any).pricingInfo,
+        politeDeclineTemplate: artist.politeDeclineTemplate,
+        referralListTemplate: artist.referralListTemplate,
+        plannerInfoSheet: (artist as any).plannerInfoSheet,
+        plannerPricing: (artist as any).plannerPricing,
+      } : {
+        businessName: artist.businessName,
+      }) : null;
+      
       res.json({
-        inquiry: {
-          id: inquiry.id,
-          threadToken: inquiry.threadToken,
-          clientName: inquiry.clientName,
-          clientEmail: inquiry.clientEmail,
-          clientPhone: inquiry.clientPhone,
-          eventDate: inquiry.eventDate,
-          eventType: inquiry.eventType,
-          eventLocation: inquiry.eventLocation,
-          message: inquiry.message,
-          status: inquiry.status,
-          createdAt: inquiry.createdAt,
-          depositPaidAt: (inquiry as any).depositPaidAt,
-          infoSheetSentAt: inquiry.infoSheetSentAt,
-        },
-        artist: artist ? {
-          id: artist.id,
-          userId: artist.userId,
-          businessName: artist.businessName,
-          artistSlug: artist.artistSlug,
-          squareAccessToken: artist.squareAccessToken ? true : false,
-          contractTemplate: artist.contractTemplate ? true : false,
-          prettyLinks: artist.prettyLinks,
-          onboardingCompleted: artist.onboardingCompleted,
-          infoSheetContent: artist.infoSheetContent,
-          pricingInfo: (artist as any).pricingInfo,
-          politeDeclineTemplate: artist.politeDeclineTemplate,
-          referralListTemplate: artist.referralListTemplate,
-          plannerInfoSheet: (artist as any).plannerInfoSheet,
-          plannerPricing: (artist as any).plannerPricing,
-        } : null,
+        inquiry: inquiryData,
+        artist: artistData,
         messages,
+        isArtist,
       });
     } catch (error: any) {
       console.error("[Inquiry Thread] Error fetching inquiry:", error);
