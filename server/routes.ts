@@ -11881,11 +11881,12 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       }
       
       const user = await storage.getUser(userId);
-      if (!user || user.role !== 'artist') {
-        return res.status(403).json({ error: "Not an artist" });
+      if (!user) {
+        return res.status(403).json({ error: "User not found" });
       }
+      // Don't require artist role - we'll auto-fix if profile exists
       
-      console.log("[AdminData] Looking up profile for userId:", userId, "email:", user.email);
+      console.log("[AdminData] Looking up profile for userId:", userId, "email:", user.email, "role:", user.role);
       let profile = await storage.getArtistProfile(userId);
       
       if (!profile) {
@@ -11936,11 +11937,21 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         
         if (foundProfile) {
           console.log("[AdminData] Found profile! Fixing userId mismatch:", foundProfile.userId, "→", userId);
-          // Fix the mismatch by updating the profile's userId
+          // Fix the mismatch by updating the profile's userId AND approve it
           await db.update(artistProfiles)
-            .set({ userId: userId })
+            .set({ 
+              userId: userId,
+              verificationStatus: 'approved',
+              onboardingCompleted: true
+            })
             .where(eq(artistProfiles.id, foundProfile.id));
-          console.log("[AdminData] Fixed userId mismatch, profile now linked to:", userId);
+          console.log("[AdminData] Fixed userId and approved profile:", foundProfile.artistSlug);
+          
+          // Also ensure user role is artist
+          await db.update(users)
+            .set({ role: 'artist' })
+            .where(eq(users.id, userId));
+          console.log("[AdminData] Updated user role to artist");
           
           // Continue with the fixed profile
           profile = await storage.getArtistProfile(userId);
