@@ -254,12 +254,6 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
       });
 
       const tokenResponse = response as any;
-      console.log(`[Square OAuth] Token response received:`, JSON.stringify({
-        hasAccessToken: !!tokenResponse.accessToken,
-        hasMerchantId: !!tokenResponse.merchantId,
-        hasRefreshToken: !!tokenResponse.refreshToken,
-        expiresAt: tokenResponse.expiresAt,
-      }));
       
       if (!tokenResponse.accessToken || !tokenResponse.merchantId) {
         console.error("Square OAuth: Failed to obtain tokens", tokenResponse);
