@@ -145,37 +145,47 @@ export default function Landing() {
             {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
-
-        {/* Mobile Menu */}
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <motion.div 
-              className="md:hidden fixed inset-x-0 top-[56px] bottom-0 bg-bg z-30"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.25 }}
-            >
-              <div className="flex flex-col items-center justify-center h-full gap-8">
-                <button
-                  onClick={() => { setMobileMenuOpen(false); window.location.href = "https://dateinquiry.com/artist-login"; }}
-                  className="text-lg"
-                  data-testid="button-mobile-login"
-                >
-                  Artist Login
-                </button>
-                <button
-                  onClick={() => { setMobileMenuOpen(false); setLocation("/secretary"); }}
-                  className="text-lg font-medium"
-                  data-testid="button-mobile-get-started"
-                >
-                  Get started
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </header>
+
+      {/* Mobile Menu - Outside header with higher z-index */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div 
+            className="md:hidden fixed inset-0 bg-bg z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            <div className="flex items-center justify-between px-6 py-4">
+              <div className="font-serif text-lg tracking-tight">Your Private Secretary</div>
+              <button 
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2 -mr-2"
+                aria-label="Close menu"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="flex flex-col items-center justify-center h-[calc(100%-80px)] gap-8">
+              <button
+                onClick={() => { setMobileMenuOpen(false); window.location.href = "https://dateinquiry.com/artist-login"; }}
+                className="text-lg"
+                data-testid="button-mobile-login"
+              >
+                Artist Login
+              </button>
+              <button
+                onClick={() => { setMobileMenuOpen(false); setLocation("/secretary"); }}
+                className="text-lg font-medium"
+                data-testid="button-mobile-get-started"
+              >
+                Get started
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Hero Section - Dark Pinstripe */}
       <section className="relative min-h-screen flex flex-col justify-center bg-[#3d1a22] text-[#f5f3ef] -mx-6 md:-mx-12 px-6 md:px-12">
