@@ -127,16 +127,18 @@ export default function ArtistAdmin() {
           credentials: 'include'
         });
         if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
           if (res.status === 401) throw new Error("Access denied");
-          throw new Error("Failed to load dashboard");
+          throw new Error(data.error || "Failed to load dashboard");
         }
         return res.json();
       }
       // Otherwise use token auth
       const res = await fetch(`/api/public/artist-admin/${slug}?token=${token}`);
       if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
         if (res.status === 401) throw new Error("Access denied");
-        throw new Error("Artist not found");
+        throw new Error(data.error || "Artist not found");
       }
       return res.json();
     },
