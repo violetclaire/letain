@@ -31,6 +31,7 @@ interface ArtistSettingsData {
   infoSheetEnabled: boolean;
   formSuccessMessage?: string;
   autoResponderMode?: 'off' | 'info_sheet' | 'smart' | 'paused' | 'paused_with_referral';
+  awayMessage?: string;
   politeDeclineTemplate?: string;
   referralListTemplate?: string;
   pricingInfo?: string;
@@ -360,6 +361,27 @@ export default function ArtistSettings() {
                 </div>
               </label>
             </div>
+
+            {/* Away Message Editor - shows when vacation mode is selected */}
+            {(settings.autoResponderMode === 'paused' || settings.autoResponderMode === 'paused_with_referral') && (
+              <div className="mt-4 pt-4 border-t border-[#F5F0E8]/10">
+                <label className="block text-sm text-[#F5F0E8]/70 mb-2">Your Away Message</label>
+                <textarea
+                  value={settings.awayMessage || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (debounceRef.current) clearTimeout(debounceRef.current);
+                    debounceRef.current = setTimeout(() => {
+                      updateSettings.mutate({ awayMessage: value });
+                    }, 800);
+                  }}
+                  placeholder="Hi! Thanks for reaching out. I'm currently not taking new bookings but I'd love to connect when I'm back. In the meantime, feel free to check out my colleagues..."
+                  className="w-full bg-[#222] border border-[#F5F0E8]/20 rounded p-3 text-sm text-[#F5F0E8] placeholder:text-[#F5F0E8]/30 focus:outline-none focus:border-[#F5F0E8]/40 min-h-[120px] resize-none"
+                  data-testid="textarea-away-message"
+                />
+                <p className="text-xs text-[#F5F0E8]/40 mt-2">This message will be sent automatically to anyone who inquires while you're away.</p>
+              </div>
+            )}
           </section>
 
           {/* Your Form Link */}
