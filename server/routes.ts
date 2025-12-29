@@ -9970,6 +9970,55 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // Diagnostic page to see profile state
+  app.get("/api/admin/diagnose/:email", async (req, res) => {
+    try {
+      const email = decodeURIComponent(req.params.email).toLowerCase();
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user) {
+        return res.json({ error: "No user found with email: " + email, user: null, profiles: [] });
+      }
+      
+      // Get profile by user ID
+      const profileByUserId = await storage.getArtistProfile(user.id);
+      
+      // Get profile by email
+      const profileByEmail = await storage.getArtistProfileByEmail(email);
+      
+      // Get all profiles for debugging
+      const allProfiles = await db.select({
+        id: artistProfiles.id,
+        userId: artistProfiles.userId,
+        artistSlug: artistProfiles.artistSlug,
+        businessName: artistProfiles.businessName,
+        verificationStatus: artistProfiles.verificationStatus,
+        onboardingCompleted: artistProfiles.onboardingCompleted,
+      }).from(artistProfiles).limit(20);
+      
+      res.json({
+        user: { id: user.id, email: user.email, role: user.role },
+        profileByUserId: profileByUserId ? {
+          id: profileByUserId.id,
+          userId: profileByUserId.userId,
+          artistSlug: profileByUserId.artistSlug,
+          businessName: profileByUserId.businessName,
+          verificationStatus: profileByUserId.verificationStatus,
+        } : null,
+        profileByEmail: profileByEmail ? {
+          id: profileByEmail.id,
+          userId: profileByEmail.userId,
+          artistSlug: profileByEmail.artistSlug,
+          businessName: profileByEmail.businessName,
+          verificationStatus: profileByEmail.verificationStatus,
+        } : null,
+        allProfiles,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Simple admin page to approve profiles
   app.get("/api/admin/approve-page", async (req, res) => {
     const html = `
