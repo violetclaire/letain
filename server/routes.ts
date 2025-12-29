@@ -9970,6 +9970,53 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // Approve a pending artist profile (for recovering hidden profiles)
+  app.post("/api/public/artist/approve-profile", async (req, res) => {
+    try {
+      const { artistSlug, email } = req.body;
+      
+      if (!artistSlug) {
+        return res.status(400).json({ error: "artistSlug is required" });
+      }
+      
+      // Find the profile (even if pending)
+      const profile = await storage.getArtistProfileBySlug(artistSlug);
+      
+      if (!profile) {
+        return res.status(404).json({ error: `No profile found with slug "${artistSlug}"` });
+      }
+      
+      // Update to approved status
+      const updated = await storage.updateArtistProfile(profile.id, {
+        verificationStatus: 'approved',
+        onboardingCompleted: true
+      });
+      
+      // If email provided, link user account
+      if (email) {
+        const user = await storage.getUserByEmail(email.toLowerCase().trim());
+        if (user && profile.userId !== user.id) {
+          await storage.updateArtistProfile(profile.id, { userId: user.id });
+          console.log(`[ApproveProfile] Linked profile ${artistSlug} to user ${user.id}`);
+        }
+      }
+      
+      console.log(`[ApproveProfile] Approved profile "${artistSlug}"`);
+      
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
+      res.json({ 
+        success: true,
+        message: `Profile "${artistSlug}" is now approved and visible!`,
+        dashboardUrl: `${baseUrl}/admin/${artistSlug}`,
+        publicUrl: `${baseUrl}/${artistSlug}`,
+        loginUrl: `${baseUrl}/artist-login`
+      });
+    } catch (error: any) {
+      console.error("[ApproveProfile] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Quick profile creation (for rebuilding lost profiles)
   app.post("/api/public/artist/quick-create", async (req, res) => {
     try {
