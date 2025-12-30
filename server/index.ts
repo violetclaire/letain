@@ -11,20 +11,27 @@ import { sql } from "drizzle-orm";
 
 // Ensure database schema has required columns (runs on startup)
 async function ensureDatabaseSchema() {
-  try {
-    // Add missing sentiment columns to inquiries table
-    await db.execute(sql`ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS sentiment text`);
-    await db.execute(sql`ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS sentiment_score integer`);
-    await db.execute(sql`ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS sentiment_analysis jsonb`);
-    // Add away_message column to users table
-    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS away_message text`);
-    // Add login code columns to artist_profiles table
-    await db.execute(sql`ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS login_code varchar(255)`);
-    await db.execute(sql`ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS login_code_expires_at timestamp`);
-    console.log("[DB] Schema migration completed");
-  } catch (error) {
-    console.error("[DB] Schema migration error (may be harmless):", error);
+  console.log("[DB] Starting schema migration...");
+  
+  const migrations = [
+    { name: 'inquiries.sentiment', sql: sql`ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS sentiment text` },
+    { name: 'inquiries.sentiment_score', sql: sql`ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS sentiment_score integer` },
+    { name: 'inquiries.sentiment_analysis', sql: sql`ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS sentiment_analysis jsonb` },
+    { name: 'users.away_message', sql: sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS away_message text` },
+    { name: 'artist_profiles.login_code', sql: sql`ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS login_code varchar(255)` },
+    { name: 'artist_profiles.login_code_expires_at', sql: sql`ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS login_code_expires_at timestamp` },
+  ];
+  
+  for (const migration of migrations) {
+    try {
+      await db.execute(migration.sql);
+      console.log(`[DB] Migration OK: ${migration.name}`);
+    } catch (error: any) {
+      console.error(`[DB] Migration FAILED: ${migration.name}`, error.message);
+    }
   }
+  
+  console.log("[DB] Schema migration completed");
 }
 
 const app = express();
