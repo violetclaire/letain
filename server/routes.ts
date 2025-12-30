@@ -9902,8 +9902,9 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       
       res.json({ success: true });
     } catch (error: any) {
-      console.error("[Login] Error:", error);
-      res.status(500).json({ error: "Something went wrong" });
+      console.error("[Login] Error:", error.message || error);
+      console.error("[Login] Stack:", error.stack);
+      res.status(500).json({ error: "Something went wrong", details: error.message });
     }
   });
   
