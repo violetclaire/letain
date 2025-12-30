@@ -8353,8 +8353,9 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const hasInfoSheet = artistProfile?.infoSheetContent || 
         (artistProfile?.infoSheetType === 'pdf' && artistProfile?.infoSheetPdfUrl);
       
-      // Auto-respond based on mode
-      const shouldAutoRespond = (autoResponderMode === 'info_sheet' || autoResponderMode === 'smart') && hasInfoSheet;
+      // Only auto-send info sheet if mode is explicitly 'info_sheet'
+      // 'smart' mode means artist reviews each inquiry and decides manually
+      const shouldAutoRespond = autoResponderMode === 'info_sheet' && hasInfoSheet;
       
       if (shouldAutoRespond) {
         const vendorName = artistProfile.businessName || vendor.firstName || 'The Vendor';
