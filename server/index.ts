@@ -17,7 +17,6 @@ async function ensureDatabaseSchema() {
     { name: 'inquiries.sentiment', sql: sql`ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS sentiment text` },
     { name: 'inquiries.sentiment_score', sql: sql`ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS sentiment_score integer` },
     { name: 'inquiries.sentiment_analysis', sql: sql`ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS sentiment_analysis jsonb` },
-    { name: 'users.away_message', sql: sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS away_message text` },
     { name: 'artist_profiles.login_code', sql: sql`ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS login_code varchar(255)` },
     { name: 'artist_profiles.login_code_expires_at', sql: sql`ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS login_code_expires_at timestamp` },
   ];
