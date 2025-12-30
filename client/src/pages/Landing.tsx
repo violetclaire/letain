@@ -531,7 +531,7 @@ export default function Landing() {
             Instagram
           </a>
           <a 
-            href="mailto:support@dateinquiry.com" 
+            href="mailto:violet@beauvette.com" 
             className="underline hover:text-ink transition-colors"
             data-testid="link-footer-contact"
           >

@@ -365,7 +365,7 @@ export default function ArtistAdmin() {
                 Update Settings
               </Link>
               <a 
-                href="mailto:support@dateinquiry.com"
+                href="mailto:violet@beauvette.com"
                 className="flex items-center gap-3 px-4 py-3 text-sm text-[#F5F0E8]/80 hover:bg-[#F5F0E8]/10 transition-colors border-b border-[#F5F0E8]/10"
                 onClick={() => setMenuOpen(false)}
                 data-testid="nav-help"

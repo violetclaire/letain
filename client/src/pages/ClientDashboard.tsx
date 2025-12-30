@@ -758,7 +758,7 @@ export default function ClientDashboard() {
               <button
                 onClick={() => {
                   setShowEmergencyModal(false);
-                  const supportContact = { id: "support", fullName: "Support", role: "support", email: "support@dateinquiry.com" };
+                  const supportContact = { id: "support", fullName: "Support", role: "support", email: "violet@beauvette.com" };
                   handleSelectContact(supportContact);
                 }}
                 className="w-full flex items-center gap-3 p-3 border border-[#c5ccd8] rounded hover:border-black transition-colors"

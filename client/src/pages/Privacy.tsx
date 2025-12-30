@@ -89,8 +89,8 @@ export default function Privacy() {
             <h2 className="font-medium text-[#5A1F2B] text-base mb-2">Questions?</h2>
             <p>
               If you have any questions about our privacy practices, please contact us at{" "}
-              <a href="mailto:support@dateinquiry.com" className="text-[#5A1F2B] underline">
-                support@dateinquiry.com
+              <a href="mailto:violet@beauvette.com" className="text-[#5A1F2B] underline">
+                violet@beauvette.com
               </a>
             </p>
           </section>
