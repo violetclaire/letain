@@ -11,28 +11,12 @@ async function fixProdSchema() {
     process.exit(1);
   }
   
-  console.log("Connecting to production database...");
+  console.log("Adding away_message column to artist_profiles in production...");
   const pool = new Pool({ connectionString: prodUrl });
   
-  const migrations = [
-    "ALTER TABLE users ADD COLUMN IF NOT EXISTS away_message text",
-    "ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS login_code varchar(255)",
-    "ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS login_code_expires_at timestamp",
-    "ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS sentiment text",
-    "ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS sentiment_score integer",
-    "ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS sentiment_analysis jsonb",
-  ];
+  await pool.query("ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS away_message text");
+  console.log("Done! Login should work now.");
   
-  for (const sql of migrations) {
-    try {
-      await pool.query(sql);
-      console.log(`OK: ${sql.substring(0, 60)}...`);
-    } catch (err: any) {
-      console.error(`FAILED: ${sql.substring(0, 60)}... - ${err.message}`);
-    }
-  }
-  
-  console.log("\nDone! Production database schema updated.");
   await pool.end();
 }
 
