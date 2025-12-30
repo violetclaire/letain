@@ -5795,28 +5795,21 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         content: aiResponse.response,
       });
       
-      // Send AI response to client
-      if (invite.inviteeEmail) {
-        import('./emailService').then(({ sendGeneralEmail }) => {
-          sendGeneralEmail({
-            to: invite.inviteeEmail!,
-            subject: `Message from ${vendorName}`,
-            body: aiResponse.response + '\n\nReply to this email or use your chat link to continue the conversation.',
-            senderName: vendorName,
-          }).catch((err: any) => console.error('[AI Response Email] Error:', err));
-        });
-      }
+      // Note: We don't send a confirmation email to the client after they send a message
+      // This avoids confusion as it could imply the artist responded when they haven't yet
       
-      // Send notification email to the vendor with both client message and AI response
+      // Send notification email to the vendor with client message and dashboard link
       if (vendor?.email) {
-        const vendorNotification = `Hi ${vendor.firstName || vendorName},\n\n${clientName} sent you a message:\n\n"${message}"\n\nAI Secretary responded on your behalf:\n\n"${aiResponse.response}"\n\n${aiResponse.isBookingConfirmation ? '📋 Booking confirmation detected - consider sending contract!\n\n' : ''}Reply to: ${invite.inviteeEmail}`;
+        const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
+        const dashboardLink = `${baseUrl}/${artistProfile?.artistSlug || 'dashboard'}`;
+        const vendorNotification = `Hi ${vendor.firstName || vendorName},\n\n${clientName} sent you a message:\n\n"${message}"\n\n${aiResponse.isBookingConfirmation ? 'This looks like a booking confirmation. Consider sending a contract!\n\n' : ''}View in your dashboard: ${dashboardLink}\n\nClient email: ${invite.inviteeEmail}`;
         
         import('./emailService').then(({ sendGeneralEmail }) => {
           sendGeneralEmail({
             to: vendor.email,
-            subject: `New message from ${clientName} - AI replied`,
+            subject: `New message from ${clientName}`,
             body: vendorNotification,
-            senderName: 'AI Secretary',
+            senderName: 'Date Inquiry',
           }).catch((err: any) => console.error('[Chat Message Email] Error:', err));
         });
       }
