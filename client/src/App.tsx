@@ -67,6 +67,7 @@ import RecoverAccess from "@/pages/RecoverAccess";
 import ArtistAdmin from "@/pages/ArtistAdmin";
 import ArtistLogin from "@/pages/ArtistLogin";
 import AccessVerify from "@/pages/AccessVerify";
+import ArtistAvailability from "@/pages/ArtistAvailability";
 
 // Domain-aware login - shows "Find Your Thread" on dateinquiry.com, full login on beauvette.app
 function DomainAwareLogin() {
@@ -126,6 +127,7 @@ function Router() {
       <Route path="/admin/import" component={AdminImport} />
       <Route path="/artist/import" component={VendorImport} />
       <Route path="/artist/manage-bookings" component={ManageBookings} />
+      <Route path="/artist/availability" component={ArtistAvailability} />
       <Route path="/artist/rolodex" component={ArtistRolodex} />
       <Route path="/artist/proposals" component={Proposals} />
       <Route path="/artist/messages" component={ClientMessages} />
