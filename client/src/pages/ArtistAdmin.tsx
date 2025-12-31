@@ -338,7 +338,7 @@ export default function ArtistAdmin() {
           {menuOpen && (
             <div className="absolute top-full right-8 md:right-16 mt-2 w-56 bg-[#222] border border-[#F5F0E8]/20 shadow-lg z-50">
               <Link 
-                href={`/${getActualSlug()}/calendar${authParam}`}
+                href={`/artist${authParam}`}
                 className="flex items-center gap-3 px-4 py-3 text-sm text-[#F5F0E8]/80 hover:bg-[#F5F0E8]/10 transition-colors border-b border-[#F5F0E8]/10"
                 onClick={() => setMenuOpen(false)}
                 data-testid="nav-calendar"
