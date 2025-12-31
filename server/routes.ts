@@ -8518,7 +8518,52 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return priority;
       };
       
-      // Enrich with owner names and sort by CDI-powered priority
+      // Pre-fetch all bookings and availability for this artist (O(1) instead of O(N) per inquiry)
+      const allBookings = await storage.getBookingsByArtist(userId);
+      
+      // Build a Set of date strings that have confirmed bookings
+      const confirmedBookingDates = new Set<string>();
+      for (const b of allBookings) {
+        if (!b.eventDate) continue;
+        if (['confirmed', 'deposit_paid', 'paid'].includes((b.status || '').toLowerCase())) {
+          const d = new Date(b.eventDate);
+          confirmedBookingDates.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+        }
+      }
+      
+      // Fetch availability records (marked as unavailable/booked) - get all for the year
+      const startOfYear = new Date(new Date().getFullYear(), 0, 1);
+      const endOfNextYear = new Date(new Date().getFullYear() + 2, 11, 31);
+      const allAvailability = await storage.getAvailability(userId, startOfYear, endOfNextYear);
+      
+      // Build a Set of date strings where artist marked as booked/unavailable
+      const blockedAvailabilityDates = new Set<string>();
+      for (const a of allAvailability) {
+        if (!a.isAvailable || a.notes === 'BOOKED') {
+          const d = new Date(a.date);
+          blockedAvailabilityDates.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+        }
+      }
+      
+      // Helper to check if artist is booked on a specific date (uses pre-fetched data)
+      const checkDateConflict = (eventDate: Date | string | null): { hasConflict: boolean; conflictSource?: string } => {
+        if (!eventDate) return { hasConflict: false };
+        
+        const dateToCheck = new Date(eventDate);
+        const dateKey = `${dateToCheck.getFullYear()}-${String(dateToCheck.getMonth() + 1).padStart(2, '0')}-${String(dateToCheck.getDate()).padStart(2, '0')}`;
+        
+        if (blockedAvailabilityDates.has(dateKey)) {
+          return { hasConflict: true, conflictSource: 'You marked this date as booked in your calendar' };
+        }
+        
+        if (confirmedBookingDates.has(dateKey)) {
+          return { hasConflict: true, conflictSource: 'You have a confirmed booking on this date' };
+        }
+        
+        return { hasConflict: false };
+      };
+      
+      // Enrich with owner names, conflict detection, and sort by CDI-powered priority
       const enrichedInquiries = await Promise.all(inquiries.map(async (inq) => {
         let ownerName: string | null = null;
         if (inq.ownerId) {
@@ -8529,8 +8574,18 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
               : owner.email || 'Unknown';
           }
         }
+        
+        // Check for date conflicts (uses pre-fetched data, synchronous)
+        const conflictCheck = checkDateConflict(inq.eventDate);
+        
         const leadPriority = calculateLeadPriority(inq);
-        return { ...inq, ownerName, _priority: leadPriority };
+        return { 
+          ...inq, 
+          ownerName, 
+          _priority: leadPriority,
+          hasDateConflict: conflictCheck.hasConflict,
+          conflictSource: conflictCheck.conflictSource,
+        };
       }));
       
       // Sort by priority (highest first), then by createdAt (newest first)

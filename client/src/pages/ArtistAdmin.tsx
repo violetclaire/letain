@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, useSearch, Link, useLocation } from "wouter";
 import { format } from "date-fns";
-import { Loader2, Settings, Calendar, Users, Copy, Check, Mail, CheckCircle, LogOut, FileText, DollarSign, Clock, ChevronDown, Menu, X, HelpCircle, Trash2 } from "lucide-react";
+import { Loader2, Settings, Calendar, Users, Copy, Check, Mail, CheckCircle, LogOut, FileText, DollarSign, Clock, ChevronDown, Menu, X, HelpCircle, Trash2, AlertTriangle } from "lucide-react";
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +16,8 @@ interface Inquiry {
   status: string;
   createdAt: string;
   depositPaidAt?: string;
+  hasDateConflict?: boolean;
+  conflictSource?: string;
 }
 
 interface ArtistProfile {
@@ -515,6 +517,12 @@ export default function ArtistAdmin() {
                   className={`block p-6 border bg-[#222] transition-all ${pendingAction ? (pendingAction === 'payment' ? 'border-green-500/30 hover:border-green-500/60 hover:bg-green-900/10' : 'border-blue-500/30 hover:border-blue-500/60 hover:bg-blue-900/10') : 'border-[#F5F0E8]/10 hover:border-[#F5F0E8]/30'}`}
                   data-testid={`inquiry-row-${inquiry.id}`}
                 >
+                  {inquiry.hasDateConflict && (
+                    <div className="flex items-center gap-2 px-3 py-2 mb-3 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs">
+                      <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                      <span>{inquiry.conflictSource || 'This date conflicts with your calendar'}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="text-lg" style={{ fontFamily: "'Fraunces', serif" }}>
