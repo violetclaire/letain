@@ -343,23 +343,23 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
   return (
     <div className="card-frame rounded-md px-4 py-4">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-header text-md ink-main">
+        <h2 className="font-header text-md text-[#F5F0E8]">
           {viewOnly ? "Availability" : "My Calendar"}
         </h2>
         <div className="flex items-center gap-2">
           <button 
             onClick={() => navigateMonth(-1)}
-            className="p-1 hover:bg-black/10 rounded transition-colors"
+            className="p-1 hover:bg-[#F5F0E8]/10 rounded transition-colors text-[#F5F0E8]"
             data-testid="button-prev-month"
           >
             <ChevronLeft size={16} />
           </button>
-          <span className="text-sm font-medium min-w-[120px] text-center">
+          <span className="text-sm font-medium min-w-[120px] text-center text-[#F5F0E8]">
             {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
           </span>
           <button 
             onClick={() => navigateMonth(1)}
-            className="p-1 hover:bg-black/10 rounded transition-colors"
+            className="p-1 hover:bg-[#F5F0E8]/10 rounded transition-colors text-[#F5F0E8]"
             data-testid="button-next-month"
           >
             <ChevronRight size={16} />
@@ -369,7 +369,7 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
 
       <div className="grid grid-cols-7 gap-1 mb-2">
         {daysOfWeek.map(day => (
-          <div key={day} className="text-center text-[0.6rem] uppercase tracking-wide ink-soft py-1">
+          <div key={day} className="text-center text-[0.6rem] uppercase tracking-wide text-[#F5F0E8]/60 py-1">
             {day}
           </div>
         ))}
@@ -428,29 +428,29 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
       <div className="flex flex-wrap items-center justify-center gap-3 mt-4 text-[0.65rem]">
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 bg-pink/15 rounded border border-pink/40" />
-          <span className="ink-soft">Request</span>
+          <span className="text-[#F5F0E8]/60">Request</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 bg-gold/30 rounded border border-gold/50" />
-          <span className="ink-soft">Pending</span>
+          <span className="text-[#F5F0E8]/60">Pending</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 bg-orange-100 rounded border border-orange-300" />
-          <span className="ink-soft">Hold</span>
+          <span className="text-[#F5F0E8]/60">Hold</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 bg-forest rounded" />
-          <span className="ink-soft">Booked</span>
+          <span className="text-[#F5F0E8]/60">Booked</span>
         </div>
       </div>
 
       {!viewOnly && (
-        <p className="text-center text-[0.6rem] ink-soft mt-3">
+        <p className="text-center text-[0.6rem] text-[#F5F0E8]/50 mt-3">
           Click to cycle: Available → Blocked → Booked
         </p>
       )}
       {viewOnly && onRequestBooking && (
-        <p className="text-center text-[0.6rem] ink-soft mt-3">
+        <p className="text-center text-[0.6rem] text-[#F5F0E8]/50 mt-3">
           Click an available date to request booking
         </p>
       )}
