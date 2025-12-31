@@ -1226,8 +1226,30 @@ export class DatabaseStorage implements IStorage {
   }
 
   async setAvailability(avail: InsertAvailability): Promise<Availability> {
-    const [newAvail] = await db.insert(availability).values(avail).returning();
-    return newAvail;
+    // First, try to find existing record for this user and date
+    const existingRecords = await db
+      .select()
+      .from(availability)
+      .where(
+        and(
+          eq(availability.userId, avail.userId),
+          eq(availability.date, avail.date)
+        )
+      );
+    
+    if (existingRecords.length > 0) {
+      // Update existing record
+      const [updated] = await db
+        .update(availability)
+        .set({ isAvailable: avail.isAvailable, notes: avail.notes })
+        .where(eq(availability.id, existingRecords[0].id))
+        .returning();
+      return updated;
+    } else {
+      // Insert new record
+      const [newAvail] = await db.insert(availability).values(avail).returning();
+      return newAvail;
+    }
   }
 
   async deleteAvailability(userId: string, date: Date): Promise<void> {
