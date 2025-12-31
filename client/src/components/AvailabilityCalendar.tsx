@@ -296,19 +296,19 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
     
     switch (status) {
       case 'booked':
-        return 'bg-[#2D5A3D] text-white cursor-default';
+        return 'bg-[#C4A35A] text-[#1A1A1A] cursor-default';
       case 'manual_booked':
         return viewOnly
-          ? 'bg-[#2D5A3D]/80 text-white cursor-default'
-          : 'bg-[#2D5A3D]/80 text-white cursor-pointer hover:bg-[#2D5A3D]';
+          ? 'bg-[#C4A35A]/80 text-[#1A1A1A] cursor-default'
+          : 'bg-[#C4A35A]/80 text-[#1A1A1A] cursor-pointer hover:bg-[#C4A35A]';
       case 'pending':
-        return 'bg-[#8B6914]/30 text-[#F5F0E8] cursor-default border border-[#8B6914]/50';
+        return 'bg-[#C4A35A]/40 text-[#F5F0E8] cursor-default border border-[#C4A35A]/60';
       case 'hold':
-        return 'bg-orange-500/20 text-orange-300 cursor-default border border-orange-500/40';
+        return 'bg-[#C4A35A]/30 text-[#F5F0E8] cursor-default border border-[#C4A35A]/50';
       case 'blocked':
         return viewOnly 
-          ? 'bg-[#4A3728] text-[#F5F0E8]/60 cursor-default' 
-          : 'bg-[#4A3728] text-[#F5F0E8]/60 cursor-pointer hover:bg-[#5A4738]';
+          ? 'bg-[#5C1F1F] text-[#F5F0E8]/80 cursor-default' 
+          : 'bg-[#5C1F1F] text-[#F5F0E8]/80 cursor-pointer hover:bg-[#6C2F2F]';
       case 'available':
       default:
         return canBook || !viewOnly
@@ -408,7 +408,7 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
               title={canBook ? 'Click to request booking' : hold ? `Hold: ${hold.clientName}` : getStatusLabel(status)}
               className={`
                 h-8 rounded text-xs relative transition-all
-                ${today ? 'ring-2 ring-gold ring-offset-1' : ''}
+                ${today ? 'ring-2 ring-[#C4A35A] ring-offset-1 ring-offset-[#1A1A1A]' : ''}
                 ${getStatusStyles(status, past, !!canBook)}
               `}
               data-testid={`calendar-day-${date.getDate()}`}
@@ -431,11 +431,11 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
           <span className="text-[#F5F0E8]/60">Available</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-[#4A3728] rounded" />
+          <div className="w-3 h-3 bg-[#5C1F1F] rounded" />
           <span className="text-[#F5F0E8]/60">Blocked</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-[#2D5A3D] rounded" />
+          <div className="w-3 h-3 bg-[#C4A35A] rounded" />
           <span className="text-[#F5F0E8]/60">Booked</span>
         </div>
       </div>
