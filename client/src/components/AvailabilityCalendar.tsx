@@ -291,29 +291,29 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
 
   const getStatusStyles = (status: DateStatus, past: boolean, canBook: boolean) => {
     if (past) {
-      return 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50';
+      return 'bg-[#333] text-[#F5F0E8]/30 cursor-not-allowed opacity-50';
     }
     
     switch (status) {
       case 'booked':
-        return 'bg-forest text-white cursor-default';
+        return 'bg-[#2D5A3D] text-white cursor-default';
       case 'manual_booked':
         return viewOnly
-          ? 'bg-forest/80 text-white cursor-default'
-          : 'bg-forest/80 text-white cursor-pointer hover:bg-forest';
+          ? 'bg-[#2D5A3D]/80 text-white cursor-default'
+          : 'bg-[#2D5A3D]/80 text-white cursor-pointer hover:bg-[#2D5A3D]';
       case 'pending':
-        return 'bg-gold/30 text-forest cursor-default border border-gold/50';
+        return 'bg-[#8B6914]/30 text-[#F5F0E8] cursor-default border border-[#8B6914]/50';
       case 'hold':
-        return 'bg-orange-100 text-orange-800 cursor-default border border-orange-300';
+        return 'bg-orange-500/20 text-orange-300 cursor-default border border-orange-500/40';
       case 'blocked':
         return viewOnly 
-          ? 'bg-gray-200 text-gray-500 cursor-default' 
-          : 'bg-gray-200 text-gray-500 cursor-pointer hover:bg-gray-300';
+          ? 'bg-[#4A3728] text-[#F5F0E8]/60 cursor-default' 
+          : 'bg-[#4A3728] text-[#F5F0E8]/60 cursor-pointer hover:bg-[#5A4738]';
       case 'available':
       default:
         return canBook || !viewOnly
-          ? 'bg-pink/15 text-pink cursor-pointer hover:bg-pink/25 border border-pink/40'
-          : 'bg-pink/15 text-pink cursor-default border border-pink/40';
+          ? 'bg-[#F5F0E8]/10 text-[#F5F0E8] cursor-pointer hover:bg-[#F5F0E8]/20 border border-[#F5F0E8]/20'
+          : 'bg-[#F5F0E8]/10 text-[#F5F0E8] cursor-default border border-[#F5F0E8]/20';
     }
   };
 
@@ -341,7 +341,7 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
   const days = getDaysInMonth();
 
   return (
-    <div className="card-frame rounded-md px-4 py-4">
+    <div className="bg-[#1A1A1A] border border-[#F5F0E8]/10 rounded-md px-4 py-4">
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-header text-md text-[#F5F0E8]">
           {viewOnly ? "Availability" : "My Calendar"}
@@ -427,19 +427,15 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
 
       <div className="flex flex-wrap items-center justify-center gap-3 mt-4 text-[0.65rem]">
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-pink/15 rounded border border-pink/40" />
-          <span className="text-[#F5F0E8]/60">Request</span>
+          <div className="w-3 h-3 bg-[#F5F0E8]/10 rounded border border-[#F5F0E8]/20" />
+          <span className="text-[#F5F0E8]/60">Available</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-gold/30 rounded border border-gold/50" />
-          <span className="text-[#F5F0E8]/60">Pending</span>
+          <div className="w-3 h-3 bg-[#4A3728] rounded" />
+          <span className="text-[#F5F0E8]/60">Blocked</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-orange-100 rounded border border-orange-300" />
-          <span className="text-[#F5F0E8]/60">Hold</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-forest rounded" />
+          <div className="w-3 h-3 bg-[#2D5A3D] rounded" />
           <span className="text-[#F5F0E8]/60">Booked</span>
         </div>
       </div>
