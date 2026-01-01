@@ -10541,10 +10541,10 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       // Update inquiry last action
       await storage.updateInquiry(inquiry.id, { lastActionAt: new Date() });
       
-      // Actually send the email to the client
+      // Actually send the email to the client (use clientThreadToken for client-only access)
       try {
         const { sendThreadReplyEmail } = await import('./emailService');
-        const clientThreadLink = `https://dateinquiry.com/inquiry/${inquiry.threadToken}`;
+        const clientThreadLink = `https://dateinquiry.com/thread/${inquiry.clientThreadToken}`;
         
         await sendThreadReplyEmail({
           toEmail: inquiry.clientEmail,
@@ -10655,9 +10655,9 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
             })
           : 'Date TBD';
         
-        // Build inquiry link for client to respond
+        // Build inquiry link for client to respond (use clientThreadToken for client-only access)
         const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
-        const chatLink = `${baseUrl}/inquiry/${inquiry.threadToken}`;
+        const chatLink = `${baseUrl}/thread/${inquiry.clientThreadToken}`;
         
         // Determine which content to send based on action type
         const infoContent = action === 'accept-planner' 
