@@ -605,7 +605,8 @@ export type InquiryNextAction = typeof InquiryNextActions[keyof typeof InquiryNe
 // Inquiries - client inquiries to vendors before booking
 export const inquiries = pgTable("inquiries", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  threadToken: varchar("thread_token").unique().default(sql`gen_random_uuid()`), // Public access token for inquiry thread
+  threadToken: varchar("thread_token").unique().default(sql`gen_random_uuid()`), // Artist's admin access token
+  clientThreadToken: varchar("client_thread_token").unique().default(sql`gen_random_uuid()`), // Client's read/reply access token
   vendorId: varchar("vendor_id").notNull().references(() => users.id),
   clientId: varchar("client_id").references(() => users.id), // Nullable until client creates account
   clientEmail: text("client_email").notNull(), // Always captured for email follow-up
