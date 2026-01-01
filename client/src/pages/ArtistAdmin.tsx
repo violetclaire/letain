@@ -265,11 +265,42 @@ export default function ArtistAdmin() {
   }
 
   if (error || !data) {
-    // On error, show the login form so user can request a magic link
+    // If we had a token but it failed, show error with retry option
+    const hadToken = !!token;
+    const errorMessage = error?.message || "Unable to load dashboard";
+    
     return (
       <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center px-4">
         <div className="w-full max-w-sm bg-[#222] p-8 border border-[#F5F0E8]/10 rounded">
-          {emailSent ? (
+          {hadToken && !emailSent ? (
+            <div className="text-center">
+              <AlertTriangle className="w-10 h-10 text-yellow-500 mx-auto mb-4" />
+              <h2 className="text-lg text-[#F5F0E8] mb-2" style={{ fontFamily: "'Fraunces', serif" }}>
+                Link Expired
+              </h2>
+              <p className="text-sm text-[#F5F0E8]/60 mb-6">
+                This dashboard link may have expired or is no longer valid. Request a new one below.
+              </p>
+              <form onSubmit={(e) => { e.preventDefault(); if (email.trim()) requestLink.mutate(); }} className="space-y-4">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  required
+                  className="w-full border border-[#F5F0E8]/20 bg-transparent px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#F5F0E8]/30 rounded"
+                />
+                <button
+                  type="submit"
+                  disabled={requestLink.isPending || !email.trim()}
+                  className="w-full bg-[#F5F0E8] text-[#1A1A1A] py-3 text-sm uppercase tracking-wide hover:bg-[#F5F0E8]/90 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {requestLink.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  Send New Link
+                </button>
+              </form>
+            </div>
+          ) : emailSent ? (
             <div className="text-center">
               <CheckCircle className="w-14 h-14 text-green-500 mx-auto mb-5" />
               <h2 className="text-xl text-[#F5F0E8] mb-2" style={{ fontFamily: "'Fraunces', serif" }}>Check Your Email</h2>
