@@ -492,6 +492,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log("[Login] Success for user:", user.id);
+      
+      // Save session before responding (critical for production)
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+      console.log("[Login] Session saved successfully");
+      
       res.json({ 
         message: "Login successful", 
         user: { ...user, password: undefined },
