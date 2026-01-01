@@ -4536,10 +4536,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   app.post("/api/availability", isAuthenticated, async (req: any, res) => {
     try {
       const userId = getAuthUserId(req);
+      console.log('[Availability] POST request body:', req.body, 'userId:', userId);
       const data = insertAvailabilitySchema.parse({ ...req.body, userId });
+      console.log('[Availability] Parsed data:', data);
       const availability = await storage.setAvailability(data);
+      console.log('[Availability] Saved:', availability);
       res.json(availability);
     } catch (error: any) {
+      console.error('[Availability] Error:', error.message);
       res.status(400).json({ error: error.message });
     }
   });
