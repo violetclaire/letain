@@ -10524,8 +10524,8 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       }
       
       // Get artist profile for sender info
-      const artist = await storage.getArtistProfile(inquiry.artistId);
-      const artistUser = await storage.getUser(inquiry.artistId);
+      const artist = await storage.getArtistProfile(inquiry.vendorId);
+      const artistUser = await storage.getUser(inquiry.vendorId);
       
       // Store the message in notifications
       await storage.createInquiryNotification({
@@ -10544,7 +10544,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       // Actually send the email to the client
       try {
         const { sendThreadReplyEmail } = await import('./emailService');
-        const clientThreadLink = `https://dateinquiry.com/thread/${inquiry.clientToken}`;
+        const clientThreadLink = `https://dateinquiry.com/inquiry/${inquiry.threadToken}`;
         
         await sendThreadReplyEmail({
           toEmail: inquiry.clientEmail,
@@ -13359,6 +13359,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       });
       
       console.log(`[Public Webhook] Created inquiry ${inquiry.id} for artist ${artistSlug} from ${source || 'external'}`);
+      console.log(`[Public Webhook] Inquiry threadToken: ${inquiry.threadToken}`);
       
       // Analyze sentiment (async)
       if (fullMessage) {
@@ -13370,12 +13371,16 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const artist = await storage.getUser(artistProfile.userId);
       
       // Check auto-responder mode (off, info_sheet, smart, paused)
+      // 'smart' = artist manually reviews each inquiry before responding
+      // 'info_sheet' = automatically send pricing sheet immediately
+      // 'paused' = vacation mode, no auto-responses
       const autoResponderMode = artistProfile?.autoResponderMode || 'off';
       const hasInfoSheet = artistProfile?.infoSheetContent || 
         (artistProfile?.infoSheetType === 'pdf' && artistProfile?.infoSheetPdfUrl);
       
-      // Auto-respond based on mode
-      const shouldAutoRespond = (autoResponderMode === 'info_sheet' || autoResponderMode === 'smart') && hasInfoSheet;
+      // Only auto-respond if mode is explicitly 'info_sheet' (not 'smart')
+      // 'smart' mode requires artist to manually choose how to respond
+      const shouldAutoRespond = autoResponderMode === 'info_sheet' && hasInfoSheet;
       
       if (shouldAutoRespond) {
         console.log(`[Public Webhook] Auto-responding with info sheet for ${artistSlug}`);
