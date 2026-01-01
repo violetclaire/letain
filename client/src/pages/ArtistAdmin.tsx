@@ -90,7 +90,7 @@ export default function ArtistAdmin() {
       const res = await fetch("/api/public/artists/resend-settings-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, slug }),
       });
       if (!res.ok) throw new Error("Failed to send");
       return res.json();

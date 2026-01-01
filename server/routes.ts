@@ -11617,21 +11617,42 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // Resend settings link to artist (for when they forget their admin link)
   app.post("/api/public/artists/resend-settings-link", async (req, res) => {
     try {
-      const { email } = req.body;
+      const { email, slug } = req.body;
       if (!email) {
         return res.status(400).json({ error: "Email is required" });
       }
       
-      // Find user by email
-      const user = await storage.getUserByEmail(email);
-      if (!user) {
-        // Don't reveal if email exists - always return success for security
-        return res.json({ success: true, message: "If this email is registered, you'll receive your settings link shortly." });
+      console.log("[Resend Settings Link] Looking up email:", email, "slug:", slug);
+      
+      let profile = null;
+      let user = null;
+      
+      // First try: look up by email in users table
+      user = await storage.getUserByEmail(email.toLowerCase().trim());
+      console.log("[Resend Settings Link] User by email:", user ? user.id : "not found");
+      
+      if (user) {
+        profile = await storage.getArtistProfile(user.id);
+        console.log("[Resend Settings Link] Profile by userId:", profile ? profile.artistSlug : "not found");
       }
       
-      // Get artist profile
-      const profile = await storage.getArtistProfile(user.id);
+      // Second try: if slug provided and no profile yet, look up by slug
+      if (!profile && slug) {
+        profile = await storage.getArtistProfileBySlug(slug);
+        console.log("[Resend Settings Link] Profile by slug:", profile ? profile.artistSlug : "not found");
+        if (profile) {
+          user = await storage.getUser(profile.userId);
+          // Verify email matches (case-insensitive)
+          if (user && user.email?.toLowerCase() !== email.toLowerCase().trim()) {
+            console.log("[Resend Settings Link] Email mismatch - user email:", user.email, "provided:", email);
+            user = null;
+            profile = null;
+          }
+        }
+      }
+      
       if (!profile || !profile.editToken) {
+        console.log("[Resend Settings Link] No profile or no editToken");
         return res.json({ success: true, message: "If this email is registered, you'll receive your settings link shortly." });
       }
       
@@ -11640,15 +11661,19 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const settingsUrl = `${baseUrl}/${profile.artistSlug}/settings?token=${profile.editToken}`;
       const dashboardUrl = `${baseUrl}/admin/${profile.artistSlug}?token=${profile.editToken}`;
       
+      console.log("[Resend Settings Link] Sending email to:", email, "for slug:", profile.artistSlug);
+      
       // Send the email
       const { sendSettingsLinkEmail } = await import('./emailService');
-      await sendSettingsLinkEmail({
+      const result = await sendSettingsLinkEmail({
         toEmail: email,
-        artistName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'there',
+        artistName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'there' : 'there',
         businessName: profile.businessName || undefined,
         settingsUrl,
         dashboardUrl
       });
+      
+      console.log("[Resend Settings Link] Email result:", JSON.stringify(result));
       
       res.json({ success: true, message: "If this email is registered, you'll receive your settings link shortly." });
     } catch (error: any) {
