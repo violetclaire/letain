@@ -203,32 +203,52 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
         delete newManual[dateKey];
         setManualBooked(newManual);
       } else if (nextStatus === 'blocked') {
+        console.log('[Calendar] Setting to blocked, calling API with:', { date: isoDate, isAvailable: false });
         const response = await fetch("/api/availability", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({ date: isoDate, isAvailable: false }),
         });
+        console.log('[Calendar] API response status:', response.status);
         if (response.ok) {
-          setAvailability({ ...availability, [dateKey]: false });
+          const newAvailability = { ...availability, [dateKey]: false };
+          console.log('[Calendar] Setting availability state:', newAvailability);
+          setAvailability(newAvailability);
           const newManual = { ...manualBooked };
           delete newManual[dateKey];
           setManualBooked(newManual);
+        } else {
+          const errorText = await response.text();
+          console.error('[Calendar] API error:', errorText);
+          toast({ title: "Error", description: "Failed to block date", variant: "destructive" });
+          setLoading(false);
+          return;
         }
       } else if (nextStatus === 'manual_booked') {
-        // Mark as manually booked (uses availability with a flag)
+        console.log('[Calendar] Setting to manual_booked, calling API with:', { date: isoDate, isAvailable: false, notes: 'BOOKED' });
         const response = await fetch("/api/availability", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({ date: isoDate, isAvailable: false, notes: 'BOOKED' }),
         });
+        console.log('[Calendar] API response status:', response.status);
         if (response.ok) {
-          setAvailability({ ...availability, [dateKey]: false });
+          const newAvailability = { ...availability, [dateKey]: false };
+          console.log('[Calendar] Setting availability state:', newAvailability);
+          setAvailability(newAvailability);
           setManualBooked({ ...manualBooked, [dateKey]: true });
+        } else {
+          const errorText = await response.text();
+          console.error('[Calendar] API error:', errorText);
+          toast({ title: "Error", description: "Failed to mark as booked", variant: "destructive" });
+          setLoading(false);
+          return;
         }
       }
       
+      console.log('[Calendar] Success, showing toast:', toastTitle);
       toast({ title: toastTitle, description: toastDesc });
       onDateSelect?.(date, nextStatus);
     } catch (err) {
