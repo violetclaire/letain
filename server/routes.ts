@@ -10002,7 +10002,20 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       (req.session as any).userId = user.id;
       (req.session as any).artistId = profile.userId;
       
-      console.log(`[Login] Session created for artist ${profile.artistSlug}`);
+      console.log(`[Login] Session created for artist ${profile.artistSlug}, userId: ${user.id}`);
+      
+      // CRITICAL: Save session before redirect so the cookie is set
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) {
+            console.error("[Login] Session save error:", err);
+            reject(err);
+          } else {
+            console.log(`[Login] Session saved successfully, redirecting to /admin/${profile.artistSlug}`);
+            resolve();
+          }
+        });
+      });
       
       // Redirect to dashboard
       res.redirect(`/admin/${profile.artistSlug}`);
