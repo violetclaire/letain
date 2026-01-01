@@ -10843,6 +10843,117 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // ========================================
+  // CLIENT-FACING ENDPOINTS (limited access)
+  // ========================================
+  
+  // Get inquiry by client token (read-only view for clients)
+  app.get("/api/public/inquiry/client/:clientToken", async (req, res) => {
+    try {
+      const { clientToken } = req.params;
+      
+      const inquiry = await storage.getInquiryByClientThreadToken(clientToken);
+      if (!inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+      
+      // Get artist info (limited)
+      const artist = await storage.getArtistProfile(inquiry.vendorId);
+      
+      // Get messages
+      const notifications = await storage.getInquiryNotifications(inquiry.id);
+      const messages = notifications
+        .filter((n: any) => ['artist_reply', 'client_reply', 'info_sheet', 'chat_invite'].includes(n.type))
+        .map((n: any) => ({
+          id: n.id,
+          type: n.type,
+          content: n.content,
+          sentAt: n.sentAt || n.createdAt,
+          sentBy: n.type.includes('client') ? 'client' : 'artist'
+        }));
+      
+      // Return limited client-view data
+      res.json({
+        inquiry: {
+          id: inquiry.id,
+          clientName: inquiry.clientName,
+          clientEmail: inquiry.clientEmail,
+          eventDate: inquiry.eventDate,
+          eventType: inquiry.eventType,
+          eventLocation: inquiry.eventLocation,
+          status: inquiry.status,
+        },
+        artist: artist ? {
+          businessName: artist.businessName,
+        } : null,
+        messages,
+        isClient: true,
+      });
+    } catch (error: any) {
+      console.error("[Client Inquiry] Error fetching inquiry:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch inquiry" });
+    }
+  });
+  
+  // Client sends a reply message
+  app.post("/api/public/inquiry/client/:clientToken/message", async (req, res) => {
+    try {
+      const { clientToken } = req.params;
+      const { message } = req.body;
+      
+      if (!message?.trim()) {
+        return res.status(400).json({ error: "Message is required" });
+      }
+      
+      const inquiry = await storage.getInquiryByClientThreadToken(clientToken);
+      if (!inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+      
+      // Get artist info for email notification
+      const artist = await storage.getArtistProfile(inquiry.vendorId);
+      const artistUser = await storage.getUser(inquiry.vendorId);
+      
+      // Store the message in notifications
+      await storage.createInquiryNotification({
+        inquiryId: inquiry.id,
+        type: 'client_reply',
+        channel: 'thread',
+        recipientEmail: artistUser?.email || '',
+        content: message,
+        status: 'pending',
+        sentAt: null,
+      });
+      
+      // Update inquiry last action
+      await storage.updateInquiry(inquiry.id, { lastActionAt: new Date() });
+      
+      // Send email notification to artist
+      try {
+        const { sendClientReplyNotification } = await import('./emailService');
+        const adminThreadLink = `https://dateinquiry.com/inquiry/${inquiry.threadToken}`;
+        
+        if (artistUser?.email) {
+          await sendClientReplyNotification({
+            toEmail: artistUser.email,
+            artistName: artistUser.firstName || artist?.businessName || 'Artist',
+            clientName: inquiry.clientName,
+            message: message,
+            threadLink: adminThreadLink
+          });
+          console.log(`[Client Reply] Email sent to artist ${artistUser.email} for inquiry ${inquiry.id}`);
+        }
+      } catch (emailError: any) {
+        console.error("[Client Reply] Failed to send email:", emailError.message);
+      }
+      
+      res.json({ success: true, message: "Message sent" });
+    } catch (error: any) {
+      console.error("[Client Reply] Error sending message:", error);
+      res.status(500).json({ error: error.message || "Failed to send message" });
+    }
+  });
+
   // Standalone invoice creation (token-based auth)
   app.post("/api/public/standalone-invoice", async (req, res) => {
     try {

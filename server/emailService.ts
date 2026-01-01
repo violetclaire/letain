@@ -1986,6 +1986,94 @@ export async function sendThreadReplyEmail({
   }
 }
 
+// Send notification to artist when client replies
+export async function sendClientReplyNotification({
+  toEmail,
+  artistName,
+  clientName,
+  message,
+  threadLink
+}: {
+  toEmail: string;
+  artistName: string;
+  clientName: string;
+  message: string;
+  threadLink: string;
+}) {
+  console.log("Getting Resend client for client reply notification...");
+  const { client, fromEmail } = await getResendClient();
+  
+  const safeArtistName = sanitizeSenderName(artistName) || 'there';
+  const safeClientName = sanitizeSenderName(clientName) || 'Your Client';
+  const safeMessage = escapeHtml(message).replace(/\n/g, '<br>');
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Georgia', serif; background-color: #1A1A1A; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: #222; border-radius: 4px; overflow: hidden; }
+        .header { 
+          background-color: #1A1A1A;
+          padding: 28px; 
+          text-align: center;
+          border-bottom: 1px solid #333;
+        }
+        .header h1 { font-family: 'Fraunces', Georgia, serif; font-size: 24px; margin: 0; font-weight: normal; color: #F5F0E8; }
+        .content { padding: 32px; line-height: 1.7; color: #F5F0E8; }
+        .message-box { background: #333; padding: 20px; margin: 20px 0; border-left: 3px solid #C4A35A; }
+        .cta { text-align: center; margin: 28px 0; }
+        .cta a { display: inline-block; background: #F5F0E8; color: #1A1A1A; padding: 14px 28px; text-decoration: none; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; }
+        .footer { text-align: center; padding: 20px; color: #888; font-size: 12px; border-top: 1px solid #333; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>New Client Reply</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${escapeHtml(safeArtistName)},</p>
+          
+          <p><strong>${escapeHtml(safeClientName)}</strong> replied to your inquiry:</p>
+          
+          <div class="message-box">
+            ${safeMessage}
+          </div>
+          
+          <div class="cta">
+            <a href="${threadLink}">View Thread</a>
+          </div>
+          
+          <p style="color: #888; font-size: 13px;">Or copy this link: <a href="${threadLink}" style="color: #C4A35A;">${threadLink}</a></p>
+        </div>
+        <div class="footer">
+          Date Inquiry
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const senderEmail = `Date Inquiry <${fromEmail}>`;
+  
+  try {
+    console.log("Sending client reply notification to:", toEmail);
+    const result = await client.emails.send({
+      from: senderEmail,
+      to: toEmail.trim(),
+      subject: sanitizeSubject(`${safeClientName} replied to your inquiry`),
+      html: htmlContent
+    });
+    console.log("Client reply notification sent:", JSON.stringify(result));
+    return { success: true, result };
+  } catch (err: any) {
+    console.error("Failed to send client reply notification:", err.message);
+    return { success: false, error: err.message };
+  }
+}
+
 // Send thread access links to client
 export async function sendClientThreadAccessEmail({
   toEmail,

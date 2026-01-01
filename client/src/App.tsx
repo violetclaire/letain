@@ -58,6 +58,7 @@ import PlannerView from "@/pages/PlannerView";
 import SecretaryOnboarding from "@/pages/SecretaryOnboarding";
 import InquirePage from "@/pages/InquirePage";
 import InquiryThread from "@/pages/InquiryThread";
+import ClientThread from "@/pages/ClientThread";
 import SetupSquare from "@/pages/SetupSquare";
 import SetupContract from "@/pages/SetupContract";
 import SetupLinks from "@/pages/SetupLinks";
@@ -181,6 +182,9 @@ function Router() {
       
       {/* Inquiry Thread (artist view of individual inquiry) */}
       <Route path="/inquiry/:threadToken" component={InquiryThread} />
+      
+      {/* Client Thread (client view - read/reply only) */}
+      <Route path="/thread/:clientToken" component={ClientThread} />
       
       {/* Private Coordination Thread (white-label client view) */}
       <Route path="/t/:token" component={ThreadPage} />
