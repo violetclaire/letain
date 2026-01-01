@@ -332,8 +332,8 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
         return 'bg-[#C4A35A]/30 text-[#F5F0E8] cursor-default border border-[#C4A35A]/50';
       case 'blocked':
         return viewOnly 
-          ? 'bg-[#5C1F1F] text-[#F5F0E8]/80 cursor-default' 
-          : 'bg-[#5C1F1F] text-[#F5F0E8]/80 cursor-pointer hover:bg-[#6C2F2F]';
+          ? 'bg-[#8B2942] text-white cursor-default' 
+          : 'bg-[#8B2942] text-white cursor-pointer hover:bg-[#A33355]';
       case 'available':
       default:
         return canBook || !viewOnly
@@ -460,7 +460,7 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
           <span className="text-[#F5F0E8]/60">Available</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-[#5C1F1F] rounded" />
+          <div className="w-3 h-3 bg-[#8B2942] rounded" />
           <span className="text-[#F5F0E8]/60">Blocked</span>
         </div>
         <div className="flex items-center gap-1">
