@@ -149,7 +149,7 @@ export default function ArtistAdmin() {
     queryFn: async () => {
       // If using session auth, call the authenticated endpoint WITH the slug
       if (useSessionAuth) {
-        const res = await fetch(`/api/artist/admin-data?slug=${encodeURIComponent(slug)}`, {
+        const res = await fetch(`/api/artist/admin-data?slug=${encodeURIComponent(slug || '')}`, {
           credentials: 'include'
         });
         if (!res.ok) {
@@ -265,18 +265,85 @@ export default function ArtistAdmin() {
   }
 
   if (error || !data) {
-    const message = error?.message === "Access denied" 
-      ? "Invalid or expired access link"
-      : "Artist not found";
+    // On error, show the login form so user can request a magic link
     return (
-      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center px-8">
-        <div className="text-center">
-          <p className="text-sm text-[#F5F0E8]/50 mb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
-            {message}
-          </p>
-          <Link href="/artist-login" className="text-xs text-[#F5F0E8]/60 underline">
-            Sign in
-          </Link>
+      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center px-4">
+        <div className="w-full max-w-sm bg-[#222] p-8 border border-[#F5F0E8]/10 rounded">
+          {emailSent ? (
+            <div className="text-center">
+              <CheckCircle className="w-14 h-14 text-green-500 mx-auto mb-5" />
+              <h2 className="text-xl text-[#F5F0E8] mb-2" style={{ fontFamily: "'Fraunces', serif" }}>Check Your Email</h2>
+              <p className="text-sm text-[#F5F0E8]/60 mb-4">
+                Your dashboard link is on its way. Check your inbox (and spam folder).
+              </p>
+              <button
+                onClick={() => { setEmailSent(false); setEmail(""); }}
+                className="text-sm text-[#F5F0E8]/60 underline"
+              >
+                Try different email
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="text-center mb-6">
+                <h1 className="text-2xl text-[#F5F0E8] mb-1" style={{ fontFamily: "'Fraunces', serif" }}>Your Secretary</h1>
+                <p className="text-xs text-[#F5F0E8]/50">Access your dashboard</p>
+              </div>
+
+              <form onSubmit={(e) => { e.preventDefault(); if (email.trim()) requestLink.mutate(); }} className="space-y-4">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  required
+                  className="w-full border border-[#F5F0E8]/20 bg-transparent px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#F5F0E8]/30 rounded"
+                  data-testid="input-admin-email-error"
+                />
+                <button
+                  type="submit"
+                  disabled={requestLink.isPending || !email.trim()}
+                  className="w-full bg-[#F5F0E8] text-[#1A1A1A] py-3 text-sm uppercase tracking-wide hover:bg-[#F5F0E8]/90 disabled:opacity-50 flex items-center justify-center gap-2"
+                  data-testid="button-send-dashboard-link-error"
+                >
+                  {requestLink.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    "Send Dashboard Link"
+                  )}
+                </button>
+              </form>
+              
+              <div className="mt-4 text-center">
+                <Link href="/artist-login" className="text-xs text-[#F5F0E8]/50 underline">
+                  Or sign in with password
+                </Link>
+              </div>
+
+              <div className="mt-6 pt-5 border-t border-[#F5F0E8]/10">
+                <p className="text-[10px] uppercase tracking-wide text-[#F5F0E8]/50 mb-2">Your Inquiry Link</p>
+                <div className="flex gap-2">
+                  <div className="flex-1 bg-[#F5F0E8]/5 px-3 py-2 text-xs text-[#F5F0E8]/70 rounded truncate">
+                    dateinquiry.com/{slug}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`https://dateinquiry.com/${slug}`);
+                      setLinkCopied(true);
+                      setTimeout(() => setLinkCopied(false), 2000);
+                    }}
+                    className="px-3 py-2 bg-[#F5F0E8] text-[#1A1A1A] text-xs rounded flex items-center gap-1"
+                  >
+                    {linkCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     );
