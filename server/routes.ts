@@ -11644,12 +11644,9 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         console.log("[Resend Settings Link] Profile by slug:", profile ? profile.artistSlug : "not found");
         if (profile) {
           user = await storage.getUser(profile.userId);
-          // Verify email matches (case-insensitive)
-          if (user && user.email?.toLowerCase() !== normalizedEmail) {
-            console.log("[Resend Settings Link] Email mismatch - user email:", user.email, "provided:", normalizedEmail);
-            user = null;
-            profile = null;
-          }
+          console.log("[Resend Settings Link] User from profile:", user?.email);
+          // Send to the email they entered - they're on the correct slug page
+          // The login code will create a session for whichever user owns this profile
         }
       }
       
@@ -11657,6 +11654,10 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         console.log("[Resend Settings Link] No profile found");
         return res.json({ success: true, message: "If this email is registered, you'll receive your settings link shortly." });
       }
+      
+      // Use the profile owner's email if available, otherwise the provided email
+      const targetEmail = user?.email || normalizedEmail;
+      console.log("[Resend Settings Link] Will send to:", targetEmail);
       
       // Generate a login code that creates a session (more reliable than tokens)
       const loginCode = randomUUID().replace(/-/g, '').substring(0, 12);
@@ -11670,12 +11671,12 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
       const loginUrl = `${baseUrl}/access/${loginCode}`;
       
-      console.log("[Resend Settings Link] Sending login link to:", normalizedEmail, "for slug:", profile.artistSlug);
+      console.log("[Resend Settings Link] Sending login link to:", targetEmail, "for slug:", profile.artistSlug);
       
-      // Send the login email
+      // Send the login email to the profile owner's registered email
       const { sendLoginLinkEmail } = await import('./emailService');
       const result = await sendLoginLinkEmail({
-        toEmail: normalizedEmail,
+        toEmail: targetEmail,
         artistName: profile.businessName || 'there',
         loginUrl
       });
