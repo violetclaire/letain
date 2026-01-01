@@ -141,10 +141,15 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
   };
 
   const cycleStatus = async (date: Date) => {
-    if (viewOnly) return;
+    console.log('[Calendar] cycleStatus called for date:', date, 'viewOnly:', viewOnly);
+    if (viewOnly) {
+      console.log('[Calendar] viewOnly is true, returning early');
+      return;
+    }
     
     const dateKey = toLocalDateKey(date);
     const booking = bookings[dateKey];
+    console.log('[Calendar] dateKey:', dateKey, 'booking:', booking);
     
     if (booking && (booking.status === 'accepted' || booking.status === 'pending')) {
       toast({ 
@@ -388,12 +393,16 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
           const canInteract = !past && !viewOnly && (status === 'available' || status === 'blocked' || status === 'manual_booked');
           
           const handleClick = () => {
+            console.log('[Calendar] handleClick - canBook:', canBook, 'canInteract:', canInteract, 'status:', status, 'past:', past, 'viewOnly:', viewOnly);
             if (canBook) {
               onRequestBooking(date);
             } else if (!viewOnly && onCreateBooking && status === 'available' && !past) {
               onCreateBooking(date);
             } else if (canInteract) {
+              console.log('[Calendar] Calling cycleStatus');
               cycleStatus(date);
+            } else {
+              console.log('[Calendar] No action taken');
             }
           };
           
