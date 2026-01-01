@@ -416,9 +416,8 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
             console.log('[Calendar] handleClick - canBook:', canBook, 'canInteract:', canInteract, 'status:', status, 'past:', past, 'viewOnly:', viewOnly);
             if (canBook) {
               onRequestBooking(date);
-            } else if (!viewOnly && onCreateBooking && status === 'available' && !past) {
-              onCreateBooking(date);
             } else if (canInteract) {
+              // Always cycle status for non-viewOnly mode
               console.log('[Calendar] Calling cycleStatus');
               cycleStatus(date);
             } else {
