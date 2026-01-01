@@ -11643,10 +11643,30 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         profile = await storage.getArtistProfileBySlug(slug);
         console.log("[Resend Settings Link] Profile by slug:", profile ? profile.artistSlug : "not found");
         if (profile) {
-          user = await storage.getUser(profile.userId);
-          console.log("[Resend Settings Link] User from profile:", user?.email);
-          // Send to the email they entered - they're on the correct slug page
-          // The login code will create a session for whichever user owns this profile
+          // Get or create user for the provided email
+          let emailUser = await storage.getUserByEmail(normalizedEmail);
+          if (!emailUser) {
+            // Create user for this email
+            console.log("[Resend Settings Link] Creating user for email:", normalizedEmail);
+            emailUser = await storage.createUser({
+              email: normalizedEmail,
+              role: 'artist',
+            });
+          }
+          
+          // Link profile to this user if not already linked or if different
+          if (profile.userId !== emailUser.id) {
+            console.log("[Resend Settings Link] Relinking profile from", profile.userId, "to", emailUser.id);
+            // Direct update to change profile ownership
+            await db.update(artistProfiles)
+              .set({ userId: emailUser.id })
+              .where(eq(artistProfiles.id, profile.id));
+            // Reload profile with new userId
+            profile = await storage.getArtistProfileBySlug(slug);
+          }
+          
+          user = emailUser;
+          console.log("[Resend Settings Link] User linked:", user?.email);
         }
       }
       
@@ -11655,8 +11675,8 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.json({ success: true, message: "If this email is registered, you'll receive your settings link shortly." });
       }
       
-      // Use the profile owner's email if available, otherwise the provided email
-      const targetEmail = user?.email || normalizedEmail;
+      // Send to the email they entered
+      const targetEmail = normalizedEmail;
       console.log("[Resend Settings Link] Will send to:", targetEmail);
       
       // Generate a login code that creates a session (more reliable than tokens)
