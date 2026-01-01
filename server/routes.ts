@@ -11615,6 +11615,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
   
   // Resend settings link to artist (for when they forget their admin link)
+  // Now uses session-based login codes instead of tokens for reliability
   app.post("/api/public/artists/resend-settings-link", async (req, res) => {
     try {
       const { email, slug } = req.body;
@@ -11622,13 +11623,14 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(400).json({ error: "Email is required" });
       }
       
-      console.log("[Resend Settings Link] Looking up email:", email, "slug:", slug);
+      const normalizedEmail = email.toLowerCase().trim();
+      console.log("[Resend Settings Link] Looking up email:", normalizedEmail, "slug:", slug);
       
       let profile = null;
       let user = null;
       
       // First try: look up by email in users table
-      user = await storage.getUserByEmail(email.toLowerCase().trim());
+      user = await storage.getUserByEmail(normalizedEmail);
       console.log("[Resend Settings Link] User by email:", user ? user.id : "not found");
       
       if (user) {
@@ -11643,34 +11645,39 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         if (profile) {
           user = await storage.getUser(profile.userId);
           // Verify email matches (case-insensitive)
-          if (user && user.email?.toLowerCase() !== email.toLowerCase().trim()) {
-            console.log("[Resend Settings Link] Email mismatch - user email:", user.email, "provided:", email);
+          if (user && user.email?.toLowerCase() !== normalizedEmail) {
+            console.log("[Resend Settings Link] Email mismatch - user email:", user.email, "provided:", normalizedEmail);
             user = null;
             profile = null;
           }
         }
       }
       
-      if (!profile || !profile.editToken) {
-        console.log("[Resend Settings Link] No profile or no editToken");
+      if (!profile) {
+        console.log("[Resend Settings Link] No profile found");
         return res.json({ success: true, message: "If this email is registered, you'll receive your settings link shortly." });
       }
       
-      // Build settings and dashboard URLs
+      // Generate a login code that creates a session (more reliable than tokens)
+      const loginCode = randomUUID().replace(/-/g, '').substring(0, 12);
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      
+      await storage.updateArtistProfile(profile.userId, {
+        loginCode,
+        loginCodeExpiresAt: expiresAt
+      });
+      
       const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
-      const settingsUrl = `${baseUrl}/${profile.artistSlug}/settings?token=${profile.editToken}`;
-      const dashboardUrl = `${baseUrl}/admin/${profile.artistSlug}?token=${profile.editToken}`;
+      const loginUrl = `${baseUrl}/access/${loginCode}`;
       
-      console.log("[Resend Settings Link] Sending email to:", email, "for slug:", profile.artistSlug);
+      console.log("[Resend Settings Link] Sending login link to:", normalizedEmail, "for slug:", profile.artistSlug);
       
-      // Send the email
-      const { sendSettingsLinkEmail } = await import('./emailService');
-      const result = await sendSettingsLinkEmail({
-        toEmail: email,
-        artistName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'there' : 'there',
-        businessName: profile.businessName || undefined,
-        settingsUrl,
-        dashboardUrl
+      // Send the login email
+      const { sendLoginLinkEmail } = await import('./emailService');
+      const result = await sendLoginLinkEmail({
+        toEmail: normalizedEmail,
+        artistName: profile.businessName || 'there',
+        loginUrl
       });
       
       console.log("[Resend Settings Link] Email result:", JSON.stringify(result));
