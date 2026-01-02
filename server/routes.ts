@@ -309,6 +309,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register Square payment routes
   registerSquareRoutes(app, isAuthenticated);
 
+  // ========== DIAGNOSTIC ENDPOINT (TEMPORARY) ==========
+  app.get('/api/debug/db-info', async (req, res) => {
+    try {
+      const dbUrl = process.env.DATABASE_URL || 'NOT SET';
+      const prodDbUrl = process.env.PRODUCTION_DATABASE_URL || 'NOT SET';
+      let host = 'unknown';
+      try {
+        host = new URL(dbUrl).host;
+      } catch (e) {}
+      
+      // Test if we can find the user
+      const user = await storage.getUserByEmail('info@themakeupdolls.com');
+      
+      res.json({
+        database_url_host: host,
+        production_db_url_set: prodDbUrl !== 'NOT SET',
+        node_env: process.env.NODE_ENV,
+        user_found: !!user,
+        user_has_password: user ? !!user.password : false,
+      });
+    } catch (error: any) {
+      res.json({ error: error.message });
+    }
+  });
+
   // ========== AUTH ROUTES ==========
   // This endpoint returns null if not authenticated (doesn't require isAuthenticated)
   // so the client can gracefully detect logged-out state without 401 loops
