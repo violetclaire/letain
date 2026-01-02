@@ -16,6 +16,9 @@ export default function ArtistLogin() {
   const [artistSlug, setArtistSlug] = useState("");
   const [linkSuccess, setLinkSuccess] = useState(false);
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
+  const [showSetPassword, setShowSetPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,6 +87,56 @@ export default function ArtistLogin() {
       }
 
       setMagicLinkSent(true);
+    } catch (err) {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    
+    if (newPassword !== confirmPassword) {
+      setError("Passwords don't match");
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+    
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/auth/artist-set-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ 
+          email: email.toLowerCase().trim(), 
+          password: newPassword,
+          artistSlug: artistSlug || undefined
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || "Something went wrong");
+        return;
+      }
+
+      // Success - redirect to dashboard
+      if (data.artistSlug) {
+        window.location.href = `/admin/${data.artistSlug}`;
+      } else {
+        setError("Password set! Now try signing in.");
+        setShowSetPassword(false);
+        setPassword(newPassword);
+      }
     } catch (err) {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -300,6 +353,124 @@ export default function ArtistLogin() {
     );
   }
 
+  if (showSetPassword) {
+    return (
+      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md"
+        >
+          <div className="p-8 md:p-10 border border-[#F5F0E8]/20 rounded">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl md:text-4xl mb-2 tracking-tight text-[#F5F0E8]" style={{ fontFamily: "'Fraunces', serif" }}>
+                Set Your Password
+              </h1>
+              <p className="text-sm text-[#F5F0E8]/60">
+                Create a password to access your dashboard
+              </p>
+            </div>
+
+            <form onSubmit={handleSetPassword} className="space-y-5">
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-[0.15em] text-[#F5F0E8]/40">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  required
+                  className="w-full border border-[#F5F0E8]/20 bg-transparent px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#F5F0E8]/30 rounded"
+                  data-testid="input-email-set"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-[0.15em] text-[#F5F0E8]/40">
+                  Your Profile Slug (optional)
+                </label>
+                <input
+                  type="text"
+                  value={artistSlug}
+                  onChange={(e) => setArtistSlug(e.target.value)}
+                  placeholder="e.g. themakeupdolls"
+                  className="w-full border border-[#F5F0E8]/20 bg-transparent px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#F5F0E8]/30 rounded"
+                  data-testid="input-slug-set"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-[0.15em] text-[#F5F0E8]/40">
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password"
+                  required
+                  className="w-full border border-[#F5F0E8]/20 bg-transparent px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#F5F0E8]/30 rounded"
+                  data-testid="input-new-password"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-[0.15em] text-[#F5F0E8]/40">
+                  Confirm Password
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm password"
+                  required
+                  className="w-full border border-[#F5F0E8]/20 bg-transparent px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#F5F0E8]/30 rounded"
+                  data-testid="input-confirm-password"
+                />
+              </div>
+
+              {error && (
+                <div className="text-red-400 text-sm text-center bg-red-500/10 border border-red-500/20 p-3 rounded">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isLoading || !email.trim() || !newPassword.trim() || !confirmPassword.trim()}
+                className="w-full bg-[#F5F0E8] text-[#1A1A1A] py-3 text-sm uppercase tracking-widest transition-colors disabled:opacity-50 flex items-center justify-center gap-2 rounded hover:bg-white"
+                data-testid="button-set-password"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Setting Password...
+                  </>
+                ) : (
+                  "Set Password & Sign In"
+                )}
+              </button>
+            </form>
+
+            <div className="mt-6 pt-4 border-t border-[#F5F0E8]/10 text-center">
+              <button
+                onClick={() => {
+                  setShowSetPassword(false);
+                  setError("");
+                }}
+                className="text-xs text-[#F5F0E8]/50 hover:text-[#F5F0E8] underline"
+              >
+                Back to sign in
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   if (showMagicLink) {
     return (
       <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
@@ -455,17 +626,17 @@ export default function ArtistLogin() {
 
           <div className="mt-6 pt-4 border-t border-[#F5F0E8]/10 text-center space-y-3">
             <button
+              onClick={() => setShowSetPassword(true)}
+              className="text-xs text-[#F5F0E8]/50 hover:text-[#F5F0E8] underline"
+              data-testid="button-set-password-link"
+            >
+              Need to set or reset your password?
+            </button>
+            <button
               onClick={() => setShowMagicLink(true)}
               className="text-xs text-[#F5F0E8]/50 hover:text-[#F5F0E8] underline"
             >
-              Forgot password? Get a login link instead
-            </button>
-            <button
-              onClick={() => setShowLinkProfile(true)}
-              className="text-xs text-[#F5F0E8]/50 hover:text-[#F5F0E8] underline block w-full"
-              data-testid="button-link-existing-profile"
-            >
-              Have an existing profile? Link it to your account
+              Get a login link instead
             </button>
             <p className="text-xs text-[#F5F0E8]/50">
               New here?{" "}

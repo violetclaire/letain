@@ -524,6 +524,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // ========== ARTIST PASSWORD SETUP ==========
+  // Allow artists to set/reset password directly (for accounts created via magic link)
+  app.post('/api/auth/artist-set-password', authLimiter, async (req, res) => {
+    try {
+      const { email, password, artistSlug } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+      
+      if (password.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters" });
+      }
+      
+      const normalizedEmail = email.toLowerCase().trim();
+      
+      // Find or create user
+      let user = await storage.getUserByEmail(normalizedEmail);
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      if (!user) {
+        // Check if there's an artist profile that matches this email pattern
+        const allProfiles = await db.select().from(artistProfiles);
+        const emailPrefix = normalizedEmail.split('@')[0].toLowerCase();
+        
+        let matchedProfile = allProfiles.find(p => {
+          const slug = p.artistSlug?.toLowerCase() || '';
+          if (artistSlug && slug === artistSlug.toLowerCase()) return true;
+          return slug.includes(emailPrefix);
+        });
+        
+        if (!matchedProfile && artistSlug) {
+          matchedProfile = allProfiles.find(p => p.artistSlug?.toLowerCase() === artistSlug.toLowerCase());
+        }
+        
+        // Create user
+        console.log("[SetPassword] Creating new user for:", normalizedEmail);
+        user = await storage.createUser({
+          email: normalizedEmail,
+          password: hashedPassword,
+        });
+        // Set role to artist
+        await storage.updateUserRole(user.id, 'artist');
+        
+        // Link to artist profile if found
+        if (matchedProfile) {
+          console.log("[SetPassword] Linking to profile:", matchedProfile.artistSlug);
+          await db.update(artistProfiles)
+            .set({ userId: user.id, verificationStatus: 'approved', onboardingCompleted: true })
+            .where(eq(artistProfiles.id, matchedProfile.id));
+        }
+      } else {
+        // Update existing user's password
+        console.log("[SetPassword] Updating password for user:", user.id);
+        await storage.updateUser(user.id, { password: hashedPassword });
+      }
+      
+      // Set session and log them in
+      (req.session as any).userId = user.id;
+      
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+      
+      // Find artist slug for redirect
+      const profile = await storage.getArtistProfile(user.id);
+      
+      res.json({ 
+        message: "Password set successfully", 
+        artistSlug: profile?.artistSlug || artistSlug || null 
+      });
+    } catch (error: any) {
+      console.error("[SetPassword] Error:", error);
+      res.status(500).json({ message: "Failed to set password" });
+    }
+  });
+
   // ========== PASSWORD RESET ==========
   // Request password reset - sends email with reset link
   app.post('/api/auth/forgot-password', authLimiter, async (req, res) => {
@@ -534,7 +614,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email is required" });
       }
       
-      const user = await storage.getUserByEmail(email);
+      const normalizedEmail = email.toLowerCase().trim();
+      let user = await storage.getUserByEmail(normalizedEmail);
+      
+      // AUTO-CREATE: If user doesn't exist but there's a matching artist profile, create the user
+      if (!user) {
+        const allProfiles = await db.select().from(artistProfiles);
+        const emailPrefix = normalizedEmail.split('@')[0].toLowerCase();
+        
+        const matchedProfile = allProfiles.find(p => {
+          const slug = p.artistSlug?.toLowerCase() || '';
+          return slug.includes(emailPrefix) || normalizedEmail.includes(slug);
+        });
+        
+        if (matchedProfile) {
+          console.log("[ForgotPassword] Auto-creating user for artist:", matchedProfile.artistSlug);
+          user = await storage.createUser({
+            email: normalizedEmail,
+            password: '', // Will be set via reset flow
+          });
+          await storage.updateUserRole(user.id, 'artist');
+          
+          await db.update(artistProfiles)
+            .set({ userId: user.id, verificationStatus: 'approved' })
+            .where(eq(artistProfiles.id, matchedProfile.id));
+        }
+      }
       
       // Always return success to prevent email enumeration
       if (!user) {
