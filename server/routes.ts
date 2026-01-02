@@ -10801,13 +10801,17 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const isArtist = viewerUserId && viewerUserId === inquiry.vendorId;
       
       const messages = notifications
-        .filter(n => ['artist_reply', 'info_sheet', 'referral_list', 'polite_decline'].includes(n.type))
+        .filter(n => ['artist_reply', 'client_reply', 'info_sheet', 'referral_list', 'polite_decline'].includes(n.type))
         .map(n => ({
           id: n.id,
           type: n.type,
           content: n.content || '',
           sentAt: n.sentAt || n.createdAt,
-          sentBy: n.type === 'artist_reply' ? (isArtist ? 'You' : artist?.businessName || 'Artist') : 'System',
+          sentBy: n.type === 'artist_reply' 
+            ? (isArtist ? 'You' : artist?.businessName || 'Artist') 
+            : n.type === 'client_reply' 
+              ? inquiry.clientName 
+              : 'System',
         }));
       
       // For clients, only send limited data
