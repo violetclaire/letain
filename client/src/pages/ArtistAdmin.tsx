@@ -182,10 +182,14 @@ export default function ArtistAdmin() {
 
   // If not authenticated via token or session, redirect to login page
   if (!token && !useSessionAuth) {
-    window.location.replace(`/artist-login?redirect=/admin/${slug}`);
+    // Use useEffect pattern to avoid redirect loop issues
+    if (typeof window !== 'undefined') {
+      window.location.href = `/artist-login?redirect=${encodeURIComponent(`/admin/${slug}`)}`;
+    }
     return (
-      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center">
+      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center flex-col gap-4">
         <Loader2 className="h-6 w-6 animate-spin text-[#F5F0E8]/30" />
+        <p className="text-[#F5F0E8]/50 text-sm">Redirecting to login...</p>
       </div>
     );
   }
