@@ -109,8 +109,8 @@ function Router() {
       <Route path="/access/:code" component={AccessVerify} />
       <Route path="/signup" component={Signup} />
       <Route path="/forgot-password" component={ForgotPassword} />
-      <Route path="/reset-password" component={ResetPassword} />
       <Route path="/reset-password/:token" component={ResetPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
       <Route path="/recover-access" component={RecoverAccess} />
       <Route path="/register" component={Register} />
       <Route path="/intake/client" component={ServiceSelection} />
