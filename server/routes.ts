@@ -312,19 +312,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ========== DIAGNOSTIC ENDPOINT (TEMPORARY) ==========
   app.get('/api/debug/db-info', async (req, res) => {
     try {
+      const neonDbUrl = process.env.NEON_DATABASE_URL || 'NOT SET';
       const dbUrl = process.env.DATABASE_URL || 'NOT SET';
-      const prodDbUrl = process.env.PRODUCTION_DATABASE_URL || 'NOT SET';
-      let host = 'unknown';
+      let neonHost = 'unknown';
+      let dbHost = 'unknown';
       try {
-        host = new URL(dbUrl).host;
+        if (neonDbUrl !== 'NOT SET') neonHost = new URL(neonDbUrl).host;
+        if (dbUrl !== 'NOT SET') dbHost = new URL(dbUrl).host;
       } catch (e) {}
       
       // Test if we can find the user
       const user = await storage.getUserByEmail('info@themakeupdolls.com');
       
       res.json({
-        database_url_host: host,
-        production_db_url_set: prodDbUrl !== 'NOT SET',
+        neon_database_url_host: neonHost,
+        database_url_host: dbHost,
+        using_neon: neonDbUrl !== 'NOT SET',
         node_env: process.env.NODE_ENV,
         user_found: !!user,
         user_has_password: user ? !!user.password : false,
