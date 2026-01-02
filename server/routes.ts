@@ -524,91 +524,158 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // ========== ARTIST PASSWORD SETUP ==========
-  // Allow artists to set/reset password directly (for accounts created via magic link)
-  app.post('/api/auth/artist-set-password', authLimiter, async (req, res) => {
+  // ========== SECURE PASSWORD RESET ==========
+  // Step 1: Request password reset - sends email with secure token
+  app.post('/api/auth/request-password-reset', authLimiter, async (req, res) => {
     try {
-      const { email, password, artistSlug } = req.body;
+      const { email } = req.body;
       
-      if (!email || !password) {
-        return res.status(400).json({ message: "Email and password are required" });
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      
+      const normalizedEmail = email.toLowerCase().trim();
+      
+      // Find user by email
+      let user = await storage.getUserByEmail(normalizedEmail);
+      
+      // Also check if there's an artist profile with this email
+      const profile = user ? await storage.getArtistProfile(user.id) : null;
+      
+      // If no user but there's a matching artist profile by email, find it
+      let matchedProfile = profile;
+      if (!user) {
+        const allProfiles = await db.select().from(artistProfiles);
+        matchedProfile = allProfiles.find(p => 
+          p.contactEmail?.toLowerCase() === normalizedEmail ||
+          p.artistSlug?.toLowerCase() === normalizedEmail.split('@')[0].toLowerCase()
+        );
+      }
+      
+      // Always return success (don't reveal if email exists)
+      // But only send email if we found a matching profile
+      if (matchedProfile) {
+        const resetToken = randomUUID();
+        const tokenExpires = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+        
+        // Store token in the profile
+        await db.update(artistProfiles)
+          .set({ loginCode: resetToken, loginCodeExpiresAt: tokenExpires })
+          .where(eq(artistProfiles.id, matchedProfile.id));
+        
+        // Send password reset email
+        const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
+        const resetUrl = `${baseUrl}/reset-password/${resetToken}`;
+        
+        const { sendEmail } = await import('./emailService');
+        await sendEmail({
+          to: normalizedEmail,
+          subject: 'Reset Your Password',
+          html: `
+            <div style="font-family: Inter, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+              <h1 style="font-family: Fraunces, Georgia, serif; font-size: 24px; margin-bottom: 24px;">Reset Your Password</h1>
+              <p style="margin-bottom: 24px;">Click the link below to set a new password. This link expires in 30 minutes.</p>
+              <a href="${resetUrl}" style="display: inline-block; background: #1A1A1A; color: #F5F0E8; padding: 12px 24px; text-decoration: none; border-radius: 4px;">Set New Password</a>
+              <p style="margin-top: 24px; color: #666; font-size: 14px;">If you didn't request this, you can safely ignore this email.</p>
+            </div>
+          `
+        });
+        
+        console.log("[PasswordReset] Email sent to:", normalizedEmail);
+      } else {
+        console.log("[PasswordReset] No matching profile for:", normalizedEmail);
+      }
+      
+      // Always return success to prevent email enumeration
+      res.json({ message: "If an account exists with that email, a reset link has been sent." });
+    } catch (error: any) {
+      console.error("[PasswordReset] Error:", error);
+      res.status(500).json({ message: "Failed to process request" });
+    }
+  });
+
+  // Step 2: Complete password reset with token
+  app.post('/api/auth/complete-password-reset', authLimiter, async (req, res) => {
+    try {
+      const { token, password } = req.body;
+      
+      if (!token || !password) {
+        return res.status(400).json({ message: "Token and password are required" });
       }
       
       if (password.length < 6) {
         return res.status(400).json({ message: "Password must be at least 6 characters" });
       }
       
-      const normalizedEmail = email.toLowerCase().trim();
+      // Find profile with this token
+      const [profile] = await db.select().from(artistProfiles)
+        .where(eq(artistProfiles.loginCode, token));
       
-      // Find or create user
-      let user = await storage.getUserByEmail(normalizedEmail);
+      if (!profile) {
+        return res.status(400).json({ message: "Invalid or expired reset link" });
+      }
+      
+      if (profile.loginCodeExpiresAt && new Date(profile.loginCodeExpiresAt) < new Date()) {
+        return res.status(400).json({ message: "Reset link has expired. Please request a new one." });
+      }
+      
       const hashedPassword = await bcrypt.hash(password, 10);
       
+      // Find or create user
+      let user = profile.userId ? await storage.getUser(profile.userId) : null;
+      
+      if (!user && profile.contactEmail) {
+        user = await storage.getUserByEmail(profile.contactEmail);
+      }
+      
       if (!user) {
-        // Check if there's an artist profile that matches this email pattern
-        const allProfiles = await db.select().from(artistProfiles);
-        const emailPrefix = normalizedEmail.split('@')[0].toLowerCase();
-        
-        let matchedProfile = allProfiles.find(p => {
-          const slug = p.artistSlug?.toLowerCase() || '';
-          if (artistSlug && slug === artistSlug.toLowerCase()) return true;
-          return slug.includes(emailPrefix);
-        });
-        
-        if (!matchedProfile && artistSlug) {
-          matchedProfile = allProfiles.find(p => p.artistSlug?.toLowerCase() === artistSlug.toLowerCase());
-        }
-        
-        // Create user
-        console.log("[SetPassword] Creating new user for:", normalizedEmail);
+        // Create new user
         user = await storage.createUser({
-          email: normalizedEmail,
+          email: profile.contactEmail || `${profile.artistSlug}@dateinquiry.com`,
           password: hashedPassword,
         });
-        // Set role to artist
         await storage.updateUserRole(user.id, 'artist');
         
-        // Link to artist profile if found
-        if (matchedProfile) {
-          console.log("[SetPassword] Linking to profile:", matchedProfile.artistSlug);
-          await db.update(artistProfiles)
-            .set({ userId: user.id, verificationStatus: 'approved', onboardingCompleted: true })
-            .where(eq(artistProfiles.id, matchedProfile.id));
-        }
+        // Link to profile
+        await db.update(artistProfiles)
+          .set({ userId: user.id, verificationStatus: 'approved', onboardingCompleted: true })
+          .where(eq(artistProfiles.id, profile.id));
       } else {
         // Update existing user's password
-        console.log("[SetPassword] Updating password for user:", user.id);
         await storage.updateUser(user.id, { password: hashedPassword });
       }
       
-      // Find artist profile for redirect
-      const profile = await storage.getArtistProfile(user.id);
-      const finalSlug = profile?.artistSlug || artistSlug || null;
+      // Clear the reset token IMMEDIATELY (before session setup) to prevent reuse
+      await db.update(artistProfiles)
+        .set({ loginCode: null, loginCodeExpiresAt: null })
+        .where(eq(artistProfiles.id, profile.id));
       
-      // Generate a one-time login token
-      const loginToken = randomUUID();
-      const tokenExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+      console.log("[PasswordReset] Token cleared for profile:", profile.id);
       
-      // Store token in artist profile
-      if (profile) {
-        await db.update(artistProfiles)
-          .set({ loginCode: loginToken, loginCodeExpiresAt: tokenExpires })
-          .where(eq(artistProfiles.id, profile.id));
-      }
+      // Log them in - set session
+      (req.session as any).userId = user.id;
       
-      // Return both the slug and a direct login URL
-      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
-      const directLoginUrl = profile ? `${baseUrl}/api/public/artist/login/${loginToken}` : null;
+      // Save session and wait for it to complete
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) {
+            console.error("[PasswordReset] Session save error:", err);
+            reject(err);
+          } else {
+            console.log("[PasswordReset] Session saved successfully");
+            resolve();
+          }
+        });
+      });
       
-      console.log("[SetPassword] Success for user:", user.id, "slug:", finalSlug, "directLogin:", !!directLoginUrl);
+      console.log("[PasswordReset] Completed for user:", user.id, "profile:", profile.artistSlug);
       
       res.json({ 
-        message: "Password set successfully", 
-        artistSlug: finalSlug,
-        directLoginUrl
+        message: "Password set successfully",
+        artistSlug: profile.artistSlug
       });
     } catch (error: any) {
-      console.error("[SetPassword] Error:", error);
+      console.error("[PasswordReset] Error:", error);
       res.status(500).json({ message: "Failed to set password" });
     }
   });

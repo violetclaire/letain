@@ -34,10 +34,8 @@ export function getSession(): RequestHandler {
     tableName: "sessions",
   });
   
-  // Determine cookie domain for production (allows www and non-www to share session)
-  const isProduction = process.env.NODE_ENV === 'production' || process.env.REPL_SLUG;
-  const cookieDomain = isProduction ? '.dateinquiry.com' : undefined;
-  
+  // Don't hardcode cookie domain - let browser derive it from request host
+  // This fixes issues where www.dateinquiry.com vs dateinquiry.com mismatch causes cookie rejection
   cachedSessionMiddleware = session({
     secret: process.env.SESSION_SECRET!,
     store: sessionStore,
@@ -48,7 +46,7 @@ export function getSession(): RequestHandler {
       secure: true,
       sameSite: "lax",
       maxAge: sessionTtl,
-      domain: cookieDomain, // Share cookie across www and non-www
+      // No domain specified - browser will use request host automatically
     },
   });
   

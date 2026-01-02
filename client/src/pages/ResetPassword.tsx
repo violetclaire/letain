@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
-import { useLocation, useSearch } from "wouter";
+import { useLocation, useSearch, useParams } from "wouter";
 import { motion } from "framer-motion";
 import { Loader2, Eye, EyeOff, CheckCircle, XCircle } from "lucide-react";
 
 export default function ResetPassword() {
   const [, setLocation] = useLocation();
   const search = useSearch();
-  const token = new URLSearchParams(search).get("token");
+  const params = useParams<{ token?: string }>();
+  const token = params.token || new URLSearchParams(search).get("token");
   
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -21,15 +22,8 @@ export default function ResetPassword() {
       setIsValidToken(false);
       return;
     }
-    
-    fetch(`/api/auth/verify-reset-token?token=${token}`)
-      .then(res => res.json())
-      .then(data => {
-        setIsValidToken(data.valid === true);
-      })
-      .catch(() => {
-        setIsValidToken(false);
-      });
+    // Token validation happens on submit, so just mark as valid if we have a token
+    setIsValidToken(true);
   }, [token]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,27 +35,18 @@ export default function ResetPassword() {
       return;
     }
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
-      return;
-    }
-
-    if (!/\d/.test(password)) {
-      setError("Password must contain a number");
-      return;
-    }
-
-    if (!/[A-Z]/.test(password)) {
-      setError("Password must contain an uppercase letter");
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/auth/reset-password", {
+      const response = await fetch("/api/auth/complete-password-reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ token, password }),
       });
 
@@ -73,6 +58,12 @@ export default function ResetPassword() {
       }
 
       setSuccess(true);
+      
+      if (data.artistSlug) {
+        setTimeout(() => {
+          setLocation(`/admin/${data.artistSlug}`);
+        }, 1500);
+      }
     } catch (err) {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -175,7 +166,7 @@ export default function ResetPassword() {
                     </button>
                   </div>
                   <p className="text-xs text-[#F5F0E8]/40">
-                    At least 8 characters, one uppercase letter, and one number
+                    At least 6 characters
                   </p>
                 </div>
 

@@ -94,32 +94,18 @@ export default function ArtistLogin() {
     }
   };
 
-  const handleSetPassword = async (e: React.FormEvent) => {
+  const [resetEmailSent, setResetEmailSent] = useState(false);
+
+  const handleRequestPasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    
-    if (newPassword !== confirmPassword) {
-      setError("Passwords don't match");
-      return;
-    }
-    
-    if (newPassword.length < 6) {
-      setError("Password must be at least 6 characters");
-      return;
-    }
-    
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/auth/artist-set-password", {
+      const response = await fetch("/api/auth/request-password-reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ 
-          email: email.toLowerCase().trim(), 
-          password: newPassword,
-          artistSlug: artistSlug || undefined
-        }),
+        body: JSON.stringify({ email: email.toLowerCase().trim() }),
       });
 
       const data = await response.json();
@@ -129,16 +115,7 @@ export default function ArtistLogin() {
         return;
       }
 
-      // Success - use direct login URL if provided (bypasses cookie issues)
-      if (data.directLoginUrl) {
-        window.location.href = data.directLoginUrl;
-      } else if (data.artistSlug) {
-        window.location.href = `/admin/${data.artistSlug}`;
-      } else {
-        setError("Password set! Now try signing in.");
-        setShowSetPassword(false);
-        setPassword(newPassword);
-      }
+      setResetEmailSent(true);
     } catch (err) {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -356,6 +333,40 @@ export default function ArtistLogin() {
   }
 
   if (showSetPassword) {
+    if (resetEmailSent) {
+      return (
+        <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full max-w-md"
+          >
+            <div className="p-8 md:p-10 border border-[#F5F0E8]/20 rounded text-center">
+              <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-[#F5F0E8]/10 flex items-center justify-center">
+                <Mail className="w-8 h-8 text-[#F5F0E8]" />
+              </div>
+              <h1 className="text-2xl md:text-3xl mb-3 tracking-tight text-[#F5F0E8]" style={{ fontFamily: "'Fraunces', serif" }}>
+                Check your inbox
+              </h1>
+              <p className="text-sm text-[#F5F0E8]/60 mb-6">
+                If an account exists for <span className="text-[#F5F0E8]">{email}</span>, we've sent a link to set your password.
+              </p>
+              <button
+                onClick={() => {
+                  setShowSetPassword(false);
+                  setResetEmailSent(false);
+                  setError("");
+                }}
+                className="text-xs text-[#F5F0E8]/50 hover:text-[#F5F0E8] underline"
+              >
+                Back to sign in
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
         <motion.div
@@ -366,14 +377,14 @@ export default function ArtistLogin() {
           <div className="p-8 md:p-10 border border-[#F5F0E8]/20 rounded">
             <div className="text-center mb-8">
               <h1 className="text-3xl md:text-4xl mb-2 tracking-tight text-[#F5F0E8]" style={{ fontFamily: "'Fraunces', serif" }}>
-                Set Your Password
+                Reset Password
               </h1>
               <p className="text-sm text-[#F5F0E8]/60">
-                Create a password to access your dashboard
+                We'll email you a secure link to set your password
               </p>
             </div>
 
-            <form onSubmit={handleSetPassword} className="space-y-5">
+            <form onSubmit={handleRequestPasswordReset} className="space-y-5">
               <div className="space-y-2">
                 <label className="text-[10px] uppercase tracking-[0.15em] text-[#F5F0E8]/40">
                   Email Address
@@ -384,38 +395,9 @@ export default function ArtistLogin() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="your@email.com"
                   required
+                  autoFocus
                   className="w-full border border-[#F5F0E8]/20 bg-transparent px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#F5F0E8]/30 rounded"
-                  data-testid="input-email-set"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase tracking-[0.15em] text-[#F5F0E8]/40">
-                  New Password
-                </label>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter new password"
-                  required
-                  className="w-full border border-[#F5F0E8]/20 bg-transparent px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#F5F0E8]/30 rounded"
-                  data-testid="input-new-password"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase tracking-[0.15em] text-[#F5F0E8]/40">
-                  Confirm Password
-                </label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm password"
-                  required
-                  className="w-full border border-[#F5F0E8]/20 bg-transparent px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#F5F0E8]/30 rounded"
-                  data-testid="input-confirm-password"
+                  data-testid="input-email-reset"
                 />
               </div>
 
@@ -427,17 +409,17 @@ export default function ArtistLogin() {
 
               <button
                 type="submit"
-                disabled={isLoading || !email.trim() || !newPassword.trim() || !confirmPassword.trim()}
+                disabled={isLoading || !email.trim()}
                 className="w-full bg-[#F5F0E8] text-[#1A1A1A] py-3 text-sm uppercase tracking-widest transition-colors disabled:opacity-50 flex items-center justify-center gap-2 rounded hover:bg-white"
-                data-testid="button-set-password"
+                data-testid="button-send-reset"
               >
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Setting Password...
+                    Sending...
                   </>
                 ) : (
-                  "Set Password & Sign In"
+                  "Send Reset Link"
                 )}
               </button>
             </form>
