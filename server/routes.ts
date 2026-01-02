@@ -310,7 +310,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerSquareRoutes(app, isAuthenticated);
 
   // ========== DIAGNOSTIC ENDPOINT (TEMPORARY) ==========
-  app.get('/api/debug/db-info', async (req, res) => {
+  app.get('/api/debug/db-info', async (req: any, res) => {
     try {
       const neonDbUrl = process.env.NEON_DATABASE_URL || 'NOT SET';
       const dbUrl = process.env.DATABASE_URL || 'NOT SET';
@@ -324,6 +324,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Test if we can find the user
       const user = await storage.getUserByEmail('info@themakeupdolls.com');
       
+      // Check session info
+      const sessionUserId = req.session?.userId || null;
+      const hasSessionCookie = !!req.headers.cookie?.includes('connect.sid');
+      
       res.json({
         neon_database_url_host: neonHost,
         database_url_host: dbHost,
@@ -331,6 +335,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         node_env: process.env.NODE_ENV,
         user_found: !!user,
         user_has_password: user ? !!user.password : false,
+        session_user_id: sessionUserId,
+        has_session_cookie: hasSessionCookie,
       });
     } catch (error: any) {
       res.json({ error: error.message });
