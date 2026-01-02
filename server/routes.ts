@@ -581,22 +581,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateUser(user.id, { password: hashedPassword });
       }
       
-      // Set session and log them in
-      (req.session as any).userId = user.id;
-      
-      await new Promise<void>((resolve, reject) => {
-        req.session.save((err) => {
-          if (err) reject(err);
-          else resolve();
-        });
-      });
-      
-      // Find artist slug for redirect
+      // Find artist profile for redirect
       const profile = await storage.getArtistProfile(user.id);
+      const finalSlug = profile?.artistSlug || artistSlug || null;
+      
+      // Generate a one-time login token
+      const loginToken = randomUUID();
+      const tokenExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+      
+      // Store token in artist profile
+      if (profile) {
+        await db.update(artistProfiles)
+          .set({ loginCode: loginToken, loginCodeExpiresAt: tokenExpires })
+          .where(eq(artistProfiles.id, profile.id));
+      }
+      
+      // Return both the slug and a direct login URL
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
+      const directLoginUrl = profile ? `${baseUrl}/api/public/artist/login/${loginToken}` : null;
+      
+      console.log("[SetPassword] Success for user:", user.id, "slug:", finalSlug, "directLogin:", !!directLoginUrl);
       
       res.json({ 
         message: "Password set successfully", 
-        artistSlug: profile?.artistSlug || artistSlug || null 
+        artistSlug: finalSlug,
+        directLoginUrl
       });
     } catch (error: any) {
       console.error("[SetPassword] Error:", error);

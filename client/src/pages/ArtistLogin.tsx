@@ -129,8 +129,10 @@ export default function ArtistLogin() {
         return;
       }
 
-      // Success - redirect to dashboard
-      if (data.artistSlug) {
+      // Success - use direct login URL if provided (bypasses cookie issues)
+      if (data.directLoginUrl) {
+        window.location.href = data.directLoginUrl;
+      } else if (data.artistSlug) {
         window.location.href = `/admin/${data.artistSlug}`;
       } else {
         setError("Password set! Now try signing in.");
@@ -384,20 +386,6 @@ export default function ArtistLogin() {
                   required
                   className="w-full border border-[#F5F0E8]/20 bg-transparent px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#F5F0E8]/30 rounded"
                   data-testid="input-email-set"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase tracking-[0.15em] text-[#F5F0E8]/40">
-                  Your Profile Slug (optional)
-                </label>
-                <input
-                  type="text"
-                  value={artistSlug}
-                  onChange={(e) => setArtistSlug(e.target.value)}
-                  placeholder="e.g. themakeupdolls"
-                  className="w-full border border-[#F5F0E8]/20 bg-transparent px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#F5F0E8]/30 rounded"
-                  data-testid="input-slug-set"
                 />
               </div>
 
