@@ -2266,3 +2266,89 @@ export async function sendLoginLinkEmail({
     return { success: false, error: err.message };
   }
 }
+
+// Send circle invite email to someone not on the platform yet
+export async function sendCircleInviteEmail({
+  toEmail,
+  inviteeName,
+  inviterName,
+  inviterBusinessName,
+  inviteLink,
+  personalNote
+}: {
+  toEmail: string;
+  inviteeName: string;
+  inviterName: string;
+  inviterBusinessName?: string;
+  inviteLink: string;
+  personalNote?: string;
+}) {
+  const { client, fromEmail } = await getResendClient();
+  
+  const safeInviteeName = sanitizeSenderName(inviteeName) || 'there';
+  const safeInviterName = sanitizeSenderName(inviterName) || 'A fellow artist';
+  const safeBusinessName = inviterBusinessName ? sanitizeSenderName(inviterBusinessName) : safeInviterName;
+  
+  const noteSection = personalNote ? `
+    <div style="background: rgba(245, 240, 232, 0.05); border-left: 2px solid rgba(196, 163, 90, 0.4); padding: 16px; margin: 24px 0; font-style: italic;">
+      "${escapeHtml(personalNote)}"
+    </div>
+  ` : '';
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Inter', -apple-system, sans-serif; background-color: #1A1A1A; margin: 0; padding: 20px; color: #F5F0E8; }
+        .container { max-width: 600px; margin: 0 auto; background: #1A1A1A; border: 1px solid rgba(245, 240, 232, 0.1); overflow: hidden; }
+        .content { padding: 40px 32px; line-height: 1.7; }
+        .greeting { font-size: 18px; margin-bottom: 24px; color: #F5F0E8; }
+        .message { color: rgba(245, 240, 232, 0.8); margin-bottom: 16px; }
+        .button { display: inline-block; background: #C4A35A; color: #1A1A1A; padding: 14px 32px; text-decoration: none; font-weight: 600; margin: 24px 0; }
+        .footer { text-align: center; padding: 20px 32px; color: rgba(245, 240, 232, 0.3); font-size: 11px; border-top: 1px solid rgba(245, 240, 232, 0.1); }
+        .highlight { color: #C4A35A; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="content">
+          <p class="greeting">Hi ${escapeHtml(safeInviteeName)},</p>
+          
+          <p class="message"><span class="highlight">${escapeHtml(safeBusinessName)}</span> has invited you to join their trusted network.</p>
+          
+          <p class="message">When you're part of someone's circle, they can refer clients to you when they're unavailable. It's a simple way to help each other grow.</p>
+          
+          ${noteSection}
+          
+          <p style="text-align: center;">
+            <a href="${inviteLink}" class="button">Accept Invitation</a>
+          </p>
+          
+          <p class="message" style="font-size: 13px; color: rgba(245, 240, 232, 0.5);">This invite was sent by ${escapeHtml(safeBusinessName)}. If you don't know them, you can ignore this email.</p>
+        </div>
+        <div class="footer">
+          Sent via Date Inquiry
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const senderEmail = `${safeBusinessName} <${fromEmail}>`;
+  
+  try {
+    console.log("Sending circle invite email to:", toEmail);
+    const result = await client.emails.send({
+      from: senderEmail,
+      to: toEmail.trim(),
+      subject: `${safeBusinessName} invited you to their network`,
+      html: htmlContent
+    });
+    console.log("Circle invite email sent:", JSON.stringify(result));
+    return { success: true, result };
+  } catch (err: any) {
+    console.error("Failed to send circle invite email:", err.message);
+    return { success: false, error: err.message };
+  }
+}
