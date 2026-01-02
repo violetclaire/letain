@@ -31,6 +31,7 @@ interface AvailabilityCalendarProps {
   onCreateBooking?: (date: Date) => void;
   viewOnly?: boolean;
   refreshKey?: number;
+  authToken?: string;
 }
 
 interface AvailabilityRecord {
@@ -58,7 +59,7 @@ interface InquiryHold {
 
 type DateStatus = 'booked' | 'pending' | 'blocked' | 'available' | 'hold' | 'manual_booked';
 
-export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBooking, onCreateBooking, viewOnly = false, refreshKey = 0 }: AvailabilityCalendarProps) {
+export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBooking, onCreateBooking, viewOnly = false, refreshKey = 0, authToken }: AvailabilityCalendarProps) {
   const { toast } = useToast();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [availability, setAvailability] = useState<Record<string, boolean>>({});
@@ -188,9 +189,12 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
       const localNoon = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
       const isoDate = localNoon.toISOString();
       
+      // Build URL with token if available
+      const apiUrl = authToken ? `/api/availability?token=${authToken}` : "/api/availability";
+      
       if (nextStatus === 'available') {
         // Clear both blocked and manual booked
-        await fetch("/api/availability", {
+        await fetch(apiUrl, {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -204,7 +208,7 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
         setManualBooked(newManual);
       } else if (nextStatus === 'blocked') {
         console.log('[Calendar] Setting to blocked, calling API with:', { date: isoDate, isAvailable: false });
-        const response = await fetch("/api/availability", {
+        const response = await fetch(apiUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -227,7 +231,7 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
         }
       } else if (nextStatus === 'manual_booked') {
         console.log('[Calendar] Setting to manual_booked, calling API with:', { date: isoDate, isAvailable: false, notes: 'BOOKED' });
-        const response = await fetch("/api/availability", {
+        const response = await fetch(apiUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",

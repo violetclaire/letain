@@ -4767,9 +4767,47 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   });
 
   // ========== AVAILABILITY ==========
-  app.post("/api/availability", isAuthenticated, async (req: any, res) => {
+  
+  // Token-based auth endpoint for availability page
+  app.get("/api/artist/availability-auth", async (req, res) => {
     try {
-      const userId = getAuthUserId(req);
+      const token = req.query.token as string;
+      if (!token) {
+        return res.status(401).json({ error: "Token required" });
+      }
+      
+      const artist = await storage.getArtistProfileByEditToken(token);
+      if (!artist) {
+        return res.status(401).json({ error: "Invalid token" });
+      }
+      
+      res.json({ id: artist.userId, artistSlug: artist.artistSlug, role: 'artist' });
+    } catch (error: any) {
+      console.error('[AvailabilityAuth] Error:', error.message);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  app.post("/api/availability", async (req: any, res) => {
+    try {
+      let userId: string;
+      
+      // Check for token-based auth first
+      const token = req.query.token as string;
+      if (token) {
+        const artist = await storage.getArtistProfileByEditToken(token);
+        if (!artist) {
+          return res.status(401).json({ error: "Invalid token" });
+        }
+        userId = artist.userId;
+      } else {
+        // Fall back to session auth
+        userId = getAuthUserId(req);
+        if (!userId) {
+          return res.status(401).json({ error: "Not authenticated" });
+        }
+      }
+      
       console.log('[Availability] POST request body:', req.body, 'userId:', userId);
       const data = insertAvailabilitySchema.parse({ ...req.body, userId });
       console.log('[Availability] Parsed data:', data);
@@ -4845,9 +4883,26 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     }
   });
 
-  app.delete("/api/availability", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/availability", async (req: any, res) => {
     try {
-      const userId = getAuthUserId(req);
+      let userId: string;
+      
+      // Check for token-based auth first
+      const token = req.query.token as string;
+      if (token) {
+        const artist = await storage.getArtistProfileByEditToken(token);
+        if (!artist) {
+          return res.status(401).json({ error: "Invalid token" });
+        }
+        userId = artist.userId;
+      } else {
+        // Fall back to session auth
+        userId = getAuthUserId(req);
+        if (!userId) {
+          return res.status(401).json({ error: "Not authenticated" });
+        }
+      }
+      
       const { date } = req.body;
       await storage.deleteAvailability(userId, new Date(date));
       res.json({ success: true });

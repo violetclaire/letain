@@ -1,11 +1,31 @@
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import AvailabilityCalendar from "../components/AvailabilityCalendar";
 
 export default function ArtistAvailability() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
+  const searchString = useSearch();
+  const urlParams = new URLSearchParams(searchString);
+  const token = urlParams.get('token');
+
+  // Fetch artist data using token if not using session auth
+  const { data: artistData, isLoading: artistLoading } = useQuery({
+    queryKey: ["/api/artist/availability-auth", token],
+    queryFn: async () => {
+      if (token) {
+        const res = await fetch(`/api/artist/availability-auth?token=${token}`);
+        if (!res.ok) throw new Error("Failed to load");
+        return res.json();
+      }
+      return null;
+    },
+    enabled: !!token,
+  });
+
+  const isLoading = authLoading || (token && artistLoading);
 
   if (isLoading) {
     return (
@@ -15,7 +35,10 @@ export default function ArtistAvailability() {
     );
   }
 
-  if (!user || user.role !== 'artist') {
+  // Use token-based artist data or session-based user
+  const effectiveUser = token && artistData ? artistData : user;
+
+  if (!effectiveUser || (user && user.role !== 'artist')) {
     return (
       <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center">
         <p className="text-[#F5F0E8]/60">Please log in as an artist to view this page.</p>
@@ -44,7 +67,7 @@ export default function ArtistAvailability() {
 
       <main className="max-w-2xl mx-auto px-8 md:px-16 py-12">
         <div className="bg-[#222] border border-[#F5F0E8]/10 rounded-lg p-6">
-          <AvailabilityCalendar userId={user.id} />
+          <AvailabilityCalendar userId={effectiveUser.id} authToken={token || undefined} />
         </div>
         
         <div className="mt-8 text-sm text-[#F5F0E8]/50 space-y-2">
