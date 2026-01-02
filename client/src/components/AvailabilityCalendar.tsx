@@ -75,7 +75,7 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
 
   useEffect(() => {
     fetchCalendarData();
-  }, [currentMonth, userId, refreshKey]);
+  }, [currentMonth, userId, refreshKey, authToken]);
 
   const fetchCalendarData = async () => {
     if (!userId) return;
@@ -88,6 +88,8 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
     const tokenParamFirst = authToken ? `?token=${authToken}` : '';
     
     try {
+      console.log('[Calendar] Fetching data with userId:', userId, 'authToken:', authToken ? 'present' : 'missing');
+      
       const [availResponse, bookingsResponse, inquiriesResponse] = await Promise.all([
         fetch(
           `/api/availability/${userId}?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}${tokenParam}`,
@@ -99,6 +101,8 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
         ),
         fetch(`/api/vendor/inquiries${tokenParamFirst}`, { credentials: "include" })
       ]);
+
+      console.log('[Calendar] Response statuses - avail:', availResponse.status, 'bookings:', bookingsResponse.status, 'inquiries:', inquiriesResponse.status);
 
       if (availResponse.ok) {
         const data: AvailabilityRecord[] = await availResponse.json();
@@ -228,8 +232,13 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
           setManualBooked(newManual);
         } else {
           const errorText = await response.text();
-          console.error('[Calendar] API error:', errorText);
-          toast({ title: "Error", description: "Failed to block date", variant: "destructive" });
+          console.error('[Calendar] API error:', response.status, errorText);
+          let errorMsg = "Failed to block date";
+          try {
+            const err = JSON.parse(errorText);
+            errorMsg = err.error || errorMsg;
+          } catch {}
+          toast({ title: "Error", description: errorMsg, variant: "destructive" });
           setLoading(false);
           return;
         }
