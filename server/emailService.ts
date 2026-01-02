@@ -100,6 +100,32 @@ export async function getResendClient() {
   };
 }
 
+export async function sendEmail({
+  to,
+  subject,
+  html
+}: {
+  to: string;
+  subject: string;
+  html: string;
+}) {
+  const { client, fromEmail } = await getResendClient();
+  
+  const safeSubject = sanitizeSubject(subject);
+  
+  console.log(`[Email] Sending to: ${to}, subject: ${safeSubject}`);
+  
+  const result = await client.emails.send({
+    from: `Date Inquiry <${fromEmail}>`,
+    to: [to],
+    subject: safeSubject,
+    html
+  });
+  
+  console.log(`[Email] Send result:`, result);
+  return result;
+}
+
 export async function sendScheduleEmail({
   toEmails,
   scheduleLink,
