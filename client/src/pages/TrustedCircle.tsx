@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
 import { useState } from "react";
-import { Loader2, ArrowLeft, Plus, X, Users, Send } from "lucide-react";
+import { Loader2, ArrowLeft, Plus, X, Users, Send, UserPlus, Mail, Heart } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import QuickGuide from "@/components/QuickGuide";
 
 interface CircleMember {
   id: string;
@@ -287,6 +288,28 @@ export default function TrustedCircle() {
           </div>
         </div>
       )}
+
+      <QuickGuide
+        guideId="trusted-circle"
+        title="Your Trusted Circle"
+        steps={[
+          {
+            title: "Add Artists You Trust",
+            description: "Invite makeup artists, hair stylists, or photographers you'd confidently refer clients to.",
+            icon: <UserPlus className="h-5 w-5" />,
+          },
+          {
+            title: "They Get an Email",
+            description: "When you add someone, they receive an invite to join your network.",
+            icon: <Mail className="h-5 w-5" />,
+          },
+          {
+            title: "Refer When You're Booked",
+            description: "If you can't take a client, you can recommend someone from your circle instead of just declining.",
+            icon: <Heart className="h-5 w-5" />,
+          },
+        ]}
+      />
     </div>
   );
 }

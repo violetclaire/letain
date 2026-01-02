@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { X, ChevronRight, ChevronLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface GuideStep {
   title: string;
   description: string;
-  icon?: React.ReactNode;
+  icon?: ReactNode;
 }
 
 interface QuickGuideProps {

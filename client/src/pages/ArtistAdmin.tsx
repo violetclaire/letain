@@ -1,10 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, useSearch, Link, useLocation } from "wouter";
 import { format } from "date-fns";
-import { Loader2, Settings, Calendar, Users, Copy, Check, Mail, CheckCircle, LogOut, FileText, DollarSign, Clock, ChevronDown, Menu, X, HelpCircle, Trash2, AlertTriangle } from "lucide-react";
+import { Loader2, Settings, Calendar, Users, Copy, Check, Mail, CheckCircle, LogOut, FileText, DollarSign, Clock, ChevronDown, Menu, X, HelpCircle, Trash2, AlertTriangle, MessageSquare, Send, CalendarDays } from "lucide-react";
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import QuickGuide from "@/components/QuickGuide";
 
 interface Inquiry {
   id: string;
@@ -856,6 +857,34 @@ export default function ArtistAdmin() {
           </div>
         </div>
       )}
+
+      {/* Quick Guide for new users */}
+      <QuickGuide
+        guideId="artist-dashboard"
+        title="Your Dashboard"
+        steps={[
+          {
+            title: "Your Client List",
+            description: "All your inquiries appear here. Click any client to open their conversation thread.",
+            icon: <MessageSquare className="h-5 w-5" />,
+          },
+          {
+            title: "Manage Your Calendar",
+            description: "Use the Calendar link to block off dates when you're unavailable or see your bookings at a glance.",
+            icon: <CalendarDays className="h-5 w-5" />,
+          },
+          {
+            title: "Share Your Link",
+            description: "Copy your inquiry link and add it to your Instagram bio or website. New clients will appear here automatically.",
+            icon: <Send className="h-5 w-5" />,
+          },
+          {
+            title: "Build Your Circle",
+            description: "Invite other artists you trust. When you're booked, you can refer clients to them instead of turning them away.",
+            icon: <Users className="h-5 w-5" />,
+          },
+        ]}
+      />
 
       {/* Delete Confirmation Modal */}
       {deletingInquiryToken && (

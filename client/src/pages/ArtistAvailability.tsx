@@ -1,8 +1,9 @@
 import { useLocation, useSearch } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, MousePointer, Ban, CalendarCheck } from "lucide-react";
 import AvailabilityCalendar from "../components/AvailabilityCalendar";
+import QuickGuide from "@/components/QuickGuide";
 
 export default function ArtistAvailability() {
   const { user, isLoading: authLoading } = useAuth();
@@ -85,6 +86,28 @@ export default function ArtistAvailability() {
           </p>
         </div>
       </main>
+
+      <QuickGuide
+        guideId="artist-calendar"
+        title="Your Calendar"
+        steps={[
+          {
+            title: "Click to Block Dates",
+            description: "Tap any date to mark it as blocked. This prevents new inquiries for that day.",
+            icon: <MousePointer className="h-5 w-5" />,
+          },
+          {
+            title: "Blocked Dates",
+            description: "Blocked dates appear in brown. You can click them again to unblock.",
+            icon: <Ban className="h-5 w-5" />,
+          },
+          {
+            title: "Bookings Sync Automatically",
+            description: "When you accept an inquiry and they pay, it automatically shows as booked here.",
+            icon: <CalendarCheck className="h-5 w-5" />,
+          },
+        ]}
+      />
     </div>
   );
 }
