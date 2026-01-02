@@ -4826,7 +4826,13 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       
       console.log('[Availability] POST request body:', req.body, 'userId:', userId);
-      const data = insertAvailabilitySchema.parse({ ...req.body, userId });
+      // Convert date string to Date object for schema validation
+      const bodyWithDate = {
+        ...req.body,
+        userId,
+        date: new Date(req.body.date)
+      };
+      const data = insertAvailabilitySchema.parse(bodyWithDate);
       console.log('[Availability] Parsed data:', data);
       const availability = await storage.setAvailability(data);
       console.log('[Availability] Saved:', availability);
