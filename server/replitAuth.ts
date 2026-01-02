@@ -28,13 +28,10 @@ export function getSession(): RequestHandler {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   const pgStore = connectPg(session);
   
-  // Use production database URL in production, otherwise development
-  const isProduction = process.env.NODE_ENV === 'production';
-  const dbUrl = (isProduction && process.env.PRODUCTION_DATABASE_URL) 
-    ? process.env.PRODUCTION_DATABASE_URL 
-    : process.env.DATABASE_URL;
+  // Always use DATABASE_URL (Neon) for sessions - same as app data
+  const dbUrl = process.env.DATABASE_URL;
   
-  console.log(`[Session] Using ${isProduction ? 'production' : 'development'} database for sessions`);
+  console.log(`[Session] Using DATABASE_URL for sessions`);
   
   const sessionStore = new pgStore({
     conString: dbUrl,

@@ -16,12 +16,8 @@ function cleanDatabaseUrl(url: string): string {
 }
 
 function getDatabaseUrl(): string {
-  const isProduction = process.env.NODE_ENV === 'production';
-  
-  if (isProduction && process.env.PRODUCTION_DATABASE_URL) {
-    return cleanDatabaseUrl(process.env.PRODUCTION_DATABASE_URL);
-  }
-  
+  // Always use DATABASE_URL (Neon) - this is where all user data lives
+  // PRODUCTION_DATABASE_URL is deprecated and should not be used
   if (process.env.DATABASE_URL) {
     return cleanDatabaseUrl(process.env.DATABASE_URL);
   }
