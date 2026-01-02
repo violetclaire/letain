@@ -2545,10 +2545,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/bookings/artist/:artistId", isAuthenticated, async (req, res) => {
+  app.get("/api/bookings/artist/:artistId", async (req: any, res) => {
     try {
+      // Support token-based auth for calendar component
+      const token = req.query.token as string;
+      let artistId = req.params.artistId;
+      
+      if (token) {
+        const artist = await storage.getArtistProfileByEditToken(token);
+        if (!artist || artist.userId !== artistId) {
+          return res.status(401).json({ error: "Invalid token" });
+        }
+      } else {
+        // Fall back to session auth
+        const userId = getAuthUserId(req);
+        if (!userId) {
+          return res.status(401).json({ error: "Not authenticated" });
+        }
+      }
+      
       const { startDate, endDate } = req.query;
-      let bookings = await storage.getBookingsByArtist(req.params.artistId);
+      let bookings = await storage.getBookingsByArtist(artistId);
       
       if (startDate && endDate) {
         const start = new Date(startDate as string);
@@ -8743,9 +8760,25 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   
   // Get inquiries for a vendor
   // CDI-powered lead routing: prioritizes hot inquiries based on vendor metrics (invisible to vendor)
-  app.get("/api/vendor/inquiries", isAuthenticated, async (req: any, res) => {
+  app.get("/api/vendor/inquiries", async (req: any, res) => {
     try {
-      const userId = getAuthUserId(req);
+      // Support token-based auth for calendar component
+      const token = req.query.token as string;
+      let userId: string;
+      
+      if (token) {
+        const artist = await storage.getArtistProfileByEditToken(token);
+        if (!artist) {
+          return res.status(401).json({ error: "Invalid token" });
+        }
+        userId = artist.userId;
+      } else {
+        userId = getAuthUserId(req);
+        if (!userId) {
+          return res.status(401).json({ error: "Not authenticated" });
+        }
+      }
+      
       const user = await storage.getUser(userId);
       
       if (!user || user.role !== 'artist') {

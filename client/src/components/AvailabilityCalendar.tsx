@@ -83,17 +83,21 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
     const startDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
     const endDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
     
+    // Build query string with token if available
+    const tokenParam = authToken ? `&token=${authToken}` : '';
+    const tokenParamFirst = authToken ? `?token=${authToken}` : '';
+    
     try {
       const [availResponse, bookingsResponse, inquiriesResponse] = await Promise.all([
         fetch(
-          `/api/availability/${userId}?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`,
+          `/api/availability/${userId}?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}${tokenParam}`,
           { credentials: "include" }
         ),
         fetch(
-          `/api/bookings/artist/${userId}?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`,
+          `/api/bookings/artist/${userId}?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}${tokenParam}`,
           { credentials: "include" }
         ),
-        fetch(`/api/vendor/inquiries`, { credentials: "include" })
+        fetch(`/api/vendor/inquiries${tokenParamFirst}`, { credentials: "include" })
       ]);
 
       if (availResponse.ok) {
