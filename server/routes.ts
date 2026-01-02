@@ -349,16 +349,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/user', async (req: any, res) => {
     try {
       let user = null;
+      const hasCookie = !!req.headers.cookie?.includes('connect.sid');
+      const sessionId = req.session?.userId;
+      console.log(`[/api/auth/user] hasCookie=${hasCookie}, sessionUserId=${sessionId || 'none'}`);
+      
       // Check for email/password session first
       if (req.session?.userId) {
         user = await storage.getUser(req.session.userId);
+        console.log(`[/api/auth/user] Found user by session:`, user?.id);
       } else if (req.user?.claims?.sub) {
         // Fall back to Replit OAuth
         const userId = getAuthUserId(req);
         user = await storage.getUser(userId);
+        console.log(`[/api/auth/user] Found user by OAuth:`, user?.id);
       }
       
       if (!user) {
+        console.log(`[/api/auth/user] No user found, returning null`);
         return res.json(null);
       }
       

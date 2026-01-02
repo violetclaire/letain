@@ -40,8 +40,10 @@ export function getSession(): RequestHandler {
     tableName: "sessions",
   });
   
-  // Don't hardcode cookie domain - let browser derive it from request host
-  // This fixes issues where www.dateinquiry.com vs dateinquiry.com mismatch causes cookie rejection
+  // Set cookie domain to .dateinquiry.com so it works on both www and non-www
+  // This fixes the issue where login on one subdomain doesn't persist to the other
+  const isProduction = process.env.NODE_ENV === 'production';
+  
   cachedSessionMiddleware = session({
     secret: process.env.SESSION_SECRET!,
     store: sessionStore,
@@ -52,7 +54,7 @@ export function getSession(): RequestHandler {
       secure: true,
       sameSite: "lax",
       maxAge: sessionTtl,
-      // No domain specified - browser will use request host automatically
+      domain: isProduction ? '.dateinquiry.com' : undefined,
     },
   });
   
