@@ -1,10 +1,13 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { motion } from "framer-motion";
 import { Loader2, Mail, Eye, EyeOff, Link2 } from "lucide-react";
 
 export default function ArtistLogin() {
   const [, setLocation] = useLocation();
+  const searchString = useSearch();
+  const urlParams = new URLSearchParams(searchString);
+  const redirectTo = urlParams.get('redirect');
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -42,10 +45,12 @@ export default function ArtistLogin() {
 
       if (data.user?.role === "artist") {
         if (data.artistSlug) {
+          // Use redirect param if available, otherwise go to admin page
+          const destination = redirectTo || `/admin/${data.artistSlug}`;
           // Small delay to ensure cookie is fully set before redirect
           await new Promise(resolve => setTimeout(resolve, 100));
           // Use replace to avoid back-button issues
-          window.location.replace(`/admin/${data.artistSlug}`);
+          window.location.replace(destination);
         } else {
           // Wait a bit then try to fetch user again
           await new Promise(resolve => setTimeout(resolve, 200));
@@ -53,7 +58,8 @@ export default function ArtistLogin() {
           if (userRes.ok) {
             const userData = await userRes.json();
             if (userData?.artistSlug) {
-              window.location.replace(`/admin/${userData.artistSlug}`);
+              const destination = redirectTo || `/admin/${userData.artistSlug}`;
+              window.location.replace(destination);
               return;
             }
           }

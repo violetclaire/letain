@@ -180,86 +180,12 @@ export default function ArtistAdmin() {
     );
   }
 
-  // If not authenticated via token or session, show login form
+  // If not authenticated via token or session, redirect to login page
   if (!token && !useSessionAuth) {
+    window.location.replace(`/artist-login?redirect=/admin/${slug}`);
     return (
-      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center px-4">
-        <div className="w-full max-w-sm bg-[#222] p-8 border border-[#F5F0E8]/10 rounded">
-          {emailSent ? (
-            <div className="text-center">
-              <CheckCircle className="w-14 h-14 text-green-500 mx-auto mb-5" />
-              <h2 className="text-xl text-[#F5F0E8] mb-2" style={{ fontFamily: "'Fraunces', serif" }}>Check Your Email</h2>
-              <p className="text-sm text-[#F5F0E8]/60 mb-4">
-                Your dashboard link is on its way. Check your inbox (and spam folder).
-              </p>
-              <button
-                onClick={() => { setEmailSent(false); setEmail(""); }}
-                className="text-sm text-[#F5F0E8]/60 underline"
-              >
-                Try different email
-              </button>
-            </div>
-          ) : (
-            <>
-              <div className="text-center mb-6">
-                <h1 className="text-2xl text-[#F5F0E8] mb-1" style={{ fontFamily: "'Fraunces', serif" }}>Your Secretary</h1>
-                <p className="text-xs text-[#F5F0E8]/50">Access your dashboard</p>
-              </div>
-
-              <form onSubmit={(e) => { e.preventDefault(); if (email.trim()) requestLink.mutate(); }} className="space-y-4">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your@email.com"
-                  required
-                  className="w-full border border-[#F5F0E8]/20 bg-transparent px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#F5F0E8]/30 rounded"
-                  data-testid="input-admin-email"
-                />
-                <button
-                  type="submit"
-                  disabled={requestLink.isPending || !email.trim()}
-                  className="w-full bg-[#F5F0E8] text-[#1A1A1A] py-3 text-sm uppercase tracking-wide hover:bg-[#F5F0E8]/90 disabled:opacity-50 flex items-center justify-center gap-2"
-                  data-testid="button-send-dashboard-link"
-                >
-                  {requestLink.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    "Send Dashboard Link"
-                  )}
-                </button>
-              </form>
-              
-              <div className="mt-4 text-center">
-                <Link href="/artist-login" className="text-xs text-[#F5F0E8]/50 underline">
-                  Or sign in with password
-                </Link>
-              </div>
-
-              {/* Inquiry Link Section */}
-              <div className="mt-6 pt-5 border-t border-[#F5F0E8]/10">
-                <p className="text-[10px] uppercase tracking-wide text-[#F5F0E8]/50 mb-2">Your Inquiry Link</p>
-                <div className="flex gap-2">
-                  <div className="flex-1 bg-[#F5F0E8]/5 px-3 py-2 text-xs text-[#F5F0E8]/70 rounded truncate">
-                    dateinquiry.com/{getActualSlug()}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleCopyInquiryLink}
-                    className="px-3 py-2 bg-[#F5F0E8] text-[#1A1A1A] text-xs rounded flex items-center gap-1"
-                    data-testid="button-copy-inquiry-link"
-                  >
-                    {linkCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                  </button>
-                </div>
-                <p className="text-[10px] text-[#F5F0E8]/40 mt-2">Share this link on social media</p>
-              </div>
-            </>
-          )}
-        </div>
+      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-[#F5F0E8]/30" />
       </div>
     );
   }
