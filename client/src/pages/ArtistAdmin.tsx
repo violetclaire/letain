@@ -25,6 +25,7 @@ interface ArtistProfile {
   businessName: string;
   artistSlug: string;
   autoResponderMode: 'off' | 'info_sheet' | 'smart' | 'paused' | 'paused_with_referral';
+  editToken?: string;
 }
 
 export default function ArtistAdmin() {
@@ -311,7 +312,9 @@ export default function ArtistAdmin() {
   }
 
   const { artist, inquiries }: { artist: ArtistProfile; inquiries: Inquiry[] } = data;
-  const authParam = useSessionAuth ? '' : `?token=${token}`;
+  // Always use token for links - session cookies don't persist in production
+  const effectiveToken = token || artist.editToken;
+  const authParam = effectiveToken ? `?token=${effectiveToken}` : '';
 
   const getStatusStyle = (status: string) => {
     switch (status.toLowerCase()) {
