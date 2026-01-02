@@ -12134,7 +12134,9 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(400).json({ error: parseResult.error.errors[0]?.message || "Invalid input" });
       }
       
-      const { name, email } = parseResult.data;
+      const { name, email, note } = parseResult.data;
+      
+      const inviteToken = randomUUID();
       
       // Create the trusted circle entry
       const [newMember] = await db.insert(trustedCircle)
@@ -12143,11 +12145,32 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           refereeName: name,
           refereeEmail: email,
           status: 'pending',
-          inviteToken: randomUUID(),
+          inviteToken,
         })
         .returning();
       
-      // TODO: Send invite email to the new member
+      // Send invite email to the new member
+      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+        : process.env.NODE_ENV === 'production' 
+          ? 'https://dateinquiry.com'
+          : 'http://localhost:5000';
+      const inviteLink = `${baseUrl}/join?invite=${inviteToken}`;
+      
+      const { sendCircleInviteEmail } = await import('./emailService');
+      const emailResult = await sendCircleInviteEmail({
+        toEmail: email,
+        inviteeName: name,
+        inviterName: profile.artistName || profile.businessName || 'An artist',
+        inviterBusinessName: profile.businessName,
+        inviteLink,
+        personalNote: note,
+      });
+      
+      if (!emailResult.success) {
+        console.error("[Trusted Circle Add] Failed to send invite email:", emailResult.error);
+        return res.status(500).json({ error: "Failed to send invite email. Please try again." });
+      }
       
       res.json({
         success: true,
@@ -12255,7 +12278,12 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(400).json({ error: parseResult.error.errors[0]?.message || "Invalid input" });
       }
       
-      const { name, email } = parseResult.data;
+      const { name, email, note } = parseResult.data;
+      
+      const inviteToken = randomUUID();
+      
+      // Get artist profile for email
+      const profile = await storage.getArtistProfile(userId);
       
       const [newMember] = await db.insert(trustedCircle)
         .values({
@@ -12263,9 +12291,32 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           refereeName: name,
           refereeEmail: email,
           status: 'pending',
-          inviteToken: randomUUID(),
+          inviteToken,
         })
         .returning();
+      
+      // Send invite email to the new member
+      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+        : process.env.NODE_ENV === 'production' 
+          ? 'https://dateinquiry.com'
+          : 'http://localhost:5000';
+      const inviteLink = `${baseUrl}/join?invite=${inviteToken}`;
+      
+      const { sendCircleInviteEmail } = await import('./emailService');
+      const emailResult = await sendCircleInviteEmail({
+        toEmail: email,
+        inviteeName: name,
+        inviterName: profile?.artistName || profile?.businessName || user.email || 'An artist',
+        inviterBusinessName: profile?.businessName,
+        inviteLink,
+        personalNote: note,
+      });
+      
+      if (!emailResult.success) {
+        console.error("[Session Trusted Circle Add] Failed to send invite email:", emailResult.error);
+        return res.status(500).json({ error: "Failed to send invite email. Please try again." });
+      }
       
       res.json({
         success: true,
