@@ -36,7 +36,13 @@ function initializeDatabase(): void {
   _initialized = true;
   
   const isProduction = process.env.NODE_ENV === 'production';
-  console.log(`[DB] Initialized ${isProduction ? 'production' : 'development'} database connection`);
+  try {
+    const dbHost = new URL(connectionString).host;
+    console.log(`[DB] Initialized ${isProduction ? 'production' : 'development'} database connection`);
+    console.log(`[DB] Connected to host: ${dbHost}`);
+  } catch (e) {
+    console.log(`[DB] Initialized database (could not parse host)`);
+  }
 }
 
 export function getPool(): Pool {
