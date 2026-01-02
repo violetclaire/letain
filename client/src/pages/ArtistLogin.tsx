@@ -42,13 +42,18 @@ export default function ArtistLogin() {
 
       if (data.user?.role === "artist") {
         if (data.artistSlug) {
-          window.location.href = `/admin/${data.artistSlug}`;
+          // Small delay to ensure cookie is fully set before redirect
+          await new Promise(resolve => setTimeout(resolve, 100));
+          // Use replace to avoid back-button issues
+          window.location.replace(`/admin/${data.artistSlug}`);
         } else {
+          // Wait a bit then try to fetch user again
+          await new Promise(resolve => setTimeout(resolve, 200));
           const userRes = await fetch('/api/auth/user', { credentials: 'include' });
           if (userRes.ok) {
             const userData = await userRes.json();
             if (userData?.artistSlug) {
-              window.location.href = `/admin/${userData.artistSlug}`;
+              window.location.replace(`/admin/${userData.artistSlug}`);
               return;
             }
           }

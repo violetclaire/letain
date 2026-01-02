@@ -40,8 +40,8 @@ export function getSession(): RequestHandler {
     tableName: "sessions",
   });
   
-  // Set cookie domain to .dateinquiry.com so it works on both www and non-www
-  // This fixes the issue where login on one subdomain doesn't persist to the other
+  // Let the browser handle the cookie domain automatically
+  // Using secure: 'auto' to work in both dev and production
   const isProduction = process.env.NODE_ENV === 'production';
   
   cachedSessionMiddleware = session({
@@ -51,10 +51,10 @@ export function getSession(): RequestHandler {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
+      secure: isProduction,
       sameSite: "lax",
       maxAge: sessionTtl,
-      domain: isProduction ? '.dateinquiry.com' : undefined,
+      // Don't set domain - let browser use the request host
     },
   });
   
