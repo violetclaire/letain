@@ -542,14 +542,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Also check if there's an artist profile with this email
       const profile = user ? await storage.getArtistProfile(user.id) : null;
       
-      // If no user but there's a matching artist profile by email, find it
+      // If no user but there's a matching artist profile by slug pattern, find it
       let matchedProfile = profile;
       if (!user) {
         const allProfiles = await db.select().from(artistProfiles);
-        matchedProfile = allProfiles.find(p => 
-          p.contactEmail?.toLowerCase() === normalizedEmail ||
-          p.artistSlug?.toLowerCase() === normalizedEmail.split('@')[0].toLowerCase()
-        );
+        const emailPrefix = normalizedEmail.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+        matchedProfile = allProfiles.find(p => {
+          const slug = p.artistSlug?.toLowerCase().replace(/[^a-z0-9]/g, '') || '';
+          // Match if slug contains email prefix or vice versa
+          return slug.includes(emailPrefix) || emailPrefix.includes(slug);
+        });
       }
       
       // Always return success (don't reveal if email exists)
@@ -621,17 +623,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const hashedPassword = await bcrypt.hash(password, 10);
       
-      // Find or create user
+      // Find or create user - profile.userId links to the user
       let user = profile.userId ? await storage.getUser(profile.userId) : null;
       
-      if (!user && profile.contactEmail) {
-        user = await storage.getUserByEmail(profile.contactEmail);
-      }
+      // Get the email from the request (stored when the reset was requested)
+      // We need to pass it through, or look up the user by the profile's userId
+      const userEmail = user?.email || `${profile.artistSlug}@dateinquiry.com`;
       
       if (!user) {
-        // Create new user
+        // Create new user with email based on artistSlug
         user = await storage.createUser({
-          email: profile.contactEmail || `${profile.artistSlug}@dateinquiry.com`,
+          email: userEmail,
           password: hashedPassword,
         });
         await storage.updateUserRole(user.id, 'artist');
