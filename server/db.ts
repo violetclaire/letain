@@ -16,14 +16,18 @@ function cleanDatabaseUrl(url: string): string {
 }
 
 function getDatabaseUrl(): string {
-  // Always use DATABASE_URL (Neon) - this is where all user data lives
-  // PRODUCTION_DATABASE_URL is deprecated and should not be used
+  // Use NEON_DATABASE_URL first (not overridden by Replit's built-in Postgres)
+  // Fall back to DATABASE_URL for backwards compatibility
+  if (process.env.NEON_DATABASE_URL) {
+    return cleanDatabaseUrl(process.env.NEON_DATABASE_URL);
+  }
+  
   if (process.env.DATABASE_URL) {
     return cleanDatabaseUrl(process.env.DATABASE_URL);
   }
   
   throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
+    "NEON_DATABASE_URL or DATABASE_URL must be set. Did you forget to provision a database?",
   );
 }
 

@@ -28,10 +28,10 @@ export function getSession(): RequestHandler {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   const pgStore = connectPg(session);
   
-  // Always use DATABASE_URL (Neon) for sessions - same as app data
-  const dbUrl = process.env.DATABASE_URL;
+  // Use NEON_DATABASE_URL first (not overridden by Replit's built-in Postgres)
+  const dbUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
   
-  console.log(`[Session] Using DATABASE_URL for sessions`);
+  console.log(`[Session] Using ${process.env.NEON_DATABASE_URL ? 'NEON_DATABASE_URL' : 'DATABASE_URL'} for sessions`);
   
   const sessionStore = new pgStore({
     conString: dbUrl,
