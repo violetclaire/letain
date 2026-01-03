@@ -1227,14 +1227,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async setAvailability(avail: InsertAvailability): Promise<Availability> {
-    // First, try to find existing record for this user and date
+    // Match by date portion only (ignore time) to handle timezone variations
+    const dateStr = avail.date.toISOString().split('T')[0];
+    const startOfDay = new Date(dateStr + 'T00:00:00.000Z');
+    const endOfDay = new Date(dateStr + 'T23:59:59.999Z');
+    
+    // First, try to find existing record for this user and date (any time on that day)
     const existingRecords = await db
       .select()
       .from(availability)
       .where(
         and(
           eq(availability.userId, avail.userId),
-          eq(availability.date, avail.date)
+          gte(availability.date, startOfDay),
+          lte(availability.date, endOfDay)
         )
       );
     
@@ -1254,12 +1260,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteAvailability(userId: string, date: Date): Promise<void> {
+    // Match by date portion only (ignore time) to handle timezone variations
+    const dateStr = date.toISOString().split('T')[0];
+    const startOfDay = new Date(dateStr + 'T00:00:00.000Z');
+    const endOfDay = new Date(dateStr + 'T23:59:59.999Z');
+    
     await db
       .delete(availability)
       .where(
         and(
           eq(availability.userId, userId),
-          eq(availability.date, date)
+          gte(availability.date, startOfDay),
+          lte(availability.date, endOfDay)
         )
       );
   }
