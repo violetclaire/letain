@@ -30,7 +30,7 @@ interface ArtistSettingsData {
   infoSheetPdfUrl?: string;
   infoSheetEnabled: boolean;
   formSuccessMessage?: string;
-  autoResponderMode?: 'off' | 'info_sheet' | 'smart' | 'paused' | 'paused_with_referral';
+  autoResponderMode?: 'off' | 'info_sheet' | 'smart' | 'paused' | 'paused_with_referral' | 'availability_smart';
   pauseMessage?: string;
   customResponse?: string;
   politeDeclineTemplate?: string;
@@ -332,7 +332,7 @@ export default function ArtistSettings() {
             </p>
 
             <div className="space-y-3">
-              {/* Smart Response - Default */}
+              {/* Manual Review - Default */}
               <label className={`flex items-start gap-4 p-4 rounded cursor-pointer transition-all ${
                 (settings.autoResponderMode === 'smart' || settings.autoResponderMode === 'off' || !settings.autoResponderMode)
                   ? 'bg-[#F5F0E8] ring-1 ring-[#F5F0E8]' 
@@ -340,9 +340,24 @@ export default function ArtistSettings() {
               }`}>
                 <input type="radio" name="autoResponderMode" value="smart" checked={settings.autoResponderMode === 'smart' || settings.autoResponderMode === 'off' || !settings.autoResponderMode} onChange={() => updateSettings.mutate({ autoResponderMode: 'smart' })} className="sr-only" data-testid="radio-smart" />
                 <div className="flex-1">
-                  <p className={`font-medium text-sm ${(settings.autoResponderMode === 'smart' || settings.autoResponderMode === 'off' || !settings.autoResponderMode) ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Smart Response</p>
+                  <p className={`font-medium text-sm ${(settings.autoResponderMode === 'smart' || settings.autoResponderMode === 'off' || !settings.autoResponderMode) ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Manual Review</p>
                   <p className={`text-xs mt-1 ${(settings.autoResponderMode === 'smart' || settings.autoResponderMode === 'off' || !settings.autoResponderMode) ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>
                     Review each inquiry, then one-click to accept (sends pricing sheet to clients, availability to planners), refer to your circle, or decline
+                  </p>
+                </div>
+              </label>
+
+              {/* Calendar Smart - Availability-aware */}
+              <label className={`flex items-start gap-4 p-4 rounded cursor-pointer transition-all ${
+                settings.autoResponderMode === 'availability_smart'
+                  ? 'bg-[#F5F0E8] ring-1 ring-[#F5F0E8]' 
+                  : 'border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'
+              }`}>
+                <input type="radio" name="autoResponderMode" value="availability_smart" checked={settings.autoResponderMode === 'availability_smart'} onChange={() => updateSettings.mutate({ autoResponderMode: 'availability_smart' })} className="sr-only" data-testid="radio-calendar-smart" />
+                <div className="flex-1">
+                  <p className={`font-medium text-sm ${settings.autoResponderMode === 'availability_smart' ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Calendar Smart</p>
+                  <p className={`text-xs mt-1 ${settings.autoResponderMode === 'availability_smart' ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>
+                    Checks your calendar first. If available, auto-sends pricing. If booked, auto-sends referrals to your circle.
                   </p>
                 </div>
               </label>

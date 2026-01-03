@@ -25,7 +25,7 @@ interface ArtistProfile {
   id: string;
   businessName: string;
   artistSlug: string;
-  autoResponderMode: 'off' | 'info_sheet' | 'smart' | 'paused' | 'paused_with_referral';
+  autoResponderMode: 'off' | 'info_sheet' | 'smart' | 'paused' | 'paused_with_referral' | 'availability_smart';
   editToken?: string;
 }
 
@@ -472,7 +472,7 @@ export default function ArtistAdmin() {
         {useSessionAuth && (
           <div className="mb-10">
             <p className="text-[10px] uppercase tracking-[0.2em] text-[#F5F0E8]/40 mb-4">Response Mode</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <label 
                 className={`cursor-pointer p-4 border transition-colors ${
                   (artist.autoResponderMode === 'smart' || artist.autoResponderMode === 'off' || !artist.autoResponderMode)
@@ -489,8 +489,27 @@ export default function ArtistAdmin() {
                   onChange={() => updateAutoResponder.mutate('smart')} 
                   className="sr-only" 
                 />
-                <p className={`font-medium text-sm ${(artist.autoResponderMode === 'smart' || artist.autoResponderMode === 'off' || !artist.autoResponderMode) ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Smart Response</p>
-                <p className={`text-xs mt-1 ${(artist.autoResponderMode === 'smart' || artist.autoResponderMode === 'off' || !artist.autoResponderMode) ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>Review + one-click accept</p>
+                <p className={`font-medium text-sm ${(artist.autoResponderMode === 'smart' || artist.autoResponderMode === 'off' || !artist.autoResponderMode) ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Manual</p>
+                <p className={`text-xs mt-1 ${(artist.autoResponderMode === 'smart' || artist.autoResponderMode === 'off' || !artist.autoResponderMode) ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>Review each inquiry</p>
+              </label>
+              <label 
+                className={`cursor-pointer p-4 border transition-colors ${
+                  artist.autoResponderMode === 'availability_smart'
+                    ? 'bg-[#F5F0E8] border-[#F5F0E8] text-[#1A1A1A]' 
+                    : 'bg-[#222] border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'
+                }`}
+                data-testid="mode-availability-smart"
+              >
+                <input 
+                  type="radio" 
+                  name="autoResponderMode" 
+                  value="availability_smart" 
+                  checked={artist.autoResponderMode === 'availability_smart'} 
+                  onChange={() => updateAutoResponder.mutate('availability_smart')} 
+                  className="sr-only" 
+                />
+                <p className={`font-medium text-sm ${artist.autoResponderMode === 'availability_smart' ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Calendar Smart</p>
+                <p className={`text-xs mt-1 ${artist.autoResponderMode === 'availability_smart' ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>Auto-send pricing or referrals</p>
               </label>
               <label 
                 className={`cursor-pointer p-4 border transition-colors ${
@@ -508,8 +527,8 @@ export default function ArtistAdmin() {
                   onChange={() => updateAutoResponder.mutate('paused')} 
                   className="sr-only" 
                 />
-                <p className={`font-medium text-sm ${(artist.autoResponderMode === 'paused' || artist.autoResponderMode === 'paused_with_referral') ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Vacation / Away</p>
-                <p className={`text-xs mt-1 ${(artist.autoResponderMode === 'paused' || artist.autoResponderMode === 'paused_with_referral') ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>Auto-reply while unavailable</p>
+                <p className={`font-medium text-sm ${(artist.autoResponderMode === 'paused' || artist.autoResponderMode === 'paused_with_referral') ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Vacation</p>
+                <p className={`text-xs mt-1 ${(artist.autoResponderMode === 'paused' || artist.autoResponderMode === 'paused_with_referral') ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>Away message</p>
               </label>
             </div>
           </div>

@@ -13952,13 +13952,144 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       // Get the artist for notifications
       const artist = await storage.getUser(artistProfile.userId);
       
-      // Check auto-responder mode (off, info_sheet, smart, paused)
+      // Check auto-responder mode (off, info_sheet, smart, paused, availability_smart)
       // 'smart' = artist manually reviews each inquiry before responding
       // 'info_sheet' = automatically send pricing sheet immediately
       // 'paused' = vacation mode, no auto-responses
+      // 'availability_smart' = check availability first, send referrals if booked, info sheet if available
       const autoResponderMode = artistProfile?.autoResponderMode || 'off';
       const hasInfoSheet = artistProfile?.infoSheetContent || 
         (artistProfile?.infoSheetType === 'pdf' && artistProfile?.infoSheetPdfUrl);
+      
+      // Handle availability_smart mode - check calendar before auto-responding
+      if (autoResponderMode === 'availability_smart') {
+        console.log(`[Public Webhook] Availability-smart mode for ${artistSlug}`);
+        
+        // Check if the requested date is blocked/booked
+        (async () => {
+          try {
+            // Get blocked dates and confirmed bookings
+            const allBookings = await storage.getBookingsByArtist(artistProfile.userId);
+            const confirmedBookingDates = new Set<string>();
+            for (const b of allBookings) {
+              if (!b.eventDate) continue;
+              if (['confirmed', 'deposit_paid', 'paid'].includes((b.status || '').toLowerCase())) {
+                const d = new Date(b.eventDate);
+                confirmedBookingDates.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+              }
+            }
+            
+            // Check availability records
+            const startOfYear = new Date(new Date().getFullYear(), 0, 1);
+            const endOfNextYear = new Date(new Date().getFullYear() + 2, 11, 31);
+            const allAvailability = await storage.getUserAvailability(artistProfile.userId, startOfYear, endOfNextYear);
+            const blockedAvailabilityDates = new Set<string>();
+            for (const a of allAvailability) {
+              if (!a.isAvailable || a.notes === 'BOOKED') {
+                const d = new Date(a.date);
+                blockedAvailabilityDates.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+              }
+            }
+            
+            // Check if requested date has conflict
+            const dateKey = `${parsedEventDate.getFullYear()}-${String(parsedEventDate.getMonth() + 1).padStart(2, '0')}-${String(parsedEventDate.getDate()).padStart(2, '0')}`;
+            const hasConflict = blockedAvailabilityDates.has(dateKey) || confirmedBookingDates.has(dateKey);
+            
+            const referrerName = artistProfile.businessName || artist?.firstName || 'The Artist';
+            
+            if (hasConflict) {
+              // Date is unavailable - send referral list from trusted circle
+              console.log(`[Public Webhook] Date ${dateKey} is unavailable, sending referrals`);
+              
+              const circleMembers = await storage.getTrustedCircle(artistProfile.userId);
+              const activeMembers = circleMembers.filter(m => m.status === 'active');
+              
+              if (activeMembers.length > 0) {
+                const { sendReferralNotificationEmail } = await import('./emailService');
+                
+                await sendReferralNotificationEmail({
+                  toEmail: clientEmail,
+                  clientName,
+                  referrerName,
+                  declineReason: `Unfortunately, I'm already booked on ${parsedEventDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}.`,
+                  referralMessage: artistProfile.referralListTemplate || `I've personally worked with these talented artists and can vouch for their work. I hope one of them can help make your day beautiful!`,
+                  referralVendors: activeMembers.map(m => ({ name: m.refereeName })),
+                });
+                
+                // Update inquiry status
+                await storage.updateInquiry(inquiry.id, { 
+                  status: 'declined',
+                  statusReason: 'Auto-declined with referrals (date unavailable)',
+                  firstResponseAt: new Date(),
+                } as any);
+                
+                // Log notification
+                await storage.createInquiryNotification({
+                  inquiryId: inquiry.id,
+                  type: 'auto_referral',
+                  channel: 'email',
+                  recipientEmail: clientEmail,
+                  subject: `Artist Recommendations from ${referrerName}`,
+                  content: `Auto-sent referral list (${activeMembers.length} artists) - date was unavailable`,
+                  status: 'sent',
+                  sentAt: new Date(),
+                });
+                
+                console.log(`[Public Webhook] Referral list sent to ${clientEmail} with ${activeMembers.length} artists`);
+              } else {
+                // No circle members - leave as pending for manual follow-up
+                console.log(`[Public Webhook] Date unavailable but no circle members - left as pending`);
+                await storage.updateInquiry(inquiry.id, { 
+                  statusReason: 'Date unavailable, no circle members for referral - needs manual review',
+                } as any);
+              }
+            } else if (hasInfoSheet) {
+              // Date is available - send info sheet
+              console.log(`[Public Webhook] Date ${dateKey} is available, sending info sheet`);
+              const { sendInfoSheetEmail } = await import('./emailService');
+              
+              await sendInfoSheetEmail({
+                toEmail: clientEmail,
+                vendorName: referrerName,
+                vendorEmail: artist?.email || undefined,
+                infoSheetContent: artistProfile.infoSheetContent || undefined,
+                infoSheetPdfUrl: artistProfile.infoSheetPdfUrl || undefined,
+                infoSheetType: (artistProfile.infoSheetType as 'template' | 'custom' | 'pdf') || 'template',
+                eventDate: parsedEventDate.toLocaleDateString('en-US', { 
+                  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+                }),
+                serviceType: serviceType || 'Beauty Services'
+              });
+              
+              await storage.updateInquiry(inquiry.id, { 
+                infoSheetSentAt: new Date(),
+                status: 'auto_responded',
+                statusReason: 'Auto-responded with info sheet (date available)',
+                firstResponseAt: new Date(),
+              } as any);
+              
+              await storage.createInquiryNotification({
+                inquiryId: inquiry.id,
+                type: 'info_sheet',
+                channel: 'email',
+                recipientEmail: clientEmail,
+                subject: `Information from ${referrerName}`,
+                content: 'Auto-sent info sheet (availability check passed)',
+                status: 'sent',
+                sentAt: new Date(),
+              });
+              
+              console.log(`[Public Webhook] Info sheet sent to ${clientEmail}`);
+            } else {
+              // Date available but no info sheet - leave as pending
+              console.log(`[Public Webhook] Date ${dateKey} available but no info sheet configured`);
+            }
+          } catch (err: any) {
+            console.error('[Public Webhook] Availability-smart error:', err);
+            // On error, leave inquiry as pending for manual handling
+          }
+        })();
+      }
       
       // Only auto-respond if mode is explicitly 'info_sheet' (not 'smart')
       // 'smart' mode requires artist to manually choose how to respond
