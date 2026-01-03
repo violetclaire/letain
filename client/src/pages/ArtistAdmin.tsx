@@ -531,6 +531,19 @@ export default function ArtistAdmin() {
                 <p className={`text-xs mt-1 ${(artist.autoResponderMode === 'paused' || artist.autoResponderMode === 'paused_with_referral') ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>Away message</p>
               </label>
             </div>
+            
+            {/* Mode explanation */}
+            <p className="mt-3 text-xs text-[#F5F0E8]/40">
+              {(artist.autoResponderMode === 'smart' || artist.autoResponderMode === 'off' || !artist.autoResponderMode) && (
+                "You review each inquiry and decide how to respond."
+              )}
+              {artist.autoResponderMode === 'availability_smart' && (
+                "Checks your calendar automatically. If available, sends your pricing. If booked, sends referrals to your circle."
+              )}
+              {(artist.autoResponderMode === 'paused' || artist.autoResponderMode === 'paused_with_referral') && (
+                "Sends your away message to all new inquiries."
+              )}
+            </p>
           </div>
         )}
 

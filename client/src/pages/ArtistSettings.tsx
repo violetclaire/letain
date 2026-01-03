@@ -377,6 +377,15 @@ export default function ArtistSettings() {
                 </div>
               </label>
             </div>
+            
+            {/* Mode explanation - shows what each mode does */}
+            {settings.autoResponderMode === 'availability_smart' && (
+              <div className="mt-4 p-4 bg-[#F5F0E8]/5 border border-[#F5F0E8]/10 rounded">
+                <p className="text-sm text-[#F5F0E8]/70">
+                  When someone inquires, Calendar Smart checks your calendar first. If the date is available, it sends your pricing sheet. If you're already booked that day, it automatically sends your trusted circle as referrals.
+                </p>
+              </div>
+            )}
 
             {/* Pause Message Editor - shows when vacation mode is selected */}
             {(settings.autoResponderMode === 'paused' || settings.autoResponderMode === 'paused_with_referral') && (
