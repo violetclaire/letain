@@ -333,11 +333,14 @@ export default function ArtistSettings() {
 
             <div className="space-y-3">
               {/* Manual Review - Default */}
-              <label className={`flex items-start gap-4 p-4 rounded cursor-pointer transition-all ${
-                (settings.autoResponderMode === 'smart' || settings.autoResponderMode === 'off' || !settings.autoResponderMode)
-                  ? 'bg-[#F5F0E8] ring-1 ring-[#F5F0E8]' 
-                  : 'border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'
-              }`}>
+              <label 
+                className={`flex items-start gap-4 p-4 rounded cursor-pointer transition-all ${
+                  (settings.autoResponderMode === 'smart' || settings.autoResponderMode === 'off' || !settings.autoResponderMode)
+                    ? 'bg-[#F5F0E8] ring-1 ring-[#F5F0E8]' 
+                    : 'border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'
+                }`}
+                title="You review each inquiry and decide how to respond"
+              >
                 <input type="radio" name="autoResponderMode" value="smart" checked={settings.autoResponderMode === 'smart' || settings.autoResponderMode === 'off' || !settings.autoResponderMode} onChange={() => updateSettings.mutate({ autoResponderMode: 'smart' })} className="sr-only" data-testid="radio-smart" />
                 <div className="flex-1">
                   <p className={`font-medium text-sm ${(settings.autoResponderMode === 'smart' || settings.autoResponderMode === 'off' || !settings.autoResponderMode) ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Manual Review</p>
@@ -348,11 +351,14 @@ export default function ArtistSettings() {
               </label>
 
               {/* Calendar Smart - Availability-aware */}
-              <label className={`flex items-start gap-4 p-4 rounded cursor-pointer transition-all ${
-                settings.autoResponderMode === 'availability_smart'
-                  ? 'bg-[#F5F0E8] ring-1 ring-[#F5F0E8]' 
-                  : 'border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'
-              }`}>
+              <label 
+                className={`flex items-start gap-4 p-4 rounded cursor-pointer transition-all ${
+                  settings.autoResponderMode === 'availability_smart'
+                    ? 'bg-[#F5F0E8] ring-1 ring-[#F5F0E8]' 
+                    : 'border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'
+                }`}
+                title="Checks your calendar first. If available, sends your pricing. If booked, sends referrals to your circle."
+              >
                 <input type="radio" name="autoResponderMode" value="availability_smart" checked={settings.autoResponderMode === 'availability_smart'} onChange={() => updateSettings.mutate({ autoResponderMode: 'availability_smart' })} className="sr-only" data-testid="radio-calendar-smart" />
                 <div className="flex-1">
                   <p className={`font-medium text-sm ${settings.autoResponderMode === 'availability_smart' ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Calendar Smart</p>
@@ -363,11 +369,14 @@ export default function ArtistSettings() {
               </label>
 
               {/* Vacation / Auto Response */}
-              <label className={`flex items-start gap-4 p-4 rounded cursor-pointer transition-all ${
-                (settings.autoResponderMode === 'paused' || settings.autoResponderMode === 'paused_with_referral')
-                  ? 'bg-[#F5F0E8] ring-1 ring-[#F5F0E8]' 
-                  : 'border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'
-              }`}>
+              <label 
+                className={`flex items-start gap-4 p-4 rounded cursor-pointer transition-all ${
+                  (settings.autoResponderMode === 'paused' || settings.autoResponderMode === 'paused_with_referral')
+                    ? 'bg-[#F5F0E8] ring-1 ring-[#F5F0E8]' 
+                    : 'border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'
+                }`}
+                title="Sends your away message to all new inquiries"
+              >
                 <input type="radio" name="autoResponderMode" value="paused" checked={settings.autoResponderMode === 'paused' || settings.autoResponderMode === 'paused_with_referral'} onChange={() => updateSettings.mutate({ autoResponderMode: 'paused' })} className="sr-only" data-testid="radio-vacation" />
                 <div className="flex-1">
                   <p className={`font-medium text-sm ${(settings.autoResponderMode === 'paused' || settings.autoResponderMode === 'paused_with_referral') ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Vacation / Away</p>
@@ -377,15 +386,6 @@ export default function ArtistSettings() {
                 </div>
               </label>
             </div>
-            
-            {/* Mode explanation - shows what each mode does */}
-            {settings.autoResponderMode === 'availability_smart' && (
-              <div className="mt-4 p-4 bg-[#F5F0E8]/5 border border-[#F5F0E8]/10 rounded">
-                <p className="text-sm text-[#F5F0E8]/70">
-                  When someone inquires, Calendar Smart checks your calendar first. If the date is available, it sends your pricing sheet. If you're already booked that day, it automatically sends your trusted circle as referrals.
-                </p>
-              </div>
-            )}
 
             {/* Pause Message Editor - shows when vacation mode is selected */}
             {(settings.autoResponderMode === 'paused' || settings.autoResponderMode === 'paused_with_referral') && (
