@@ -78,8 +78,14 @@ export default function ClientThread() {
     messages: ThreadMessage[];
   };
 
+  // Parse date as local date to avoid timezone shift (e.g., May 2 UTC becoming May 1 in US timezones)
   const eventDate = inquiry.eventDate
-    ? format(new Date(inquiry.eventDate), "MMMM d, yyyy")
+    ? (() => {
+        const dateStr = inquiry.eventDate.split('T')[0]; // "2026-05-02"
+        const [year, month, day] = dateStr.split('-').map(Number);
+        const localDate = new Date(year, month - 1, day); // Creates local date
+        return format(localDate, "MMMM d, yyyy");
+      })()
     : "Date TBD";
 
   const handleSendReply = () => {

@@ -589,7 +589,11 @@ export default function ArtistAdmin() {
                     </div>
                     <div className="text-right">
                       <p className="text-sm" style={{ fontFamily: "'Fraunces', serif" }}>
-                        {format(new Date(inquiry.eventDate), "MMM d, yyyy")}
+                        {(() => {
+                          const dateStr = inquiry.eventDate.split('T')[0];
+                          const [year, month, day] = dateStr.split('-').map(Number);
+                          return format(new Date(year, month - 1, day), "MMM d, yyyy");
+                        })()}
                       </p>
                       <span className={`inline-block mt-2 px-2 py-1 text-[10px] tracking-[0.1em] uppercase ${getStatusStyle(inquiry.status)}`}>
                         {inquiry.status.replace('_', ' ')}

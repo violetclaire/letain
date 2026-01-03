@@ -289,7 +289,11 @@ export default function InquiryThread() {
             <div className="text-right">
               <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F0E8]/40 mb-2">event date</p>
               <p className="text-lg text-[#F5F0E8]" style={{ fontFamily: "'Playfair Display', serif" }}>
-                {format(new Date(inquiry.eventDate), "MMM d, yyyy")}
+                {(() => {
+                  const dateStr = inquiry.eventDate.split('T')[0];
+                  const [year, month, day] = dateStr.split('-').map(Number);
+                  return format(new Date(year, month - 1, day), "MMM d, yyyy");
+                })()}
               </p>
               {isArtist && (
                 <span className={`inline-block mt-2 px-3 py-1 text-[10px] tracking-[0.15em] uppercase rounded ${statusBadge.color}`}>
