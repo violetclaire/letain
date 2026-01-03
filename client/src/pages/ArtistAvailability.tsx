@@ -73,15 +73,15 @@ export default function ArtistAvailability() {
         
         <div className="mt-8 text-sm text-[#F5F0E8]/50 space-y-2">
           <p className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-[#2D5A3D]"></span>
+            <span className="w-3 h-3 rounded-full bg-[#C4A35A]"></span>
             Booked - You have a confirmed booking
           </p>
           <p className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-[#8B6914]"></span>
+            <span className="w-3 h-3 rounded-full bg-[#C4A35A]/40 border border-[#C4A35A]/60"></span>
             Pending - Inquiry on hold
           </p>
           <p className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-[#4A3728]"></span>
+            <span className="w-3 h-3 rounded-full bg-[#8B2942]"></span>
             Blocked - Marked as unavailable
           </p>
         </div>
