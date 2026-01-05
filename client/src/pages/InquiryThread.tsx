@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRoute } from "wouter";
+import { useRoute, useSearch } from "wouter";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { Loader2, Send, X, Check, Plus, Trash2, Eye, Pencil, UserPlus, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -61,6 +61,9 @@ export default function InquiryThread() {
   const [, params] = useRoute("/inquiry/:threadToken");
   const queryClient = useQueryClient();
   const threadToken = params?.threadToken;
+  const searchString = useSearch();
+  const urlParams = new URLSearchParams(searchString);
+  const tabParam = urlParams.get('tab');
 
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [replyMessage, setReplyMessage] = useState("");
@@ -114,6 +117,15 @@ export default function InquiryThread() {
   });
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Auto-open forms based on URL tab parameter
+  useEffect(() => {
+    if (tabParam === 'payment') {
+      setShowInvoiceForm(true);
+    } else if (tabParam === 'contract') {
+      setShowContractForm(true);
+    }
+  }, [tabParam]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: [`/api/public/inquiry/${threadToken}`],
