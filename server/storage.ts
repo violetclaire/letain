@@ -17,6 +17,8 @@ import {
   scheduleChatMessages,
   chatInvites,
   chatInviteMessages,
+  directChats,
+  directChatMessages,
   conversations,
   conversationParticipants,
   teamMembers,
@@ -83,6 +85,10 @@ import {
   type InsertChatInvite,
   type ChatInviteMessage,
   type InsertChatInviteMessage,
+  type DirectChat,
+  type InsertDirectChat,
+  type DirectChatMessage,
+  type InsertDirectChatMessage,
   type Conversation,
   type InsertConversation,
   type ConversationParticipant,
@@ -175,7 +181,7 @@ import {
   type FormConfig,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, lte, desc, or, sql, inArray } from "drizzle-orm";
+import { eq, and, gte, lte, desc, asc, or, sql, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // Users (including Replit Auth)
@@ -319,6 +325,16 @@ export interface IStorage {
   // Chat Invite Messages
   getChatInviteMessages(chatInviteId: string): Promise<ChatInviteMessage[]>;
   createChatInviteMessage(message: InsertChatInviteMessage): Promise<ChatInviteMessage>;
+  
+  // Direct Chats (standalone conversations)
+  getDirectChatsByArtist(artistId: string): Promise<DirectChat[]>;
+  getDirectChatByToken(token: string): Promise<DirectChat | undefined>;
+  getDirectChatByParticipantToken(token: string): Promise<DirectChat | undefined>;
+  getDirectChat(id: string): Promise<DirectChat | undefined>;
+  createDirectChat(chat: InsertDirectChat): Promise<DirectChat>;
+  getDirectChatMessages(directChatId: string): Promise<DirectChatMessage[]>;
+  createDirectChatMessage(message: InsertDirectChatMessage): Promise<DirectChatMessage>;
+  updateDirectChatLastMessage(id: string): Promise<void>;
   
   // Conversations
   getConversation(id: string): Promise<Conversation | undefined>;
@@ -1494,6 +1510,65 @@ export class DatabaseStorage implements IStorage {
   async createChatInviteMessage(message: InsertChatInviteMessage): Promise<ChatInviteMessage> {
     const [created] = await db.insert(chatInviteMessages).values(message as any).returning();
     return created;
+  }
+
+  // Direct Chats (standalone conversations)
+  async getDirectChatsByArtist(artistId: string): Promise<DirectChat[]> {
+    return await db
+      .select()
+      .from(directChats)
+      .where(eq(directChats.artistId, artistId))
+      .orderBy(desc(directChats.lastMessageAt), desc(directChats.createdAt));
+  }
+
+  async getDirectChatByToken(token: string): Promise<DirectChat | undefined> {
+    const [chat] = await db
+      .select()
+      .from(directChats)
+      .where(eq(directChats.threadToken, token));
+    return chat;
+  }
+
+  async getDirectChatByParticipantToken(token: string): Promise<DirectChat | undefined> {
+    const [chat] = await db
+      .select()
+      .from(directChats)
+      .where(eq(directChats.participantToken, token));
+    return chat;
+  }
+
+  async getDirectChat(id: string): Promise<DirectChat | undefined> {
+    const [chat] = await db
+      .select()
+      .from(directChats)
+      .where(eq(directChats.id, id));
+    return chat;
+  }
+
+  async createDirectChat(chat: InsertDirectChat): Promise<DirectChat> {
+    const [created] = await db.insert(directChats).values(chat as any).returning();
+    return created;
+  }
+
+  async getDirectChatMessages(directChatId: string): Promise<DirectChatMessage[]> {
+    return await db
+      .select()
+      .from(directChatMessages)
+      .where(eq(directChatMessages.directChatId, directChatId))
+      .orderBy(asc(directChatMessages.createdAt));
+  }
+
+  async createDirectChatMessage(message: InsertDirectChatMessage): Promise<DirectChatMessage> {
+    const [created] = await db.insert(directChatMessages).values(message as any).returning();
+    // Update the last message timestamp
+    await this.updateDirectChatLastMessage(message.directChatId);
+    return created;
+  }
+
+  async updateDirectChatLastMessage(id: string): Promise<void> {
+    await db.update(directChats)
+      .set({ lastMessageAt: new Date() })
+      .where(eq(directChats.id, id));
   }
 
   // Conversations
