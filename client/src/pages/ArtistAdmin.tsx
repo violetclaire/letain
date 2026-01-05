@@ -52,6 +52,15 @@ export default function ArtistAdmin() {
   const [standaloneDescription, setStandaloneDescription] = useState("");
   const [creatingStandalone, setCreatingStandalone] = useState(false);
   const [deletingInquiryToken, setDeletingInquiryToken] = useState<string | null>(null);
+  const [showAddClient, setShowAddClient] = useState(false);
+  const [newClientData, setNewClientData] = useState({
+    clientName: "",
+    clientEmail: "",
+    clientPhone: "",
+    eventDate: "",
+    notes: "",
+  });
+  const [creatingClient, setCreatingClient] = useState(false);
   const queryClient = useQueryClient();
   
   // Delete inquiry mutation
@@ -73,6 +82,35 @@ export default function ArtistAdmin() {
     },
     onError: (error: Error) => {
       toast({ title: "Failed to remove", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const createClient = useMutation({
+    mutationFn: async (data: typeof newClientData) => {
+      const res = await fetch("/api/artist/create-client", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to create client");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/artists", slug] });
+      toast({ title: "Client added" });
+      setShowAddClient(false);
+      setNewClientData({ clientName: "", clientEmail: "", clientPhone: "", eventDate: "", notes: "" });
+      // Navigate to the new thread
+      if (data.threadToken) {
+        window.location.href = `/inquiry/${data.threadToken}`;
+      }
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to add client", description: error.message, variant: "destructive" });
     },
   });
   
@@ -538,6 +576,19 @@ export default function ArtistAdmin() {
         )}
 
         <div className="space-y-4" ref={inquiriesRef}>
+          {inquiries.length > 0 && (
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-sm text-[#F5F0E8]/60">Your Clients</h3>
+              <button
+                onClick={() => setShowAddClient(true)}
+                className="text-xs text-[#C4A35A] hover:text-[#C4A35A]/80 flex items-center gap-1"
+                data-testid="button-add-client"
+              >
+                <Users className="w-3 h-3" />
+                Add Client
+              </button>
+            </div>
+          )}
           {pendingAction && inquiries.length > 0 && (
             <div className={`p-4 border text-center text-sm ${pendingAction === 'payment' ? 'border-green-500/30 bg-green-900/10 text-green-300' : 'border-blue-500/30 bg-blue-900/10 text-blue-300'}`}>
               <span className="flex items-center justify-center gap-2">
@@ -550,7 +601,15 @@ export default function ArtistAdmin() {
           {inquiries.length === 0 ? (
             <div className="text-center py-16 border border-dashed border-[#F5F0E8]/20 bg-[#222]">
               <p className="text-[#F5F0E8]/50">No inquiries yet</p>
-              <p className="text-sm text-[#F5F0E8]/30 mt-2">Share your form link to start receiving inquiries</p>
+              <p className="text-sm text-[#F5F0E8]/30 mt-2">Share your form link or add a client manually</p>
+              <button
+                onClick={() => setShowAddClient(true)}
+                className="mt-4 px-4 py-2 bg-[#C4A35A] text-[#1A1A1A] rounded text-sm hover:bg-[#C4A35A]/90 inline-flex items-center gap-2"
+                data-testid="button-add-first-client"
+              >
+                <Users className="w-4 h-4" />
+                Add Client
+              </button>
             </div>
           ) : (
             inquiries.map((inquiry) => {
@@ -878,6 +937,92 @@ export default function ArtistAdmin() {
               >
                 {creatingStandalone ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
                 Create Contract
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Client Modal */}
+      {showAddClient && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1A1A1A] border border-[#F5F0E8]/20 rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg mb-4" style={{ fontFamily: "'Fraunces', serif" }}>Add New Client</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs text-[#F5F0E8]/60 mb-1">Client Name *</label>
+                <input
+                  type="text"
+                  value={newClientData.clientName}
+                  onChange={(e) => setNewClientData({ ...newClientData, clientName: e.target.value })}
+                  placeholder="Jane Smith"
+                  className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                  data-testid="input-new-client-name"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[#F5F0E8]/60 mb-1">Email *</label>
+                <input
+                  type="email"
+                  value={newClientData.clientEmail}
+                  onChange={(e) => setNewClientData({ ...newClientData, clientEmail: e.target.value })}
+                  placeholder="jane@example.com"
+                  className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                  data-testid="input-new-client-email"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[#F5F0E8]/60 mb-1">Phone</label>
+                <input
+                  type="tel"
+                  value={newClientData.clientPhone}
+                  onChange={(e) => setNewClientData({ ...newClientData, clientPhone: e.target.value })}
+                  placeholder="(555) 123-4567"
+                  className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                  data-testid="input-new-client-phone"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[#F5F0E8]/60 mb-1">Event Date</label>
+                <input
+                  type="date"
+                  value={newClientData.eventDate}
+                  onChange={(e) => setNewClientData({ ...newClientData, eventDate: e.target.value })}
+                  className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                  data-testid="input-new-client-event-date"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[#F5F0E8]/60 mb-1">Notes</label>
+                <textarea
+                  value={newClientData.notes}
+                  onChange={(e) => setNewClientData({ ...newClientData, notes: e.target.value })}
+                  placeholder="Any notes about this client..."
+                  rows={2}
+                  className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40 resize-none"
+                  data-testid="input-new-client-notes"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowAddClient(false);
+                  setNewClientData({ clientName: "", clientEmail: "", clientPhone: "", eventDate: "", notes: "" });
+                }}
+                className="flex-1 px-4 py-2 border border-[#F5F0E8]/20 rounded text-sm hover:bg-[#F5F0E8]/5"
+                data-testid="button-cancel-add-client"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => createClient.mutate(newClientData)}
+                disabled={createClient.isPending || !newClientData.clientName || !newClientData.clientEmail}
+                className="flex-1 px-4 py-2 bg-[#C4A35A] hover:bg-[#C4A35A]/90 text-[#1A1A1A] rounded text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                data-testid="button-create-client"
+              >
+                {createClient.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
+                Add Client
               </button>
             </div>
           </div>

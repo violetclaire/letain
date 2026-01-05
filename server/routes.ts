@@ -11510,6 +11510,54 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // Create manual client/inquiry (artist-initiated thread)
+  app.post("/api/artist/create-client", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'artist') {
+        return res.status(403).json({ error: "Not an artist" });
+      }
+      
+      const profile = await storage.getArtistProfile(userId);
+      if (!profile) {
+        return res.status(404).json({ error: "Artist profile not found" });
+      }
+      
+      const { clientName, clientEmail, clientPhone, eventDate, notes } = req.body;
+      
+      if (!clientName || !clientEmail) {
+        return res.status(400).json({ error: "Client name and email are required" });
+      }
+      
+      // Create an inquiry for this client (artist-initiated)
+      const inquiry = await storage.createInquiry({
+        vendorId: userId,
+        clientName,
+        clientEmail,
+        clientPhone: clientPhone || null,
+        eventDate: eventDate ? new Date(eventDate) : null,
+        message: notes || "Manually added client",
+        status: "pending",
+        source: "manual",
+      });
+      
+      res.json({ 
+        success: true, 
+        inquiry,
+        threadToken: inquiry.threadToken,
+        message: `Client ${clientName} added successfully` 
+      });
+    } catch (error: any) {
+      console.error("[Create Client] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to create client" });
+    }
+  });
+
   // Setup flow - Step 1: Connect Square
   app.post("/api/public/setup/:artistSlug/square", async (req, res) => {
     try {
