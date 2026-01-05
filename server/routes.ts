@@ -6114,11 +6114,20 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       // Note: We don't send a confirmation email to the client after they send a message
       // This avoids confusion as it could imply the artist responded when they haven't yet
       
-      // Send notification email to the vendor with client message and dashboard link
+      // Send notification email to the vendor with client message and folder link
       if (vendor?.email) {
         const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
-        const dashboardLink = `${baseUrl}/${artistProfile?.artistSlug || 'dashboard'}`;
-        const vendorNotification = `Hi ${vendor.firstName || vendorName},\n\n${clientName} sent you a message:\n\n"${message}"\n\n${aiResponse.isBookingConfirmation ? 'This looks like a booking confirmation. Consider sending a contract!\n\n' : ''}View in your dashboard: ${dashboardLink}\n\nClient email: ${invite.inviteeEmail}`;
+        
+        // Get thread token from inquiry for direct folder link
+        let folderLink = `${baseUrl}/${artistProfile?.artistSlug || 'dashboard'}`;
+        if (invite.inquiryId) {
+          const inquiry = await storage.getInquiry(invite.inquiryId);
+          if (inquiry?.threadToken) {
+            folderLink = `${baseUrl}/inquiry/${inquiry.threadToken}`;
+          }
+        }
+        
+        const vendorNotification = `Hi ${vendor.firstName || vendorName},\n\n${clientName} sent you a message:\n\n"${message}"\n\n${aiResponse.isBookingConfirmation ? 'This looks like a booking confirmation. Consider sending a contract!\n\n' : ''}View conversation: ${folderLink}\n\nClient email: ${invite.inviteeEmail}`;
         
         import('./emailService').then(({ sendGeneralEmail }) => {
           sendGeneralEmail({
@@ -10879,7 +10888,8 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const viewerUserId = getAuthUserId(req);
       const isArtist = viewerUserId && viewerUserId === inquiry.vendorId;
       
-      const messages = notifications
+      // Get messages from notifications
+      const notificationMessages = notifications
         .filter(n => ['artist_reply', 'client_reply', 'info_sheet', 'referral_list', 'polite_decline'].includes(n.type))
         .map(n => ({
           id: n.id,
@@ -10892,6 +10902,30 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
               ? inquiry.clientName 
               : 'System',
         }));
+      
+      // Also get chat invite messages for this inquiry
+      const chatInvites = await storage.getChatInvitesByInquiryId(inquiry.id);
+      let chatInviteMessages: any[] = [];
+      for (const invite of chatInvites) {
+        const inviteMessages = await storage.getChatInviteMessages(invite.id);
+        chatInviteMessages = chatInviteMessages.concat(
+          inviteMessages.map(m => ({
+            id: m.id,
+            type: m.senderType === 'client' ? 'client_reply' : m.senderType === 'ai' ? 'ai_reply' : 'artist_reply',
+            content: m.content || '',
+            sentAt: m.createdAt,
+            sentBy: m.senderType === 'client' 
+              ? (m.senderName || inquiry.clientName)
+              : m.senderType === 'ai'
+                ? `${artist?.businessName || 'Artist'} (AI)`
+                : (isArtist ? 'You' : artist?.businessName || 'Artist'),
+          }))
+        );
+      }
+      
+      // Combine and sort all messages by date
+      const messages = [...notificationMessages, ...chatInviteMessages]
+        .sort((a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime());
       
       // For clients, only send limited data
       const inquiryData = isArtist ? {
