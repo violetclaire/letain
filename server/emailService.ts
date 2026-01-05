@@ -1126,6 +1126,87 @@ export async function sendChatInviteEmail({
   }
 }
 
+export async function sendQuickChatInviteEmail({
+  toEmail,
+  artistName,
+  participantName,
+  chatLink,
+  initialMessage
+}: {
+  toEmail: string;
+  artistName: string;
+  participantName: string;
+  chatLink: string;
+  initialMessage?: string | null;
+}) {
+  console.log("[Quick Chat Email] Sending to:", toEmail);
+  const { client } = await getResendClient();
+  
+  const messagePreview = initialMessage 
+    ? `<div style="background: #f5f5f5; border-left: 3px solid #C4A35A; padding: 16px; margin: 20px 0; font-style: italic;">"${escapeHtml(initialMessage)}"</div>`
+    : '';
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Georgia', serif; background-color: #1A1A1A; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: #222; border-radius: 8px; overflow: hidden; }
+        .header { 
+          background-color: #1A1A1A;
+          padding: 28px; 
+          text-align: center;
+          border-bottom: 1px solid rgba(245, 240, 232, 0.1);
+        }
+        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 24px; margin: 0; font-weight: normal; color: #F5F0E8; }
+        .content { padding: 32px; color: #F5F0E8; line-height: 1.6; }
+        .button { display: inline-block; background: #C4A35A; color: #1A1A1A !important; padding: 16px 32px; text-decoration: none; border-radius: 6px; font-size: 15px; font-weight: bold; }
+        .footer { background: #1A1A1A; color: #F5F0E8; opacity: 0.6; padding: 20px; text-align: center; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>${escapeHtml(artistName)}</h1>
+        </div>
+        <div class="content">
+          <p style="margin-bottom: 24px;">Hi ${escapeHtml(participantName)},</p>
+          <p style="margin-bottom: 20px;">${escapeHtml(artistName)} would like to chat with you.</p>
+          
+          ${messagePreview}
+          
+          <p style="text-align: center; margin: 32px 0;">
+            <a href="${chatLink}" class="button">Open Conversation</a>
+          </p>
+          
+          <p style="color: #999; font-size: 13px;">Or copy this link: <a href="${chatLink}" style="color: #C4A35A;">${chatLink}</a></p>
+        </div>
+        <div class="footer">
+          Sent via Date Inquiry
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const senderEmail = `${sanitizeSenderName(artistName)} <notifications@dateinquiry.com>`;
+  
+  try {
+    const result = await client.emails.send({
+      from: senderEmail,
+      to: toEmail.trim(),
+      subject: sanitizeSubject(`${artistName} wants to chat with you`),
+      html: htmlContent
+    });
+    console.log("[Quick Chat Email] Sent:", JSON.stringify(result));
+    return { success: true, result };
+  } catch (err: any) {
+    console.error("[Quick Chat Email] Failed:", err.message);
+    return { success: false, error: err.message };
+  }
+}
+
 export async function sendGeneralEmail({
   to,
   subject,

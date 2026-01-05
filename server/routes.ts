@@ -11681,6 +11681,20 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const origin = process.env.CUSTOM_DOMAIN ? `https://${process.env.CUSTOM_DOMAIN}` : 'https://dateinquiry.com';
       const participantLink = `${origin}/chat/${chat.participantToken}`;
       
+      // Send email to participant
+      const artistProfile = await storage.getArtistProfile(userId);
+      const artistName = artistProfile?.businessName || user.displayName || "Your contact";
+      
+      import('./emailService').then(({ sendQuickChatInviteEmail }) => {
+        sendQuickChatInviteEmail({
+          toEmail: participantEmail,
+          artistName,
+          participantName,
+          chatLink: participantLink,
+          initialMessage: initialMessage || null,
+        }).catch((err: any) => console.error('[Quick Chat Email] Error:', err));
+      });
+      
       res.json({ 
         success: true, 
         chat,
@@ -11731,6 +11745,19 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       
       const origin = process.env.CUSTOM_DOMAIN ? `https://${process.env.CUSTOM_DOMAIN}` : 'https://dateinquiry.com';
       const participantLink = `${origin}/chat/${chat.participantToken}`;
+      
+      // Send email to participant
+      const artistName = profile.businessName || "Your contact";
+      
+      import('./emailService').then(({ sendQuickChatInviteEmail }) => {
+        sendQuickChatInviteEmail({
+          toEmail: participantEmail,
+          artistName,
+          participantName,
+          chatLink: participantLink,
+          initialMessage: initialMessage || null,
+        }).catch((err: any) => console.error('[Quick Chat Email] Error:', err));
+      });
       
       res.json({ 
         success: true, 
