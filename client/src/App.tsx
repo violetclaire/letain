@@ -53,6 +53,7 @@ import ClientWaitlist from "@/pages/ClientWaitlist";
 import Privacy from "@/pages/Privacy";
 import ChatInvite from "@/pages/ChatInvite";
 import DirectChat from "@/pages/DirectChat";
+import ArtistQuickChat from "@/pages/ArtistQuickChat";
 import ClientMessages from "@/pages/ClientMessages";
 import ContractSigning from "@/pages/ContractSigning";
 import PlannerView from "@/pages/PlannerView";
@@ -166,6 +167,7 @@ function Router() {
       {/* Chat Invite Route */}
       <Route path="/chat-invite/:token" component={ChatInvite} />
       <Route path="/chat/:token" component={DirectChat} />
+      <Route path="/quick-chat/:chatToken" component={ArtistQuickChat} />
       
       {/* Contract Signing Route (public - no auth required) */}
       <Route path="/sign/:token">

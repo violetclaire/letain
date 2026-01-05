@@ -194,6 +194,20 @@ export default function ArtistAdmin() {
     }
   };
 
+  // Fetch direct chats (quick chats) using token or session auth
+  const { data: directChats = [] } = useQuery<Array<{id: string; threadToken: string; participantName: string; participantEmail: string; participantRole: string; lastMessageAt?: string; createdAt: string}>>({
+    queryKey: ['/api/direct-chats', token],
+    queryFn: async () => {
+      const endpoint = token 
+        ? `/api/public/direct-chats?token=${encodeURIComponent(token)}`
+        : `/api/artist/direct-chats`;
+      const res = await fetch(endpoint, { credentials: 'include' });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!slug && (!!token || useSessionAuth),
+  });
+
   // Fetch data using token OR session auth
   const { data, isLoading, error } = useQuery({
     queryKey: [`/api/artist-admin/${slug}`, token, useSessionAuth],
@@ -708,6 +722,42 @@ export default function ArtistAdmin() {
           )}
         </div>
 
+        {/* Quick Chats Section */}
+        {directChats.length > 0 && (
+          <div className="space-y-4 mt-8">
+            <h3 className="text-sm text-[#F5F0E8]/60">Quick Chats</h3>
+            {directChats.map((chat) => {
+              const chatLink = token 
+                ? `/quick-chat/${chat.threadToken}?token=${encodeURIComponent(token)}`
+                : `/quick-chat/${chat.threadToken}`;
+              return (
+                <Link
+                  key={chat.id}
+                  href={chatLink}
+                  className="block p-4 border border-[#F5F0E8]/10 bg-[#222] hover:border-[#F5F0E8]/30 transition-colors"
+                  data-testid={`quick-chat-${chat.id}`}
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm font-medium">{chat.participantName}</p>
+                      <p className="text-xs text-[#F5F0E8]/50">{chat.participantEmail}</p>
+                      <p className="text-xs text-[#F5F0E8]/40 mt-1 capitalize">{chat.participantRole}</p>
+                    </div>
+                    <div className="text-right">
+                      {chat.lastMessageAt && (
+                        <p className="text-xs text-[#F5F0E8]/40">
+                          {new Date(chat.lastMessageAt).toLocaleDateString()}
+                        </p>
+                      )}
+                      <p className="text-xs text-[#C4A35A] mt-1">View Chat</p>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+
         <div className="mt-12 p-6 border border-dashed border-[#F5F0E8]/20 text-center bg-[#222]">
           <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F0E8]/40 mb-2">Your Form Link</p>
           <div className="flex items-center justify-center gap-3">
@@ -1170,14 +1220,19 @@ export default function ArtistAdmin() {
                     onClick={async () => {
                       setCreatingQuickChat(true);
                       try {
-                        const res = await fetch("/api/artist/direct-chats", {
+                        const endpoint = token 
+                          ? `/api/public/direct-chats?token=${encodeURIComponent(token)}`
+                          : `/api/artist/direct-chats`;
+                        const res = await fetch(endpoint, {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
+                          credentials: 'include',
                           body: JSON.stringify(quickChatData),
                         });
                         const data = await res.json();
                         if (res.ok) {
                           setQuickChatLink(data.participantLink);
+                          queryClient.invalidateQueries({ queryKey: ['/api/direct-chats', token] });
                           toast({ title: "Chat created!" });
                         } else {
                           toast({ title: "Error", description: data.error, variant: "destructive" });

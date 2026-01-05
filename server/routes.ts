@@ -11692,8 +11692,143 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       res.status(500).json({ error: error.message || "Failed to create chat" });
     }
   });
+
+  // Create direct chat (public endpoint with token auth for magic-link access)
+  app.post("/api/public/direct-chats", async (req, res) => {
+    try {
+      const { token } = req.query;
+      if (!token) {
+        return res.status(401).json({ error: "Access token required" });
+      }
+      
+      const profile = await storage.getArtistProfileByEditToken(token as string);
+      if (!profile) {
+        return res.status(401).json({ error: "Invalid access token" });
+      }
+      
+      const { participantName, participantEmail, participantRole, subject, initialMessage } = req.body;
+      
+      if (!participantName || !participantEmail) {
+        return res.status(400).json({ error: "Name and email are required" });
+      }
+      
+      const chat = await storage.createDirectChat({
+        artistId: profile.userId,
+        participantName,
+        participantEmail,
+        participantRole: participantRole || "contact",
+        subject: subject || null,
+      });
+      
+      if (initialMessage) {
+        await storage.createDirectChatMessage({
+          directChatId: chat.id,
+          senderType: "artist",
+          senderName: profile.businessName || "Artist",
+          content: initialMessage,
+        });
+      }
+      
+      const origin = process.env.CUSTOM_DOMAIN ? `https://${process.env.CUSTOM_DOMAIN}` : 'https://dateinquiry.com';
+      const participantLink = `${origin}/chat/${chat.participantToken}`;
+      
+      res.json({ 
+        success: true, 
+        chat,
+        threadToken: chat.threadToken,
+        participantLink,
+      });
+    } catch (error: any) {
+      console.error("[Public Direct Chat] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to create chat" });
+    }
+  });
+
+  // Get artist's direct chats (public endpoint with token auth)
+  app.get("/api/public/direct-chats", async (req, res) => {
+    try {
+      const { token } = req.query;
+      if (!token) {
+        return res.status(401).json({ error: "Access token required" });
+      }
+      
+      const profile = await storage.getArtistProfileByEditToken(token as string);
+      if (!profile) {
+        return res.status(401).json({ error: "Invalid access token" });
+      }
+      
+      const chats = await storage.getDirectChatsByArtist(profile.userId);
+      res.json(chats);
+    } catch (error: any) {
+      console.error("[Public Direct Chats] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to get chats" });
+    }
+  });
+
+  // Get direct chat by artist's chat token (public endpoint with auth token)
+  app.get("/api/public/direct-chat/:chatToken", async (req, res) => {
+    try {
+      const { token } = req.query;
+      if (!token) {
+        return res.status(401).json({ error: "Access token required" });
+      }
+      
+      const profile = await storage.getArtistProfileByEditToken(token as string);
+      if (!profile) {
+        return res.status(401).json({ error: "Invalid access token" });
+      }
+      
+      const chat = await storage.getDirectChatByToken(req.params.chatToken);
+      if (!chat || chat.artistId !== profile.userId) {
+        return res.status(404).json({ error: "Chat not found" });
+      }
+      
+      const messages = await storage.getDirectChatMessages(chat.id);
+      res.json({ chat, messages });
+    } catch (error: any) {
+      console.error("[Public Direct Chat] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to get chat" });
+    }
+  });
+
+  // Post message to direct chat (artist - public endpoint with auth token)
+  app.post("/api/public/direct-chat/:chatToken/messages", async (req, res) => {
+    try {
+      const { token } = req.query;
+      if (!token) {
+        return res.status(401).json({ error: "Access token required" });
+      }
+      
+      const profile = await storage.getArtistProfileByEditToken(token as string);
+      if (!profile) {
+        return res.status(401).json({ error: "Invalid access token" });
+      }
+      
+      const chat = await storage.getDirectChatByToken(req.params.chatToken);
+      if (!chat || chat.artistId !== profile.userId) {
+        return res.status(404).json({ error: "Chat not found" });
+      }
+      
+      const { content } = req.body;
+      if (!content) {
+        return res.status(400).json({ error: "Message content required" });
+      }
+      
+      const message = await storage.createDirectChatMessage({
+        directChatId: chat.id,
+        senderType: "artist",
+        senderName: profile.businessName || "Artist",
+        content,
+      });
+      
+      res.json(message);
+    } catch (error: any) {
+      console.error("[Public Direct Chat Message] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to send message" });
+    }
+  });
   
-  // Get artist's direct chats
+  // Get artist's direct chats (session auth)
   app.get("/api/artist/direct-chats", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId;
@@ -11709,7 +11844,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
   
-  // Get direct chat by artist's token
+  // Get direct chat by artist's token (session auth)
   app.get("/api/artist/direct-chat/:token", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId;
@@ -11730,7 +11865,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
   
-  // Post message to direct chat (artist)
+  // Post message to direct chat (artist - session auth)
   app.post("/api/artist/direct-chat/:token/messages", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId;
