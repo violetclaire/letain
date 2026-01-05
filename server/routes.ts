@@ -11638,6 +11638,184 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // ========== DIRECT CHATS (Quick Chat) ==========
+  
+  // Create a new direct chat
+  app.post("/api/artist/direct-chats", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'artist') {
+        return res.status(403).json({ error: "Not an artist" });
+      }
+      
+      const { participantName, participantEmail, participantRole, subject, initialMessage } = req.body;
+      
+      if (!participantName || !participantEmail) {
+        return res.status(400).json({ error: "Name and email are required" });
+      }
+      
+      // Create the direct chat
+      const chat = await storage.createDirectChat({
+        artistId: userId,
+        participantName,
+        participantEmail,
+        participantRole: participantRole || "contact",
+        subject: subject || null,
+      });
+      
+      // If there's an initial message, add it
+      if (initialMessage) {
+        await storage.createDirectChatMessage({
+          directChatId: chat.id,
+          senderType: "artist",
+          senderName: user.displayName || user.username || "Artist",
+          content: initialMessage,
+        });
+      }
+      
+      const origin = process.env.CUSTOM_DOMAIN ? `https://${process.env.CUSTOM_DOMAIN}` : 'https://dateinquiry.com';
+      const participantLink = `${origin}/chat/${chat.participantToken}`;
+      
+      res.json({ 
+        success: true, 
+        chat,
+        threadToken: chat.threadToken,
+        participantLink,
+      });
+    } catch (error: any) {
+      console.error("[Direct Chat] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to create chat" });
+    }
+  });
+  
+  // Get artist's direct chats
+  app.get("/api/artist/direct-chats", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const chats = await storage.getDirectChatsByArtist(userId);
+      res.json(chats);
+    } catch (error: any) {
+      console.error("[Direct Chats] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to get chats" });
+    }
+  });
+  
+  // Get direct chat by artist's token
+  app.get("/api/artist/direct-chat/:token", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const chat = await storage.getDirectChatByToken(req.params.token);
+      if (!chat || chat.artistId !== userId) {
+        return res.status(404).json({ error: "Chat not found" });
+      }
+      
+      const messages = await storage.getDirectChatMessages(chat.id);
+      res.json({ chat, messages });
+    } catch (error: any) {
+      console.error("[Direct Chat] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to get chat" });
+    }
+  });
+  
+  // Post message to direct chat (artist)
+  app.post("/api/artist/direct-chat/:token/messages", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const user = await storage.getUser(userId);
+      const chat = await storage.getDirectChatByToken(req.params.token);
+      if (!chat || chat.artistId !== userId) {
+        return res.status(404).json({ error: "Chat not found" });
+      }
+      
+      const { content } = req.body;
+      if (!content) {
+        return res.status(400).json({ error: "Message content required" });
+      }
+      
+      const message = await storage.createDirectChatMessage({
+        directChatId: chat.id,
+        senderType: "artist",
+        senderName: user?.displayName || user?.username || "Artist",
+        content,
+      });
+      
+      res.json(message);
+    } catch (error: any) {
+      console.error("[Direct Chat Message] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to send message" });
+    }
+  });
+  
+  // Public: Get direct chat by participant token (magic link)
+  app.get("/api/public/chat/:token", async (req, res) => {
+    try {
+      const chat = await storage.getDirectChatByParticipantToken(req.params.token);
+      if (!chat) {
+        return res.status(404).json({ error: "Chat not found" });
+      }
+      
+      const artist = await storage.getUser(chat.artistId);
+      const profile = await storage.getArtistProfile(chat.artistId);
+      
+      const messages = await storage.getDirectChatMessages(chat.id);
+      res.json({ 
+        chat, 
+        messages,
+        artist: {
+          name: profile?.businessName || artist?.displayName || "Your Artist",
+          slug: profile?.slug,
+        }
+      });
+    } catch (error: any) {
+      console.error("[Public Chat] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to get chat" });
+    }
+  });
+  
+  // Public: Post message to direct chat (participant)
+  app.post("/api/public/chat/:token/messages", async (req, res) => {
+    try {
+      const chat = await storage.getDirectChatByParticipantToken(req.params.token);
+      if (!chat) {
+        return res.status(404).json({ error: "Chat not found" });
+      }
+      
+      const { content } = req.body;
+      if (!content) {
+        return res.status(400).json({ error: "Message content required" });
+      }
+      
+      const message = await storage.createDirectChatMessage({
+        directChatId: chat.id,
+        senderType: "participant",
+        senderName: chat.participantName,
+        content,
+      });
+      
+      res.json(message);
+    } catch (error: any) {
+      console.error("[Public Chat Message] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to send message" });
+    }
+  });
+
   // Setup flow - Step 1: Connect Square
   app.post("/api/public/setup/:artistSlug/square", async (req, res) => {
     try {
