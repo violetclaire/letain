@@ -255,6 +255,7 @@ export default function InquiryThread() {
 
   const isPending = inquiry.status.toLowerCase() === "pending";
   const isAccepted = ["accepted", "auto_responded"].includes(inquiry.status.toLowerCase());
+  const showBookingActions = isAccepted || tabParam === 'contract' || tabParam === 'payment';
   const isTerminal = ["referred", "declined", "deposit_paid"].includes(inquiry.status.toLowerCase());
 
   const getVelocity = () => {
@@ -508,8 +509,8 @@ export default function InquiryThread() {
           </section>
         )}
 
-        {/* 4. BOOKING ACTIONS (Only shows when status = ACCEPTED and viewer is artist) */}
-        {isArtist && isAccepted && (
+        {/* 4. BOOKING ACTIONS (Shows when accepted OR when navigating from dashboard with tab param) */}
+        {isArtist && showBookingActions && (
           <section className="mb-10">
             <h3 className="text-sm font-medium text-[#F5F0E8]/80 mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Next Steps</h3>
             <div className="space-y-3">
