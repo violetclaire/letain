@@ -3,7 +3,7 @@ import { useRoute } from "wouter";
 import { format } from "date-fns";
 import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, Send, X, Check, Plus, Trash2, Eye } from "lucide-react";
+import { Loader2, Send, X, Check, Plus, Trash2, Eye, Pencil } from "lucide-react";
 
 interface ServiceItem {
   clientType: string;
@@ -95,6 +95,14 @@ export default function InquiryThread() {
     amount: "",
     description: "",
   });
+  
+  // Client info editing state
+  const [isEditingClient, setIsEditingClient] = useState(false);
+  const [editClientData, setEditClientData] = useState({
+    clientName: "",
+    clientEmail: "",
+    clientPhone: "",
+  });
 
   const { data, isLoading, error } = useQuery({
     queryKey: [`/api/public/inquiry/${threadToken}`],
@@ -123,6 +131,16 @@ export default function InquiryThread() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/public/inquiry/${threadToken}`] });
       setReplyMessage("");
+    },
+  });
+
+  const updateClientMutation = useMutation({
+    mutationFn: async (data: { clientName?: string; clientEmail?: string; clientPhone?: string }) => {
+      return apiRequest("PATCH", `/api/inquiries/${threadToken}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/public/inquiry/${threadToken}`] });
+      setIsEditingClient(false);
     },
   });
 
@@ -268,12 +286,81 @@ export default function InquiryThread() {
               {isArtist ? (
                 <>
                   <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F0E8]/40 mb-2">inquiry from</p>
-                  <h2 className="text-2xl text-[#F5F0E8] mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>
-                    {inquiry.clientName}
-                  </h2>
-                  <p className="text-sm text-[#F5F0E8]/50">{inquiry.clientEmail}</p>
-                  {inquiry.clientPhone && (
-                    <p className="text-sm text-[#F5F0E8]/50">{inquiry.clientPhone}</p>
+                  {isEditingClient ? (
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        value={editClientData.clientName}
+                        onChange={(e) => setEditClientData({ ...editClientData, clientName: e.target.value })}
+                        placeholder="Client name"
+                        className="w-full bg-[#F5F0E8]/10 border border-[#F5F0E8]/20 rounded px-3 py-2 text-[#F5F0E8] text-sm focus:outline-none focus:border-[#C4A35A]"
+                        data-testid="input-client-name"
+                      />
+                      <input
+                        type="email"
+                        value={editClientData.clientEmail}
+                        onChange={(e) => setEditClientData({ ...editClientData, clientEmail: e.target.value })}
+                        placeholder="Email"
+                        className="w-full bg-[#F5F0E8]/10 border border-[#F5F0E8]/20 rounded px-3 py-2 text-[#F5F0E8] text-sm focus:outline-none focus:border-[#C4A35A]"
+                        data-testid="input-client-email"
+                      />
+                      <input
+                        type="tel"
+                        value={editClientData.clientPhone}
+                        onChange={(e) => setEditClientData({ ...editClientData, clientPhone: e.target.value })}
+                        placeholder="Phone (optional)"
+                        className="w-full bg-[#F5F0E8]/10 border border-[#F5F0E8]/20 rounded px-3 py-2 text-[#F5F0E8] text-sm focus:outline-none focus:border-[#C4A35A]"
+                        data-testid="input-client-phone"
+                      />
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          onClick={() => {
+                            updateClientMutation.mutate({
+                              clientName: editClientData.clientName,
+                              clientEmail: editClientData.clientEmail,
+                              clientPhone: editClientData.clientPhone || undefined,
+                            });
+                          }}
+                          disabled={updateClientMutation.isPending}
+                          className="px-3 py-1.5 bg-[#C4A35A] text-[#1A1A1A] text-xs rounded hover:bg-[#C4A35A]/90 disabled:opacity-50"
+                          data-testid="button-save-client"
+                        >
+                          {updateClientMutation.isPending ? "Saving..." : "Save"}
+                        </button>
+                        <button
+                          onClick={() => setIsEditingClient(false)}
+                          className="px-3 py-1.5 border border-[#F5F0E8]/20 text-[#F5F0E8]/70 text-xs rounded hover:border-[#F5F0E8]/40"
+                          data-testid="button-cancel-edit"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="group relative">
+                      <h2 className="text-2xl text-[#F5F0E8] mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>
+                        {inquiry.clientName}
+                      </h2>
+                      <p className="text-sm text-[#F5F0E8]/50">{inquiry.clientEmail}</p>
+                      {inquiry.clientPhone && (
+                        <p className="text-sm text-[#F5F0E8]/50">{inquiry.clientPhone}</p>
+                      )}
+                      <button
+                        onClick={() => {
+                          setEditClientData({
+                            clientName: inquiry.clientName,
+                            clientEmail: inquiry.clientEmail,
+                            clientPhone: inquiry.clientPhone || "",
+                          });
+                          setIsEditingClient(true);
+                        }}
+                        className="mt-2 text-xs text-[#C4A35A] hover:text-[#C4A35A]/80 flex items-center gap-1"
+                        data-testid="button-edit-client"
+                      >
+                        <Pencil className="w-3 h-3" />
+                        Edit
+                      </button>
+                    </div>
                   )}
                 </>
               ) : (
