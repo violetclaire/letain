@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { MessageCircle, Send, Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { formatDateLocal } from "@/lib/utils";
 
 interface ChatInviteData {
   id: string;
@@ -129,7 +130,7 @@ export default function ChatInvite() {
               </p>
               {inviteData.eventDate && (
                 <p className="text-xs text-[#F5F0E8]/40 mt-2">
-                  Event Date: {new Date(inviteData.eventDate).toLocaleDateString('en-US', {
+                  Event Date: {formatDateLocal(inviteData.eventDate, {
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',
