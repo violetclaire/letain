@@ -61,6 +61,17 @@ export default function ArtistAdmin() {
     notes: "",
   });
   const [creatingClient, setCreatingClient] = useState(false);
+  
+  // Quick Chat state
+  const [showQuickChat, setShowQuickChat] = useState(false);
+  const [quickChatData, setQuickChatData] = useState({
+    participantName: "",
+    participantEmail: "",
+    participantRole: "planner" as "planner" | "client" | "vendor" | "contact",
+    initialMessage: "",
+  });
+  const [creatingQuickChat, setCreatingQuickChat] = useState(false);
+  const [quickChatLink, setQuickChatLink] = useState<string | null>(null);
   const queryClient = useQueryClient();
   
   // Delete inquiry mutation
@@ -579,14 +590,24 @@ export default function ArtistAdmin() {
           {inquiries.length > 0 && (
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-sm text-[#F5F0E8]/60">Your Clients</h3>
-              <button
-                onClick={() => setShowAddClient(true)}
-                className="text-xs text-[#C4A35A] hover:text-[#C4A35A]/80 flex items-center gap-1"
-                data-testid="button-add-client"
-              >
-                <Users className="w-3 h-3" />
-                Add Client
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowQuickChat(true)}
+                  className="text-xs text-[#C4A35A] hover:text-[#C4A35A]/80 flex items-center gap-1"
+                  data-testid="button-quick-chat"
+                >
+                  <MessageSquare className="w-3 h-3" />
+                  Quick Chat
+                </button>
+                <button
+                  onClick={() => setShowAddClient(true)}
+                  className="text-xs text-[#C4A35A] hover:text-[#C4A35A]/80 flex items-center gap-1"
+                  data-testid="button-add-client"
+                >
+                  <Users className="w-3 h-3" />
+                  Add Client
+                </button>
+              </div>
             </div>
           )}
           {pendingAction && inquiries.length > 0 && (
@@ -1025,6 +1046,158 @@ export default function ArtistAdmin() {
                 Add Client
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Chat Modal */}
+      {showQuickChat && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1A1A1A] border border-[#F5F0E8]/20 rounded-lg p-6 max-w-md w-full">
+            {quickChatLink ? (
+              <div className="space-y-4">
+                <h3 className="text-lg" style={{ fontFamily: "'Fraunces', serif" }}>Chat Created!</h3>
+                <div className="bg-green-900/20 border border-green-500/30 p-4 rounded">
+                  <p className="text-xs text-green-400 mb-2">Share this link with {quickChatData.participantName}:</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={quickChatLink}
+                      readOnly
+                      className="flex-1 px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-xs text-[#F5F0E8]/80"
+                    />
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(quickChatLink);
+                        toast({ title: "Link copied!" });
+                      }}
+                      className="px-3 py-2 bg-[#C4A35A] text-[#1A1A1A] rounded text-xs hover:bg-[#C4A35A]/90 flex items-center gap-1"
+                    >
+                      <Copy className="w-3 h-3" />
+                      Copy
+                    </button>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setQuickChatLink(null);
+                      setQuickChatData({ participantName: "", participantEmail: "", participantRole: "planner", initialMessage: "" });
+                    }}
+                    className="flex-1 py-2 bg-[#C4A35A] text-[#1A1A1A] rounded text-sm hover:bg-[#C4A35A]/90 flex items-center justify-center gap-2"
+                    data-testid="button-start-another-chat"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    Start Another
+                  </button>
+                  <button
+                    onClick={() => { 
+                      setShowQuickChat(false); 
+                      setQuickChatLink(null);
+                      setQuickChatData({ participantName: "", participantEmail: "", participantRole: "planner", initialMessage: "" });
+                    }}
+                    className="flex-1 py-2 border border-[#F5F0E8]/20 rounded text-sm hover:bg-[#F5F0E8]/5"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <h3 className="text-lg mb-1" style={{ fontFamily: "'Fraunces', serif" }}>Quick Chat</h3>
+                <p className="text-xs text-[#F5F0E8]/50 mb-4">Start a conversation with anyone via their email</p>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs text-[#F5F0E8]/60 mb-1">Who is this?</label>
+                    <select
+                      value={quickChatData.participantRole}
+                      onChange={(e) => setQuickChatData({ ...quickChatData, participantRole: e.target.value as any })}
+                      className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                      data-testid="select-quick-chat-role"
+                    >
+                      <option value="planner">Wedding Planner</option>
+                      <option value="client">Client</option>
+                      <option value="vendor">Other Vendor</option>
+                      <option value="contact">Other Contact</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-[#F5F0E8]/60 mb-1">Their Name *</label>
+                    <input
+                      type="text"
+                      value={quickChatData.participantName}
+                      onChange={(e) => setQuickChatData({ ...quickChatData, participantName: e.target.value })}
+                      placeholder="Sarah Johnson"
+                      className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                      data-testid="input-quick-chat-name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-[#F5F0E8]/60 mb-1">Their Email *</label>
+                    <input
+                      type="email"
+                      value={quickChatData.participantEmail}
+                      onChange={(e) => setQuickChatData({ ...quickChatData, participantEmail: e.target.value })}
+                      placeholder="sarah@plannerco.com"
+                      className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                      data-testid="input-quick-chat-email"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-[#F5F0E8]/60 mb-1">Initial Message (optional)</label>
+                    <textarea
+                      value={quickChatData.initialMessage}
+                      onChange={(e) => setQuickChatData({ ...quickChatData, initialMessage: e.target.value })}
+                      placeholder="Hi! Let's connect about..."
+                      rows={2}
+                      className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40 resize-none"
+                      data-testid="input-quick-chat-message"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={() => {
+                      setShowQuickChat(false);
+                      setQuickChatData({ participantName: "", participantEmail: "", participantRole: "planner", initialMessage: "" });
+                    }}
+                    className="flex-1 px-4 py-2 border border-[#F5F0E8]/20 rounded text-sm hover:bg-[#F5F0E8]/5"
+                    data-testid="button-cancel-quick-chat"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setCreatingQuickChat(true);
+                      try {
+                        const res = await fetch("/api/artist/direct-chats", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify(quickChatData),
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                          setQuickChatLink(data.participantLink);
+                          toast({ title: "Chat created!" });
+                        } else {
+                          toast({ title: "Error", description: data.error, variant: "destructive" });
+                        }
+                      } catch (error) {
+                        toast({ title: "Error", description: "Failed to create chat", variant: "destructive" });
+                      } finally {
+                        setCreatingQuickChat(false);
+                      }
+                    }}
+                    disabled={creatingQuickChat || !quickChatData.participantName || !quickChatData.participantEmail}
+                    className="flex-1 px-4 py-2 bg-[#C4A35A] hover:bg-[#C4A35A]/90 text-[#1A1A1A] rounded text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                    data-testid="button-create-quick-chat"
+                  >
+                    {creatingQuickChat ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    Start Chat
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
