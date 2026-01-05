@@ -576,6 +576,30 @@ export const chatInviteMessages = pgTable("chat_invite_messages", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Direct chats - standalone conversations not tied to client folders/inquiries
+export const directChats = pgTable("direct_chats", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  artistId: varchar("artist_id").notNull().references(() => users.id),
+  participantName: text("participant_name").notNull(),
+  participantEmail: text("participant_email").notNull(),
+  participantRole: text("participant_role").notNull().default("contact"), // 'planner', 'client', 'vendor', 'contact'
+  threadToken: varchar("thread_token").unique().default(sql`gen_random_uuid()`), // Artist's access token
+  participantToken: varchar("participant_token").unique().default(sql`gen_random_uuid()`), // Participant's magic link token
+  subject: text("subject"), // Optional subject/purpose
+  lastMessageAt: timestamp("last_message_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Direct chat messages - messages in standalone conversations
+export const directChatMessages = pgTable("direct_chat_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  directChatId: varchar("direct_chat_id").notNull().references(() => directChats.id, { onDelete: 'cascade' }),
+  senderType: text("sender_type").notNull(), // 'artist', 'participant'
+  senderName: text("sender_name").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Hold struct type for inquiries
 export type InquiryHoldStruct = {
   placedAt: string | null;
@@ -1255,6 +1279,19 @@ export const insertChatInviteMessageSchema = createInsertSchema(chatInviteMessag
   createdAt: true,
 });
 
+export const insertDirectChatSchema = createInsertSchema(directChats).omit({
+  id: true,
+  threadToken: true,
+  participantToken: true,
+  lastMessageAt: true,
+  createdAt: true,
+});
+
+export const insertDirectChatMessageSchema = createInsertSchema(directChatMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertInquirySchema = createInsertSchema(inquiries).omit({
   id: true,
   createdAt: true,
@@ -1895,6 +1932,12 @@ export type InsertChatInvite = z.infer<typeof insertChatInviteSchema>;
 export type ChatInvite = typeof chatInvites.$inferSelect;
 export type InsertChatInviteMessage = z.infer<typeof insertChatInviteMessageSchema>;
 export type ChatInviteMessage = typeof chatInviteMessages.$inferSelect;
+
+export type InsertDirectChat = z.infer<typeof insertDirectChatSchema>;
+export type DirectChat = typeof directChats.$inferSelect;
+
+export type InsertDirectChatMessage = z.infer<typeof insertDirectChatMessageSchema>;
+export type DirectChatMessage = typeof directChatMessages.$inferSelect;
 
 export type InsertInquiry = z.infer<typeof insertInquirySchema>;
 export type Inquiry = typeof inquiries.$inferSelect;
