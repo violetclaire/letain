@@ -9167,6 +9167,85 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
   
+  // Invite additional participant to thread (planner, etc.) - using thread token auth
+  app.post("/api/public/inquiry/:threadToken/invite-participant", async (req, res) => {
+    try {
+      const { threadToken } = req.params;
+      const { email, name, role } = req.body; // role: 'planner' | 'client' | 'other'
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+      
+      const inquiry = await storage.getInquiryByThreadToken(threadToken);
+      if (!inquiry) {
+        return res.status(404).json({ error: "Thread not found" });
+      }
+      
+      // Create a chat invite for the participant
+      const token = randomUUID();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 30); // 30 day expiry for participants
+      
+      const chatInvite = await storage.createChatInvite({
+        senderId: inquiry.vendorId,
+        inviteeEmail: email,
+        status: 'pending',
+        inquiryId: inquiry.id,
+        token,
+        expiresAt,
+      });
+      
+      // Get vendor info
+      const artistProfile = await storage.getArtistProfile(inquiry.vendorId);
+      const vendorName = artistProfile?.businessName || 'The Artist';
+      
+      // Build chat link
+      const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
+      const chatLink = `${baseUrl}/chat-invite/${token}`;
+      
+      const eventDate = inquiry.eventDate 
+        ? new Date(inquiry.eventDate).toLocaleDateString('en-US', { 
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+          })
+        : undefined;
+      
+      // Send invite email
+      import('./emailService').then(({ sendChatInviteEmail }) => {
+        sendChatInviteEmail({
+          toEmail: email,
+          vendorName,
+          clientName: name || (role === 'planner' ? 'Wedding Planner' : 'Guest'),
+          chatLink,
+          eventDate,
+          expiresAt,
+        }).catch((err: any) => console.error('[Participant Invite Email] Error:', err));
+      });
+      
+      // Log notification
+      await storage.createInquiryNotification({
+        inquiryId: inquiry.id,
+        type: 'participant_invite',
+        channel: 'email',
+        recipientEmail: email,
+        subject: `${vendorName} invited you to a conversation`,
+        content: `Chat invite for ${inquiry.clientName}'s event`,
+        status: 'sent',
+        sentAt: new Date(),
+        metadata: { chatInviteToken: token, participantRole: role || 'other' },
+      });
+      
+      res.json({ 
+        success: true, 
+        message: `Invite sent to ${email}`,
+        chatLink,
+      });
+    } catch (error: any) {
+      console.error("[Participant Invite] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Quick reply to inquiry (send email to client)
   app.post("/api/inquiries/:id/quick-reply", isAuthenticated, async (req: any, res) => {
     try {

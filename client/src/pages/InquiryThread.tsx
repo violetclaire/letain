@@ -3,7 +3,8 @@ import { useRoute } from "wouter";
 import { format } from "date-fns";
 import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, Send, X, Check, Plus, Trash2, Eye, Pencil } from "lucide-react";
+import { Loader2, Send, X, Check, Plus, Trash2, Eye, Pencil, UserPlus, Copy } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface ServiceItem {
   clientType: string;
@@ -103,6 +104,16 @@ export default function InquiryThread() {
     clientEmail: "",
     clientPhone: "",
   });
+  
+  // Invite participant state
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteData, setInviteData] = useState({
+    email: "",
+    name: "",
+    role: "planner" as "planner" | "client" | "other",
+  });
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const { data, isLoading, error } = useQuery({
     queryKey: [`/api/public/inquiry/${threadToken}`],
@@ -141,6 +152,22 @@ export default function InquiryThread() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/public/inquiry/${threadToken}`] });
       setIsEditingClient(false);
+    },
+  });
+
+  const inviteParticipantMutation = useMutation({
+    mutationFn: async (data: { email: string; name: string; role: string }) => {
+      return apiRequest("POST", `/api/public/inquiry/${threadToken}/invite-participant`, data);
+    },
+    onSuccess: (result: any) => {
+      toast({ title: "Invite sent!", description: `Email sent to ${inviteData.email}` });
+      if (result.chatLink) {
+        setInviteLink(result.chatLink);
+      }
+      setInviteData({ email: "", name: "", role: "planner" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to send invite", description: error.message, variant: "destructive" });
     },
   });
 
@@ -345,21 +372,31 @@ export default function InquiryThread() {
                       {inquiry.clientPhone && (
                         <p className="text-sm text-[#F5F0E8]/50">{inquiry.clientPhone}</p>
                       )}
-                      <button
-                        onClick={() => {
-                          setEditClientData({
-                            clientName: inquiry.clientName,
-                            clientEmail: inquiry.clientEmail,
-                            clientPhone: inquiry.clientPhone || "",
-                          });
-                          setIsEditingClient(true);
-                        }}
-                        className="mt-2 text-xs text-[#C4A35A] hover:text-[#C4A35A]/80 flex items-center gap-1"
-                        data-testid="button-edit-client"
-                      >
-                        <Pencil className="w-3 h-3" />
-                        Edit
-                      </button>
+                      <div className="flex gap-3 mt-2">
+                        <button
+                          onClick={() => {
+                            setEditClientData({
+                              clientName: inquiry.clientName,
+                              clientEmail: inquiry.clientEmail,
+                              clientPhone: inquiry.clientPhone || "",
+                            });
+                            setIsEditingClient(true);
+                          }}
+                          className="text-xs text-[#C4A35A] hover:text-[#C4A35A]/80 flex items-center gap-1"
+                          data-testid="button-edit-client"
+                        >
+                          <Pencil className="w-3 h-3" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => setShowInviteModal(true)}
+                          className="text-xs text-[#C4A35A] hover:text-[#C4A35A]/80 flex items-center gap-1"
+                          data-testid="button-invite-participant"
+                        >
+                          <UserPlus className="w-3 h-3" />
+                          Invite Planner/Client
+                        </button>
+                      </div>
                     </div>
                   )}
                 </>
@@ -926,6 +963,117 @@ export default function InquiryThread() {
                   </button>
                 </div>
               </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Invite Participant Modal */}
+      {showInviteModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1A1A1A] border border-[#F5F0E8]/20 rounded-lg p-6 max-w-md w-full">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="text-lg" style={{ fontFamily: "'Fraunces', serif" }}>Invite to Conversation</h3>
+                <p className="text-xs text-[#F5F0E8]/50 mt-1">Add the planner or another party to this thread</p>
+              </div>
+              <button 
+                onClick={() => { setShowInviteModal(false); setInviteLink(null); }} 
+                className="text-[#F5F0E8]/40 hover:text-[#F5F0E8]"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {inviteLink ? (
+              <div className="space-y-4">
+                <div className="bg-[#F5F0E8]/5 border border-[#F5F0E8]/10 p-4 rounded">
+                  <p className="text-xs text-[#F5F0E8]/60 mb-2">Invite sent! Share this link:</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={inviteLink}
+                      readOnly
+                      className="flex-1 px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-xs text-[#F5F0E8]/80"
+                    />
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(inviteLink);
+                        toast({ title: "Link copied!" });
+                      }}
+                      className="px-3 py-2 bg-[#C4A35A] text-[#1A1A1A] rounded text-xs hover:bg-[#C4A35A]/90 flex items-center gap-1"
+                    >
+                      <Copy className="w-3 h-3" />
+                      Copy
+                    </button>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setShowInviteModal(false); setInviteLink(null); }}
+                  className="w-full py-2 border border-[#F5F0E8]/20 rounded text-sm hover:bg-[#F5F0E8]/5"
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs text-[#F5F0E8]/60 mb-1">Who are you inviting?</label>
+                  <select
+                    value={inviteData.role}
+                    onChange={(e) => setInviteData({ ...inviteData, role: e.target.value as any })}
+                    className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                    data-testid="select-invite-role"
+                  >
+                    <option value="planner">Wedding Planner</option>
+                    <option value="client">Client</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-[#F5F0E8]/60 mb-1">Their Name</label>
+                  <input
+                    type="text"
+                    value={inviteData.name}
+                    onChange={(e) => setInviteData({ ...inviteData, name: e.target.value })}
+                    placeholder={inviteData.role === 'planner' ? "Planner's name" : "Their name"}
+                    className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                    data-testid="input-invite-name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-[#F5F0E8]/60 mb-1">Their Email *</label>
+                  <input
+                    type="email"
+                    value={inviteData.email}
+                    onChange={(e) => setInviteData({ ...inviteData, email: e.target.value })}
+                    placeholder="planner@example.com"
+                    className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                    data-testid="input-invite-email"
+                  />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => setShowInviteModal(false)}
+                    className="flex-1 py-2 border border-[#F5F0E8]/20 rounded text-sm hover:bg-[#F5F0E8]/5"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => inviteParticipantMutation.mutate(inviteData)}
+                    disabled={inviteParticipantMutation.isPending || !inviteData.email}
+                    className="flex-1 py-2 bg-[#C4A35A] text-[#1A1A1A] rounded text-sm hover:bg-[#C4A35A]/90 disabled:opacity-50 flex items-center justify-center gap-2"
+                    data-testid="button-send-invite"
+                  >
+                    {inviteParticipantMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
+                    Send Invite
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         </div>
