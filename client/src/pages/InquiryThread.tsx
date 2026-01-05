@@ -975,7 +975,7 @@ export default function InquiryThread() {
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="text-lg" style={{ fontFamily: "'Fraunces', serif" }}>Invite to Conversation</h3>
-                <p className="text-xs text-[#F5F0E8]/50 mt-1">Add the planner or another party to this thread</p>
+                <p className="text-xs text-[#F5F0E8]/50 mt-1">Add the client and/or planner to this thread</p>
               </div>
               <button 
                 onClick={() => { setShowInviteModal(false); setInviteLink(null); }} 
@@ -987,8 +987,8 @@ export default function InquiryThread() {
 
             {inviteLink ? (
               <div className="space-y-4">
-                <div className="bg-[#F5F0E8]/5 border border-[#F5F0E8]/10 p-4 rounded">
-                  <p className="text-xs text-[#F5F0E8]/60 mb-2">Invite sent! Share this link:</p>
+                <div className="bg-green-900/20 border border-green-500/30 p-4 rounded">
+                  <p className="text-xs text-green-400 mb-2">Invite sent! Share this link:</p>
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -1008,12 +1008,22 @@ export default function InquiryThread() {
                     </button>
                   </div>
                 </div>
-                <button
-                  onClick={() => { setShowInviteModal(false); setInviteLink(null); }}
-                  className="w-full py-2 border border-[#F5F0E8]/20 rounded text-sm hover:bg-[#F5F0E8]/5"
-                >
-                  Done
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setInviteLink(null)}
+                    className="flex-1 py-2 bg-[#C4A35A] text-[#1A1A1A] rounded text-sm hover:bg-[#C4A35A]/90 flex items-center justify-center gap-2"
+                    data-testid="button-add-another"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    Add Another Person
+                  </button>
+                  <button
+                    onClick={() => { setShowInviteModal(false); setInviteLink(null); }}
+                    className="flex-1 py-2 border border-[#F5F0E8]/20 rounded text-sm hover:bg-[#F5F0E8]/5"
+                  >
+                    Done
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="space-y-4">
