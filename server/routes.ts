@@ -11623,6 +11623,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         message: notes || "Manually added client",
         status: "pending",
         source: "manual",
+        serviceType: "Consultation", // Default service type for manual clients
       });
       
       res.json({ 
