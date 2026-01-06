@@ -487,11 +487,31 @@ export async function recordBehavioralEvent(
   }
 ): Promise<void> {
   try {
-    // This would store the behavioral event for CDI scoring
     console.log(`[CDI Engine] Recording behavioral event: ${eventCategory}/${eventType} for user ${userId}`);
-    console.log(`[CDI Engine] Dimension: ${dimension}, Signal Strength: ${signalStrength}`);
     
-    // Future: storage.createCdiBehavioralEvent(...)
+    await storage.createCdiBehavioralEvent({
+      userId,
+      actorRole,
+      targetUserId: metadata?.targetUserId || null,
+      targetRole: metadata?.targetRole || null,
+      bookingId: metadata?.bookingId || null,
+      eventCategory,
+      eventType,
+      dimension,
+      signalStrength: Math.min(100, Math.max(-100, signalStrength)),
+      responseLatencyMs: metadata?.responseLatencyMs || null,
+      toneVector: null,
+      metadata: metadata ? {
+        evidenceText: metadata.evidenceText,
+        contextualFactors: metadata.contextualFactors,
+        roleTransition: metadata.roleTransition,
+        sequencePosition: metadata.sequencePosition,
+        expectedPattern: metadata.expectedPattern,
+        actualPattern: metadata.actualPattern,
+      } : null,
+    });
+    
+    console.log(`[CDI Engine] Stored behavioral event: ${dimension} signal=${signalStrength}`);
   } catch (error) {
     console.error('[CDI Engine] Error recording behavioral event:', error);
   }

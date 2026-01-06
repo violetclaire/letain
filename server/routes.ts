@@ -6092,6 +6092,45 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         content: message.trim(),
       });
       
+      // Log CDI behavioral event - client sent a message (communication signal)
+      try {
+        // Get last message from vendor to calculate response latency
+        const messages = await storage.getChatInviteMessages(invite.id);
+        const lastVendorMessage = messages
+          .filter((m: any) => m.senderType === 'artist' || m.senderType === 'ai')
+          .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+        
+        let responseLatencyMs: number | undefined;
+        if (lastVendorMessage) {
+          responseLatencyMs = Date.now() - new Date(lastVendorMessage.createdAt).getTime();
+        }
+        
+        // Signal strength based on response time (quick = positive, slow = neutral)
+        const signalStrength = responseLatencyMs 
+          ? (responseLatencyMs < 3600000 ? 30 : responseLatencyMs < 86400000 ? 15 : 5) // <1hr: 30, <24hr: 15, else: 5
+          : 20;
+        
+        // Use inquiry ID as client surrogate (clients don't have user accounts in zero-login architecture)
+        const clientSurrogateId = invite.inquiryId || `chat_invite_${invite.id}`;
+        
+        await cdiEngine.recordBehavioralEvent(
+          clientSurrogateId, // Client surrogate ID (inquiry or chat invite)
+          'client',
+          'communication',
+          'client_message_sent',
+          'choreography_awareness',
+          signalStrength,
+          {
+            targetUserId: invite.senderId, // Artist receiving the message
+            targetRole: 'artist',
+            responseLatencyMs,
+            evidenceText: `Client sent message in chat thread`,
+          }
+        );
+      } catch (cdiError) {
+        console.error('[CDI] Error logging chat message event:', cdiError);
+      }
+      
       // Generate AI response on behalf of vendor
       const { generateClientResponse } = await import('./aiChat');
       const aiResponse = await generateClientResponse(invite.senderId, message, {
@@ -8664,6 +8703,26 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       
       const inquiry = await storage.createInquiry(data);
       
+      // Log CDI behavioral event - new inquiry submitted (client initiated contact)
+      try {
+        // Use inquiry ID as client surrogate (zero-login architecture)
+        await cdiEngine.recordBehavioralEvent(
+          inquiry.id, // Client surrogate = inquiry ID (created above)
+          'client',
+          'booking',
+          'inquiry_submitted',
+          'choreography_awareness',
+          25, // Positive signal - client is engaging
+          {
+            targetUserId: data.vendorId,
+            targetRole: 'artist',
+            evidenceText: `New inquiry from ${data.clientName} for ${data.serviceType || 'event'}`,
+          }
+        );
+      } catch (cdiError) {
+        console.error('[CDI] Error logging new inquiry event:', cdiError);
+      }
+      
       // Analyze sentiment of client message (async - don't block response)
       if (data.message) {
         analyzeInquirySentiment(inquiry.id, data.message, {
@@ -9371,6 +9430,23 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           reason: reason || null,
         },
       });
+      
+      // Log CDI behavioral event - booking outcome (declined)
+      try {
+        await cdiEngine.recordBehavioralEvent(
+          userId,
+          'artist',
+          'booking',
+          'inquiry_declined',
+          'role_specific_recall',
+          -10, // Neutral signal - declining is a valid business decision
+          {
+            evidenceText: reason || 'Inquiry declined by artist',
+          }
+        );
+      } catch (cdiError) {
+        console.error('[CDI] Error logging decline event:', cdiError);
+      }
       
       res.json({ success: true });
     } catch (error: any) {
@@ -11020,6 +11096,40 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       // Update inquiry last action
       await storage.updateInquiry(inquiry.id, { lastActionAt: new Date() });
       
+      // Log CDI behavioral event - artist responded to client
+      try {
+        // Calculate response latency from last client message
+        const notifications = await storage.getInquiryNotifications(inquiry.id);
+        const lastClientMsg = notifications
+          .filter((n: any) => n.type === 'client_reply')
+          .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+        
+        let responseLatencyMs: number | undefined;
+        if (lastClientMsg) {
+          responseLatencyMs = Date.now() - new Date(lastClientMsg.createdAt).getTime();
+        }
+        
+        // Artist response is a positive choreography signal
+        const signalStrength = responseLatencyMs 
+          ? (responseLatencyMs < 3600000 ? 40 : responseLatencyMs < 86400000 ? 25 : 10)
+          : 30;
+        
+        await cdiEngine.recordBehavioralEvent(
+          inquiry.vendorId,
+          'artist',
+          'communication',
+          'artist_reply_sent',
+          'emotional_fidelity',
+          signalStrength,
+          {
+            responseLatencyMs,
+            evidenceText: `Artist sent reply to client inquiry`,
+          }
+        );
+      } catch (cdiError) {
+        console.error('[CDI] Error logging artist reply event:', cdiError);
+      }
+      
       // Actually send the email to the client (use clientThreadToken for client-only access)
       try {
         const { sendThreadReplyEmail } = await import('./emailService');
@@ -11209,6 +11319,55 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         });
       } catch (e) {
         console.error("[Inquiry Thread] Activity log error:", e);
+      }
+      
+      // Log CDI behavioral event for inquiry outcome
+      try {
+        let eventType: string;
+        let dimension: 'emotional_fidelity' | 'choreography_awareness' | 'role_specific_recall';
+        let signalStrength: number;
+        
+        switch (action) {
+          case 'accept-client':
+          case 'accept-planner':
+            eventType = 'inquiry_accepted';
+            dimension = 'role_specific_recall';
+            signalStrength = 50; // Strong positive signal
+            break;
+          case 'deposit':
+            eventType = 'deposit_received';
+            dimension = 'role_specific_recall';
+            signalStrength = 60; // Very strong positive signal
+            break;
+          case 'refer':
+            eventType = 'inquiry_referred';
+            dimension = 'choreography_awareness';
+            signalStrength = 20; // Positive coordination signal
+            break;
+          case 'decline':
+            eventType = 'inquiry_declined';
+            dimension = 'role_specific_recall';
+            signalStrength = -10; // Neutral (valid business decision)
+            break;
+          default:
+            eventType = 'inquiry_action';
+            dimension = 'choreography_awareness';
+            signalStrength = 10;
+        }
+        
+        await cdiEngine.recordBehavioralEvent(
+          inquiry.vendorId,
+          'artist',
+          'booking',
+          eventType,
+          dimension,
+          signalStrength,
+          {
+            evidenceText: `${action} action on inquiry from ${inquiry.clientName}`,
+          }
+        );
+      } catch (cdiError) {
+        console.error('[CDI] Error logging inquiry action event:', cdiError);
       }
       
       res.json({ success: true, message: `Inquiry ${action} successfully`, status: newStatus });
@@ -11406,6 +11565,43 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       
       // Update inquiry last action
       await storage.updateInquiry(inquiry.id, { lastActionAt: new Date() });
+      
+      // Log CDI behavioral event - client replied in thread
+      try {
+        // Calculate response latency from last artist message
+        const notifications = await storage.getInquiryNotifications(inquiry.id);
+        const lastArtistMsg = notifications
+          .filter((n: any) => n.type === 'artist_reply')
+          .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+        
+        let responseLatencyMs: number | undefined;
+        if (lastArtistMsg) {
+          responseLatencyMs = Date.now() - new Date(lastArtistMsg.createdAt).getTime();
+        }
+        
+        // Client response signals engagement
+        const signalStrength = responseLatencyMs 
+          ? (responseLatencyMs < 3600000 ? 35 : responseLatencyMs < 86400000 ? 20 : 10)
+          : 25;
+        
+        // Use inquiry ID as client surrogate (zero-login architecture)
+        await cdiEngine.recordBehavioralEvent(
+          inquiry.id, // Client surrogate = inquiry ID
+          'client',
+          'communication',
+          'client_reply_sent',
+          'choreography_awareness',
+          signalStrength,
+          {
+            targetUserId: inquiry.vendorId,
+            targetRole: 'artist',
+            responseLatencyMs,
+            evidenceText: `Client replied to artist in inquiry thread`,
+          }
+        );
+      } catch (cdiError) {
+        console.error('[CDI] Error logging client reply event:', cdiError);
+      }
       
       // Send email notification to artist
       try {
