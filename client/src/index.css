@@ -56,112 +56,112 @@
   --radius: 6px;
 }
 
-/* Light Theme - Cream & Black (Bright) */
+/* Light Theme - Soft Cream (Bright) */
 :root, .light {
-  --bg: 36 12% 88%;           /* cream parchment */
-  --surface: 36 10% 85%;      /* card backgrounds */
-  --surface-2: 36 8% 82%;     /* panels */
+  --bg: 40 30% 96%;           /* soft warm cream */
+  --surface: 40 25% 94%;      /* slightly deeper cream */
+  --surface-2: 40 20% 91%;    /* panels */
   
-  --ink: 0 0% 8%;             /* deep black ink */
-  --muted-ink: 0 0% 18%;      /* warm charcoal */
-  --faint-ink: 0 0% 30%;      /* subtle text */
+  --ink: 0 0% 12%;            /* soft black */
+  --muted-ink: 0 0% 25%;      /* warm charcoal */
+  --faint-ink: 0 0% 40%;      /* subtle text */
   
-  --brass: 38 35% 45%;        /* aged brass accent */
-  --oxblood: 0 55% 20%;       /* oxblood focus */
+  --brass: 38 40% 50%;        /* warm brass accent */
+  --oxblood: 0 45% 28%;       /* soft oxblood */
   
-  --hairline: 36 8% 75%;      /* borders */
-  --hairline-2: 36 6% 68%;    /* stronger borders */
+  --hairline: 40 15% 85%;     /* soft borders */
+  --hairline-2: 40 12% 80%;   /* slightly stronger */
   
   /* Legacy colors for compatibility */
-  --powder-blue: hsl(36 12% 88%);
-  --cream: hsl(36 10% 85%);
-  --black: hsl(0 0% 8%);
-  --pink: hsl(38 35% 45%);
-  --gold: hsl(38 35% 45%);
-  --forest: hsl(0 55% 20%);
+  --powder-blue: hsl(40 30% 96%);
+  --cream: hsl(40 25% 94%);
+  --black: hsl(0 0% 12%);
+  --pink: hsl(38 40% 50%);
+  --gold: hsl(38 40% 50%);
+  --forest: hsl(0 45% 28%);
 
   /* Shadcn/ui mapped variables */
-  --background: hsl(36 12% 88%);
-  --foreground: hsl(0 0% 8%);
+  --background: hsl(40 30% 96%);
+  --foreground: hsl(0 0% 12%);
 
-  --card: hsl(36 10% 85%);
-  --card-foreground: hsl(0 0% 8%);
+  --card: hsl(40 25% 94%);
+  --card-foreground: hsl(0 0% 12%);
 
-  --popover: hsl(36 10% 85%);
-  --popover-foreground: hsl(0 0% 8%);
+  --popover: hsl(40 25% 94%);
+  --popover-foreground: hsl(0 0% 12%);
 
-  --primary: hsl(0 0% 8%);
-  --primary-foreground: hsl(36 12% 88%);
+  --primary: hsl(0 0% 12%);
+  --primary-foreground: hsl(40 30% 96%);
 
-  --secondary: hsl(36 8% 82%);
-  --secondary-foreground: hsl(0 0% 8%);
+  --secondary: hsl(40 20% 91%);
+  --secondary-foreground: hsl(0 0% 12%);
 
-  --muted: hsl(36 8% 82%);
-  --muted-foreground: hsl(0 0% 30%);
+  --muted: hsl(40 20% 91%);
+  --muted-foreground: hsl(0 0% 40%);
 
-  --accent: hsl(38 35% 45%);
-  --accent-foreground: hsl(0 0% 8%);
+  --accent: hsl(38 40% 50%);
+  --accent-foreground: hsl(0 0% 12%);
 
-  --destructive: hsl(0 55% 20%);
-  --destructive-foreground: hsl(36 12% 88%);
+  --destructive: hsl(0 45% 28%);
+  --destructive-foreground: hsl(40 30% 96%);
 
-  --border: hsl(36 8% 75%);
-  --input: hsl(36 10% 85%);
-  --ring: hsl(0 55% 20%);
+  --border: hsl(40 15% 85%);
+  --input: hsl(40 25% 94%);
+  --ring: hsl(38 40% 50%);
 }
 
-/* Dark Theme - Sleek (Dark Editorial) */
+/* Dark Theme - Sleek (Original Dark Editorial) */
 .dark {
-  --bg: 0 0% 10%;             /* near-black background */
-  --surface: 0 0% 13%;        /* card backgrounds */
-  --surface-2: 0 0% 16%;      /* panels */
+  --bg: 0 0% 10%;             /* #1A1A1A */
+  --surface: 0 0% 13%;        /* #222 */
+  --surface-2: 0 0% 16%;      /* slightly lighter */
   
-  --ink: 40 20% 96%;          /* warm cream text */
-  --muted-ink: 40 10% 75%;    /* softer cream */
-  --faint-ink: 40 5% 55%;     /* subtle text */
+  --ink: 43 33% 95%;          /* #F5F0E8 warm cream */
+  --muted-ink: 43 20% 75%;    /* softer cream */
+  --faint-ink: 43 10% 50%;    /* subtle */
   
-  --brass: 42 50% 55%;        /* bright brass accent */
-  --oxblood: 0 45% 40%;       /* lighter oxblood for dark bg */
+  --brass: 43 55% 60%;        /* #C4A35A brass */
+  --oxblood: 0 45% 35%;       /* oxblood for dark */
   
-  --hairline: 0 0% 22%;       /* subtle borders */
-  --hairline-2: 0 0% 28%;     /* stronger borders */
+  --hairline: 43 10% 20%;     /* subtle borders */
+  --hairline-2: 43 8% 25%;    /* stronger borders */
   
   /* Legacy colors for compatibility */
   --powder-blue: hsl(0 0% 10%);
-  --cream: hsl(40 20% 96%);
-  --black: hsl(40 20% 96%);
-  --pink: hsl(42 50% 55%);
-  --gold: hsl(42 50% 55%);
-  --forest: hsl(0 45% 40%);
+  --cream: hsl(43 33% 95%);
+  --black: hsl(43 33% 95%);
+  --pink: hsl(43 55% 60%);
+  --gold: hsl(43 55% 60%);
+  --forest: hsl(0 45% 35%);
 
   /* Shadcn/ui mapped variables */
   --background: hsl(0 0% 10%);
-  --foreground: hsl(40 20% 96%);
+  --foreground: hsl(43 33% 95%);
 
   --card: hsl(0 0% 13%);
-  --card-foreground: hsl(40 20% 96%);
+  --card-foreground: hsl(43 33% 95%);
 
   --popover: hsl(0 0% 13%);
-  --popover-foreground: hsl(40 20% 96%);
+  --popover-foreground: hsl(43 33% 95%);
 
-  --primary: hsl(40 20% 96%);
+  --primary: hsl(43 33% 95%);
   --primary-foreground: hsl(0 0% 10%);
 
   --secondary: hsl(0 0% 16%);
-  --secondary-foreground: hsl(40 20% 96%);
+  --secondary-foreground: hsl(43 33% 95%);
 
   --muted: hsl(0 0% 16%);
-  --muted-foreground: hsl(40 5% 55%);
+  --muted-foreground: hsl(43 10% 50%);
 
-  --accent: hsl(42 50% 55%);
+  --accent: hsl(43 55% 60%);
   --accent-foreground: hsl(0 0% 10%);
 
-  --destructive: hsl(0 45% 40%);
-  --destructive-foreground: hsl(40 20% 96%);
+  --destructive: hsl(0 45% 35%);
+  --destructive-foreground: hsl(43 33% 95%);
 
-  --border: hsl(0 0% 22%);
+  --border: hsl(43 10% 20%);
   --input: hsl(0 0% 13%);
-  --ring: hsl(42 50% 55%);
+  --ring: hsl(43 55% 60%);
 }
 
 @layer base {
