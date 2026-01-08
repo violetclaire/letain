@@ -52,23 +52,25 @@
 }
 
 :root {
-  /* Estate Theme - Private Secretary Office (Darker, Business Professional) */
-  --bg: 36 12% 88%;           /* deeper parchment - more business */
-  --surface: 36 10% 85%;      /* card backgrounds - professional */
-  --surface-2: 36 8% 82%;     /* panels - solid business feel */
-  
-  --ink: 0 0% 8%;             /* deep ink - authoritative */
-  --muted-ink: 0 0% 18%;      /* warm charcoal - readable */
-  --faint-ink: 0 0% 30%;      /* subtle but visible */
-  
-  --brass: 38 35% 45%;        /* darker aged brass - more serious */
-  --oxblood: 0 55% 20%;       /* deeper oxblood - focus-only */
-  
-  --hairline: 36 8% 75%;      /* stronger borders */
-  --hairline-2: 36 6% 68%;    /* even stronger borders */
-  
   --tracking-tight: -0.02em;
   --radius: 6px;
+}
+
+/* Light Theme - Cream & Black (Bright) */
+:root, .light {
+  --bg: 36 12% 88%;           /* cream parchment */
+  --surface: 36 10% 85%;      /* card backgrounds */
+  --surface-2: 36 8% 82%;     /* panels */
+  
+  --ink: 0 0% 8%;             /* deep black ink */
+  --muted-ink: 0 0% 18%;      /* warm charcoal */
+  --faint-ink: 0 0% 30%;      /* subtle text */
+  
+  --brass: 38 35% 45%;        /* aged brass accent */
+  --oxblood: 0 55% 20%;       /* oxblood focus */
+  
+  --hairline: 36 8% 75%;      /* borders */
+  --hairline-2: 36 6% 68%;    /* stronger borders */
   
   /* Legacy colors for compatibility */
   --powder-blue: hsl(36 12% 88%);
@@ -78,7 +80,7 @@
   --gold: hsl(38 35% 45%);
   --forest: hsl(0 55% 20%);
 
-  /* Shadcn/ui mapped variables - Darker Business Professional */
+  /* Shadcn/ui mapped variables */
   --background: hsl(36 12% 88%);
   --foreground: hsl(0 0% 8%);
 
@@ -106,6 +108,60 @@
   --border: hsl(36 8% 75%);
   --input: hsl(36 10% 85%);
   --ring: hsl(0 55% 20%);
+}
+
+/* Dark Theme - Sleek (Dark Editorial) */
+.dark {
+  --bg: 0 0% 10%;             /* near-black background */
+  --surface: 0 0% 13%;        /* card backgrounds */
+  --surface-2: 0 0% 16%;      /* panels */
+  
+  --ink: 40 20% 96%;          /* warm cream text */
+  --muted-ink: 40 10% 75%;    /* softer cream */
+  --faint-ink: 40 5% 55%;     /* subtle text */
+  
+  --brass: 42 50% 55%;        /* bright brass accent */
+  --oxblood: 0 45% 40%;       /* lighter oxblood for dark bg */
+  
+  --hairline: 0 0% 22%;       /* subtle borders */
+  --hairline-2: 0 0% 28%;     /* stronger borders */
+  
+  /* Legacy colors for compatibility */
+  --powder-blue: hsl(0 0% 10%);
+  --cream: hsl(40 20% 96%);
+  --black: hsl(40 20% 96%);
+  --pink: hsl(42 50% 55%);
+  --gold: hsl(42 50% 55%);
+  --forest: hsl(0 45% 40%);
+
+  /* Shadcn/ui mapped variables */
+  --background: hsl(0 0% 10%);
+  --foreground: hsl(40 20% 96%);
+
+  --card: hsl(0 0% 13%);
+  --card-foreground: hsl(40 20% 96%);
+
+  --popover: hsl(0 0% 13%);
+  --popover-foreground: hsl(40 20% 96%);
+
+  --primary: hsl(40 20% 96%);
+  --primary-foreground: hsl(0 0% 10%);
+
+  --secondary: hsl(0 0% 16%);
+  --secondary-foreground: hsl(40 20% 96%);
+
+  --muted: hsl(0 0% 16%);
+  --muted-foreground: hsl(40 5% 55%);
+
+  --accent: hsl(42 50% 55%);
+  --accent-foreground: hsl(0 0% 10%);
+
+  --destructive: hsl(0 45% 40%);
+  --destructive-foreground: hsl(40 20% 96%);
+
+  --border: hsl(0 0% 22%);
+  --input: hsl(0 0% 13%);
+  --ring: hsl(42 50% 55%);
 }
 
 @layer base {

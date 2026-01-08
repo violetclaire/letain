@@ -1,11 +1,30 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, useSearch, Link, useLocation } from "wouter";
 import { format } from "date-fns";
-import { Loader2, Settings, Calendar, Users, Copy, Check, Mail, CheckCircle, LogOut, FileText, DollarSign, Clock, ChevronDown, Menu, X, HelpCircle, Trash2, AlertTriangle, MessageSquare, Send, CalendarDays } from "lucide-react";
+import { Loader2, Settings, Calendar, Users, Copy, Check, Mail, CheckCircle, LogOut, FileText, DollarSign, Clock, ChevronDown, Menu, X, HelpCircle, Trash2, AlertTriangle, MessageSquare, Send, CalendarDays, Moon, Sun } from "lucide-react";
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import QuickGuide from "@/components/QuickGuide";
+import { useTheme } from "@/contexts/ThemeContext";
+
+function ThemeToggleButton() {
+  const { theme, toggleTheme } = useTheme();
+  return (
+    <button
+      onClick={toggleTheme}
+      data-testid="button-theme-toggle"
+      className="p-2 rounded-md border border-hairline hover:bg-surface transition-colors"
+      title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+    >
+      {theme === "dark" ? (
+        <Sun className="w-4 h-4 text-brass" />
+      ) : (
+        <Moon className="w-4 h-4 text-ink" />
+      )}
+    </button>
+  );
+}
 
 interface Inquiry {
   id: string;
@@ -414,23 +433,26 @@ export default function ArtistAdmin() {
   const depositCount = inquiries.filter(i => i.status.toLowerCase() === 'deposit_paid').length;
 
   return (
-    <div className="min-h-screen bg-[#1A1A1A] text-[#F5F0E8]" style={{ fontFamily: "'Inter', sans-serif" }}>
-      <header className="px-8 md:px-16 py-8 border-b border-[#F5F0E8]/10 relative">
+    <div className="min-h-screen bg-bg text-ink" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <header className="px-8 md:px-16 py-8 border-b border-hairline relative">
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-[#F5F0E8]/40 mb-1">Your Secretary</p>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-ink/40 mb-1">Your Secretary</p>
             <h1 className="text-2xl mb-1" style={{ fontFamily: "'Fraunces', serif" }}>
               {artist.businessName}
             </h1>
-            <p className="text-sm text-[#F5F0E8]/50">Inquiries Dashboard</p>
+            <p className="text-sm text-ink/50">Inquiries Dashboard</p>
           </div>
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="p-2 text-[#F5F0E8]/60 hover:text-[#F5F0E8] transition-colors"
-            data-testid="button-menu"
-          >
-            {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+          <div className="flex items-center gap-2">
+            <ThemeToggleButton />
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="p-2 text-ink/60 hover:text-ink transition-colors"
+              data-testid="button-menu"
+            >
+              {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
           
           {menuOpen && (
             <div className="absolute top-full right-8 md:right-16 mt-2 w-56 bg-[#222] border border-[#F5F0E8]/20 shadow-lg z-50">
