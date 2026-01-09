@@ -452,7 +452,7 @@ export const invitations = pgTable("invitations", {
 // Payments/Invoices
 export const payments = pgTable("payments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  contractId: varchar("contract_id").notNull().references(() => contracts.id),
+  contractId: varchar("contract_id").references(() => contracts.id), // nullable for standalone invoices
   amount: integer("amount").notNull(), // in cents
   status: text("status").notNull(), // 'pending', 'paid', 'failed', 'refunded'
   stripeInvoiceId: text("stripe_invoice_id"), // DEPRECATED
