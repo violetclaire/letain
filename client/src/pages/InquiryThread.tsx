@@ -223,11 +223,19 @@ export default function InquiryThread() {
 
   const invoiceMutation = useMutation({
     mutationFn: async (data: typeof invoiceData) => {
-      return apiRequest("POST", `/api/public/inquiry/${threadToken}/create-invoice`, data);
+      console.log("[Invoice] Sending invoice request:", data);
+      const res = await apiRequest("POST", `/api/public/inquiry/${threadToken}/create-invoice`, data);
+      console.log("[Invoice] Response received");
+      return res;
     },
     onSuccess: () => {
+      console.log("[Invoice] Success!");
       queryClient.invalidateQueries({ queryKey: [`/api/public/inquiry/${threadToken}`] });
       setShowInvoiceForm(false);
+    },
+    onError: (error: Error) => {
+      console.error("[Invoice] Error:", error);
+      alert("Invoice error: " + error.message);
     },
   });
 
