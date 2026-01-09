@@ -258,8 +258,8 @@ export default function ArtistAdmin() {
   // Show loading while checking auth
   if (authLoading || isLoading) {
     return (
-      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-[#F5F0E8]/30" />
+      <div className="min-h-screen bg-bg flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-ink/30" />
       </div>
     );
   }
@@ -271,9 +271,9 @@ export default function ArtistAdmin() {
       window.location.href = `/artist-login?redirect=${encodeURIComponent(`/admin/${slug}`)}`;
     }
     return (
-      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center flex-col gap-4">
-        <Loader2 className="h-6 w-6 animate-spin text-[#F5F0E8]/30" />
-        <p className="text-[#F5F0E8]/50 text-sm">Redirecting to login...</p>
+      <div className="min-h-screen bg-bg flex items-center justify-center flex-col gap-4">
+        <Loader2 className="h-6 w-6 animate-spin text-ink/30" />
+        <p className="text-ink/50 text-sm">Redirecting to login...</p>
       </div>
     );
   }
@@ -284,15 +284,15 @@ export default function ArtistAdmin() {
     const errorMessage = error?.message || "Unable to load dashboard";
     
     return (
-      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center px-4">
-        <div className="w-full max-w-sm bg-[#222] p-8 border border-[#F5F0E8]/10 rounded">
+      <div className="min-h-screen bg-bg flex items-center justify-center px-4">
+        <div className="w-full max-w-sm bg-surface p-8 border border-ink/10 rounded">
           {hadToken && !emailSent ? (
             <div className="text-center">
               <AlertTriangle className="w-10 h-10 text-yellow-500 mx-auto mb-4" />
-              <h2 className="text-lg text-[#F5F0E8] mb-2" style={{ fontFamily: "'Fraunces', serif" }}>
+              <h2 className="text-lg text-ink mb-2" style={{ fontFamily: "'Fraunces', serif" }}>
                 Link Expired
               </h2>
-              <p className="text-sm text-[#F5F0E8]/60 mb-6">
+              <p className="text-sm text-ink/60 mb-6">
                 This dashboard link may have expired or is no longer valid. Request a new one below.
               </p>
               <form onSubmit={(e) => { e.preventDefault(); if (email.trim()) requestLink.mutate(); }} className="space-y-4">
@@ -302,12 +302,12 @@ export default function ArtistAdmin() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="your@email.com"
                   required
-                  className="w-full border border-[#F5F0E8]/20 bg-transparent px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#F5F0E8]/30 rounded"
+                  className="w-full border border-ink/20 bg-transparent px-4 py-3 text-sm text-ink focus:outline-none focus:border-ink/50 placeholder:text-ink/30 rounded"
                 />
                 <button
                   type="submit"
                   disabled={requestLink.isPending || !email.trim()}
-                  className="w-full bg-[#F5F0E8] text-[#1A1A1A] py-3 text-sm uppercase tracking-wide hover:bg-[#F5F0E8]/90 disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full bg-[#F5F0E8] text-[#1A1A1A] py-3 text-sm uppercase tracking-wide hover:bg-ink/90 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {requestLink.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                   Send New Link
@@ -317,13 +317,13 @@ export default function ArtistAdmin() {
           ) : emailSent ? (
             <div className="text-center">
               <CheckCircle className="w-14 h-14 text-green-500 mx-auto mb-5" />
-              <h2 className="text-xl text-[#F5F0E8] mb-2" style={{ fontFamily: "'Fraunces', serif" }}>Check Your Email</h2>
-              <p className="text-sm text-[#F5F0E8]/60 mb-4">
+              <h2 className="text-xl text-ink mb-2" style={{ fontFamily: "'Fraunces', serif" }}>Check Your Email</h2>
+              <p className="text-sm text-ink/60 mb-4">
                 Your dashboard link is on its way. Check your inbox (and spam folder).
               </p>
               <button
                 onClick={() => { setEmailSent(false); setEmail(""); }}
-                className="text-sm text-[#F5F0E8]/60 underline"
+                className="text-sm text-ink/60 underline"
               >
                 Try different email
               </button>
@@ -331,8 +331,8 @@ export default function ArtistAdmin() {
           ) : (
             <>
               <div className="text-center mb-6">
-                <h1 className="text-2xl text-[#F5F0E8] mb-1" style={{ fontFamily: "'Fraunces', serif" }}>Your Secretary</h1>
-                <p className="text-xs text-[#F5F0E8]/50">Access your dashboard</p>
+                <h1 className="text-2xl text-ink mb-1" style={{ fontFamily: "'Fraunces', serif" }}>Your Secretary</h1>
+                <p className="text-xs text-ink/50">Access your dashboard</p>
               </div>
 
               <form onSubmit={(e) => { e.preventDefault(); if (email.trim()) requestLink.mutate(); }} className="space-y-4">
@@ -342,13 +342,13 @@ export default function ArtistAdmin() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="your@email.com"
                   required
-                  className="w-full border border-[#F5F0E8]/20 bg-transparent px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#F5F0E8]/30 rounded"
+                  className="w-full border border-ink/20 bg-transparent px-4 py-3 text-sm text-ink focus:outline-none focus:border-ink/50 placeholder:text-ink/30 rounded"
                   data-testid="input-admin-email-error"
                 />
                 <button
                   type="submit"
                   disabled={requestLink.isPending || !email.trim()}
-                  className="w-full bg-[#F5F0E8] text-[#1A1A1A] py-3 text-sm uppercase tracking-wide hover:bg-[#F5F0E8]/90 disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full bg-[#F5F0E8] text-[#1A1A1A] py-3 text-sm uppercase tracking-wide hover:bg-ink/90 disabled:opacity-50 flex items-center justify-center gap-2"
                   data-testid="button-send-dashboard-link-error"
                 >
                   {requestLink.isPending ? (
@@ -363,15 +363,15 @@ export default function ArtistAdmin() {
               </form>
               
               <div className="mt-4 text-center">
-                <Link href="/artist-login" className="text-xs text-[#F5F0E8]/50 underline">
+                <Link href="/artist-login" className="text-xs text-ink/50 underline">
                   Or sign in with password
                 </Link>
               </div>
 
-              <div className="mt-6 pt-5 border-t border-[#F5F0E8]/10">
-                <p className="text-[10px] uppercase tracking-wide text-[#F5F0E8]/50 mb-2">Your Inquiry Link</p>
+              <div className="mt-6 pt-5 border-t border-ink/10">
+                <p className="text-[10px] uppercase tracking-wide text-ink/50 mb-2">Your Inquiry Link</p>
                 <div className="flex gap-2">
-                  <div className="flex-1 bg-[#F5F0E8]/5 px-3 py-2 text-xs text-[#F5F0E8]/70 rounded truncate">
+                  <div className="flex-1 bg-[#F5F0E8]/5 px-3 py-2 text-xs text-ink/70 rounded truncate">
                     dateinquiry.com/{slug}
                   </div>
                   <button
@@ -406,26 +406,26 @@ export default function ArtistAdmin() {
       case "auto_responded": return "bg-blue-900/30 text-blue-300";
       case "deposit_paid": return "bg-green-800/40 text-green-200";
       case "referred": return "bg-purple-900/30 text-purple-300";
-      case "declined": return "bg-[#F5F0E8]/10 text-[#F5F0E8]/50";
-      default: return "bg-[#F5F0E8]/10 text-[#F5F0E8]/50";
+      case "declined": return "bg-[#F5F0E8]/10 text-ink/50";
+      default: return "bg-[#F5F0E8]/10 text-ink/50";
     }
   };
 
   const getVelocity = (inquiry: Inquiry) => {
-    if (!inquiry.createdAt) return { text: "—", color: "text-[#F5F0E8]/40" };
+    if (!inquiry.createdAt) return { text: "—", color: "text-ink/40" };
     if (inquiry.depositPaidAt) {
       const start = new Date(inquiry.createdAt);
       const end = new Date(inquiry.depositPaidAt);
       const hours = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60) * 10) / 10;
       return {
         text: `${hours}h`,
-        color: hours < 48 ? "text-green-400 font-bold" : "text-[#F5F0E8]/60"
+        color: hours < 48 ? "text-green-400 font-bold" : "text-ink/60"
       };
     }
     const start = new Date(inquiry.createdAt);
     const now = new Date();
     const hours = Math.round((now.getTime() - start.getTime()) / (1000 * 60 * 60));
-    return { text: `${hours}h active`, color: "text-[#F5F0E8]/40" };
+    return { text: `${hours}h active`, color: "text-ink/40" };
   };
 
   const pendingCount = inquiries.filter(i => i.status.toLowerCase() === 'pending').length;
@@ -455,10 +455,10 @@ export default function ArtistAdmin() {
           </div>
           
           {menuOpen && (
-            <div className="absolute top-full right-8 md:right-16 mt-2 w-56 bg-[#222] border border-[#F5F0E8]/20 shadow-lg z-50">
+            <div className="absolute top-full right-8 md:right-16 mt-2 w-56 bg-surface border border-ink/20 shadow-lg z-50">
               <Link 
                 href={`/artist/availability${authParam}`}
-                className="flex items-center gap-3 px-4 py-3 text-sm text-[#F5F0E8]/80 hover:bg-[#F5F0E8]/10 transition-colors border-b border-[#F5F0E8]/10"
+                className="flex items-center gap-3 px-4 py-3 text-sm text-ink/80 hover:bg-ink/10 transition-colors border-b border-ink/10"
                 onClick={() => setMenuOpen(false)}
                 data-testid="nav-calendar"
               >
@@ -467,7 +467,7 @@ export default function ArtistAdmin() {
               </Link>
               <Link 
                 href={`/${getActualSlug()}/circle${authParam}`}
-                className="flex items-center gap-3 px-4 py-3 text-sm text-[#F5F0E8]/80 hover:bg-[#F5F0E8]/10 transition-colors border-b border-[#F5F0E8]/10"
+                className="flex items-center gap-3 px-4 py-3 text-sm text-ink/80 hover:bg-ink/10 transition-colors border-b border-ink/10"
                 onClick={() => setMenuOpen(false)}
                 data-testid="nav-circle"
               >
@@ -476,7 +476,7 @@ export default function ArtistAdmin() {
               </Link>
               <Link 
                 href={`/${getActualSlug()}/settings${authParam}`}
-                className="flex items-center gap-3 px-4 py-3 text-sm text-[#F5F0E8]/80 hover:bg-[#F5F0E8]/10 transition-colors border-b border-[#F5F0E8]/10"
+                className="flex items-center gap-3 px-4 py-3 text-sm text-ink/80 hover:bg-ink/10 transition-colors border-b border-ink/10"
                 onClick={() => setMenuOpen(false)}
                 data-testid="nav-settings"
               >
@@ -485,7 +485,7 @@ export default function ArtistAdmin() {
               </Link>
               <a 
                 href="mailto:violet@beauvette.com"
-                className="flex items-center gap-3 px-4 py-3 text-sm text-[#F5F0E8]/80 hover:bg-[#F5F0E8]/10 transition-colors border-b border-[#F5F0E8]/10"
+                className="flex items-center gap-3 px-4 py-3 text-sm text-ink/80 hover:bg-ink/10 transition-colors border-b border-ink/10"
                 onClick={() => setMenuOpen(false)}
                 data-testid="nav-help"
               >
@@ -495,7 +495,7 @@ export default function ArtistAdmin() {
               {useSessionAuth && (
                 <button
                   onClick={() => { setMenuOpen(false); handleLogout(); }}
-                  className="flex items-center gap-3 px-4 py-3 text-sm text-[#F5F0E8]/50 hover:bg-[#F5F0E8]/10 transition-colors w-full text-left"
+                  className="flex items-center gap-3 px-4 py-3 text-sm text-ink/50 hover:bg-ink/10 transition-colors w-full text-left"
                   data-testid="button-logout"
                 >
                   <LogOut className="w-4 h-4" />
@@ -510,14 +510,14 @@ export default function ArtistAdmin() {
       <main className="max-w-4xl mx-auto px-8 md:px-16 py-12">
         {/* Quick Actions */}
         <div className="mb-10">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-[#F5F0E8]/40 mb-4">Quick Actions</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-ink/40 mb-4">Quick Actions</p>
           <div className="grid grid-cols-3 gap-3">
             <Link
               href={`/artist/schedules${authParam}`}
-              className="flex items-center justify-center gap-2 p-4 border border-[#F5F0E8]/20 bg-[#222] hover:border-[#F5F0E8]/40 transition-colors text-sm"
+              className="flex items-center justify-center gap-2 p-4 border border-ink/20 bg-surface hover:border-ink/40 transition-colors text-sm"
               data-testid="action-create-schedule"
             >
-              <Clock className="w-4 h-4 text-[#F5F0E8]/60" />
+              <Clock className="w-4 h-4 text-ink/60" />
               <span>Create Schedule</span>
             </Link>
             <button
@@ -529,10 +529,10 @@ export default function ArtistAdmin() {
                   setShowStandaloneInvoice(true);
                 }
               }}
-              className={`flex items-center justify-center gap-2 p-4 border bg-[#222] transition-colors text-sm ${pendingAction === 'payment' ? 'border-green-500/50 bg-green-900/20' : 'border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'}`}
+              className={`flex items-center justify-center gap-2 p-4 border bg-surface transition-colors text-sm ${pendingAction === 'payment' ? 'border-green-500/50 bg-green-900/20' : 'border-ink/20 hover:border-ink/40'}`}
               data-testid="action-send-payment"
             >
-              <DollarSign className="w-4 h-4 text-[#F5F0E8]/60" />
+              <DollarSign className="w-4 h-4 text-ink/60" />
               <span>Create Invoice</span>
             </button>
             <button
@@ -544,10 +544,10 @@ export default function ArtistAdmin() {
                   setShowStandaloneContract(true);
                 }
               }}
-              className={`flex items-center justify-center gap-2 p-4 border bg-[#222] transition-colors text-sm ${pendingAction === 'contract' ? 'border-blue-500/50 bg-blue-900/20' : 'border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'}`}
+              className={`flex items-center justify-center gap-2 p-4 border bg-surface transition-colors text-sm ${pendingAction === 'contract' ? 'border-blue-500/50 bg-blue-900/20' : 'border-ink/20 hover:border-ink/40'}`}
               data-testid="action-send-contract"
             >
-              <FileText className="w-4 h-4 text-[#F5F0E8]/60" />
+              <FileText className="w-4 h-4 text-ink/60" />
               <span>Create Contract</span>
             </button>
           </div>
@@ -556,13 +556,13 @@ export default function ArtistAdmin() {
         {/* Response Settings - Quick Toggle */}
         {useSessionAuth && (
           <div className="mb-10">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-[#F5F0E8]/40 mb-4">Response Mode</p>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-ink/40 mb-4">Response Mode</p>
             <div className="grid grid-cols-3 gap-3">
               <label 
                 className={`cursor-pointer p-4 border transition-colors ${
                   (artist.autoResponderMode === 'smart' || artist.autoResponderMode === 'off' || !artist.autoResponderMode)
-                    ? 'bg-[#F5F0E8] border-[#F5F0E8] text-[#1A1A1A]' 
-                    : 'bg-[#222] border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'
+                    ? 'bg-[#F5F0E8] border-ink text-[#1A1A1A]' 
+                    : 'bg-surface border-ink/20 hover:border-ink/40'
                 }`}
                 data-testid="mode-smart"
                 title="You review each inquiry and decide how to respond"
@@ -575,14 +575,14 @@ export default function ArtistAdmin() {
                   onChange={() => updateAutoResponder.mutate('smart')} 
                   className="sr-only" 
                 />
-                <p className={`font-medium text-sm ${(artist.autoResponderMode === 'smart' || artist.autoResponderMode === 'off' || !artist.autoResponderMode) ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Manual</p>
-                <p className={`text-xs mt-1 ${(artist.autoResponderMode === 'smart' || artist.autoResponderMode === 'off' || !artist.autoResponderMode) ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>Review each inquiry</p>
+                <p className={`font-medium text-sm ${(artist.autoResponderMode === 'smart' || artist.autoResponderMode === 'off' || !artist.autoResponderMode) ? 'text-[#1A1A1A]' : 'text-ink'}`}>Manual</p>
+                <p className={`text-xs mt-1 ${(artist.autoResponderMode === 'smart' || artist.autoResponderMode === 'off' || !artist.autoResponderMode) ? 'text-[#1A1A1A]/60' : 'text-ink/50'}`}>Review each inquiry</p>
               </label>
               <label 
                 className={`cursor-pointer p-4 border transition-colors ${
                   artist.autoResponderMode === 'availability_smart'
-                    ? 'bg-[#F5F0E8] border-[#F5F0E8] text-[#1A1A1A]' 
-                    : 'bg-[#222] border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'
+                    ? 'bg-[#F5F0E8] border-ink text-[#1A1A1A]' 
+                    : 'bg-surface border-ink/20 hover:border-ink/40'
                 }`}
                 data-testid="mode-availability-smart"
                 title="Checks your calendar first. If available, sends your pricing. If booked, sends referrals to your circle."
@@ -595,14 +595,14 @@ export default function ArtistAdmin() {
                   onChange={() => updateAutoResponder.mutate('availability_smart')} 
                   className="sr-only" 
                 />
-                <p className={`font-medium text-sm ${artist.autoResponderMode === 'availability_smart' ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Calendar Smart</p>
-                <p className={`text-xs mt-1 ${artist.autoResponderMode === 'availability_smart' ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>Auto-send pricing or referrals</p>
+                <p className={`font-medium text-sm ${artist.autoResponderMode === 'availability_smart' ? 'text-[#1A1A1A]' : 'text-ink'}`}>Calendar Smart</p>
+                <p className={`text-xs mt-1 ${artist.autoResponderMode === 'availability_smart' ? 'text-[#1A1A1A]/60' : 'text-ink/50'}`}>Auto-send pricing or referrals</p>
               </label>
               <label 
                 className={`cursor-pointer p-4 border transition-colors ${
                   (artist.autoResponderMode === 'paused' || artist.autoResponderMode === 'paused_with_referral')
-                    ? 'bg-[#F5F0E8] border-[#F5F0E8] text-[#1A1A1A]' 
-                    : 'bg-[#222] border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40'
+                    ? 'bg-[#F5F0E8] border-ink text-[#1A1A1A]' 
+                    : 'bg-surface border-ink/20 hover:border-ink/40'
                 }`}
                 data-testid="mode-vacation"
                 title="Sends your away message to all new inquiries"
@@ -615,8 +615,8 @@ export default function ArtistAdmin() {
                   onChange={() => updateAutoResponder.mutate('paused')} 
                   className="sr-only" 
                 />
-                <p className={`font-medium text-sm ${(artist.autoResponderMode === 'paused' || artist.autoResponderMode === 'paused_with_referral') ? 'text-[#1A1A1A]' : 'text-[#F5F0E8]'}`}>Vacation</p>
-                <p className={`text-xs mt-1 ${(artist.autoResponderMode === 'paused' || artist.autoResponderMode === 'paused_with_referral') ? 'text-[#1A1A1A]/60' : 'text-[#F5F0E8]/50'}`}>Away message</p>
+                <p className={`font-medium text-sm ${(artist.autoResponderMode === 'paused' || artist.autoResponderMode === 'paused_with_referral') ? 'text-[#1A1A1A]' : 'text-ink'}`}>Vacation</p>
+                <p className={`text-xs mt-1 ${(artist.autoResponderMode === 'paused' || artist.autoResponderMode === 'paused_with_referral') ? 'text-[#1A1A1A]/60' : 'text-ink/50'}`}>Away message</p>
               </label>
             </div>
           </div>
@@ -625,7 +625,7 @@ export default function ArtistAdmin() {
         <div className="space-y-4" ref={inquiriesRef}>
           {inquiries.length > 0 && (
             <div className="flex justify-between items-center mb-2">
-              <h3 className="text-sm text-[#F5F0E8]/60">Your Clients</h3>
+              <h3 className="text-sm text-ink/60">Your Clients</h3>
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowQuickChat(true)}
@@ -656,9 +656,9 @@ export default function ArtistAdmin() {
             </div>
           )}
           {inquiries.length === 0 ? (
-            <div className="text-center py-16 border border-dashed border-[#F5F0E8]/20 bg-[#222]">
-              <p className="text-[#F5F0E8]/50">No inquiries yet</p>
-              <p className="text-sm text-[#F5F0E8]/30 mt-2">Share your form link or add a client manually</p>
+            <div className="text-center py-16 border border-dashed border-ink/20 bg-surface">
+              <p className="text-ink/50">No inquiries yet</p>
+              <p className="text-sm text-ink/30 mt-2">Share your form link or add a client manually</p>
               <button
                 onClick={() => setShowAddClient(true)}
                 className="mt-4 px-4 py-2 bg-[#C4A35A] text-[#1A1A1A] rounded text-sm hover:bg-[#C4A35A]/90 inline-flex items-center gap-2"
@@ -684,7 +684,7 @@ export default function ArtistAdmin() {
                   key={inquiry.id}
                   href={`/inquiry/${inquiry.threadToken}`}
                   onClick={handleInquiryClick}
-                  className={`block p-6 border bg-[#222] transition-all ${pendingAction ? (pendingAction === 'payment' ? 'border-green-500/30 hover:border-green-500/60 hover:bg-green-900/10' : 'border-blue-500/30 hover:border-blue-500/60 hover:bg-blue-900/10') : 'border-[#F5F0E8]/10 hover:border-[#F5F0E8]/30'}`}
+                  className={`block p-6 border bg-surface transition-all ${pendingAction ? (pendingAction === 'payment' ? 'border-green-500/30 hover:border-green-500/60 hover:bg-green-900/10' : 'border-blue-500/30 hover:border-blue-500/60 hover:bg-blue-900/10') : 'border-ink/10 hover:border-ink/30'}`}
                   data-testid={`inquiry-row-${inquiry.id}`}
                 >
                   {inquiry.hasDateConflict && (
@@ -698,9 +698,9 @@ export default function ArtistAdmin() {
                       <h3 className="text-lg" style={{ fontFamily: "'Fraunces', serif" }}>
                         {inquiry.clientName}
                       </h3>
-                      <p className="text-sm text-[#F5F0E8]/50 mt-1">{inquiry.clientEmail}</p>
+                      <p className="text-sm text-ink/50 mt-1">{inquiry.clientEmail}</p>
                       {inquiry.eventLocation && (
-                        <p className="text-xs text-[#F5F0E8]/40 mt-1">{inquiry.eventLocation}</p>
+                        <p className="text-xs text-ink/40 mt-1">{inquiry.eventLocation}</p>
                       )}
                     </div>
                     <div className="text-right">
@@ -716,8 +716,8 @@ export default function ArtistAdmin() {
                       </span>
                     </div>
                   </div>
-                  <div className="flex justify-between items-center mt-4 pt-4 border-t border-[#F5F0E8]/5">
-                    <p className="text-xs text-[#F5F0E8]/40">
+                  <div className="flex justify-between items-center mt-4 pt-4 border-t border-ink/5">
+                    <p className="text-xs text-ink/40">
                       Received {format(new Date(inquiry.createdAt), "MMM d 'at' h:mm a")}
                     </p>
                     <div className="flex items-center gap-3">
@@ -730,7 +730,7 @@ export default function ArtistAdmin() {
                           e.stopPropagation();
                           setDeletingInquiryToken(inquiry.threadToken);
                         }}
-                        className="p-1.5 rounded hover:bg-red-500/10 text-[#F5F0E8]/30 hover:text-red-400 transition-colors"
+                        className="p-1.5 rounded hover:bg-red-500/10 text-ink/30 hover:text-red-400 transition-colors"
                         title="Remove client"
                         data-testid={`button-delete-inquiry-${inquiry.id}`}
                       >
@@ -747,7 +747,7 @@ export default function ArtistAdmin() {
         {/* Quick Chats Section */}
         {directChats.length > 0 && (
           <div className="space-y-4 mt-8">
-            <h3 className="text-sm text-[#F5F0E8]/60">Quick Chats</h3>
+            <h3 className="text-sm text-ink/60">Quick Chats</h3>
             {directChats.map((chat) => {
               const chatLink = token 
                 ? `/quick-chat/${chat.threadToken}?token=${encodeURIComponent(token)}`
@@ -756,18 +756,18 @@ export default function ArtistAdmin() {
                 <Link
                   key={chat.id}
                   href={chatLink}
-                  className="block p-4 border border-[#F5F0E8]/10 bg-[#222] hover:border-[#F5F0E8]/30 transition-colors"
+                  className="block p-4 border border-ink/10 bg-surface hover:border-ink/30 transition-colors"
                   data-testid={`quick-chat-${chat.id}`}
                 >
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="text-sm font-medium">{chat.participantName}</p>
-                      <p className="text-xs text-[#F5F0E8]/50">{chat.participantEmail}</p>
-                      <p className="text-xs text-[#F5F0E8]/40 mt-1 capitalize">{chat.participantRole}</p>
+                      <p className="text-xs text-ink/50">{chat.participantEmail}</p>
+                      <p className="text-xs text-ink/40 mt-1 capitalize">{chat.participantRole}</p>
                     </div>
                     <div className="text-right">
                       {chat.lastMessageAt && (
-                        <p className="text-xs text-[#F5F0E8]/40">
+                        <p className="text-xs text-ink/40">
                           {new Date(chat.lastMessageAt).toLocaleDateString()}
                         </p>
                       )}
@@ -780,19 +780,19 @@ export default function ArtistAdmin() {
           </div>
         )}
 
-        <div className="mt-12 p-6 border border-dashed border-[#F5F0E8]/20 text-center bg-[#222]">
-          <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F0E8]/40 mb-2">Your Form Link</p>
+        <div className="mt-12 p-6 border border-dashed border-ink/20 text-center bg-surface">
+          <p className="text-[10px] tracking-[0.2em] uppercase text-ink/40 mb-2">Your Form Link</p>
           <div className="flex items-center justify-center gap-3">
-            <p className="text-sm text-[#F5F0E8]/70 font-mono">dateinquiry.com/{artist.artistSlug}</p>
+            <p className="text-sm text-ink/70 font-mono">dateinquiry.com/{artist.artistSlug}</p>
             <button
               onClick={handleCopyLink}
-              className="p-2 rounded hover:bg-[#F5F0E8]/5 transition-colors"
+              className="p-2 rounded hover:bg-ink/5 transition-colors"
               data-testid="button-copy-link"
             >
               {copied ? (
                 <Check className="w-4 h-4 text-green-400" />
               ) : (
-                <Copy className="w-4 h-4 text-[#F5F0E8]/40" />
+                <Copy className="w-4 h-4 text-ink/40" />
               )}
             </button>
           </div>
@@ -805,50 +805,50 @@ export default function ArtistAdmin() {
       {/* Standalone Invoice Modal */}
       {showStandaloneInvoice && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1A1A1A] border border-[#F5F0E8]/20 rounded-lg p-6 max-w-md w-full">
+          <div className="bg-bg border border-ink/20 rounded-lg p-6 max-w-md w-full">
             <h3 className="text-lg mb-4" style={{ fontFamily: "'Fraunces', serif" }}>Create Invoice</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs text-[#F5F0E8]/60 mb-1">Client Name</label>
+                <label className="block text-xs text-ink/60 mb-1">Client Name</label>
                 <input
                   type="text"
                   value={standaloneClientName}
                   onChange={(e) => setStandaloneClientName(e.target.value)}
                   placeholder="Jane Smith"
-                  className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                  className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
                   data-testid="input-standalone-client-name"
                 />
               </div>
               <div>
-                <label className="block text-xs text-[#F5F0E8]/60 mb-1">Client Email</label>
+                <label className="block text-xs text-ink/60 mb-1">Client Email</label>
                 <input
                   type="email"
                   value={standaloneClientEmail}
                   onChange={(e) => setStandaloneClientEmail(e.target.value)}
                   placeholder="jane@example.com"
-                  className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                  className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
                   data-testid="input-standalone-client-email"
                 />
               </div>
               <div>
-                <label className="block text-xs text-[#F5F0E8]/60 mb-1">Amount ($)</label>
+                <label className="block text-xs text-ink/60 mb-1">Amount ($)</label>
                 <input
                   type="number"
                   value={standaloneAmount}
                   onChange={(e) => setStandaloneAmount(e.target.value)}
                   placeholder="500"
-                  className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                  className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
                   data-testid="input-standalone-amount"
                 />
               </div>
               <div>
-                <label className="block text-xs text-[#F5F0E8]/60 mb-1">Description</label>
+                <label className="block text-xs text-ink/60 mb-1">Description</label>
                 <input
                   type="text"
                   value={standaloneDescription}
                   onChange={(e) => setStandaloneDescription(e.target.value)}
                   placeholder="Bridal makeup deposit"
-                  className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                  className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
                   data-testid="input-standalone-description"
                 />
               </div>
@@ -862,7 +862,7 @@ export default function ArtistAdmin() {
                   setStandaloneAmount("");
                   setStandaloneDescription("");
                 }}
-                className="flex-1 px-4 py-2 border border-[#F5F0E8]/20 rounded text-sm hover:bg-[#F5F0E8]/5"
+                className="flex-1 px-4 py-2 border border-ink/20 rounded text-sm hover:bg-ink/5"
                 data-testid="button-cancel-standalone-invoice"
               >
                 Cancel
@@ -922,50 +922,50 @@ export default function ArtistAdmin() {
       {/* Standalone Contract Modal */}
       {showStandaloneContract && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1A1A1A] border border-[#F5F0E8]/20 rounded-lg p-6 max-w-md w-full">
+          <div className="bg-bg border border-ink/20 rounded-lg p-6 max-w-md w-full">
             <h3 className="text-lg mb-4" style={{ fontFamily: "'Fraunces', serif" }}>Create Contract</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs text-[#F5F0E8]/60 mb-1">Client Name</label>
+                <label className="block text-xs text-ink/60 mb-1">Client Name</label>
                 <input
                   type="text"
                   value={standaloneClientName}
                   onChange={(e) => setStandaloneClientName(e.target.value)}
                   placeholder="Jane Smith"
-                  className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                  className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
                   data-testid="input-standalone-contract-client-name"
                 />
               </div>
               <div>
-                <label className="block text-xs text-[#F5F0E8]/60 mb-1">Client Email</label>
+                <label className="block text-xs text-ink/60 mb-1">Client Email</label>
                 <input
                   type="email"
                   value={standaloneClientEmail}
                   onChange={(e) => setStandaloneClientEmail(e.target.value)}
                   placeholder="jane@example.com"
-                  className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                  className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
                   data-testid="input-standalone-contract-client-email"
                 />
               </div>
               <div>
-                <label className="block text-xs text-[#F5F0E8]/60 mb-1">Total Amount ($)</label>
+                <label className="block text-xs text-ink/60 mb-1">Total Amount ($)</label>
                 <input
                   type="number"
                   value={standaloneAmount}
                   onChange={(e) => setStandaloneAmount(e.target.value)}
                   placeholder="1500"
-                  className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                  className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
                   data-testid="input-standalone-contract-amount"
                 />
               </div>
               <div>
-                <label className="block text-xs text-[#F5F0E8]/60 mb-1">Service Description</label>
+                <label className="block text-xs text-ink/60 mb-1">Service Description</label>
                 <input
                   type="text"
                   value={standaloneDescription}
                   onChange={(e) => setStandaloneDescription(e.target.value)}
                   placeholder="Bridal makeup for wedding day"
-                  className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                  className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
                   data-testid="input-standalone-contract-description"
                 />
               </div>
@@ -979,7 +979,7 @@ export default function ArtistAdmin() {
                   setStandaloneAmount("");
                   setStandaloneDescription("");
                 }}
-                className="flex-1 px-4 py-2 border border-[#F5F0E8]/20 rounded text-sm hover:bg-[#F5F0E8]/5"
+                className="flex-1 px-4 py-2 border border-ink/20 rounded text-sm hover:bg-ink/5"
                 data-testid="button-cancel-standalone-contract"
               >
                 Cancel
@@ -1039,60 +1039,60 @@ export default function ArtistAdmin() {
       {/* Add Client Modal */}
       {showAddClient && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1A1A1A] border border-[#F5F0E8]/20 rounded-lg p-6 max-w-md w-full">
+          <div className="bg-bg border border-ink/20 rounded-lg p-6 max-w-md w-full">
             <h3 className="text-lg mb-4" style={{ fontFamily: "'Fraunces', serif" }}>Add New Client</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs text-[#F5F0E8]/60 mb-1">Client Name *</label>
+                <label className="block text-xs text-ink/60 mb-1">Client Name *</label>
                 <input
                   type="text"
                   value={newClientData.clientName}
                   onChange={(e) => setNewClientData({ ...newClientData, clientName: e.target.value })}
                   placeholder="Jane Smith"
-                  className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                  className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
                   data-testid="input-new-client-name"
                 />
               </div>
               <div>
-                <label className="block text-xs text-[#F5F0E8]/60 mb-1">Email *</label>
+                <label className="block text-xs text-ink/60 mb-1">Email *</label>
                 <input
                   type="email"
                   value={newClientData.clientEmail}
                   onChange={(e) => setNewClientData({ ...newClientData, clientEmail: e.target.value })}
                   placeholder="jane@example.com"
-                  className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                  className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
                   data-testid="input-new-client-email"
                 />
               </div>
               <div>
-                <label className="block text-xs text-[#F5F0E8]/60 mb-1">Phone</label>
+                <label className="block text-xs text-ink/60 mb-1">Phone</label>
                 <input
                   type="tel"
                   value={newClientData.clientPhone}
                   onChange={(e) => setNewClientData({ ...newClientData, clientPhone: e.target.value })}
                   placeholder="(555) 123-4567"
-                  className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                  className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
                   data-testid="input-new-client-phone"
                 />
               </div>
               <div>
-                <label className="block text-xs text-[#F5F0E8]/60 mb-1">Event Date</label>
+                <label className="block text-xs text-ink/60 mb-1">Event Date</label>
                 <input
                   type="date"
                   value={newClientData.eventDate}
                   onChange={(e) => setNewClientData({ ...newClientData, eventDate: e.target.value })}
-                  className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                  className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
                   data-testid="input-new-client-event-date"
                 />
               </div>
               <div>
-                <label className="block text-xs text-[#F5F0E8]/60 mb-1">Notes</label>
+                <label className="block text-xs text-ink/60 mb-1">Notes</label>
                 <textarea
                   value={newClientData.notes}
                   onChange={(e) => setNewClientData({ ...newClientData, notes: e.target.value })}
                   placeholder="Any notes about this client..."
                   rows={2}
-                  className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40 resize-none"
+                  className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40 resize-none"
                   data-testid="input-new-client-notes"
                 />
               </div>
@@ -1103,7 +1103,7 @@ export default function ArtistAdmin() {
                   setShowAddClient(false);
                   setNewClientData({ clientName: "", clientEmail: "", clientPhone: "", eventDate: "", notes: "" });
                 }}
-                className="flex-1 px-4 py-2 border border-[#F5F0E8]/20 rounded text-sm hover:bg-[#F5F0E8]/5"
+                className="flex-1 px-4 py-2 border border-ink/20 rounded text-sm hover:bg-ink/5"
                 data-testid="button-cancel-add-client"
               >
                 Cancel
@@ -1125,7 +1125,7 @@ export default function ArtistAdmin() {
       {/* Quick Chat Modal */}
       {showQuickChat && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1A1A1A] border border-[#F5F0E8]/20 rounded-lg p-6 max-w-md w-full">
+          <div className="bg-bg border border-ink/20 rounded-lg p-6 max-w-md w-full">
             {quickChatLink ? (
               <div className="space-y-4">
                 <h3 className="text-lg" style={{ fontFamily: "'Fraunces', serif" }}>Chat Created!</h3>
@@ -1136,7 +1136,7 @@ export default function ArtistAdmin() {
                       type="text"
                       value={quickChatLink}
                       readOnly
-                      className="flex-1 px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-xs text-[#F5F0E8]/80"
+                      className="flex-1 px-3 py-2 bg-surface border border-ink/20 rounded text-xs text-ink/80"
                     />
                     <button
                       onClick={() => {
@@ -1168,7 +1168,7 @@ export default function ArtistAdmin() {
                       setQuickChatLink(null);
                       setQuickChatData({ participantName: "", participantEmail: "", participantRole: "planner", initialMessage: "" });
                     }}
-                    className="flex-1 py-2 border border-[#F5F0E8]/20 rounded text-sm hover:bg-[#F5F0E8]/5"
+                    className="flex-1 py-2 border border-ink/20 rounded text-sm hover:bg-ink/5"
                   >
                     Done
                   </button>
@@ -1177,14 +1177,14 @@ export default function ArtistAdmin() {
             ) : (
               <>
                 <h3 className="text-lg mb-1" style={{ fontFamily: "'Fraunces', serif" }}>Quick Chat</h3>
-                <p className="text-xs text-[#F5F0E8]/50 mb-4">Start a conversation with anyone via their email</p>
+                <p className="text-xs text-ink/50 mb-4">Start a conversation with anyone via their email</p>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs text-[#F5F0E8]/60 mb-1">Who is this?</label>
+                    <label className="block text-xs text-ink/60 mb-1">Who is this?</label>
                     <select
                       value={quickChatData.participantRole}
                       onChange={(e) => setQuickChatData({ ...quickChatData, participantRole: e.target.value as any })}
-                      className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                      className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
                       data-testid="select-quick-chat-role"
                     >
                       <option value="planner">Wedding Planner</option>
@@ -1194,35 +1194,35 @@ export default function ArtistAdmin() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs text-[#F5F0E8]/60 mb-1">Their Name *</label>
+                    <label className="block text-xs text-ink/60 mb-1">Their Name *</label>
                     <input
                       type="text"
                       value={quickChatData.participantName}
                       onChange={(e) => setQuickChatData({ ...quickChatData, participantName: e.target.value })}
                       placeholder="Sarah Johnson"
-                      className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                      className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
                       data-testid="input-quick-chat-name"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[#F5F0E8]/60 mb-1">Their Email *</label>
+                    <label className="block text-xs text-ink/60 mb-1">Their Email *</label>
                     <input
                       type="email"
                       value={quickChatData.participantEmail}
                       onChange={(e) => setQuickChatData({ ...quickChatData, participantEmail: e.target.value })}
                       placeholder="sarah@plannerco.com"
-                      className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                      className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
                       data-testid="input-quick-chat-email"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[#F5F0E8]/60 mb-1">Initial Message (optional)</label>
+                    <label className="block text-xs text-ink/60 mb-1">Initial Message (optional)</label>
                     <textarea
                       value={quickChatData.initialMessage}
                       onChange={(e) => setQuickChatData({ ...quickChatData, initialMessage: e.target.value })}
                       placeholder="Hi! Let's connect about..."
                       rows={2}
-                      className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40 resize-none"
+                      className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40 resize-none"
                       data-testid="input-quick-chat-message"
                     />
                   </div>
@@ -1233,7 +1233,7 @@ export default function ArtistAdmin() {
                       setShowQuickChat(false);
                       setQuickChatData({ participantName: "", participantEmail: "", participantRole: "planner", initialMessage: "" });
                     }}
-                    className="flex-1 px-4 py-2 border border-[#F5F0E8]/20 rounded text-sm hover:bg-[#F5F0E8]/5"
+                    className="flex-1 px-4 py-2 border border-ink/20 rounded text-sm hover:bg-ink/5"
                     data-testid="button-cancel-quick-chat"
                   >
                     Cancel
@@ -1310,15 +1310,15 @@ export default function ArtistAdmin() {
       {/* Delete Confirmation Modal */}
       {deletingInquiryToken && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1A1A1A] border border-[#F5F0E8]/20 rounded-lg p-6 max-w-sm w-full">
+          <div className="bg-bg border border-ink/20 rounded-lg p-6 max-w-sm w-full">
             <h3 className="text-lg mb-2" style={{ fontFamily: "'Fraunces', serif" }}>Remove Client?</h3>
-            <p className="text-sm text-[#F5F0E8]/60 mb-6">
+            <p className="text-sm text-ink/60 mb-6">
               This will permanently delete this inquiry and all related data. This cannot be undone.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setDeletingInquiryToken(null)}
-                className="flex-1 px-4 py-2 border border-[#F5F0E8]/20 rounded text-sm hover:bg-[#F5F0E8]/5"
+                className="flex-1 px-4 py-2 border border-ink/20 rounded text-sm hover:bg-ink/5"
                 data-testid="button-cancel-delete"
               >
                 Cancel
