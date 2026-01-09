@@ -11442,7 +11442,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
-  // Create invoice from inquiry thread
+  // Create invoice from inquiry thread - creates Square payment link and sends email
   app.post("/api/public/inquiry/:threadToken/create-invoice", async (req, res) => {
     try {
       const { threadToken } = req.params;
@@ -11458,16 +11458,23 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(404).json({ error: "Artist not found" });
       }
       
-      // Create a payment record with due date 7 days from now
-      const dueDate = new Date();
-      dueDate.setDate(dueDate.getDate() + 7);
+      // Use the sendPaymentLinkFromAI function to create Square link and send email
+      const { sendPaymentLinkFromAI } = await import('./aiChat');
       
-      const payment = await storage.createPayment({
-        contractId: null,
-        amount: Math.round((parseFloat(amount) || 0) * 100), // Convert to cents
-        status: "pending",
-        dueDate,
+      const amountInCents = Math.round((parseFloat(amount) || 0) * 100);
+      const invoiceDescription = description || `${type === "deposit" ? "Deposit" : type === "balance" ? "Final Balance" : "Invoice"} for ${inquiry.clientName}`;
+      
+      const result = await sendPaymentLinkFromAI(inquiry.vendorId, {
+        clientName: inquiry.clientName,
+        clientEmail: inquiry.clientEmail,
+        amount: amountInCents,
+        description: invoiceDescription,
+        bookingId: inquiry.bookingId || inquiry.id,
       });
+      
+      if (!result.success) {
+        return res.status(400).json({ error: result.error || "Failed to create payment link" });
+      }
       
       // Update inquiry status
       await storage.updateInquiry(inquiry.id, {
@@ -11475,7 +11482,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         lastActionAt: new Date(),
       });
       
-      res.json({ success: true, paymentId: payment.id, message: "Invoice created successfully" });
+      res.json({ success: true, paymentLink: result.paymentLink, message: "Invoice sent successfully" });
     } catch (error: any) {
       console.error("[Inquiry Thread] Error creating invoice:", error);
       res.status(500).json({ error: error.message || "Failed to create invoice" });
