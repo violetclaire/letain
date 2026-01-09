@@ -781,7 +781,11 @@ export default function InquiryThread() {
                         />
                       </div>
                       <button
-                        type="submit"
+                        type="button"
+                        onClick={() => {
+                          console.log("[Invoice] Button clicked, invoiceData:", invoiceData);
+                          invoiceMutation.mutate(invoiceData);
+                        }}
                         disabled={invoiceMutation.isPending}
                         className="w-full py-3 bg-[#F5F0E8] text-[#1A1A1A] text-sm rounded hover:bg-white transition-all disabled:opacity-50"
                       >
