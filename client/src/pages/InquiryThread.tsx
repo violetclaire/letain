@@ -264,6 +264,9 @@ export default function InquiryThread() {
   const isPending = inquiry.status.toLowerCase() === "pending";
   const isAccepted = ["accepted", "auto_responded"].includes(inquiry.status.toLowerCase());
   const showBookingActions = isAccepted || tabParam === 'contract' || tabParam === 'payment';
+  
+  // Debug logging
+  console.log("[InquiryThread] isArtist:", isArtist, "showBookingActions:", showBookingActions, "tabParam:", tabParam, "status:", inquiry.status);
   const isTerminal = ["referred", "declined", "deposit_paid"].includes(inquiry.status.toLowerCase());
 
   const getVelocity = () => {
