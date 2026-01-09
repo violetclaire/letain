@@ -11458,14 +11458,15 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(404).json({ error: "Artist not found" });
       }
       
-      // Create a payment record
+      // Create a payment record with due date 7 days from now
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 7);
+      
       const payment = await storage.createPayment({
-        bookingId: inquiry.bookingId || inquiry.id,
-        amount: parseFloat(amount) || 0,
-        type: type === "deposit" ? "deposit" : type === "balance" ? "final" : "custom",
+        contractId: null,
+        amount: Math.round((parseFloat(amount) || 0) * 100), // Convert to cents
         status: "pending",
-        method: "square",
-        description: description || `${type === "deposit" ? "Deposit" : type === "balance" ? "Final Balance" : "Invoice"} for ${inquiry.clientName}`,
+        dueDate,
       });
       
       // Update inquiry status
