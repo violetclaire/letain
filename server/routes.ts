@@ -11093,8 +11093,20 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         sentAt: null,
       });
       
-      // Update inquiry last action
-      await storage.updateInquiry(inquiry.id, { lastActionAt: new Date() });
+      // Update inquiry last action and status
+      const now = new Date();
+      const updates: any = { lastActionAt: now };
+      
+      // Mark as responded when artist replies (from pending)
+      if (inquiry.status === 'pending') {
+        updates.status = 'responded';
+      }
+      // Set first response time if not already set
+      if (!inquiry.firstResponseAt) {
+        updates.firstResponseAt = now;
+      }
+      
+      await storage.updateInquiry(inquiry.id, updates);
       
       // Log CDI behavioral event - artist responded to client
       try {
@@ -11561,7 +11573,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const artistUser = await storage.getUser(inquiry.vendorId);
       
       // Store the message in notifications
-      await storage.createInquiryNotification({
+      const notification = await storage.createInquiryNotification({
         inquiryId: inquiry.id,
         type: 'client_reply',
         channel: 'thread',
@@ -11624,10 +11636,21 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
             message: message,
             threadLink: adminThreadLink
           });
+          
+          // Update notification status to sent
+          await storage.updateInquiryNotification(notification.id, {
+            status: 'sent',
+            sentAt: new Date()
+          });
+          
           console.log(`[Client Reply] Email sent to artist ${artistUser.email} for inquiry ${inquiry.id}`);
         }
       } catch (emailError: any) {
         console.error("[Client Reply] Failed to send email:", emailError.message);
+        // Update notification with failure
+        await storage.updateInquiryNotification(notification.id, {
+          status: 'failed'
+        });
       }
       
       res.json({ success: true, message: "Message sent" });
