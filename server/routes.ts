@@ -11306,7 +11306,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           if (memberUser) {
             const memberProfile = await storage.getArtistProfile(memberUser.id);
             if (memberProfile?.artistSlug) {
-              referralLinks.push(`${member.refereeName}: ${baseUrl}/inquire/${memberProfile.artistSlug}`);
+              referralLinks.push(`${member.refereeName}: ${baseUrl}/${memberProfile.artistSlug}`);
             } else {
               referralLinks.push(`${member.refereeName} - ${member.refereeEmail}`);
             }
@@ -11335,7 +11335,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
             const memberProfile = await storage.getArtistProfile(memberUser.id);
             if (memberProfile?.artistSlug) {
               referralVendorsForEmail.push({ 
-                name: `${member.refereeName} - dateinquiry.com/inquire/${memberProfile.artistSlug}` 
+                name: `${member.refereeName} - dateinquiry.com/${memberProfile.artistSlug}` 
               });
             } else {
               referralVendorsForEmail.push({ name: `${member.refereeName} (${member.refereeEmail})` });
