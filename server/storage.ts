@@ -179,6 +179,8 @@ import {
   type ArtistFormConfig,
   type InsertArtistFormConfig,
   type FormConfig,
+  trustedCircle,
+  type TrustedCircle,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc, asc, or, sql, inArray } from "drizzle-orm";
@@ -534,6 +536,9 @@ export interface IStorage {
   // Inquiry Notifications
   createInquiryNotification(data: InsertInquiryNotification): Promise<InquiryNotification>;
   getInquiryNotifications(inquiryId: string): Promise<InquiryNotification[]>;
+  
+  // Trusted Circle
+  getTrustedCircleByReferrer(referrerId: string): Promise<TrustedCircle[]>;
   
   // Proposals
   createProposal(data: InsertProposal): Promise<Proposal>;
@@ -2635,6 +2640,15 @@ export class DatabaseStorage implements IStorage {
       .from(inquiryNotifications)
       .where(eq(inquiryNotifications.inquiryId, inquiryId))
       .orderBy(desc(inquiryNotifications.createdAt));
+  }
+  
+  // Trusted Circle
+  async getTrustedCircleByReferrer(referrerId: string): Promise<TrustedCircle[]> {
+    return await db
+      .select()
+      .from(trustedCircle)
+      .where(eq(trustedCircle.referrerId, referrerId))
+      .orderBy(desc(trustedCircle.createdAt));
   }
   
   // Analytics Events

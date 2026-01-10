@@ -11294,7 +11294,72 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         notificationContent = (artist as any)?.plannerInfoSheet || (artist as any)?.plannerPricing || 'Planner info sent';
       } else if (action === 'refer') {
         notificationType = 'referral_list';
-        notificationContent = artist?.referralListTemplate || 'Referral list sent';
+        
+        // Fetch Trusted Circle members and build referral content with their links
+        const trustedCircle = await storage.getTrustedCircleByReferrer(inquiry.vendorId);
+        const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
+        
+        let referralLinks: string[] = [];
+        for (const member of trustedCircle.filter(m => m.status === 'accepted')) {
+          // Try to find the artist's profile by email
+          const memberUser = await storage.getUserByEmail(member.refereeEmail);
+          if (memberUser) {
+            const memberProfile = await storage.getArtistProfile(memberUser.id);
+            if (memberProfile?.artistSlug) {
+              referralLinks.push(`${member.refereeName}: ${baseUrl}/inquire/${memberProfile.artistSlug}`);
+            } else {
+              referralLinks.push(`${member.refereeName} - ${member.refereeEmail}`);
+            }
+          } else {
+            referralLinks.push(`${member.refereeName} - ${member.refereeEmail}`);
+          }
+        }
+        
+        const referralListText = referralLinks.length > 0 
+          ? referralLinks.join('\n')
+          : 'No referrals available at this time.';
+        
+        notificationContent = artist?.referralListTemplate 
+          ? `${artist.referralListTemplate}\n\n${referralListText}`
+          : `I'm not available for your date, but here are some amazing artists I trust:\n\n${referralListText}`;
+        
+        // Send referral email to client
+        const vendor = await storage.getUser(inquiry.vendorId);
+        const vendorName = artist?.businessName || vendor?.firstName || 'Your Artist';
+        
+        // Build referral vendors array for email
+        const referralVendorsForEmail: Array<{ name: string }> = [];
+        for (const member of trustedCircle.filter(m => m.status === 'accepted')) {
+          const memberUser = await storage.getUserByEmail(member.refereeEmail);
+          if (memberUser) {
+            const memberProfile = await storage.getArtistProfile(memberUser.id);
+            if (memberProfile?.artistSlug) {
+              referralVendorsForEmail.push({ 
+                name: `${member.refereeName} - dateinquiry.com/inquire/${memberProfile.artistSlug}` 
+              });
+            } else {
+              referralVendorsForEmail.push({ name: `${member.refereeName} (${member.refereeEmail})` });
+            }
+          } else {
+            referralVendorsForEmail.push({ name: `${member.refereeName} (${member.refereeEmail})` });
+          }
+        }
+        
+        import('./emailService').then(({ sendReferralNotificationEmail }) => {
+          sendReferralNotificationEmail({
+            toEmail: inquiry.clientEmail,
+            clientName: inquiry.clientName,
+            referrerName: vendorName,
+            declineReason: 'unavailable for your date',
+            referralMessage: artist?.referralListTemplate || undefined,
+            referralVendors: referralVendorsForEmail,
+          }).then(() => {
+            console.log(`[Inquiry Action] Referral email sent to ${inquiry.clientEmail}`);
+          }).catch((err: any) => {
+            console.error('[Inquiry Action] Failed to send referral email:', err);
+          });
+        });
+        
       } else if (action === 'decline') {
         notificationType = 'polite_decline';
         notificationContent = artist?.politeDeclineTemplate || 'Thank you for reaching out. Unfortunately, I am not available for your date.';
