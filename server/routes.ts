@@ -11220,7 +11220,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
             return res.status(400).json({ error: "Can only mark deposit for accepted inquiries" });
           }
           newStatus = "deposit_paid";
-          statusReason = "Deposit received";
+          statusReason = "Retainer received";
           break;
         default:
           return res.status(400).json({ error: "Invalid action" });
@@ -11539,7 +11539,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const { sendPaymentLinkFromAI } = await import('./aiChat');
       
       const amountInCents = Math.round((parseFloat(amount) || 0) * 100);
-      const invoiceDescription = description || `${type === "deposit" ? "Deposit" : type === "balance" ? "Final Balance" : "Invoice"} for ${inquiry.clientName}`;
+      const invoiceDescription = description || `${type === "deposit" ? "Retainer" : type === "balance" ? "Final Balance" : "Invoice"} for ${inquiry.clientName}`;
       
       const result = await sendPaymentLinkFromAI(inquiry.vendorId, {
         clientName: inquiry.clientName,

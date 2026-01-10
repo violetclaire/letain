@@ -509,7 +509,7 @@ Your Private Secretary`;
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="depositAmount">Deposit Amount ($) *</Label>
+                      <Label htmlFor="depositAmount">Retainer Amount ($) *</Label>
                       <Input
                         id="depositAmount"
                         type="number"
@@ -522,7 +522,7 @@ Your Private Secretary`;
                     </div>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-[#FAF9F7] rounded-lg">
-                    <Label htmlFor="depositPaid" className="cursor-pointer">Deposit Already Paid</Label>
+                    <Label htmlFor="depositPaid" className="cursor-pointer">Retainer Already Paid</Label>
                     <Switch
                       id="depositPaid"
                       checked={formData.depositPaid}
@@ -952,7 +952,7 @@ Maria, Garcia, maria@email.com, 2026-07-10, Beach Resort, 2800, 500, Amy, Chen, 
                           <p className="text-lg font-semibold text-[#3D5A3B]">
                             ${(item.contract.depositAmount / 100).toFixed(2)}
                           </p>
-                          <p className="text-xs text-[#262329]/60">Deposit</p>
+                          <p className="text-xs text-[#262329]/60">Retainer</p>
                         </div>
                         <div>
                           <p className="text-lg font-semibold text-[#E8B4B8]">

@@ -534,7 +534,7 @@ export async function sendContractEmail({
               <span class="detail-value">$${totalAmount.toLocaleString()}</span>
             </div>
             <div class="detail-row">
-              <span class="detail-label">Deposit Due</span>
+              <span class="detail-label">Retainer Due</span>
               <span class="detail-value">$${depositAmount.toLocaleString()}</span>
             </div>
           </div>
@@ -635,7 +635,7 @@ export async function sendContractWithSigningLink({
               <span class="detail-value">$${totalAmount.toLocaleString()}</span>
             </div>
             <div class="detail-row">
-              <span class="detail-label">Deposit Due</span>
+              <span class="detail-label">Retainer Due</span>
               <span class="detail-value">$${depositAmount.toLocaleString()}</span>
             </div>
           </div>
@@ -743,7 +743,7 @@ export async function sendContractSigningEmail({
             </div>
             ${depositAmount > 0 ? `
             <div class="detail-row">
-              <span class="detail-label">Deposit Due</span>
+              <span class="detail-label">Retainer Due</span>
               <span class="detail-value">$${depositAmount.toLocaleString()}</span>
             </div>
             ` : ''}

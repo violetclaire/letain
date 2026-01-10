@@ -284,7 +284,7 @@ export default function ManageBookings() {
                             data-testid="select-payment-status"
                           >
                             <option value="pending">Pending</option>
-                            <option value="deposit_paid">Deposit Paid</option>
+                            <option value="deposit_paid">Retainer Paid</option>
                             <option value="paid">Paid in Full</option>
                             <option value="partial">Partial Payment</option>
                             <option value="overdue">Overdue</option>
@@ -357,7 +357,7 @@ export default function ManageBookings() {
                             booking.paymentStatus === 'overdue' ? 'bg-red-100 text-red-700' :
                             'bg-gray-100 text-gray-600'
                           }`}>
-                            {booking.paymentStatus === 'deposit_paid' ? 'Deposit Paid' :
+                            {booking.paymentStatus === 'deposit_paid' ? 'Retainer Paid' :
                              booking.paymentStatus === 'paid' ? 'Paid' :
                              booking.paymentStatus === 'partial' ? 'Partial' :
                              booking.paymentStatus === 'overdue' ? 'Overdue' :

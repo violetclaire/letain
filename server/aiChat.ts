@@ -710,7 +710,7 @@ export async function createContractFromAI(
       recipientEmail: contract.clientEmail || undefined,
       communicationType: "contract",
       subject: `Contract - ${contract.packageDetails.substring(0, 50)}`,
-      content: `Package: ${contract.packageDetails}\nTotal: $${(contract.totalAmount / 100).toFixed(2)}\nDeposit: $${(depositAmountCents / 100).toFixed(2)}`,
+      content: `Package: ${contract.packageDetails}\nTotal: $${(contract.totalAmount / 100).toFixed(2)}\nRetainer: $${(depositAmountCents / 100).toFixed(2)}`,
       metadata: { 
         contractId: newContract.id, 
         bookingId, 

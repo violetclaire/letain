@@ -624,7 +624,7 @@ export default function InquiryThread() {
                       
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40 block mb-2">Deposit Amount ($)</label>
+                          <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40 block mb-2">Retainer Amount ($)</label>
                           <input
                             type="number"
                             value={contractData.depositAmount}
@@ -696,7 +696,7 @@ export default function InquiryThread() {
                             <td className="pt-2 text-right">${grandTotal.toFixed(2)}</td>
                           </tr>
                           <tr className="text-[#F5F0E8]/60">
-                            <td colSpan={4}>Deposit Due</td>
+                            <td colSpan={4}>Retainer Due</td>
                             <td className="text-right">${parseFloat(contractData.depositAmount || '0').toFixed(2)}</td>
                           </tr>
                         </tfoot>
@@ -735,7 +735,7 @@ export default function InquiryThread() {
                   data-testid="button-send-invoice"
                 >
                   <p className="text-sm">Send Invoice</p>
-                  <p className="text-[10px] text-[#F5F0E8]/50 mt-1">Collect deposit or balance</p>
+                  <p className="text-[10px] text-[#F5F0E8]/50 mt-1">Collect retainer or balance</p>
                 </button>
 
                 {showInvoiceForm && (
@@ -754,7 +754,7 @@ export default function InquiryThread() {
                           onChange={(e) => setInvoiceData({ ...invoiceData, type: e.target.value })}
                           className="w-full bg-[#1A1A1A] border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-3 py-2"
                         >
-                          <option value="deposit">Deposit / Retainer</option>
+                          <option value="deposit">Retainer</option>
                           <option value="balance">Final Balance</option>
                           <option value="custom">Custom</option>
                         </select>
@@ -777,7 +777,7 @@ export default function InquiryThread() {
                           onChange={(e) => setInvoiceData({ ...invoiceData, description: e.target.value })}
                           rows={2}
                           className="w-full bg-transparent border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-3 py-2 resize-none"
-                          placeholder="Deposit for bridal services"
+                          placeholder="Retainer for bridal services"
                         />
                       </div>
                       <button
@@ -801,7 +801,7 @@ export default function InquiryThread() {
                   className="w-full py-4 bg-emerald-600/20 border border-emerald-500/50 text-emerald-400 hover:bg-emerald-600/30 transition-all text-center rounded disabled:opacity-50"
                   data-testid="button-deposit-paid"
                 >
-                  <p className="text-sm">Mark Deposit Paid</p>
+                  <p className="text-sm">Mark Retainer Paid</p>
                   <p className="text-[10px] opacity-70 mt-1">Stops Velocity Clock</p>
                 </button>
               </div>
@@ -812,7 +812,7 @@ export default function InquiryThread() {
         {inquiry.status.toLowerCase() === "deposit_paid" && (
           <section className="mb-10 text-center py-6">
             <Check className="w-10 h-10 text-emerald-400 mx-auto mb-3" />
-            <p className="text-emerald-400 font-medium">{isArtist ? 'Deposit Received' : 'Booking Confirmed'}</p>
+            <p className="text-emerald-400 font-medium">{isArtist ? 'Retainer Received' : 'Booking Confirmed'}</p>
             <p className="text-xs text-[#F5F0E8]/40 mt-1">{isArtist ? 'Booking confirmed' : 'Thank you for your payment'}</p>
           </section>
         )}

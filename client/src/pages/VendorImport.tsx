@@ -508,7 +508,7 @@ Maria, Garcia, maria@email.com, 2026-07-10, Beach Resort, 2800, 500`}
                             />
                           </div>
                           <div>
-                            <Label className="text-xs">Deposit ($)</Label>
+                            <Label className="text-xs">Retainer ($)</Label>
                             <Input
                               value={booking.deposit}
                               onChange={(e) => updateBooking(index, 'deposit', e.target.value)}

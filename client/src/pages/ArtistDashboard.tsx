@@ -4009,7 +4009,7 @@ export default function ArtistDashboard() {
                 <span className="font-semibold">${calculateContractTotal().toFixed(2)}</span>
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-xs ink-soft">Deposit:</label>
+                <label className="text-xs ink-soft">Retainer:</label>
                 <select
                   value={contractDepositPercent}
                   onChange={(e) => setContractDepositPercent(parseInt(e.target.value))}
@@ -4149,12 +4149,12 @@ export default function ArtistDashboard() {
                     <span className="font-semibold">${((viewingContract.totalAmount || 0) / 100).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Deposit Required</span>
+                    <span className="text-gray-600">Retainer Required</span>
                     <span className="font-medium">${((viewingContract.depositAmount || 0) / 100).toFixed(2)}</span>
                   </div>
                   {viewingContract.depositPaidAt && (
                     <div className="flex justify-between text-green-600">
-                      <span>Deposit Paid</span>
+                      <span>Retainer Paid</span>
                       <span>{new Date(viewingContract.depositPaidAt).toLocaleDateString()}</span>
                     </div>
                   )}

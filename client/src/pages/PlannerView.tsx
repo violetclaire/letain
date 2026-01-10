@@ -181,7 +181,7 @@ export default function PlannerView({ bookingId }: PlannerViewProps) {
                 </div>
                 {booking.depositAmount && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Deposit</span>
+                    <span className="text-gray-600">Retainer</span>
                     <span className="font-medium">{formatCurrency(booking.depositAmount)}</span>
                   </div>
                 )}

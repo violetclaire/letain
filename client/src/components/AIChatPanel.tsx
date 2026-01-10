@@ -564,7 +564,7 @@ export default function AIChatPanel({ userId, userName, onAvailabilityUpdate, on
                     <p className="text-sm font-medium text-forest">{formatCurrency(pendingProposal.totalAmount)}</p>
                   </div>
                   <div>
-                    <div className="text-xs text-gold mb-1">Deposit</div>
+                    <div className="text-xs text-gold mb-1">Retainer</div>
                     <p className="text-sm font-medium text-forest">{formatCurrency(pendingProposal.depositAmount || Math.round(pendingProposal.totalAmount * 0.5))}</p>
                   </div>
                 </div>

@@ -534,7 +534,7 @@ Jessica, Williams, jess@email.com, Emma, Rose, emma@beauty.com, 6/20/2026, Sunse
                             />
                           </div>
                           <div>
-                            <Label className="text-xs">Deposit ($)</Label>
+                            <Label className="text-xs">Retainer ($)</Label>
                             <Input
                               value={booking.deposit}
                               onChange={(e) => updateBooking(index, 'deposit', e.target.value)}
