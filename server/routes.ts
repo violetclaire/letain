@@ -11592,7 +11592,8 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           type: n.type,
           content: n.content,
           sentAt: n.sentAt || n.createdAt,
-          sentBy: n.type.includes('client') ? 'client' : 'artist'
+          sentBy: n.type.includes('client') ? 'client' : 'artist',
+          attachments: n.metadata?.attachments || []
         }));
       
       // Return limited client-view data
@@ -11618,14 +11619,59 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
   
+  // Client uploads inspiration photo
+  app.post("/api/public/inquiry/client/:clientToken/upload", async (req, res) => {
+    try {
+      const { clientToken } = req.params;
+      const { fileContent, fileName, mimeType } = req.body;
+      
+      if (!fileContent || !fileName) {
+        return res.status(400).json({ error: "File content and name are required" });
+      }
+      
+      const inquiry = await storage.getInquiryByClientThreadToken(clientToken);
+      if (!inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+      
+      // Validate file type (images only)
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(mimeType)) {
+        return res.status(400).json({ error: "Only image files are allowed (JPEG, PNG, GIF, WebP)" });
+      }
+      
+      // Upload to object storage
+      const objectService = (await import('./objectStorage')).default;
+      const timestamp = Date.now();
+      const safeFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const objectPath = `inquiries/${inquiry.id}/inspiration/${timestamp}_${safeFileName}`;
+      
+      const buffer = Buffer.from(fileContent, 'base64');
+      
+      // Limit file size to 10MB
+      if (buffer.length > 10 * 1024 * 1024) {
+        return res.status(400).json({ error: "File size must be under 10MB" });
+      }
+      
+      const photoUrl = await objectService.uploadBuffer(objectPath, buffer, mimeType);
+      
+      console.log(`[Client Upload] Photo uploaded for inquiry ${inquiry.id}: ${photoUrl}`);
+      
+      res.json({ success: true, url: photoUrl });
+    } catch (error: any) {
+      console.error("[Client Upload] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to upload photo" });
+    }
+  });
+
   // Client sends a reply message
   app.post("/api/public/inquiry/client/:clientToken/message", async (req, res) => {
     try {
       const { clientToken } = req.params;
-      const { message } = req.body;
+      const { message, attachments } = req.body;
       
-      if (!message?.trim()) {
-        return res.status(400).json({ error: "Message is required" });
+      if (!message?.trim() && (!attachments || attachments.length === 0)) {
+        return res.status(400).json({ error: "Message or attachment is required" });
       }
       
       const inquiry = await storage.getInquiryByClientThreadToken(clientToken);
@@ -11637,15 +11683,22 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const artist = await storage.getArtistProfile(inquiry.vendorId);
       const artistUser = await storage.getUser(inquiry.vendorId);
       
+      // Build content with attachment info
+      const attachmentUrls = attachments || [];
+      const contentWithAttachments = attachmentUrls.length > 0 
+        ? `${message || ''}\n\n[${attachmentUrls.length} inspiration photo${attachmentUrls.length > 1 ? 's' : ''} attached]`
+        : message;
+      
       // Store the message in notifications
       const notification = await storage.createInquiryNotification({
         inquiryId: inquiry.id,
         type: 'client_reply',
         channel: 'thread',
         recipientEmail: artistUser?.email || '',
-        content: message,
+        content: contentWithAttachments,
         status: 'pending',
         sentAt: null,
+        metadata: attachmentUrls.length > 0 ? { attachments: attachmentUrls } : undefined,
       });
       
       // Update inquiry last action
