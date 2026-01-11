@@ -11634,26 +11634,50 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(404).json({ error: "Inquiry not found" });
       }
       
-      // Validate file type (images only)
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-      if (!allowedTypes.includes(mimeType)) {
+      const buffer = Buffer.from(fileContent, 'base64');
+      
+      // Validate actual file content using magic numbers (first bytes)
+      // JPEG: FF D8 FF, PNG: 89 50 4E 47, GIF: 47 49 46, WebP: 52 49 46 46 ... 57 45 42 50
+      const detectMimeType = (buf: Buffer): string | null => {
+        if (buf.length < 12) return null;
+        
+        // JPEG: starts with FF D8 FF
+        if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) {
+          return 'image/jpeg';
+        }
+        // PNG: starts with 89 50 4E 47 0D 0A 1A 0A
+        if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) {
+          return 'image/png';
+        }
+        // GIF: starts with 47 49 46 38 (GIF8)
+        if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x38) {
+          return 'image/gif';
+        }
+        // WebP: RIFF....WEBP format
+        if (buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
+            buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50) {
+          return 'image/webp';
+        }
+        return null;
+      };
+      
+      const detectedType = detectMimeType(buffer);
+      if (!detectedType) {
         return res.status(400).json({ error: "Only image files are allowed (JPEG, PNG, GIF, WebP)" });
       }
-      
-      // Upload to object storage
-      const objectService = (await import('./objectStorage')).default;
-      const timestamp = Date.now();
-      const safeFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const objectPath = `inquiries/${inquiry.id}/inspiration/${timestamp}_${safeFileName}`;
-      
-      const buffer = Buffer.from(fileContent, 'base64');
       
       // Limit file size to 10MB
       if (buffer.length > 10 * 1024 * 1024) {
         return res.status(400).json({ error: "File size must be under 10MB" });
       }
       
-      const photoUrl = await objectService.uploadBuffer(objectPath, buffer, mimeType);
+      // Upload to object storage using detected (verified) MIME type
+      const objectService = (await import('./objectStorage')).default;
+      const timestamp = Date.now();
+      const safeFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const objectPath = `inquiries/${inquiry.id}/inspiration/${timestamp}_${safeFileName}`;
+      
+      const photoUrl = await objectService.uploadBuffer(objectPath, buffer, detectedType);
       
       console.log(`[Client Upload] Photo uploaded for inquiry ${inquiry.id}: ${photoUrl}`);
       

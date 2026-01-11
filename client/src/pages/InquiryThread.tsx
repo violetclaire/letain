@@ -469,11 +469,31 @@ export default function InquiryThread() {
               <p className="text-sm text-[#F5F0E8]/30 italic py-4">No messages yet</p>
             ) : (
               messages.map((msg) => {
-                const isArtist = msg.sentBy === "artist" || msg.sentBy === artist?.businessName;
+                const isArtistMsg = msg.sentBy === "artist" || msg.sentBy === artist?.businessName;
+                const msgAttachments = (msg as any).attachments || [];
                 return (
-                  <div key={msg.id} className={`flex ${isArtist ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[80%] p-4 rounded ${isArtist ? "bg-[#F5F0E8]/10" : "bg-[#F5F0E8]/5 border border-[#F5F0E8]/10"}`}>
+                  <div key={msg.id} className={`flex ${isArtistMsg ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-[80%] p-4 rounded ${isArtistMsg ? "bg-[#F5F0E8]/10" : "bg-[#F5F0E8]/5 border border-[#F5F0E8]/10"}`}>
                       <p className="text-sm text-[#F5F0E8]/80 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                      {msgAttachments.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {msgAttachments.map((url: string, idx: number) => (
+                            <a
+                              key={idx}
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block"
+                            >
+                              <img
+                                src={url}
+                                alt={`Inspiration photo ${idx + 1}`}
+                                className="h-20 w-20 object-cover rounded border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/50 transition-colors"
+                              />
+                            </a>
+                          ))}
+                        </div>
+                      )}
                       <p className="text-[10px] text-[#F5F0E8]/30 mt-2">
                         {format(new Date(msg.sentAt), "h:mm a")}
                       </p>
