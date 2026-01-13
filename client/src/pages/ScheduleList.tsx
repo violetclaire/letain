@@ -545,7 +545,7 @@ export default function ScheduleList() {
                   onChange={(e) => setAiInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && sendAIMessage(aiInput)}
                   placeholder="e.g., 3-day wedding for Sarah, Dec 14-16 at the Hilton..."
-                  className="flex-1 px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-1 focus:ring-black"
+                  className="flex-1 px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-1 focus:ring-black bg-white text-black"
                   disabled={aiLoading}
                 />
                 <VoiceDictation 
@@ -581,7 +581,7 @@ export default function ScheduleList() {
                   placeholder="e.g., Smith Wedding"
                   value={newSchedule.eventName}
                   onChange={(e) => setNewSchedule({ ...newSchedule, eventName: e.target.value })}
-                  className="w-full px-3 py-2 border rounded"
+                  className="w-full px-3 py-2 border rounded bg-white text-black"
                   data-testid="input-event-name"
                 />
               </div>
@@ -647,7 +647,7 @@ export default function ScheduleList() {
                   placeholder="e.g., Morning Session, Afternoon - Bride Only"
                   value={newSchedule.sessionDetails}
                   onChange={(e) => setNewSchedule({ ...newSchedule, sessionDetails: e.target.value })}
-                  className="w-full px-3 py-2 border rounded"
+                  className="w-full px-3 py-2 border rounded bg-white text-black"
                   data-testid="input-session-details"
                 />
               </div>
@@ -658,7 +658,7 @@ export default function ScheduleList() {
                   placeholder="e.g., Grand Ballroom Hotel"
                   value={newSchedule.eventLocation}
                   onChange={(e) => setNewSchedule({ ...newSchedule, eventLocation: e.target.value })}
-                  className="w-full px-3 py-2 border rounded"
+                  className="w-full px-3 py-2 border rounded bg-white text-black"
                   data-testid="input-event-location"
                 />
               </div>
@@ -668,7 +668,7 @@ export default function ScheduleList() {
                   type="time"
                   value={newSchedule.readyByTime}
                   onChange={(e) => setNewSchedule({ ...newSchedule, readyByTime: e.target.value })}
-                  className="w-full px-3 py-2 border rounded"
+                  className="w-full px-3 py-2 border rounded bg-white text-black"
                   data-testid="input-ready-by"
                 />
               </div>
@@ -679,7 +679,7 @@ export default function ScheduleList() {
                   placeholder="e.g., bride@email.com, planner@email.com"
                   value={newSchedule.recipientEmails}
                   onChange={(e) => setNewSchedule({ ...newSchedule, recipientEmails: e.target.value })}
-                  className="w-full px-3 py-2 border rounded"
+                  className="w-full px-3 py-2 border rounded bg-white text-black"
                   data-testid="input-recipient-emails"
                 />
               </div>
