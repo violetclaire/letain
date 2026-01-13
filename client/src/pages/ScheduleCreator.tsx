@@ -13,6 +13,7 @@ type ScheduleTeamMember = {
   serviceType?: string;
   color?: string;
   displayOrder: number;
+  assignmentLink?: string;
 };
 
 type ScheduleAppointment = {
@@ -107,7 +108,10 @@ export default function ScheduleCreator({ scheduleId }: { scheduleId: string }) 
     name: "",
     role: "stylist",
     serviceType: "both",
+    assignmentLink: "",
   });
+  
+  const [editingTeamMember, setEditingTeamMember] = useState<ScheduleTeamMember | null>(null);
 
   const { data: schedule, isLoading } = useQuery<EventDaySchedule>({
     queryKey: ["event-schedule", scheduleId],
@@ -134,7 +138,7 @@ export default function ScheduleCreator({ scheduleId }: { scheduleId: string }) 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["event-schedule", scheduleId] });
       setShowAddTeamMember(false);
-      setNewTeamMember({ name: "", role: "stylist", serviceType: "both" });
+      setNewTeamMember({ name: "", role: "stylist", serviceType: "both", assignmentLink: "" });
       toast({ title: "Team member added" });
     },
   });
@@ -151,6 +155,24 @@ export default function ScheduleCreator({ scheduleId }: { scheduleId: string }) 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["event-schedule", scheduleId] });
       toast({ title: "Team member removed" });
+    },
+  });
+
+  const updateTeamMemberMutation = useMutation({
+    mutationFn: async ({ id, ...data }: { id: string; name: string; serviceType: string; assignmentLink: string }) => {
+      const res = await fetch(`/api/event-schedules/team/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to update team member");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["event-schedule", scheduleId] });
+      setEditingTeamMember(null);
+      toast({ title: "Team member updated" });
     },
   });
 
@@ -412,11 +434,19 @@ export default function ScheduleCreator({ scheduleId }: { scheduleId: string }) 
                     <option value="makeup">Makeup Only</option>
                     <option value="both">Hair & Makeup</option>
                   </select>
+                  <input
+                    type="url"
+                    placeholder="Artist's schedule link (optional, add later)"
+                    value={newTeamMember.assignmentLink}
+                    onChange={(e) => setNewTeamMember({ ...newTeamMember, assignmentLink: e.target.value })}
+                    className="w-full px-3 py-2 border rounded mb-2 text-sm bg-white text-black"
+                    data-testid="input-team-link"
+                  />
                   <div className="flex gap-2">
                     <button
                       onClick={() => {
                         setShowAddTeamMember(false);
-                        setNewTeamMember({ name: "", role: "stylist", serviceType: "both" });
+                        setNewTeamMember({ name: "", role: "stylist", serviceType: "both", assignmentLink: "" });
                       }}
                       className="flex-1 px-3 py-1.5 text-sm border rounded hover:bg-gray-50"
                     >
@@ -436,25 +466,84 @@ export default function ScheduleCreator({ scheduleId }: { scheduleId: string }) 
 
               <div className="space-y-2">
                 {teamMembers.map((member) => (
-                  <div
-                    key={member.id}
-                    className="flex items-center justify-between p-2 bg-white rounded border border-black/10"
-                  >
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-gray-500" />
-                      <span className="font-medium text-sm">{member.name}</span>
-                      <span className="text-xs text-gray-500">
-                        ({member.serviceType === "hair" ? "H" : member.serviceType === "makeup" ? "M" : "HM"})
-                      </span>
+                  editingTeamMember?.id === member.id ? (
+                    <div key={member.id} className="p-3 bg-white rounded border border-black/10">
+                      <input
+                        type="text"
+                        placeholder="Name"
+                        value={editingTeamMember.name}
+                        onChange={(e) => setEditingTeamMember({ ...editingTeamMember, name: e.target.value })}
+                        className="w-full px-3 py-2 border rounded mb-2 text-sm bg-white text-black"
+                      />
+                      <select
+                        value={editingTeamMember.serviceType || "both"}
+                        onChange={(e) => setEditingTeamMember({ ...editingTeamMember, serviceType: e.target.value })}
+                        className="w-full px-3 py-2 border rounded mb-2 text-sm bg-white text-black"
+                      >
+                        <option value="hair">Hair Only</option>
+                        <option value="makeup">Makeup Only</option>
+                        <option value="both">Hair & Makeup</option>
+                      </select>
+                      <input
+                        type="url"
+                        placeholder="Artist's schedule link (optional)"
+                        value={editingTeamMember.assignmentLink || ""}
+                        onChange={(e) => setEditingTeamMember({ ...editingTeamMember, assignmentLink: e.target.value })}
+                        className="w-full px-3 py-2 border rounded mb-2 text-sm bg-white text-black"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setEditingTeamMember(null)}
+                          className="flex-1 px-3 py-1.5 text-sm border rounded hover:bg-gray-50"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => updateTeamMemberMutation.mutate({
+                            id: editingTeamMember.id,
+                            name: editingTeamMember.name,
+                            serviceType: editingTeamMember.serviceType || "both",
+                            assignmentLink: editingTeamMember.assignmentLink || "",
+                          })}
+                          disabled={!editingTeamMember.name || updateTeamMemberMutation.isPending}
+                          className="flex-1 px-3 py-1.5 text-sm bg-black text-white rounded hover:bg-gray-800 disabled:opacity-50"
+                        >
+                          Save
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => deleteTeamMemberMutation.mutate(member.id)}
-                      className="p-1 text-red-500 hover:bg-red-50 rounded"
-                      data-testid={`button-delete-team-${member.id}`}
+                  ) : (
+                    <div
+                      key={member.id}
+                      className="flex items-center justify-between p-2 bg-white rounded border border-black/10 cursor-pointer hover:bg-gray-50"
+                      onClick={() => setEditingTeamMember(member)}
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <User className="w-4 h-4 text-gray-500" />
+                          <span className="font-medium text-sm">{member.name}</span>
+                          <span className="text-xs text-gray-500">
+                            ({member.serviceType === "hair" ? "H" : member.serviceType === "makeup" ? "M" : "HM"})
+                          </span>
+                        </div>
+                        {member.assignmentLink ? (
+                          <span className="text-xs text-green-600 ml-6">Link added</span>
+                        ) : (
+                          <span className="text-xs text-gray-400 ml-6">Click to add schedule link</span>
+                        )}
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteTeamMemberMutation.mutate(member.id);
+                        }}
+                        className="p-1 text-red-500 hover:bg-red-50 rounded"
+                        data-testid={`button-delete-team-${member.id}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )
                 ))}
                 {teamMembers.length === 0 && (
                   <p className="text-sm text-gray-500 text-center py-4">
