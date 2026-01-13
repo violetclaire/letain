@@ -68,6 +68,26 @@ export default function ArtistSettings() {
   const [newSlug, setNewSlug] = useState("");
   const [editingEmail, setEditingEmail] = useState(false);
   const [newEmail, setNewEmail] = useState("");
+  const [squareConnecting, setSquareConnecting] = useState(false);
+
+  // Check for Square OAuth callback
+  const squareConnected = searchParams.get("square") === "connected";
+
+  // Square connection status
+  const { data: squareStatus } = useQuery<{ connected: boolean; merchantId?: string }>({
+    queryKey: ["/api/square/connect/status", artistSlug],
+    queryFn: async () => {
+      const res = await fetch(`/api/square/connect/status/${artistSlug}`);
+      if (!res.ok) return { connected: false };
+      return res.json();
+    },
+    enabled: !!artistSlug,
+  });
+
+  const handleSquareConnect = async () => {
+    setSquareConnecting(true);
+    window.location.href = `/api/square/connect/start/${artistSlug}`;
+  };
 
   const { data: settings, isLoading, error } = useQuery<ArtistSettingsData>({
     queryKey: ["/api/artist/settings", token, useSessionAuth],
@@ -519,6 +539,40 @@ export default function ArtistSettings() {
                   Edit
                 </Button>
               </div>
+            )}
+          </section>
+
+          {/* Square Payment Connection */}
+          <section className="border border-[#F5F0E8]/10 rounded p-6">
+            <h2 className="text-lg font-serif text-[#F5F0E8] mb-2">Payment Processing</h2>
+            <p className="text-[#F5F0E8]/60 text-sm mb-4">
+              Connect Square to send invoices and collect payments from clients.
+            </p>
+            
+            {(squareStatus?.connected || squareConnected) ? (
+              <div className="flex items-center gap-3 p-4 bg-emerald-900/20 border border-emerald-500/30 rounded">
+                <Check className="w-5 h-5 text-emerald-400" />
+                <div>
+                  <p className="text-emerald-400 font-medium">Square Connected</p>
+                  <p className="text-[#F5F0E8]/50 text-xs">You can now send invoices from inquiry threads</p>
+                </div>
+              </div>
+            ) : (
+              <Button
+                onClick={handleSquareConnect}
+                disabled={squareConnecting}
+                className="bg-[#F5F0E8] text-[#1A1A1A] hover:bg-white"
+                data-testid="button-connect-square"
+              >
+                {squareConnecting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Connecting...
+                  </>
+                ) : (
+                  "Connect Square"
+                )}
+              </Button>
             )}
           </section>
 

@@ -820,8 +820,8 @@ export async function sendPaymentLinkFromAI(
     const artistProfile = await storage.getArtistProfile(artistId);
     const vendorName = artistProfile?.businessName || artist?.firstName || 'Beauty Artist';
     
-    // Get merchant Square access token from users table
-    if (!artist?.squareAccessToken) {
+    // Get merchant Square access token from artistProfiles table
+    if (!artistProfile?.squareAccessToken) {
       return { success: false, error: "Square account not connected. Please connect Square in Settings first." };
     }
     
@@ -830,7 +830,7 @@ export async function sendPaymentLinkFromAI(
       return { success: false, error: "Square location not configured" };
     }
     
-    const square = getMerchantSquare(artist.squareAccessToken);
+    const square = getMerchantSquare(artistProfile.squareAccessToken);
     const amountInCents = payment.amount;
     const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
     
