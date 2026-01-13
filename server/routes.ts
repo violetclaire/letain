@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { randomUUID } from "crypto";
+import { randomUUID, randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
@@ -11491,7 +11491,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       }
       
       // Generate signing token
-      const signingToken = crypto.randomBytes(32).toString('hex');
+      const signingToken = randomBytes(32).toString('hex');
       
       // Create a contract (bookingId is optional for inquiry-based contracts)
       const contract = await storage.createContract({
