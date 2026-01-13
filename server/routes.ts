@@ -11490,6 +11490,9 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(404).json({ error: "Artist not found" });
       }
       
+      // Generate signing token
+      const signingToken = crypto.randomBytes(32).toString('hex');
+      
       // Create a contract (bookingId is optional for inquiry-based contracts)
       const contract = await storage.createContract({
         bookingId: inquiry.bookingId || undefined, // Only set if inquiry has an actual booking
@@ -11504,7 +11507,29 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         eventDate: inquiry.eventDate,
         clientName: inquiry.clientName,
         clientEmail: inquiry.clientEmail,
+        signingToken: signingToken,
+        sentForSigningAt: new Date(),
       });
+      
+      // Send signing email to client
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
+      const signingUrl = `${baseUrl}/sign/${signingToken}`;
+      
+      try {
+        const { sendContractSigningEmail } = await import('./emailService');
+        await sendContractSigningEmail({
+          toEmail: inquiry.clientEmail,
+          clientName: inquiry.clientName,
+          artistName: artist.businessName || artist.firstName || 'Your Artist',
+          packageDetails: packageDetails || artist.contractTemplate || 'Beauty Services',
+          totalAmount: parseFloat(totalAmount) || 0,
+          depositAmount: parseFloat(depositAmount) || 0,
+          signingUrl: signingUrl,
+        });
+        console.log(`[Contract] Signing email sent to ${inquiry.clientEmail}`);
+      } catch (emailErr) {
+        console.error('[Contract] Failed to send signing email:', emailErr);
+      }
       
       // Update inquiry status
       await storage.updateInquiry(inquiry.id, {
@@ -11513,7 +11538,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         lastActionAt: new Date(),
       });
       
-      res.json({ success: true, contractId: contract.id, message: "Contract created successfully" });
+      res.json({ success: true, contractId: contract.id, message: "Contract sent to client for signing" });
     } catch (error: any) {
       console.error("[Inquiry Thread] Error creating contract:", error);
       res.status(500).json({ error: error.message || "Failed to create contract" });
