@@ -516,6 +516,7 @@ export const scheduleTeamMembers = pgTable("schedule_team_members", {
   serviceType: text("service_type"), // 'hair', 'makeup', 'both' - what this person does
   color: text("color"), // Optional color for UI display
   displayOrder: integer("display_order").default(0), // Order in the grid
+  assignmentLink: text("assignment_link"), // Artist's schedule link for this assignment
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
