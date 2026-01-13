@@ -402,7 +402,7 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
                 value={guestNote}
                 onChange={(e) => setGuestNote(e.target.value)}
                 placeholder="e.g., Room 412, Tower B. Will be ready by 6am. Can I have coffee first?"
-                className="flex-1 px-3 py-2 border rounded resize-none h-20"
+                className="flex-1 px-3 py-2 border rounded resize-none h-20 bg-white text-black"
                 data-testid="input-guest-note"
               />
             </div>
@@ -445,7 +445,7 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
                 value={paymentAmount}
                 onChange={(e) => setPaymentAmount(e.target.value)}
                 placeholder="Enter amount"
-                className="w-full pl-8 pr-4 py-3 border rounded-lg text-lg"
+                className="w-full pl-8 pr-4 py-3 border rounded-lg text-lg bg-white text-black"
                 data-testid="input-payment-amount"
               />
             </div>
@@ -519,7 +519,7 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
                   value={editingNotes}
                   onChange={(e) => setEditingNotes(e.target.value)}
                   placeholder="e.g., I'd like a natural look, allergic to latex..."
-                  className="w-full px-3 py-2 border rounded-lg resize-none h-24"
+                  className="w-full px-3 py-2 border rounded-lg resize-none h-24 bg-white text-black"
                   data-testid="input-appointment-notes"
                 />
               </div>
