@@ -11321,7 +11321,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         
         notificationContent = artist?.referralListTemplate 
           ? `${artist.referralListTemplate}\n\n${referralListText}`
-          : `I'm not available for your date, but here are some amazing artists I trust:\n\n${referralListText}`;
+          : `Thank you so much for reaching out! Unfortunately I am not available for your date. Please contact my trusted colleague for availability:\n\n${referralListText}\n\nThank you!`;
         
         // Send referral email to client
         const vendor = await storage.getUser(inquiry.vendorId);

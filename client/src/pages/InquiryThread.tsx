@@ -876,7 +876,7 @@ export default function InquiryThread() {
                 Info Sheet
               </button>
               <button
-                onClick={() => setReplyMessage(artist?.referralListTemplate || "I'm not available but here are some amazing artists I trust...")}
+                onClick={() => setReplyMessage(artist?.referralListTemplate || "Thank you so much for reaching out! Unfortunately I am not available. Please contact my trusted colleague for availability. Thank you!")}
                 className="px-4 py-2 text-xs border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40 rounded transition-all"
                 data-testid="button-template-referral"
               >
