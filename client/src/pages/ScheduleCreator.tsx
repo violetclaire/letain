@@ -399,13 +399,13 @@ export default function ScheduleCreator({ scheduleId }: { scheduleId: string }) 
                     placeholder="Name (e.g., Violet)"
                     value={newTeamMember.name}
                     onChange={(e) => setNewTeamMember({ ...newTeamMember, name: e.target.value })}
-                    className="w-full px-3 py-2 border rounded mb-2 text-sm"
+                    className="w-full px-3 py-2 border rounded mb-2 text-sm bg-white text-black"
                     data-testid="input-team-name"
                   />
                   <select
                     value={newTeamMember.serviceType}
                     onChange={(e) => setNewTeamMember({ ...newTeamMember, serviceType: e.target.value })}
-                    className="w-full px-3 py-2 border rounded mb-2 text-sm"
+                    className="w-full px-3 py-2 border rounded mb-2 text-sm bg-white text-black"
                     data-testid="select-team-service"
                   >
                     <option value="hair">Hair Only</option>
@@ -494,7 +494,7 @@ export default function ScheduleCreator({ scheduleId }: { scheduleId: string }) 
                         placeholder="e.g., Nicole"
                         value={newAppointment.clientName}
                         onChange={(e) => setNewAppointment({ ...newAppointment, clientName: e.target.value })}
-                        className="w-full px-3 py-2 border rounded text-sm"
+                        className="w-full px-3 py-2 border rounded text-sm bg-white text-black"
                         data-testid="input-client-name"
                       />
                     </div>
@@ -503,7 +503,7 @@ export default function ScheduleCreator({ scheduleId }: { scheduleId: string }) 
                       <select
                         value={newAppointment.serviceType}
                         onChange={(e) => handleServiceTypeChange(e.target.value)}
-                        className="w-full px-3 py-2 border rounded text-sm"
+                        className="w-full px-3 py-2 border rounded text-sm bg-white text-black"
                         data-testid="select-service-type"
                       >
                         <option value="H">Hair (H) - 45 min</option>
@@ -517,7 +517,7 @@ export default function ScheduleCreator({ scheduleId }: { scheduleId: string }) 
                         type="time"
                         value={newAppointment.startTime}
                         onChange={(e) => handleStartTimeChange(e.target.value)}
-                        className="w-full px-3 py-2 border rounded text-sm"
+                        className="w-full px-3 py-2 border rounded text-sm bg-white text-black"
                         data-testid="input-start-time"
                       />
                     </div>
@@ -527,7 +527,7 @@ export default function ScheduleCreator({ scheduleId }: { scheduleId: string }) 
                         type="time"
                         value={newAppointment.endTime}
                         onChange={(e) => setNewAppointment({ ...newAppointment, endTime: e.target.value })}
-                        className="w-full px-3 py-2 border rounded text-sm"
+                        className="w-full px-3 py-2 border rounded text-sm bg-white text-black"
                         data-testid="input-end-time"
                       />
                     </div>
@@ -536,7 +536,7 @@ export default function ScheduleCreator({ scheduleId }: { scheduleId: string }) 
                       <select
                         value={newAppointment.teamMemberId}
                         onChange={(e) => setNewAppointment({ ...newAppointment, teamMemberId: e.target.value })}
-                        className="w-full px-3 py-2 border rounded text-sm"
+                        className="w-full px-3 py-2 border rounded text-sm bg-white text-black"
                         data-testid="select-team-member"
                       >
                         <option value="">Unassigned</option>
