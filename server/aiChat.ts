@@ -820,13 +820,8 @@ export async function sendPaymentLinkFromAI(
     const artistProfile = await storage.getArtistProfile(artistId);
     const vendorName = artistProfile?.businessName || artist?.firstName || 'Beauty Artist';
     
-    // Get merchant Square access token
-    const { db } = await import('./db');
-    const { squareConnections } = await import('@shared/schema');
-    const { eq } = await import('drizzle-orm');
-    
-    const [connection] = await db.select().from(squareConnections).where(eq(squareConnections.userId, artistId));
-    if (!connection?.accessToken) {
+    // Get merchant Square access token from users table
+    if (!artist?.squareAccessToken) {
       return { success: false, error: "Square account not connected. Please connect Square in Settings first." };
     }
     
@@ -835,7 +830,7 @@ export async function sendPaymentLinkFromAI(
       return { success: false, error: "Square location not configured" };
     }
     
-    const square = getMerchantSquare(connection.accessToken);
+    const square = getMerchantSquare(artist.squareAccessToken);
     const amountInCents = payment.amount;
     const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
     
