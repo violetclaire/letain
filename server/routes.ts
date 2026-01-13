@@ -11490,9 +11490,10 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(404).json({ error: "Artist not found" });
       }
       
-      // Create a contract
+      // Create a contract (bookingId is optional for inquiry-based contracts)
       const contract = await storage.createContract({
-        bookingId: inquiry.bookingId || inquiry.id,
+        bookingId: inquiry.bookingId || undefined, // Only set if inquiry has an actual booking
+        inquiryId: inquiry.id, // Track which inquiry this came from
         clientId: inquiry.clientId || inquiry.vendorId,
         artistId: inquiry.vendorId,
         totalAmount: parseFloat(totalAmount) || 0,

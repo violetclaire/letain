@@ -370,7 +370,8 @@ export const messages = pgTable("messages", {
 // Contracts
 export const contracts = pgTable("contracts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  bookingId: varchar("booking_id").notNull().references(() => bookings.id),
+  bookingId: varchar("booking_id").references(() => bookings.id), // nullable for inquiry-based contracts
+  inquiryId: varchar("inquiry_id").references(() => inquiries.id), // link to inquiry if created from thread
   artistId: varchar("artist_id").notNull().references(() => users.id),
   clientId: varchar("client_id").notNull().references(() => users.id),
   packageDetails: text("package_details").notNull(),
