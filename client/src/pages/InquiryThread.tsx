@@ -751,7 +751,10 @@ export default function InquiryThread() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => contractMutation.mutate()}
+                        onClick={() => {
+                          console.log("[Contract] Send button clicked, calling mutation...");
+                          contractMutation.mutate();
+                        }}
                         disabled={contractMutation.isPending}
                         className="flex-1 py-3 bg-[#F5F0E8] text-[#1A1A1A] text-sm rounded hover:bg-white transition-all disabled:opacity-50"
                       >
