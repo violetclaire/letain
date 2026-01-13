@@ -188,6 +188,10 @@ export default function InquiryThread() {
       // Filter out empty service lines
       const validItems = serviceItems.filter(item => item.service.trim());
       
+      if (validItems.length === 0) {
+        throw new Error("Please add at least one service item");
+      }
+      
       // Build packageDetails string for backward compatibility
       const packageDetails = validItems
         .map(item => `${item.clientType}: ${item.service} (x${item.qty}) - $${(item.qty * item.price).toFixed(2)}`)
@@ -209,15 +213,23 @@ export default function InquiryThread() {
         eventLocation: contractData.eventLocation,
         travelFee: Math.round(travelFee * 100),
       };
-      return apiRequest("POST", `/api/public/inquiry/${threadToken}/create-contract`, payload);
+      console.log("[Contract] Sending contract request:", payload);
+      const res = await apiRequest("POST", `/api/public/inquiry/${threadToken}/create-contract`, payload);
+      console.log("[Contract] Response received:", res);
+      return res;
     },
     onSuccess: () => {
+      console.log("[Contract] Success!");
       queryClient.invalidateQueries({ queryKey: [`/api/public/inquiry/${threadToken}`] });
       // Reset all form state
       setShowContractForm(false);
       setShowContractReview(false);
       setServiceItems([{ ...defaultServiceItem }]);
       setContractData({ depositAmount: "", eventLocation: "", travelFee: "" });
+    },
+    onError: (error: Error) => {
+      console.error("[Contract] Error:", error);
+      alert("Contract error: " + error.message);
     },
   });
 
