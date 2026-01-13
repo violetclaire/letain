@@ -262,7 +262,7 @@ export default function ContractSigning({ token }: ContractSigningProps) {
   const hasSignature = signatureMode === "draw" ? !!drawnSignature : !!typedSignature.trim();
   const canSign = signatureName.trim() && signatureEmail.trim() && hasSignature && agreedToTerms;
 
-  const formatCurrency = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+  const formatCurrency = (amount: number) => `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#FAF7F2] to-white">
@@ -274,7 +274,7 @@ export default function ContractSigning({ token }: ContractSigningProps) {
               className="text-2xl text-[#6B4A55]"
               style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic" }}
             >
-              Your Private Secretary
+              {contract.artistName || "Beauty Services"}
             </h1>
             <p className="text-xs text-[#6B4A55]/60 tracking-widest uppercase">Contract Signing</p>
           </div>
@@ -353,7 +353,7 @@ export default function ContractSigning({ token }: ContractSigningProps) {
                 ref={contractScrollRef}
                 onScroll={handleScroll}
                 className="max-h-[60vh] overflow-y-auto p-6 contract-scroll"
-                style={{ scrollBehavior: 'smooth' }}
+                style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}
               >
                 <div 
                   className="prose prose-sm max-w-none contract-content"
