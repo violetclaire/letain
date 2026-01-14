@@ -12400,6 +12400,38 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         content,
       });
       
+      // Send email notification to artist
+      try {
+        const artist = await storage.getUser(chat.artistId);
+        const profile = await storage.getArtistProfile(chat.artistId);
+        const artistEmail = profile?.contactEmail || artist?.email;
+        const artistName = profile?.businessName || artist?.displayName || "Artist";
+        
+        if (artistEmail) {
+          const chatUrl = `https://dateinquiry.com/artist/chat/${chat.threadToken}`;
+          await emailService.sendEmail({
+            to: artistEmail,
+            subject: `New message from ${chat.participantName}`,
+            html: `
+              <div style="font-family: Inter, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="font-family: Fraunces, serif; color: #1a1a1a;">New Chat Message</h2>
+                <p style="color: #333;">${chat.participantName} sent you a message:</p>
+                <div style="background: #f5f0e8; padding: 16px; border-radius: 8px; margin: 16px 0;">
+                  <p style="color: #1a1a1a; margin: 0;">"${content}"</p>
+                </div>
+                <a href="${chatUrl}" style="display: inline-block; background: #1a1a1a; color: #f5f0e8; padding: 12px 24px; border-radius: 4px; text-decoration: none; margin-top: 16px;">Reply to ${chat.participantName}</a>
+                <p style="color: #666; font-size: 14px; margin-top: 24px;">Your Private Secretary</p>
+              </div>
+            `,
+            fromName: artistName,
+          });
+          console.log(`[Direct Chat] Email notification sent to ${artistEmail}`);
+        }
+      } catch (emailError) {
+        console.error("[Direct Chat] Failed to send email notification:", emailError);
+        // Don't fail the request if email fails
+      }
+      
       res.json(message);
     } catch (error: any) {
       console.error("[Public Chat Message] Error:", error);
