@@ -69,6 +69,7 @@ import SetupComplete from "@/pages/SetupComplete";
 import ThreadPage from "@/pages/ThreadPage";
 import RecoverAccess from "@/pages/RecoverAccess";
 import ArtistAdmin from "@/pages/ArtistAdmin";
+import ArtistClientInbox from "@/pages/ArtistClientInbox";
 import ArtistLogin from "@/pages/ArtistLogin";
 import AccessVerify from "@/pages/AccessVerify";
 import ArtistAvailability from "@/pages/ArtistAvailability";
@@ -123,6 +124,7 @@ function Router() {
       <Route path="/search" component={Waitlist} />
       <Route path="/client" component={ClientDashboard} />
       <Route path="/artist" component={ArtistDashboard} />
+      <Route path="/artist/inbox" component={ArtistClientInbox} />
       <Route path="/planner" component={PlannerDashboard} />
       <Route path="/browse" component={Waitlist} />
       <Route path="/waitlist" component={Waitlist} />
