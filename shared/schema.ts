@@ -609,6 +609,7 @@ export const oauthStates = pgTable("oauth_states", {
   userId: varchar("user_id").notNull(), // User ID this OAuth is for
   artistSlug: text("artist_slug"), // Optional artist slug for public flows
   returnBaseUrl: text("return_base_url"), // URL to redirect after OAuth
+  callbackUrl: text("callback_url"), // Exact callback URL used in authorization (must match for token exchange)
   provider: text("provider").notNull().default("square"), // OAuth provider (square, etc)
   expiresAt: timestamp("expires_at").notNull(), // When this state expires
   createdAt: timestamp("created_at").defaultNow().notNull(),

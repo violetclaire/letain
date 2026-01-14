@@ -50,15 +50,17 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
       // Use dateinquiry.com as the return URL for artist setup flow
       const returnBaseUrl = 'https://dateinquiry.com';
       // Use the callback URL registered in Square (must match exactly)
-      const callbackBaseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
+      const callbackBaseUrl = 'https://dateinquiry.com';
+      const callbackUrl = `${callbackBaseUrl}/api/square/connect/callback`;
       const state = crypto.randomBytes(32).toString('hex');
       
-      // Store state in database for cross-environment persistence
+      // Store state in database for cross-environment persistence (including exact callback URL)
       await storage.createOAuthState({
         state,
         userId: profile.userId,
         artistSlug,
         returnBaseUrl,
+        callbackUrl, // Store exact callback URL for token exchange
         provider: 'square',
         expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
       });
@@ -74,8 +76,8 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
         'ORDERS_WRITE',
       ].join('+');
 
-      // Use the production redirect URL configured in Square dashboard
-      const redirectUri = encodeURIComponent(`${callbackBaseUrl}/api/square/connect/callback`);
+      // Use the exact same callback URL for authorization
+      const redirectUri = encodeURIComponent(callbackUrl);
       const authUrl = `${SQUARE_OAUTH_BASE}/oauth2/authorize?` +
         `client_id=${applicationId}&` +
         `scope=${scope}&` +
@@ -141,13 +143,15 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
       }
 
       const applicationId = getSquareApplicationId();
-      const baseUrl = `https://${req.get('host')}`;
+      // Always use production callback URL for consistency
+      const callbackUrl = 'https://dateinquiry.com/api/square/connect/callback';
       const state = crypto.randomBytes(32).toString('hex');
       
       // Store state in database for cross-environment persistence
       await storage.createOAuthState({
         state,
         userId,
+        callbackUrl, // Store exact callback URL for token exchange
         provider: 'square',
         expiresAt: new Date(Date.now() + 10 * 60 * 1000),
       });
@@ -163,7 +167,7 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
         'ORDERS_WRITE',
       ].join('+');
 
-      const redirectUri = encodeURIComponent(`${baseUrl}/api/square/connect/callback`);
+      const redirectUri = encodeURIComponent(callbackUrl);
       const authUrl = `${SQUARE_OAUTH_BASE}/oauth2/authorize?` +
         `client_id=${applicationId}&` +
         `scope=${scope}&` +
@@ -181,7 +185,6 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
   app.get("/api/square/connect/callback", async (req: Request, res: Response) => {
     try {
       const { code, state, error: oauthError } = req.query;
-      const baseUrl = `https://${req.get('host')}`;
       
       console.log(`[Square OAuth] Callback received - code: ${code ? 'YES' : 'NO'}, state: ${state ? 'YES' : 'NO'}, error: ${oauthError || 'none'}`);
       
@@ -221,6 +224,7 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
       const userId = stateData.userId;
       const artistSlug = stateData.artistSlug;
       const returnBaseUrl = stateData.returnBaseUrl;
+      const callbackUrl = stateData.callbackUrl || `https://${req.get('host')}/api/square/connect/callback`;
 
       const square = getSquare();
       const applicationId = getSquareApplicationId();
@@ -238,7 +242,7 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
         clientSecret: applicationSecret,
         code: String(code),
         grantType: 'authorization_code',
-        redirectUri: `${baseUrl}/api/square/connect/callback`,
+        redirectUri: callbackUrl, // Use exact same URL as authorization
       });
 
       const tokenResponse = response as any;

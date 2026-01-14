@@ -341,8 +341,8 @@ export interface IStorage {
   updateDirectChatLastMessage(id: string): Promise<void>;
   
   // OAuth States (database-backed for cross-environment persistence)
-  createOAuthState(data: { state: string; userId: string; artistSlug?: string; returnBaseUrl?: string; provider?: string; expiresAt: Date }): Promise<void>;
-  getOAuthState(state: string): Promise<{ userId: string; artistSlug?: string | null; returnBaseUrl?: string | null; expiresAt: Date } | undefined>;
+  createOAuthState(data: { state: string; userId: string; artistSlug?: string; returnBaseUrl?: string; callbackUrl?: string; provider?: string; expiresAt: Date }): Promise<void>;
+  getOAuthState(state: string): Promise<{ userId: string; artistSlug?: string | null; returnBaseUrl?: string | null; callbackUrl?: string | null; expiresAt: Date } | undefined>;
   deleteOAuthState(state: string): Promise<void>;
   cleanupExpiredOAuthStates(): Promise<void>;
   
@@ -1592,24 +1592,26 @@ export class DatabaseStorage implements IStorage {
   }
   
   // OAuth States (database-backed for cross-environment persistence)
-  async createOAuthState(data: { state: string; userId: string; artistSlug?: string; returnBaseUrl?: string; provider?: string; expiresAt: Date }): Promise<void> {
+  async createOAuthState(data: { state: string; userId: string; artistSlug?: string; returnBaseUrl?: string; callbackUrl?: string; provider?: string; expiresAt: Date }): Promise<void> {
     await db.insert(oauthStates).values({
       state: data.state,
       userId: data.userId,
       artistSlug: data.artistSlug || null,
       returnBaseUrl: data.returnBaseUrl || null,
+      callbackUrl: data.callbackUrl || null,
       provider: data.provider || 'square',
       expiresAt: data.expiresAt,
     });
   }
   
-  async getOAuthState(state: string): Promise<{ userId: string; artistSlug?: string | null; returnBaseUrl?: string | null; expiresAt: Date } | undefined> {
+  async getOAuthState(state: string): Promise<{ userId: string; artistSlug?: string | null; returnBaseUrl?: string | null; callbackUrl?: string | null; expiresAt: Date } | undefined> {
     const [result] = await db.select().from(oauthStates).where(eq(oauthStates.state, state));
     if (!result) return undefined;
     return {
       userId: result.userId,
       artistSlug: result.artistSlug,
       returnBaseUrl: result.returnBaseUrl,
+      callbackUrl: result.callbackUrl,
       expiresAt: result.expiresAt,
     };
   }
