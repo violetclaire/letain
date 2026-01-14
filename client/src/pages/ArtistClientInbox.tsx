@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Send, MessageSquare, Clock, Mail, ChevronRight, Search, User, Calendar, Phone } from "lucide-react";
+import { Loader2, Send, MessageSquare, ChevronDown, ChevronUp, Search, User, Calendar, Phone } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface Inquiry {
@@ -52,11 +52,33 @@ type ClientItem = {
   phone?: string;
   eventDate?: string;
   status?: string;
-  lastMessage?: string;
   createdAt: string;
   threadToken?: string;
-  isNew?: boolean;
 };
+
+const STATUS_ORDER = ['pending', 'responded', 'accepted', 'contract sent', 'referred', 'declined', 'completed'];
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'New',
+  responded: 'Responded',
+  accepted: 'Accepted',
+  'contract sent': 'Contract Sent',
+  referred: 'Referred',
+  declined: 'Declined',
+  completed: 'Completed',
+  'auto responded': 'Auto Responded',
+};
+
+function getStatusColor(status: string): string {
+  switch (status) {
+    case 'pending': return 'bg-[#1A1A1A] text-[#F5F0E8]';
+    case 'responded': return 'bg-[#E8E2D9] text-[#1A1A1A]';
+    case 'accepted': return 'bg-green-100 text-green-800';
+    case 'contract sent': return 'bg-blue-100 text-blue-800';
+    case 'referred': return 'bg-purple-100 text-purple-800';
+    case 'declined': return 'bg-red-100 text-red-800';
+    default: return 'bg-[#E8E2D9] text-[#666]';
+  }
+}
 
 export default function ArtistClientInbox() {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
@@ -66,9 +88,10 @@ export default function ArtistClientInbox() {
   const [selectedClient, setSelectedClient] = useState<ClientItem | null>(null);
   const [message, setMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set(['completed', 'declined', 'referred']));
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch inquiries
   const { data: inquiries = [], isLoading: inquiriesLoading } = useQuery<Inquiry[]>({
     queryKey: ["/api/artist/inquiries"],
     queryFn: async () => {
@@ -79,7 +102,6 @@ export default function ArtistClientInbox() {
     enabled: isAuthenticated,
   });
 
-  // Fetch direct chats
   const { data: directChats = [], isLoading: chatsLoading } = useQuery<DirectChat[]>({
     queryKey: ["/api/artist/direct-chats"],
     queryFn: async () => {
@@ -90,7 +112,6 @@ export default function ArtistClientInbox() {
     enabled: isAuthenticated,
   });
 
-  // Fetch messages for selected inquiry thread
   const { data: threadMessages = [] } = useQuery<ThreadMessage[]>({
     queryKey: ["/api/threads", selectedClient?.threadToken, "messages"],
     queryFn: async () => {
@@ -103,7 +124,6 @@ export default function ArtistClientInbox() {
     refetchInterval: 5000,
   });
 
-  // Fetch messages for selected direct chat
   const { data: chatData } = useQuery<{ chat: DirectChat; messages: DirectChatMessage[] }>({
     queryKey: ["/api/artist/direct-chat", selectedClient?.threadToken],
     queryFn: async () => {
@@ -116,7 +136,6 @@ export default function ArtistClientInbox() {
     refetchInterval: 5000,
   });
 
-  // Send message to inquiry thread
   const sendThreadMessage = useMutation({
     mutationFn: async (body: string) => {
       const res = await fetch(`/api/threads/${selectedClient?.threadToken}/artist-messages`, {
@@ -134,7 +153,6 @@ export default function ArtistClientInbox() {
     },
   });
 
-  // Send message to direct chat
   const sendChatMessage = useMutation({
     mutationFn: async (content: string) => {
       const res = await fetch(`/api/artist/direct-chat/${selectedClient?.threadToken}/messages`, {
@@ -152,7 +170,7 @@ export default function ArtistClientInbox() {
     },
   });
 
-  // Combine and sort clients
+  // Combine clients
   const allClients: ClientItem[] = [
     ...inquiries.map((inq) => ({
       type: 'inquiry' as const,
@@ -164,7 +182,6 @@ export default function ArtistClientInbox() {
       status: inq.status,
       createdAt: inq.createdAt,
       threadToken: inq.threadToken,
-      isNew: inq.status === 'pending',
     })),
     ...directChats.map((chat) => ({
       type: 'chat' as const,
@@ -173,23 +190,47 @@ export default function ArtistClientInbox() {
       email: chat.participantEmail,
       createdAt: chat.createdAt,
       threadToken: chat.threadToken,
-      isNew: false,
+      status: 'chat',
     })),
-  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  ];
 
-  // Filter by search
-  const filteredClients = allClients.filter((c) =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter by search and status
+  const filteredClients = allClients.filter((c) => {
+    const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
-  // New inquiries (pending status)
-  const newInquiries = filteredClients.filter((c) => c.type === 'inquiry' && c.isNew);
+  // Group by status
+  const groupedClients = filteredClients.reduce((acc, client) => {
+    const status = client.status || 'other';
+    if (!acc[status]) acc[status] = [];
+    acc[status].push(client);
+    return acc;
+  }, {} as Record<string, ClientItem[]>);
 
-  // All other clients
-  const otherClients = filteredClients.filter((c) => !(c.type === 'inquiry' && c.isNew));
+  // Sort within groups by createdAt
+  Object.keys(groupedClients).forEach(status => {
+    groupedClients[status].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  });
 
-  // Get current messages
+  // Get status counts
+  const statusCounts = allClients.reduce((acc, c) => {
+    const status = c.status || 'other';
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const toggleSection = (status: string) => {
+    setCollapsedSections(prev => {
+      const next = new Set(prev);
+      if (next.has(status)) next.delete(status);
+      else next.add(status);
+      return next;
+    });
+  };
+
   const currentMessages = selectedClient?.type === 'inquiry' 
     ? threadMessages.map(m => ({ 
         id: m.id, 
@@ -206,7 +247,6 @@ export default function ArtistClientInbox() {
         createdAt: m.createdAt,
       }));
 
-  // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [currentMessages]);
@@ -238,200 +278,206 @@ export default function ArtistClientInbox() {
 
   const isLoading = inquiriesLoading || chatsLoading;
 
+  // Order of sections to display
+  const orderedStatuses = [...STATUS_ORDER, 'chat', 'auto responded', 'other'].filter(s => groupedClients[s]?.length);
+
   return (
-    <div className="min-h-screen bg-[#FAF8F5]">
-      {/* New Inquiries Strip */}
-      {newInquiries.length > 0 && (
-        <div className="bg-[#F5F0E8] border-b border-[#E8E2D9] px-6 py-4">
-          <h2 className="text-sm font-medium text-[#666] uppercase tracking-wide mb-3">New Inquiries</h2>
-          <div className="flex gap-3 overflow-x-auto pb-2">
-            {newInquiries.slice(0, 5).map((client) => (
-              <button
-                key={client.id}
-                onClick={() => setSelectedClient(client)}
-                className={`flex-shrink-0 bg-white border rounded-lg p-4 text-left hover:border-[#1A1A1A] transition-colors min-w-[200px] ${
-                  selectedClient?.id === client.id ? 'border-[#1A1A1A] ring-1 ring-[#1A1A1A]' : 'border-[#E8E2D9]'
-                }`}
-              >
-                <p className="font-medium text-[#1A1A1A]" style={{ fontFamily: "'Fraunces', serif" }}>{client.name}</p>
-                {client.eventDate && (
-                  <p className="text-sm text-[#666] mt-1 flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    {new Date(client.eventDate).toLocaleDateString()}
-                  </p>
-                )}
-                <p className="text-xs text-[#999] mt-2">
-                  {formatDistanceToNow(new Date(client.createdAt), { addSuffix: true })}
-                </p>
-              </button>
-            ))}
+    <div className="min-h-screen bg-[#FAF8F5] flex">
+      {/* Left: Client List */}
+      <div className="w-72 border-r border-[#E8E2D9] bg-white flex flex-col h-screen">
+        {/* Header */}
+        <div className="p-3 border-b border-[#E8E2D9]">
+          <h1 className="text-lg font-medium text-[#1A1A1A]" style={{ fontFamily: "'Fraunces', serif" }}>Clients</h1>
+        </div>
+
+        {/* Search */}
+        <div className="p-2 border-b border-[#E8E2D9]">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-[#999]" />
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 text-sm border border-[#E8E2D9] rounded bg-[#FAF8F5] text-[#1A1A1A] placeholder-[#999] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
+            />
           </div>
         </div>
-      )}
 
-      {/* Main Content - Split Pane */}
-      <div className="flex h-[calc(100vh-120px)]">
-        {/* Left: Client List */}
-        <div className="w-80 border-r border-[#E8E2D9] bg-white flex flex-col">
-          {/* Search */}
-          <div className="p-4 border-b border-[#E8E2D9]">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#999]" />
-              <input
-                type="text"
-                placeholder="Search clients..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-[#E8E2D9] rounded-lg bg-[#FAF8F5] text-[#1A1A1A] placeholder-[#999] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
-              />
+        {/* Status Filter Pills */}
+        <div className="p-2 border-b border-[#E8E2D9] flex flex-wrap gap-1">
+          <button
+            onClick={() => setStatusFilter('all')}
+            className={`px-2 py-1 text-xs rounded ${statusFilter === 'all' ? 'bg-[#1A1A1A] text-[#F5F0E8]' : 'bg-[#F5F0E8] text-[#666] hover:bg-[#E8E2D9]'}`}
+          >
+            All ({allClients.length})
+          </button>
+          <button
+            onClick={() => setStatusFilter('pending')}
+            className={`px-2 py-1 text-xs rounded ${statusFilter === 'pending' ? 'bg-[#1A1A1A] text-[#F5F0E8]' : 'bg-[#F5F0E8] text-[#666] hover:bg-[#E8E2D9]'}`}
+          >
+            New ({statusCounts['pending'] || 0})
+          </button>
+          <button
+            onClick={() => setStatusFilter('accepted')}
+            className={`px-2 py-1 text-xs rounded ${statusFilter === 'accepted' ? 'bg-[#1A1A1A] text-[#F5F0E8]' : 'bg-[#F5F0E8] text-[#666] hover:bg-[#E8E2D9]'}`}
+          >
+            Booked ({statusCounts['accepted'] || 0})
+          </button>
+        </div>
+
+        {/* Client List - Grouped */}
+        <div className="flex-1 overflow-y-auto">
+          {isLoading ? (
+            <div className="flex items-center justify-center h-32">
+              <Loader2 className="w-6 h-6 animate-spin text-[#999]" />
             </div>
-          </div>
-
-          {/* Client List */}
-          <div className="flex-1 overflow-y-auto">
-            {isLoading ? (
-              <div className="flex items-center justify-center h-32">
-                <Loader2 className="w-6 h-6 animate-spin text-[#999]" />
-              </div>
-            ) : filteredClients.length === 0 ? (
-              <div className="text-center py-12 text-[#999]">
-                <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>No clients yet</p>
-              </div>
-            ) : (
-              <div>
-                {filteredClients.map((client) => (
+          ) : filteredClients.length === 0 ? (
+            <div className="text-center py-8 text-[#999]">
+              <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No clients found</p>
+            </div>
+          ) : (
+            orderedStatuses.map(status => (
+              <div key={status}>
+                {/* Section Header */}
+                <button
+                  onClick={() => toggleSection(status)}
+                  className="w-full flex items-center justify-between px-3 py-2 bg-[#F5F0E8] text-xs font-medium text-[#666] uppercase tracking-wide hover:bg-[#E8E2D9]"
+                >
+                  <span>{STATUS_LABELS[status] || status} ({groupedClients[status].length})</span>
+                  {collapsedSections.has(status) ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
+                </button>
+                
+                {/* Section Content */}
+                {!collapsedSections.has(status) && groupedClients[status].map((client) => (
                   <button
                     key={`${client.type}-${client.id}`}
                     onClick={() => setSelectedClient(client)}
-                    className={`w-full text-left p-4 border-b border-[#E8E2D9] hover:bg-[#FAF8F5] transition-colors ${
+                    className={`w-full text-left px-3 py-2 border-b border-[#F5F0E8] hover:bg-[#FAF8F5] transition-colors ${
                       selectedClient?.id === client.id ? 'bg-[#F5F0E8]' : ''
                     }`}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-[#1A1A1A] truncate">{client.name}</p>
-                          {client.isNew && (
-                            <span className="px-2 py-0.5 text-xs bg-[#1A1A1A] text-[#F5F0E8] rounded">New</span>
-                          )}
-                        </div>
-                        <p className="text-sm text-[#666] truncate">{client.email}</p>
-                        {client.eventDate && (
-                          <p className="text-xs text-[#999] mt-1">
-                            Event: {new Date(client.eventDate).toLocaleDateString()}
-                          </p>
-                        )}
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-[#999] flex-shrink-0" />
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-sm text-[#1A1A1A] truncate flex-1">{client.name}</span>
+                      {client.eventDate && (
+                        <span className="text-xs text-[#999] flex-shrink-0">
+                          {new Date(client.eventDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </span>
+                      )}
                     </div>
-                    <p className="text-xs text-[#999] mt-2">
+                    <p className="text-xs text-[#999] mt-0.5">
                       {formatDistanceToNow(new Date(client.createdAt), { addSuffix: true })}
                     </p>
                   </button>
                 ))}
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right: Chat Pane */}
-        <div className="flex-1 flex flex-col bg-[#FAF8F5]">
-          {selectedClient ? (
-            <>
-              {/* Chat Header */}
-              <div className="bg-white border-b border-[#E8E2D9] p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-medium text-[#1A1A1A]" style={{ fontFamily: "'Fraunces', serif" }}>
-                      {selectedClient.name}
-                    </h2>
-                    <p className="text-sm text-[#666]">{selectedClient.email}</p>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm text-[#666]">
-                    {selectedClient.phone && (
-                      <span className="flex items-center gap-1">
-                        <Phone className="w-4 h-4" />
-                        {selectedClient.phone}
-                      </span>
-                    )}
-                    {selectedClient.eventDate && (
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        {new Date(selectedClient.eventDate).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4">
-                {currentMessages.length === 0 ? (
-                  <div className="text-center py-12 text-[#999]">
-                    <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>No messages yet. Start the conversation!</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4 max-w-2xl mx-auto">
-                    {currentMessages.map((msg) => (
-                      <div
-                        key={msg.id}
-                        className={`flex ${msg.isArtist ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div
-                          className={`max-w-[70%] rounded-lg px-4 py-3 ${
-                            msg.isArtist
-                              ? 'bg-[#1A1A1A] text-[#F5F0E8]'
-                              : 'bg-white border border-[#E8E2D9] text-[#1A1A1A]'
-                          }`}
-                        >
-                          <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                          <p className={`text-xs mt-2 ${msg.isArtist ? 'text-[#F5F0E8]/60' : 'text-[#999]'}`}>
-                            {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                    <div ref={messagesEndRef} />
-                  </div>
-                )}
-              </div>
-
-              {/* Message Input */}
-              <div className="bg-white border-t border-[#E8E2D9] p-4">
-                <div className="flex gap-3 max-w-2xl mx-auto">
-                  <input
-                    type="text"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-                    placeholder="Type a message..."
-                    className="flex-1 px-4 py-3 border border-[#E8E2D9] rounded-lg bg-[#FAF8F5] text-[#1A1A1A] placeholder-[#999] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
-                  />
-                  <button
-                    onClick={handleSend}
-                    disabled={!message.trim() || sendThreadMessage.isPending || sendChatMessage.isPending}
-                    className="px-6 py-3 bg-[#1A1A1A] text-[#F5F0E8] rounded-lg hover:bg-[#333] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {sendThreadMessage.isPending || sendChatMessage.isPending ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <Send className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-[#999]">
-              <div className="text-center">
-                <User className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <p className="text-lg">Select a client to start chatting</p>
-              </div>
-            </div>
+            ))
           )}
         </div>
+      </div>
+
+      {/* Right: Chat Pane */}
+      <div className="flex-1 flex flex-col bg-[#FAF8F5] h-screen">
+        {selectedClient ? (
+          <>
+            {/* Chat Header */}
+            <div className="bg-white border-b border-[#E8E2D9] p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-medium text-[#1A1A1A]" style={{ fontFamily: "'Fraunces', serif" }}>
+                    {selectedClient.name}
+                  </h2>
+                  <p className="text-sm text-[#666]">{selectedClient.email}</p>
+                </div>
+                <div className="flex items-center gap-4 text-sm text-[#666]">
+                  {selectedClient.status && selectedClient.type === 'inquiry' && (
+                    <span className={`px-2 py-1 rounded text-xs ${getStatusColor(selectedClient.status)}`}>
+                      {STATUS_LABELS[selectedClient.status] || selectedClient.status}
+                    </span>
+                  )}
+                  {selectedClient.phone && (
+                    <span className="flex items-center gap-1">
+                      <Phone className="w-4 h-4" />
+                      {selectedClient.phone}
+                    </span>
+                  )}
+                  {selectedClient.eventDate && (
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-4 h-4" />
+                      {new Date(selectedClient.eventDate).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {currentMessages.length === 0 ? (
+                <div className="text-center py-12 text-[#999]">
+                  <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No messages yet. Start the conversation!</p>
+                </div>
+              ) : (
+                <div className="space-y-4 max-w-2xl mx-auto">
+                  {currentMessages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={`flex ${msg.isArtist ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-[70%] rounded-lg px-4 py-3 ${
+                          msg.isArtist
+                            ? 'bg-[#1A1A1A] text-[#F5F0E8]'
+                            : 'bg-white border border-[#E8E2D9] text-[#1A1A1A]'
+                        }`}
+                      >
+                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        <p className={`text-xs mt-2 ${msg.isArtist ? 'text-[#F5F0E8]/60' : 'text-[#999]'}`}>
+                          {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} />
+                </div>
+              )}
+            </div>
+
+            {/* Message Input */}
+            <div className="bg-white border-t border-[#E8E2D9] p-4">
+              <div className="flex gap-3 max-w-2xl mx-auto">
+                <input
+                  type="text"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                  placeholder="Type a message..."
+                  className="flex-1 px-4 py-3 border border-[#E8E2D9] rounded-lg bg-[#FAF8F5] text-[#1A1A1A] placeholder-[#999] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
+                />
+                <button
+                  onClick={handleSend}
+                  disabled={!message.trim() || sendThreadMessage.isPending || sendChatMessage.isPending}
+                  className="px-6 py-3 bg-[#1A1A1A] text-[#F5F0E8] rounded-lg hover:bg-[#333] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {sendThreadMessage.isPending || sendChatMessage.isPending ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Send className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-[#999]">
+            <div className="text-center">
+              <User className="w-16 h-16 mx-auto mb-4 opacity-50" />
+              <p className="text-lg">Select a client to start chatting</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
