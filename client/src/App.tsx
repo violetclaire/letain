@@ -33,6 +33,7 @@ import ContractEditor from "@/pages/ContractEditor";
 import VendorProfile from "@/pages/VendorProfile";
 import ScheduleList from "@/pages/ScheduleList";
 import ScheduleCreator from "@/pages/ScheduleCreator";
+import ScheduleBuilder from "@/pages/ScheduleBuilder";
 import PublicSchedule from "@/pages/PublicSchedule";
 import MultiDaySchedule from "@/pages/MultiDaySchedule";
 import DemoLanding from "@/pages/demo/DemoLanding";
@@ -147,6 +148,7 @@ function Router() {
       
       {/* Day-of Schedule Routes */}
       <Route path="/artist/schedules" component={ScheduleList} />
+      <Route path="/artist/schedule-builder" component={ScheduleBuilder} />
       <Route path="/schedule-creator/:scheduleId">
         {(params) => <ScheduleCreator scheduleId={params.scheduleId} />}
       </Route>

@@ -5951,6 +5951,51 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     }
   });
 
+  // Schedule chat with email notification
+  app.post("/api/schedule-chat", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getAuthUserId(req);
+      const { scheduleId, recipientEmail, message, shareToken } = req.body;
+      
+      if (!scheduleId || !recipientEmail || !message) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      const schedule = await storage.getEventDaySchedule(scheduleId);
+      if (!schedule || schedule.artistId !== userId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      const profile = await storage.getArtistProfile(userId);
+      const artistName = profile?.businessName || "Your Artist";
+      
+      const scheduleUrl = shareToken 
+        ? `${getBaseUrl()}/schedule/${shareToken}`
+        : `${getBaseUrl()}/artist/schedules`;
+      
+      await emailService.sendEmail({
+        to: recipientEmail,
+        subject: `Schedule Update: ${schedule.eventName}`,
+        html: `
+          <div style="font-family: Inter, sans-serif; max-width: 600px; margin: 0 auto; background: #FAF8F5; padding: 24px; border-radius: 8px;">
+            <h2 style="font-family: Fraunces, serif; color: #1A1A1A; margin-bottom: 16px;">Schedule Update</h2>
+            <p style="color: #1A1A1A; margin-bottom: 16px;">${artistName} sent you a message about <strong>${schedule.eventName}</strong>:</p>
+            <div style="background: #F5F0E8; padding: 16px; border-radius: 8px; margin-bottom: 24px; border-left: 3px solid #1A1A1A;">
+              <p style="color: #1A1A1A; margin: 0;">"${message}"</p>
+            </div>
+            <a href="${scheduleUrl}" style="display: inline-block; background: #1A1A1A; color: #F5F0E8; padding: 12px 24px; border-radius: 6px; text-decoration: none;">View Schedule</a>
+          </div>
+        `,
+        fromName: artistName,
+      });
+      
+      res.json({ success: true, message: "Chat message sent with email notification" });
+    } catch (error: any) {
+      console.error("[Schedule Chat] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to send chat message" });
+    }
+  });
+
   // ========== CHAT INVITES ==========
   app.post("/api/chat-invites", isAuthenticated, async (req: any, res) => {
     try {
