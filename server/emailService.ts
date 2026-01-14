@@ -1052,25 +1052,21 @@ export async function sendChatInviteEmail({
     <html>
     <head>
       <style>
-        body { font-family: 'Georgia', serif; background-color: #f5f1e8; margin: 0; padding: 20px; }
-        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        body { font-family: 'Georgia', serif; background-color: #F5F0E8; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: #FAF8F5; border-radius: 8px; overflow: hidden; border: 1px solid #E8E2D9; }
         .header { 
-          background-color: #FAF7F2;
-          background-image:
-            repeating-linear-gradient(0deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px),
-            repeating-linear-gradient(90deg, transparent, transparent 12px, rgba(107, 74, 85, 0.35) 12px, rgba(107, 74, 85, 0.35) 24px);
+          background-color: #FAF8F5;
           padding: 28px; 
           text-align: center;
-          border-bottom: 1px solid rgba(107, 74, 85, 0.2);
+          border-bottom: 1px solid #E8E2D9;
         }
-        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55; }
-        .header p { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin: 8px 0 0 0; color: #6B4A55; opacity: 0.8; }
-        .content { padding: 32px; color: #262329; line-height: 1.6; }
-        .highlight-box { background: linear-gradient(135deg, #FAF7F2 0%, #f9f4ed 100%); border-radius: 8px; padding: 24px; margin: 24px 0; border-left: 3px solid #C9A961; }
-        .button { display: inline-block; background: #6B4A55; color: white !important; padding: 16px 32px; text-decoration: none; border-radius: 6px; font-size: 15px; letter-spacing: 1px; font-weight: bold; }
-        .button:hover { background: #8a6270; }
-        .footer { background: #262329; color: white; padding: 20px; text-align: center; font-size: 12px; }
-        .footer a { color: #C9A961; }
+        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 28px; margin: 0; font-weight: normal; color: #1A1A1A; }
+        .header p { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin: 8px 0 0 0; color: #666; }
+        .content { padding: 32px; color: #1A1A1A; line-height: 1.6; }
+        .highlight-box { background: #F5F0E8; border-radius: 8px; padding: 24px; margin: 24px 0; border-left: 3px solid #1A1A1A; }
+        .button { display: inline-block; background: #1A1A1A; color: #F5F0E8 !important; padding: 16px 32px; text-decoration: none; border-radius: 6px; font-size: 15px; font-weight: bold; }
+        .footer { background: #FAF8F5; color: #666; padding: 20px; text-align: center; font-size: 12px; border-top: 1px solid #E8E2D9; }
+        .footer a { color: #1A1A1A; }
       </style>
     </head>
     <body>
@@ -1096,9 +1092,9 @@ export async function sendChatInviteEmail({
             <a href="${chatLink}" class="button">Start Chat</a>
           </p>
           
-          <p style="color: #888; font-size: 13px; margin-top: 24px;">${expiryText}</p>
+          <p style="color: #666; font-size: 13px; margin-top: 24px;">${expiryText}</p>
           
-          <p style="color: #888; font-size: 13px;">Or copy this link: <a href="${chatLink}" style="color: #C9A961;">${chatLink}</a></p>
+          <p style="color: #666; font-size: 13px;">Or copy this link: <a href="${chatLink}" style="color: #1A1A1A;">${chatLink}</a></p>
         </div>
         <div class="footer">
           ${escapeHtml(vendorName)}
@@ -1143,7 +1139,7 @@ export async function sendQuickChatInviteEmail({
   const { client } = await getResendClient();
   
   const messagePreview = initialMessage 
-    ? `<div style="background: #f5f5f5; border-left: 3px solid #C4A35A; padding: 16px; margin: 20px 0; font-style: italic;">"${escapeHtml(initialMessage)}"</div>`
+    ? `<div style="background: #F5F0E8; border-left: 3px solid #1A1A1A; padding: 16px; margin: 20px 0; font-style: italic; color: #1A1A1A;">"${escapeHtml(initialMessage)}"</div>`
     : '';
 
   const htmlContent = `
@@ -1151,18 +1147,18 @@ export async function sendQuickChatInviteEmail({
     <html>
     <head>
       <style>
-        body { font-family: 'Georgia', serif; background-color: #1A1A1A; margin: 0; padding: 20px; }
-        .container { max-width: 600px; margin: 0 auto; background: #222; border-radius: 8px; overflow: hidden; }
+        body { font-family: 'Georgia', serif; background-color: #F5F0E8; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: #FAF8F5; border-radius: 8px; overflow: hidden; border: 1px solid #E8E2D9; }
         .header { 
-          background-color: #1A1A1A;
+          background-color: #FAF8F5;
           padding: 28px; 
           text-align: center;
-          border-bottom: 1px solid rgba(245, 240, 232, 0.1);
+          border-bottom: 1px solid #E8E2D9;
         }
-        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 24px; margin: 0; font-weight: normal; color: #F5F0E8; }
-        .content { padding: 32px; color: #F5F0E8; line-height: 1.6; }
-        .button { display: inline-block; background: #C4A35A; color: #1A1A1A !important; padding: 16px 32px; text-decoration: none; border-radius: 6px; font-size: 15px; font-weight: bold; }
-        .footer { background: #1A1A1A; color: #F5F0E8; opacity: 0.6; padding: 20px; text-align: center; font-size: 12px; }
+        .header h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 24px; margin: 0; font-weight: normal; color: #1A1A1A; }
+        .content { padding: 32px; color: #1A1A1A; line-height: 1.6; }
+        .button { display: inline-block; background: #1A1A1A; color: #F5F0E8 !important; padding: 16px 32px; text-decoration: none; border-radius: 6px; font-size: 15px; font-weight: bold; }
+        .footer { background: #FAF8F5; color: #666; padding: 20px; text-align: center; font-size: 12px; border-top: 1px solid #E8E2D9; }
       </style>
     </head>
     <body>
@@ -1180,7 +1176,7 @@ export async function sendQuickChatInviteEmail({
             <a href="${chatLink}" class="button">Open Conversation</a>
           </p>
           
-          <p style="color: #999; font-size: 13px;">Or copy this link: <a href="${chatLink}" style="color: #C4A35A;">${chatLink}</a></p>
+          <p style="color: #666; font-size: 13px;">Or copy this link: <a href="${chatLink}" style="color: #1A1A1A;">${chatLink}</a></p>
         </div>
         <div class="footer">
           Sent via Date Inquiry
