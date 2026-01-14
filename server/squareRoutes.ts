@@ -21,22 +21,14 @@ const PLATFORM_FEE_PERCENT = 1.5;
 // Always use production Square URLs since we're using production credentials
 const SQUARE_OAUTH_BASE = 'https://connect.squareup.com';
 
-const oauthStates = new Map<string, { userId: string; expires: number }>();
-
-function cleanupExpiredStates() {
-  const now = Date.now();
-  const entries = Array.from(oauthStates.entries());
-  for (const [state, data] of entries) {
-    if (data.expires < now) {
-      oauthStates.delete(state);
-    }
+// Cleanup expired OAuth states from database every minute
+setInterval(async () => {
+  try {
+    await storage.cleanupExpiredOAuthStates();
+  } catch (error) {
+    console.error("[Square OAuth] Failed to cleanup expired states:", error);
   }
-}
-
-setInterval(cleanupExpiredStates, 60000);
-
-// Store artist slug for public OAuth flow
-const oauthSlugStates = new Map<string, { artistSlug: string; userId: string; returnBaseUrl: string; expires: number }>();
+}, 60000);
 
 export function registerSquareRoutes(app: Express, isAuthenticated: any) {
   
@@ -61,12 +53,14 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
       const callbackBaseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
       const state = crypto.randomBytes(32).toString('hex');
       
-      // Store state with artist info and return URL
-      oauthSlugStates.set(state, {
-        artistSlug,
+      // Store state in database for cross-environment persistence
+      await storage.createOAuthState({
+        state,
         userId: profile.userId,
+        artistSlug,
         returnBaseUrl,
-        expires: Date.now() + 10 * 60 * 1000 // 10 minutes
+        provider: 'square',
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
       });
       
       const scope = [
@@ -150,9 +144,12 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
       const baseUrl = `https://${req.get('host')}`;
       const state = crypto.randomBytes(32).toString('hex');
       
-      oauthStates.set(state, {
+      // Store state in database for cross-environment persistence
+      await storage.createOAuthState({
+        state,
         userId,
-        expires: Date.now() + 10 * 60 * 1000
+        provider: 'square',
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
       });
       
       const scope = [
@@ -203,36 +200,27 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
         return res.redirect(`/artist?square=error&message=Invalid state parameter`);
       }
 
-      // Check both state maps (authenticated flow and public slug flow)
-      console.log(`[Square OAuth] Looking up state. Auth states: ${oauthStates.size}, Slug states: ${oauthSlugStates.size}`);
+      // Look up state from database (works across environments)
+      console.log(`[Square OAuth] Looking up state from database`);
       
-      let userId: string;
-      let artistSlug: string | null = null;
-      let returnBaseUrl: string | null = null;
+      const stateData = await storage.getOAuthState(state);
       
-      const authStateData = oauthStates.get(state);
-      const slugStateData = oauthSlugStates.get(state);
-      
-      if (authStateData) {
-        if (authStateData.expires < Date.now()) {
-          oauthStates.delete(state);
-          return res.redirect(`/artist?square=error&message=Authorization expired, please try again`);
-        }
-        oauthStates.delete(state);
-        userId = authStateData.userId;
-      } else if (slugStateData) {
-        if (slugStateData.expires < Date.now()) {
-          oauthSlugStates.delete(state);
-          return res.redirect(`/artist?square=error&message=Authorization expired, please try again`);
-        }
-        oauthSlugStates.delete(state);
-        userId = slugStateData.userId;
-        artistSlug = slugStateData.artistSlug;
-        returnBaseUrl = slugStateData.returnBaseUrl;
-      } else {
-        console.log('[Square OAuth] State not found in memory - may have expired or app restarted');
+      if (!stateData) {
+        console.log('[Square OAuth] State not found in database - may have expired');
         return res.redirect(`/artist?square=error&message=Session expired - please try connecting again`);
       }
+      
+      if (stateData.expiresAt < new Date()) {
+        await storage.deleteOAuthState(state);
+        return res.redirect(`/artist?square=error&message=Authorization expired, please try again`);
+      }
+      
+      // Delete state after use (one-time use)
+      await storage.deleteOAuthState(state);
+      
+      const userId = stateData.userId;
+      const artistSlug = stateData.artistSlug;
+      const returnBaseUrl = stateData.returnBaseUrl;
 
       const square = getSquare();
       const applicationId = getSquareApplicationId();

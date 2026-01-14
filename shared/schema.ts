@@ -602,6 +602,25 @@ export const directChatMessages = pgTable("direct_chat_messages", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// OAuth states - database-backed OAuth state storage for cross-environment persistence
+export const oauthStates = pgTable("oauth_states", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  state: varchar("state").notNull().unique(), // The random state token
+  userId: varchar("user_id").notNull(), // User ID this OAuth is for
+  artistSlug: text("artist_slug"), // Optional artist slug for public flows
+  returnBaseUrl: text("return_base_url"), // URL to redirect after OAuth
+  provider: text("provider").notNull().default("square"), // OAuth provider (square, etc)
+  expiresAt: timestamp("expires_at").notNull(), // When this state expires
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertOAuthStateSchema = createInsertSchema(oauthStates).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertOAuthState = z.infer<typeof insertOAuthStateSchema>;
+export type OAuthState = typeof oauthStates.$inferSelect;
+
 // Hold struct type for inquiries
 export type InquiryHoldStruct = {
   placedAt: string | null;

@@ -19,6 +19,7 @@ import {
   chatInviteMessages,
   directChats,
   directChatMessages,
+  oauthStates,
   conversations,
   conversationParticipants,
   teamMembers,
@@ -183,7 +184,7 @@ import {
   type TrustedCircle,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, lte, desc, asc, or, sql, inArray } from "drizzle-orm";
+import { eq, and, gte, lte, lt, desc, asc, or, sql, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // Users (including Replit Auth)
@@ -338,6 +339,12 @@ export interface IStorage {
   getDirectChatMessages(directChatId: string): Promise<DirectChatMessage[]>;
   createDirectChatMessage(message: InsertDirectChatMessage): Promise<DirectChatMessage>;
   updateDirectChatLastMessage(id: string): Promise<void>;
+  
+  // OAuth States (database-backed for cross-environment persistence)
+  createOAuthState(data: { state: string; userId: string; artistSlug?: string; returnBaseUrl?: string; provider?: string; expiresAt: Date }): Promise<void>;
+  getOAuthState(state: string): Promise<{ userId: string; artistSlug?: string | null; returnBaseUrl?: string | null; expiresAt: Date } | undefined>;
+  deleteOAuthState(state: string): Promise<void>;
+  cleanupExpiredOAuthStates(): Promise<void>;
   
   // Conversations
   getConversation(id: string): Promise<Conversation | undefined>;
@@ -1582,6 +1589,37 @@ export class DatabaseStorage implements IStorage {
     await db.update(directChats)
       .set({ lastMessageAt: new Date() })
       .where(eq(directChats.id, id));
+  }
+  
+  // OAuth States (database-backed for cross-environment persistence)
+  async createOAuthState(data: { state: string; userId: string; artistSlug?: string; returnBaseUrl?: string; provider?: string; expiresAt: Date }): Promise<void> {
+    await db.insert(oauthStates).values({
+      state: data.state,
+      userId: data.userId,
+      artistSlug: data.artistSlug || null,
+      returnBaseUrl: data.returnBaseUrl || null,
+      provider: data.provider || 'square',
+      expiresAt: data.expiresAt,
+    });
+  }
+  
+  async getOAuthState(state: string): Promise<{ userId: string; artistSlug?: string | null; returnBaseUrl?: string | null; expiresAt: Date } | undefined> {
+    const [result] = await db.select().from(oauthStates).where(eq(oauthStates.state, state));
+    if (!result) return undefined;
+    return {
+      userId: result.userId,
+      artistSlug: result.artistSlug,
+      returnBaseUrl: result.returnBaseUrl,
+      expiresAt: result.expiresAt,
+    };
+  }
+  
+  async deleteOAuthState(state: string): Promise<void> {
+    await db.delete(oauthStates).where(eq(oauthStates.state, state));
+  }
+  
+  async cleanupExpiredOAuthStates(): Promise<void> {
+    await db.delete(oauthStates).where(lt(oauthStates.expiresAt, new Date()));
   }
 
   // Conversations
