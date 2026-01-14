@@ -357,7 +357,9 @@ export default function ContractSigning({ token }: ContractSigningProps) {
               >
                 <div 
                   className="prose prose-sm max-w-none contract-content"
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(contract.contractHtml) }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(contract.contractHtml, { 
+                    FORBID_TAGS: ['style'], // Prevent global CSS from breaking page scroll
+                  }) }}
                 />
               </div>
             </Card>
