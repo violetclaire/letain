@@ -37,8 +37,8 @@ interface ArtistProfile {
   userId: string;
   businessName: string;
   artistSlug?: string;
-  squareAccessToken?: string;
-  contractTemplate?: string;
+  squareAccessToken?: boolean;
+  contractTemplate?: boolean;
   prettyLinks?: Record<string, string>;
   onboardingCompleted?: boolean;
   infoSheetContent?: string;
@@ -118,6 +118,9 @@ export default function InquiryThread() {
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const { toast } = useToast();
 
+  // Handle Square OAuth success callback
+  const squareSuccess = urlParams.get('square') === 'success';
+  
   // Auto-open forms based on URL tab parameter
   useEffect(() => {
     if (tabParam === 'payment') {
@@ -125,7 +128,16 @@ export default function InquiryThread() {
     } else if (tabParam === 'contract') {
       setShowContractForm(true);
     }
-  }, [tabParam]);
+    
+    // Show success message and refetch data if just connected Square
+    if (squareSuccess) {
+      toast({ title: "Square connected!", description: "You can now send invoices" });
+      queryClient.invalidateQueries({ queryKey: [`/api/public/inquiry/${threadToken}`] });
+      // Clean up URL
+      const newUrl = window.location.pathname + (tabParam ? `?tab=${tabParam}` : '');
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [tabParam, squareSuccess, toast, queryClient, threadToken]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: [`/api/public/inquiry/${threadToken}`],
@@ -775,58 +787,75 @@ export default function InquiryThread() {
 
                 {showInvoiceForm && (
                   <div className="border border-[#F5F0E8]/10 rounded p-6">
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        invoiceMutation.mutate(invoiceData);
-                      }}
-                      className="space-y-5"
-                    >
-                      <div>
-                        <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40 block mb-2">Invoice Type</label>
-                        <select
-                          value={invoiceData.type}
-                          onChange={(e) => setInvoiceData({ ...invoiceData, type: e.target.value })}
-                          className="w-full bg-[#1A1A1A] border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-3 py-2"
+                    {!artist?.squareAccessToken ? (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-[#F5F0E8]/70 mb-4">Connect Square to send invoices</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const currentUrl = window.location.pathname + window.location.search;
+                            window.location.href = `/api/square/connect/start/${artist?.artistSlug}?returnUrl=${encodeURIComponent(currentUrl)}`;
+                          }}
+                          className="w-full py-3 bg-[#F5F0E8] text-[#1A1A1A] text-sm rounded hover:bg-white transition-all"
+                          data-testid="button-connect-square-invoice"
                         >
-                          <option value="deposit">Retainer</option>
-                          <option value="balance">Final Balance</option>
-                          <option value="custom">Custom</option>
-                        </select>
+                          Connect Square
+                        </button>
                       </div>
-                      <div>
-                        <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40 block mb-2">Amount ($)</label>
-                        <input
-                          type="number"
-                          value={invoiceData.amount}
-                          onChange={(e) => setInvoiceData({ ...invoiceData, amount: e.target.value })}
-                          step="0.01"
-                          className="w-full bg-transparent border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-3 py-2"
-                          placeholder="500.00"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40 block mb-2">Description</label>
-                        <textarea
-                          value={invoiceData.description}
-                          onChange={(e) => setInvoiceData({ ...invoiceData, description: e.target.value })}
-                          rows={2}
-                          className="w-full bg-transparent border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-3 py-2 resize-none"
-                          placeholder="Retainer for bridal services"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          console.log("[Invoice] Button clicked, invoiceData:", invoiceData);
+                    ) : (
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
                           invoiceMutation.mutate(invoiceData);
                         }}
-                        disabled={invoiceMutation.isPending}
-                        className="w-full py-3 bg-[#F5F0E8] text-[#1A1A1A] text-sm rounded hover:bg-white transition-all disabled:opacity-50"
+                        className="space-y-5"
                       >
-                        {invoiceMutation.isPending ? "Sending..." : "Create & Send Invoice"}
-                      </button>
-                    </form>
+                        <div>
+                          <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40 block mb-2">Invoice Type</label>
+                          <select
+                            value={invoiceData.type}
+                            onChange={(e) => setInvoiceData({ ...invoiceData, type: e.target.value })}
+                            className="w-full bg-[#1A1A1A] border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-3 py-2"
+                          >
+                            <option value="deposit">Retainer</option>
+                            <option value="balance">Final Balance</option>
+                            <option value="custom">Custom</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40 block mb-2">Amount ($)</label>
+                          <input
+                            type="number"
+                            value={invoiceData.amount}
+                            onChange={(e) => setInvoiceData({ ...invoiceData, amount: e.target.value })}
+                            step="0.01"
+                            className="w-full bg-transparent border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-3 py-2"
+                            placeholder="500.00"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40 block mb-2">Description</label>
+                          <textarea
+                            value={invoiceData.description}
+                            onChange={(e) => setInvoiceData({ ...invoiceData, description: e.target.value })}
+                            rows={2}
+                            className="w-full bg-transparent border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-3 py-2 resize-none"
+                            placeholder="Retainer for bridal services"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            console.log("[Invoice] Button clicked, invoiceData:", invoiceData);
+                            invoiceMutation.mutate(invoiceData);
+                          }}
+                          disabled={invoiceMutation.isPending}
+                          className="w-full py-3 bg-[#F5F0E8] text-[#1A1A1A] text-sm rounded hover:bg-white transition-all disabled:opacity-50"
+                        >
+                          {invoiceMutation.isPending ? "Sending..." : "Create & Send Invoice"}
+                        </button>
+                      </form>
+                    )}
                   </div>
                 )}
 
