@@ -89,7 +89,7 @@ export default function ArtistClientInbox() {
   const [message, setMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set(['completed', 'declined', 'referred']));
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set(['completed', 'declined', 'referred', 'responded', 'contract sent', 'auto responded', 'chat']));
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: inquiries = [], isLoading: inquiriesLoading } = useQuery<Inquiry[]>({
@@ -283,46 +283,47 @@ export default function ArtistClientInbox() {
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] flex">
-      {/* Left: Client List */}
-      <div className="w-72 border-r border-[#E8E2D9] bg-white flex flex-col h-screen">
+      {/* Left: Compact Client Folder */}
+      <div className="w-56 border-r border-[#E8E2D9] bg-white flex flex-col h-screen">
         {/* Header */}
-        <div className="p-3 border-b border-[#E8E2D9]">
-          <h1 className="text-lg font-medium text-[#1A1A1A]" style={{ fontFamily: "'Fraunces', serif" }}>Clients</h1>
+        <div className="px-3 py-2 border-b border-[#E8E2D9] flex items-center justify-between">
+          <h1 className="text-base font-medium text-[#1A1A1A]" style={{ fontFamily: "'Fraunces', serif" }}>Clients</h1>
+          <span className="text-xs text-[#999]">{allClients.length}</span>
         </div>
 
         {/* Search */}
-        <div className="p-2 border-b border-[#E8E2D9]">
+        <div className="px-2 py-1.5 border-b border-[#E8E2D9]">
           <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-[#999]" />
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#999]" />
             <input
               type="text"
               placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-sm border border-[#E8E2D9] rounded bg-[#FAF8F5] text-[#1A1A1A] placeholder-[#999] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
+              className="w-full pl-7 pr-2 py-1 text-xs border border-[#E8E2D9] rounded bg-[#FAF8F5] text-[#1A1A1A] placeholder-[#999] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
             />
           </div>
         </div>
 
-        {/* Status Filter Pills */}
-        <div className="p-2 border-b border-[#E8E2D9] flex flex-wrap gap-1">
+        {/* Quick Filter Pills */}
+        <div className="px-2 py-1.5 border-b border-[#E8E2D9] flex gap-1">
           <button
             onClick={() => setStatusFilter('all')}
-            className={`px-2 py-1 text-xs rounded ${statusFilter === 'all' ? 'bg-[#1A1A1A] text-[#F5F0E8]' : 'bg-[#F5F0E8] text-[#666] hover:bg-[#E8E2D9]'}`}
+            className={`px-1.5 py-0.5 text-[10px] rounded ${statusFilter === 'all' ? 'bg-[#1A1A1A] text-[#F5F0E8]' : 'bg-[#F5F0E8] text-[#666] hover:bg-[#E8E2D9]'}`}
           >
-            All ({allClients.length})
+            All
           </button>
           <button
             onClick={() => setStatusFilter('pending')}
-            className={`px-2 py-1 text-xs rounded ${statusFilter === 'pending' ? 'bg-[#1A1A1A] text-[#F5F0E8]' : 'bg-[#F5F0E8] text-[#666] hover:bg-[#E8E2D9]'}`}
+            className={`px-1.5 py-0.5 text-[10px] rounded ${statusFilter === 'pending' ? 'bg-[#1A1A1A] text-[#F5F0E8]' : 'bg-[#F5F0E8] text-[#666] hover:bg-[#E8E2D9]'}`}
           >
-            New ({statusCounts['pending'] || 0})
+            New
           </button>
           <button
             onClick={() => setStatusFilter('accepted')}
-            className={`px-2 py-1 text-xs rounded ${statusFilter === 'accepted' ? 'bg-[#1A1A1A] text-[#F5F0E8]' : 'bg-[#F5F0E8] text-[#666] hover:bg-[#E8E2D9]'}`}
+            className={`px-1.5 py-0.5 text-[10px] rounded ${statusFilter === 'accepted' ? 'bg-[#1A1A1A] text-[#F5F0E8]' : 'bg-[#F5F0E8] text-[#666] hover:bg-[#E8E2D9]'}`}
           >
-            Booked ({statusCounts['accepted'] || 0})
+            Booked
           </button>
         </div>
 
@@ -340,35 +341,32 @@ export default function ArtistClientInbox() {
           ) : (
             orderedStatuses.map(status => (
               <div key={status}>
-                {/* Section Header */}
+                {/* Folder Header */}
                 <button
                   onClick={() => toggleSection(status)}
-                  className="w-full flex items-center justify-between px-3 py-2 bg-[#F5F0E8] text-xs font-medium text-[#666] uppercase tracking-wide hover:bg-[#E8E2D9]"
+                  className="w-full flex items-center justify-between px-2 py-1 bg-[#F5F0E8] text-[10px] font-medium text-[#666] uppercase tracking-wide hover:bg-[#E8E2D9]"
                 >
                   <span>{STATUS_LABELS[status] || status} ({groupedClients[status].length})</span>
-                  {collapsedSections.has(status) ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
+                  {collapsedSections.has(status) ? <ChevronDown className="w-2.5 h-2.5" /> : <ChevronUp className="w-2.5 h-2.5" />}
                 </button>
                 
-                {/* Section Content */}
+                {/* Compact single-line client rows */}
                 {!collapsedSections.has(status) && groupedClients[status].map((client) => (
                   <button
                     key={`${client.type}-${client.id}`}
                     onClick={() => setSelectedClient(client)}
-                    className={`w-full text-left px-3 py-2 border-b border-[#F5F0E8] hover:bg-[#FAF8F5] transition-colors ${
+                    className={`w-full text-left px-2 py-1 border-b border-[#F5F0E8] hover:bg-[#FAF8F5] transition-colors ${
                       selectedClient?.id === client.id ? 'bg-[#F5F0E8]' : ''
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-sm text-[#1A1A1A] truncate flex-1">{client.name}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-medium text-xs text-[#1A1A1A] truncate flex-1">{client.name}</span>
                       {client.eventDate && (
-                        <span className="text-xs text-[#999] flex-shrink-0">
+                        <span className="text-[9px] text-[#999] flex-shrink-0">
                           {new Date(client.eventDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-[#999] mt-0.5">
-                      {formatDistanceToNow(new Date(client.createdAt), { addSuffix: true })}
-                    </p>
                   </button>
                 ))}
               </div>
