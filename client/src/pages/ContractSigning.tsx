@@ -139,17 +139,17 @@ export default function ContractSigning({ token }: ContractSigningProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#FAF7F2] to-white flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           className="text-center"
         >
           <div className="relative">
-            <Loader2 className="h-12 w-12 animate-spin text-[#6B4A55] mx-auto" />
-            <div className="absolute inset-0 h-12 w-12 rounded-full border-2 border-[#6B4A55]/20 mx-auto" />
+            <Loader2 className="h-12 w-12 animate-spin text-gray-700 mx-auto" />
+            <div className="absolute inset-0 h-12 w-12 rounded-full border-2 border-gray-200 mx-auto" />
           </div>
-          <p className="mt-4 text-[#6B4A55] font-medium">Loading your contract...</p>
+          <p className="mt-4 text-gray-700 font-medium">Loading your contract...</p>
         </motion.div>
       </div>
     );
@@ -157,17 +157,17 @@ export default function ContractSigning({ token }: ContractSigningProps) {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#FAF7F2] to-white flex items-center justify-center p-4">
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Card className="max-w-md w-full shadow-xl border-red-100">
+          <Card className="max-w-md w-full shadow-sm border-gray-200">
             <CardContent className="pt-8 pb-8 text-center">
               <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
                 <AlertCircle className="h-8 w-8 text-red-500" />
               </div>
-              <h2 className="text-xl font-semibold mb-2">Contract Not Found</h2>
+              <h2 className="text-xl font-semibold mb-2 text-gray-900">Contract Not Found</h2>
               <p className="text-gray-600">
                 {(error as Error).message || "This signing link may have expired or is invalid."}
               </p>
@@ -181,14 +181,14 @@ export default function ContractSigning({ token }: ContractSigningProps) {
   // Success state - contract already signed
   if (contract.status === "signed") {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#FAF7F2] to-white flex items-center justify-center p-4">
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className="max-w-lg w-full"
         >
-          <Card className="shadow-xl border-green-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-8 text-center border-b">
+          <Card className="shadow-sm border-gray-200 overflow-hidden">
+            <div className="bg-green-50 p-8 text-center border-b border-gray-200">
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
@@ -198,7 +198,7 @@ export default function ContractSigning({ token }: ContractSigningProps) {
                   <CheckCircle2 className="h-10 w-10 text-green-600" />
                 </div>
               </motion.div>
-              <h2 className="text-2xl font-semibold text-gray-800 mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>
+              <h2 className="text-2xl font-semibold text-gray-900 mb-1">
                 Contract Signed Successfully
               </h2>
               <p className="text-green-700">Your signature has been recorded</p>
@@ -211,7 +211,7 @@ export default function ContractSigning({ token }: ContractSigningProps) {
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Signed by</p>
-                    <p className="font-medium">{contract.signedByName}</p>
+                    <p className="font-medium text-gray-900">{contract.signedByName}</p>
                     {contract.signedOnBehalfOf && (
                       <p className="text-xs text-gray-500">on behalf of {contract.signedOnBehalfOf}</p>
                     )}
@@ -223,7 +223,7 @@ export default function ContractSigning({ token }: ContractSigningProps) {
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Date & Time</p>
-                    <p className="font-medium">
+                    <p className="font-medium text-gray-900">
                       {new Date(contract.signedAt).toLocaleDateString("en-US", {
                         weekday: "long",
                         year: "numeric",
@@ -237,12 +237,12 @@ export default function ContractSigning({ token }: ContractSigningProps) {
                 </div>
               </div>
               
-              <div className="border rounded-lg p-4 text-center">
+              <div className="border border-gray-200 rounded-lg p-4 text-center">
                 <p className="text-xs text-gray-500 mb-2">Your Signature</p>
                 {contract.clientSignature?.startsWith('data:image') ? (
                   <img src={contract.clientSignature} alt="Signature" className="max-h-16 mx-auto" />
                 ) : (
-                  <p className="text-3xl italic text-[#6B4A55]" style={{ fontFamily: "'Dancing Script', cursive, serif" }}>
+                  <p className="text-3xl italic text-gray-700" style={{ fontFamily: "'Dancing Script', cursive, serif" }}>
                     {contract.clientSignature}
                   </p>
                 )}
@@ -265,18 +265,15 @@ export default function ContractSigning({ token }: ContractSigningProps) {
   const formatCurrency = (amount: number) => `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#FAF7F2] to-white">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm border-b sticky top-0 z-20">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-20">
+        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
           <div>
-            <h1 
-              className="text-2xl text-[#6B4A55]"
-              style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic" }}
-            >
+            <h1 className="text-xl text-gray-900 font-medium" style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic" }}>
               {contract.artistName || "Beauty Services"}
             </h1>
-            <p className="text-xs text-[#6B4A55]/60 tracking-widest uppercase">Contract Signing</p>
+            <p className="text-xs text-gray-500 tracking-widest uppercase">Contract Signing</p>
           </div>
           <div className="flex items-center gap-2 text-xs text-gray-500">
             <Shield className="h-4 w-4" />
@@ -285,99 +282,65 @@ export default function ContractSigning({ token }: ContractSigningProps) {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-3xl mx-auto px-4 py-6">
         {/* Event Summary Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-6"
         >
-          <Card className="bg-gradient-to-r from-[#6B4A55]/5 to-[#6B4A55]/10 border-[#6B4A55]/20">
-            <CardContent className="p-6">
-              <div className="flex flex-wrap gap-6 items-center justify-between">
+          <Card className="bg-gray-50 border-gray-200">
+            <CardContent className="p-5">
+              <div className="flex flex-wrap gap-4 items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-800" style={{ fontFamily: "'Playfair Display', serif" }}>
+                  <h2 className="text-lg font-semibold text-gray-900">
                     {contract.packageDetails || "Beauty Services Contract"}
                   </h2>
                   <p className="text-sm text-gray-600 mt-1">From {contract.artistName || "Your Beauty Artist"}</p>
                 </div>
-                <div className="flex flex-wrap gap-4">
-                  {contract.eventDates && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Calendar className="h-4 w-4 text-[#6B4A55]" />
-                      <span>{contract.eventDates}</span>
-                    </div>
-                  )}
-                  {contract.eventLocation && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <MapPin className="h-4 w-4 text-[#6B4A55]" />
-                      <span className="max-w-[200px] truncate">{contract.eventLocation}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2 text-sm font-semibold text-[#6B4A55]">
-                    <DollarSign className="h-4 w-4" />
-                    <span>{formatCurrency(contract.totalAmount || 0)}</span>
-                  </div>
+                <div className="text-lg font-semibold text-gray-900">
+                  {formatCurrency(contract.totalAmount || 0)}
                 </div>
               </div>
             </CardContent>
           </Card>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          {/* Contract Content - Left Panel */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            className="lg:col-span-3"
-          >
-            <Card className="shadow-lg overflow-hidden">
-              <div className="bg-[#6B4A55] text-white px-6 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  <span className="font-medium">Service Contract</span>
-                </div>
-                {!hasScrolledToBottom && (
-                  <motion.div 
-                    animate={{ y: [0, 4, 0] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                    className="flex items-center gap-1 text-sm text-white/80"
-                  >
-                    <span>Scroll to read</span>
-                    <ChevronDown className="h-4 w-4" />
-                  </motion.div>
-                )}
-              </div>
+        {/* Contract Content - Full Width, No Scroll */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="mb-8"
+        >
+          <Card className="shadow-sm border-gray-200">
+            <div className="bg-gray-100 border-b border-gray-200 px-5 py-3 flex items-center gap-2">
+              <FileText className="h-4 w-4 text-gray-600" />
+              <span className="font-medium text-gray-800">Service Contract</span>
+            </div>
+            <div className="p-6">
               <div 
-                ref={contractScrollRef}
-                onScroll={handleScroll}
-                className="max-h-[60vh] overflow-y-auto p-6 contract-scroll"
-                style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}
-              >
-                <div 
-                  className="prose prose-sm max-w-none contract-content"
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(contract.contractHtml, { 
-                    FORBID_TAGS: ['style'], // Prevent global CSS from breaking page scroll
-                  }) }}
-                />
-              </div>
-            </Card>
-          </motion.div>
+                className="prose prose-sm max-w-none text-gray-800"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(contract.contractHtml, { 
+                  FORBID_TAGS: ['style'],
+                }) }}
+              />
+            </div>
+          </Card>
+        </motion.div>
 
-          {/* Signature Panel - Right */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            className="lg:col-span-2"
-          >
-            <Card className="shadow-lg sticky top-24">
-              <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b">
-                <h3 className="font-semibold text-gray-800">Sign This Contract</h3>
-                <p className="text-xs text-gray-500 mt-1">Complete the form below to sign</p>
-              </div>
-              <CardContent className="p-6 space-y-5">
+        {/* Signature Panel */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Card className="shadow-sm border-gray-200">
+            <div className="bg-gray-50 px-5 py-4 border-b border-gray-200">
+              <h3 className="font-semibold text-gray-900">Sign This Contract</h3>
+              <p className="text-xs text-gray-500 mt-1">Complete the form below to sign</p>
+            </div>
+            <CardContent className="p-6 space-y-5">
                 {/* Name & Email */}
                 <div className="space-y-4">
                   <div>
@@ -421,14 +384,14 @@ export default function ContractSigning({ token }: ContractSigningProps) {
 
                 {/* Signature Mode Toggle */}
                 <div>
-                  <Label className="text-sm font-medium mb-2 block">Your Signature</Label>
+                  <Label className="text-sm font-medium mb-2 block text-gray-900">Your Signature</Label>
                   <div className="flex gap-2 mb-3">
                     <button
                       onClick={() => setSignatureMode("type")}
                       data-testid="button-signature-type"
                       className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border text-sm transition-all ${
                         signatureMode === "type" 
-                          ? "bg-[#6B4A55] text-white border-[#6B4A55]" 
+                          ? "bg-gray-900 text-white border-gray-900" 
                           : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
                       }`}
                     >
@@ -440,7 +403,7 @@ export default function ContractSigning({ token }: ContractSigningProps) {
                       data-testid="button-signature-draw"
                       className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border text-sm transition-all ${
                         signatureMode === "draw" 
-                          ? "bg-[#6B4A55] text-white border-[#6B4A55]" 
+                          ? "bg-gray-900 text-white border-gray-900" 
                           : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
                       }`}
                     >
@@ -466,9 +429,9 @@ export default function ContractSigning({ token }: ContractSigningProps) {
                           style={{ fontFamily: "'Dancing Script', cursive, serif" }}
                         />
                         {typedSignature && (
-                          <div className="mt-2 p-3 bg-gray-50 rounded-lg border text-center">
+                          <div className="mt-2 p-3 bg-gray-50 rounded-lg border border-gray-200 text-center">
                             <p className="text-xs text-gray-400 mb-1">Preview</p>
-                            <p className="text-2xl italic text-[#6B4A55]" style={{ fontFamily: "'Dancing Script', cursive, serif" }}>
+                            <p className="text-2xl italic text-gray-700" style={{ fontFamily: "'Dancing Script', cursive, serif" }}>
                               {typedSignature}
                             </p>
                           </div>
@@ -535,7 +498,7 @@ export default function ContractSigning({ token }: ContractSigningProps) {
                   data-testid="button-sign-contract"
                   onClick={() => signMutation.mutate()}
                   disabled={!canSign || signMutation.isPending}
-                  className="w-full bg-[#6B4A55] hover:bg-[#5A1F2B] text-white py-6 text-lg shadow-lg"
+                  className="w-full bg-gray-900 hover:bg-gray-800 text-white py-6 text-lg"
                 >
                   {signMutation.isPending ? (
                     <>
@@ -563,25 +526,7 @@ export default function ContractSigning({ token }: ContractSigningProps) {
               </CardContent>
             </Card>
           </motion.div>
-        </div>
       </div>
-
-      <style>{`
-        .contract-scroll::-webkit-scrollbar {
-          width: 6px;
-        }
-        .contract-scroll::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 3px;
-        }
-        .contract-scroll::-webkit-scrollbar-thumb {
-          background: #c4c4c4;
-          border-radius: 3px;
-        }
-        .contract-scroll::-webkit-scrollbar-thumb:hover {
-          background: #a0a0a0;
-        }
-      `}</style>
     </div>
   );
 }
