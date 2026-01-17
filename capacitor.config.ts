@@ -7,7 +7,7 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
     iosScheme: 'https',
-    url: 'https://beauvette.com',
+    url: 'https://dateinquiry.com',
     cleartext: false
   },
   ios: {
