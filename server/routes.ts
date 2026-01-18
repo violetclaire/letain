@@ -565,6 +565,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // ========== DEMO ACCESS (Magic Link - No Login Required) ==========
+  app.get('/api/demo/access/:token', async (req: any, res) => {
+    try {
+      const { token } = req.params;
+      
+      // Find the demo profile with this edit_token
+      const [profile] = await db.select().from(artistProfiles)
+        .where(eq(artistProfiles.editToken, token));
+      
+      if (!profile) {
+        return res.status(404).json({ message: "Demo not found" });
+      }
+      
+      // Get the user associated with this profile
+      const user = await storage.getUser(profile.userId);
+      if (!user) {
+        return res.status(404).json({ message: "Demo user not found" });
+      }
+      
+      // Set up session for the demo user
+      (req.session as any).userId = user.id;
+      
+      // Save session
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err: Error) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+      
+      console.log("[Demo] Magic link access granted for:", profile.artistSlug);
+      
+      // Redirect to admin page
+      res.redirect(`/admin/${profile.artistSlug}`);
+    } catch (error: any) {
+      console.error("[Demo] Error:", error.message);
+      res.status(500).json({ message: "Failed to access demo" });
+    }
+  });
+
   // ========== SECURE PASSWORD RESET ==========
   // Step 1: Request password reset - sends email with secure token
   app.post('/api/auth/request-password-reset', authLimiter, async (req, res) => {
