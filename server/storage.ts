@@ -550,6 +550,7 @@ export interface IStorage {
   // Proposals
   createProposal(data: InsertProposal): Promise<Proposal>;
   getProposal(id: string): Promise<Proposal | undefined>;
+  getProposalByShareToken(shareToken: string): Promise<Proposal | undefined>;
   getProposalsByArtist(artistId: string): Promise<Proposal[]>;
   updateProposal(id: string, data: Partial<InsertProposal>): Promise<Proposal | undefined>;
   deleteProposal(id: string): Promise<void>;
@@ -2848,6 +2849,11 @@ export class DatabaseStorage implements IStorage {
   
   async getProposal(id: string): Promise<Proposal | undefined> {
     const [proposal] = await db.select().from(proposals).where(eq(proposals.id, id));
+    return proposal || undefined;
+  }
+  
+  async getProposalByShareToken(shareToken: string): Promise<Proposal | undefined> {
+    const [proposal] = await db.select().from(proposals).where(eq(proposals.shareToken, shareToken));
     return proposal || undefined;
   }
   

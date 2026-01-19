@@ -4577,6 +4577,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Handle quote/proposal creation
+      if (result?.createQuote?.lineItems?.length > 0) {
+        console.log("Processing quote creation:", result.createQuote);
+        try {
+          const quote = result.createQuote;
+          const subtotal = quote.lineItems.reduce((sum: number, item: any) => sum + (item.unitPrice * item.quantity), 0);
+          const total = subtotal + (quote.travelFee || 0);
+          const shareToken = randomUUID();
+          
+          const proposal = await storage.createProposal({
+            artistId: userId,
+            shareToken,
+            clientName: quote.clientName || "Quote Request",
+            clientEmail: quote.clientEmail || "",
+            eventDate: quote.eventDate ? new Date(quote.eventDate) : null,
+            eventLocation: quote.eventLocation || null,
+            eventType: quote.eventType || "wedding",
+            lineItems: quote.lineItems,
+            subtotal,
+            travelFee: quote.travelFee || 0,
+            total,
+            notes: quote.notes || null,
+            status: "draft",
+          });
+          
+          if (proposal) {
+            const shareUrl = `${process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.app'}/quote/${shareToken}`;
+            (result as any).quoteCreated = true;
+            (result as any).quoteId = proposal.id;
+            (result as any).shareUrl = shareUrl;
+            // Update response to include the share link
+            result.response = result.response.replace('[LINK_WILL_BE_GENERATED]', shareUrl);
+            if (!result.response.includes(shareUrl)) {
+              result.response += `\n\nShare this link with your client: ${shareUrl}`;
+            }
+            console.log("Quote created successfully:", proposal.id, "Share URL:", shareUrl);
+          }
+        } catch (quoteError) {
+          console.error("Quote creation error:", quoteError);
+          result.response = "I created the quote details but had trouble saving it. Please try again.";
+        }
+      }
+      
       res.json(result);
     } catch (error: any) {
       console.error("AI Chat error:", error);
@@ -10353,6 +10396,54 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
 
   // ========== PUBLIC ROUTES (No Auth Required) ==========
+  
+  // Public quote view - shareable quote page
+  app.get("/api/public/quote/:shareToken", async (req, res) => {
+    try {
+      const { shareToken } = req.params;
+      
+      const proposal = await storage.getProposalByShareToken(shareToken);
+      if (!proposal) {
+        return res.status(404).json({ error: "Quote not found" });
+      }
+      
+      // Mark as viewed if first time
+      if (!proposal.viewedAt) {
+        await storage.updateProposal(proposal.id, { viewedAt: new Date() } as any);
+      }
+      
+      // Get artist info for display
+      const artist = await storage.getUser(proposal.artistId);
+      const artistProfile = await storage.getArtistProfile(proposal.artistId);
+      
+      res.json({
+        id: proposal.id,
+        clientName: proposal.clientName,
+        eventDate: proposal.eventDate,
+        eventLocation: proposal.eventLocation,
+        eventType: proposal.eventType,
+        lineItems: proposal.lineItems,
+        subtotal: proposal.subtotal,
+        travelFee: proposal.travelFee,
+        discount: proposal.discount,
+        total: proposal.total,
+        notes: proposal.notes,
+        terms: proposal.terms,
+        validUntil: proposal.validUntil,
+        status: proposal.status,
+        createdAt: proposal.createdAt,
+        artist: {
+          businessName: artistProfile?.businessName || `${artist?.firstName || ''} ${artist?.lastName || ''}`.trim() || 'Artist',
+          email: artist?.email,
+          phone: artistProfile?.phone,
+          logo: artistProfile?.logoUrl,
+        }
+      });
+    } catch (error: any) {
+      console.error("[Public Quote] Error:", error);
+      res.status(500).json({ error: "Failed to load quote" });
+    }
+  });
   
   // Secretary link creation - simplified artist onboarding
   app.post("/api/public/secretary", async (req, res) => {

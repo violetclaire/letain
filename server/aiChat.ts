@@ -268,6 +268,25 @@ Generate images when vendor says: "create image", "generate image", "make an ima
 {"generateImage": {"prompt": "Elegant bridal makeup look with soft pink tones and dewy skin, natural lighting, professional photography", "style": "beauty"}, "response": "Creating that bridal look image for you!"}
 - Create detailed, professional prompts for beautiful beauty/wedding images
 
+=== QUOTE GENERATION ===
+Create detailed quotes when vendor says: "create quote", "generate quote", "price this", "make a proposal", or provides a list of services needed.
+Example request: "Bride hair+makeup, 2 bridesmaids makeup only, MOB makeup, Carmel Valley Ranch"
+{"createQuote": {"clientName": "Client Name", "clientEmail": "email@example.com", "eventDate": "2026-05-15", "eventLocation": "Carmel Valley Ranch", "eventType": "wedding", "lineItems": [{"description": "Bride - Hair & Makeup", "quantity": 1, "unitPrice": 65000, "services": ["hair", "makeup"]}, {"description": "Bridesmaid - Makeup Only", "quantity": 2, "unitPrice": 15000, "services": ["makeup"]}, {"description": "Mother of Bride - Makeup", "quantity": 1, "unitPrice": 17500, "services": ["makeup"]}], "travelFee": 15000, "notes": "Travel to Carmel Valley Ranch included"}, "response": "I've created a quote for $1,275! Here's the breakdown:\n- Bride Hair & Makeup: $650\n- 2x Bridesmaid Makeup: $300\n- MOB Makeup: $175\n- Travel Fee: $150\n\nShare link: [LINK_WILL_BE_GENERATED]"}
+- All prices in CENTS (e.g., $650 = 65000)
+- Parse service requests like "hair and makeup" → ["hair", "makeup"]
+- "makeup only" → ["makeup"]
+- Use typical bridal pricing if no specific prices known:
+  - Bride Hair+Makeup: $500-800
+  - Bridesmaid Hair+Makeup: $200-350
+  - Bridesmaid Makeup Only: $125-175
+  - MOB/MOG Makeup: $150-200
+  - Touch-up Kit: $50-75
+  - Travel: $50-200 depending on distance
+
+=== SCHEDULE/TIMELINE GENERATION ===
+Create wedding day schedules when vendor says: "create schedule", "make timeline", "wedding day timeline", etc.
+{"createSchedule": {"eventDate": "2026-05-15", "eventType": "wedding", "firstLookTime": "14:00", "ceremonyTime": "17:00", "partySize": 6, "notes": "Consider hair drying time"}, "response": "Here's your wedding day beauty timeline for a 5pm ceremony with 6 people..."}
+
 === SEARCH ===
 Search when vendor asks: "find", "search", "look up", "who is", "show me clients named", etc.
 {"searchQuery": {"type": "clients", "query": "Sarah"}, "response": "Let me find clients named Sarah..."}
@@ -342,6 +361,29 @@ interface ParsedResponse {
   searchQuery?: {
     type: "clients" | "bookings" | "contracts";
     query: string;
+  };
+  createQuote?: {
+    clientName: string;
+    clientEmail?: string;
+    eventDate?: string;
+    eventLocation?: string;
+    eventType?: string;
+    lineItems: Array<{
+      description: string;
+      quantity: number;
+      unitPrice: number;
+      services: string[];
+    }>;
+    travelFee?: number;
+    notes?: string;
+  };
+  createSchedule?: {
+    eventDate?: string;
+    eventType?: string;
+    firstLookTime?: string;
+    ceremonyTime?: string;
+    partySize?: number;
+    notes?: string;
   };
   inquiryResponse?: {
     detected: boolean;
@@ -502,6 +544,8 @@ User message: ${message}`;
         if (parsed.inquiryResponse?.detected) actionTaken = 'inquiry_response';
         else if (parsed.createBooking) actionTaken = 'create_booking';
         else if (parsed.createContract) actionTaken = 'create_contract';
+        else if (parsed.createQuote) actionTaken = 'create_quote';
+        else if (parsed.createSchedule) actionTaken = 'create_schedule';
         else if (parsed.sendThankYou) actionTaken = 'send_thank_you';
         else if (parsed.sendPaymentLink) actionTaken = 'send_payment_link';
         else if (parsed.generateImage) actionTaken = 'generate_image';
