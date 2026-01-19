@@ -238,7 +238,8 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
       const userId = stateData.userId;
       const artistSlug = stateData.artistSlug;
       const returnBaseUrl = stateData.returnBaseUrl;
-      const callbackUrl = stateData.callbackUrl || `https://${req.get('host')}/api/square/connect/callback`;
+      // CRITICAL: Must use exact same redirect_uri as authorization - always use production URL
+      const callbackUrl = 'https://dateinquiry.com/api/square/connect/callback';
 
       const square = getSquareOAuthClient();
       const applicationId = getSquareApplicationId();
