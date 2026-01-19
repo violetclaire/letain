@@ -251,15 +251,31 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
         return res.redirect(`${errorRedirect}Server configuration error - contact support`);
       }
 
-      const response = await square.oAuth.obtainToken({
-        clientId: applicationId,
-        clientSecret: applicationSecret,
-        code: String(code),
-        grantType: 'authorization_code',
-        redirectUri: callbackUrl, // Use exact same URL as authorization
-      });
+      console.log(`[Square OAuth] Exchanging code for token...`);
+      console.log(`[Square OAuth] clientId: ${applicationId}`);
+      console.log(`[Square OAuth] clientSecret: ${applicationSecret.substring(0, 10)}...`);
+      console.log(`[Square OAuth] redirectUri: ${callbackUrl}`);
+      
+      let response;
+      try {
+        response = await square.oAuth.obtainToken({
+          clientId: applicationId,
+          clientSecret: applicationSecret,
+          code: String(code),
+          grantType: 'authorization_code',
+          redirectUri: callbackUrl,
+        });
+      } catch (tokenError: any) {
+        console.error(`[Square OAuth] Token exchange FAILED:`, tokenError);
+        console.error(`[Square OAuth] Error details:`, JSON.stringify(tokenError, null, 2));
+        if (tokenError.body) {
+          console.error(`[Square OAuth] Error body:`, tokenError.body);
+        }
+        throw tokenError;
+      }
 
       const tokenResponse = response as any;
+      console.log(`[Square OAuth] Token exchange succeeded`);
       
       if (!tokenResponse.accessToken || !tokenResponse.merchantId) {
         console.error("Square OAuth: Failed to obtain tokens", tokenResponse);
