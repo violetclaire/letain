@@ -32,6 +32,22 @@ setInterval(async () => {
 
 export function registerSquareRoutes(app: Express, isAuthenticated: any) {
   
+  // Debug endpoint to verify Square credentials
+  app.get("/api/square/debug-credentials", async (req, res) => {
+    try {
+      const appId = process.env.SQUARE_APPLICATION_ID || 'NOT SET';
+      const appSecret = process.env.SQUARE_APPLICATION_SECRET || 'NOT SET';
+      res.json({
+        appIdPrefix: appId.substring(0, 15),
+        appSecretPrefix: appSecret.substring(0, 12),
+        appIdLength: appId.length,
+        appSecretLength: appSecret.length,
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // Public OAuth flow for artist setup (uses artist slug instead of session)
   // Accepts optional returnUrl query param to redirect back after connection
   app.get("/api/square/connect/start/:artistSlug", async (req, res) => {
