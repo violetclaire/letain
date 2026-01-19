@@ -175,7 +175,7 @@ export function SecretaryChatbox({ isOpen, onToggle }: SecretaryChatboxProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-20 right-4 w-96 max-w-[calc(100vw-2rem)] bg-[var(--surface)] border border-[var(--hairline)] rounded-lg shadow-lg overflow-hidden z-50"
+            className="fixed bottom-20 right-4 w-96 max-w-[calc(100vw-2rem)] bg-[#F5F1EA] border border-[var(--hairline)] rounded-lg shadow-xl overflow-hidden z-[100]"
             style={{ maxHeight: "70vh" }}
             data-testid="secretary-chatbox"
           >
@@ -194,7 +194,7 @@ export function SecretaryChatbox({ isOpen, onToggle }: SecretaryChatboxProps) {
             </div>
 
             <div
-              className="flex flex-col h-[400px] overflow-y-auto p-4 space-y-3"
+              className="flex flex-col h-[400px] overflow-y-auto p-4 space-y-3 bg-[#F5F1EA]"
               data-testid="chat-messages"
             >
               {messages.map((msg) => (
@@ -205,8 +205,8 @@ export function SecretaryChatbox({ isOpen, onToggle }: SecretaryChatboxProps) {
                   <div
                     className={`max-w-[85%] rounded-lg px-3 py-2 ${
                       msg.role === "user"
-                        ? "bg-[var(--ink)] text-[var(--bg)]"
-                        : "bg-[var(--surface-2)] text-[var(--ink)]"
+                        ? "bg-[#1A1A1A] text-[#F5F1EA]"
+                        : "bg-[#E8E4DC] text-[#1A1A1A]"
                     }`}
                     data-testid={`message-${msg.role}`}
                   >
@@ -246,7 +246,7 @@ export function SecretaryChatbox({ isOpen, onToggle }: SecretaryChatboxProps) {
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="border-t border-[var(--hairline)] p-3">
+            <div className="border-t border-[var(--hairline)] p-3 bg-[#F5F1EA]">
               <div className="flex gap-2">
                 <Textarea
                   value={inputValue}
@@ -290,7 +290,7 @@ export function SecretaryChatbox({ isOpen, onToggle }: SecretaryChatboxProps) {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={onToggle}
-        className="fixed bottom-4 right-4 w-14 h-14 bg-[var(--ink)] text-[var(--bg)] rounded-full shadow-lg flex items-center justify-center z-50"
+        className="fixed bottom-4 right-4 w-14 h-14 bg-[#1A1A1A] text-[#F5F1EA] rounded-full shadow-xl flex items-center justify-center z-[100]"
         data-testid="secretary-toggle"
       >
         {isOpen ? <X className="w-6 h-6" /> : <MessageSquare className="w-6 h-6" />}

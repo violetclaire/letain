@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, useSearch, Link, useLocation } from "wouter";
 import { format } from "date-fns";
-import { Loader2, Settings, Calendar, Users, Copy, Check, Mail, CheckCircle, LogOut, FileText, DollarSign, Clock, ChevronDown, Menu, X, HelpCircle, Trash2, AlertTriangle, MessageSquare, Send, CalendarDays, Moon, Sun } from "lucide-react";
+import { Loader2, Settings, Calendar, Users, Copy, Check, Mail, CheckCircle, LogOut, FileText, DollarSign, Clock, ChevronDown, ChevronUp, Menu, X, HelpCircle, Trash2, AlertTriangle, MessageSquare, Send, CalendarDays, Moon, Sun } from "lucide-react";
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -84,6 +84,9 @@ export default function ArtistAdmin() {
   
   // Secretary chatbox state
   const [secretaryChatOpen, setSecretaryChatOpen] = useState(false);
+  
+  // Client list collapse state (show only 3 on mobile initially)
+  const [showAllClients, setShowAllClients] = useState(false);
   
   // Quick Chat state
   const [showQuickChat, setShowQuickChat] = useState(false);
@@ -673,7 +676,7 @@ export default function ArtistAdmin() {
               </button>
             </div>
           ) : (
-            inquiries.map((inquiry) => {
+            (showAllClients ? inquiries : inquiries.slice(0, 3)).map((inquiry) => {
               const velocity = getVelocity(inquiry);
               const handleInquiryClick = (e: React.MouseEvent) => {
                 if (pendingAction) {
@@ -745,6 +748,26 @@ export default function ArtistAdmin() {
                 </a>
               );
             })
+          )}
+          {/* Show more/less toggle for clients */}
+          {inquiries.length > 3 && (
+            <button
+              onClick={() => setShowAllClients(!showAllClients)}
+              className="w-full py-3 text-sm text-[#C4A35A] hover:text-[#C4A35A]/80 border border-ink/10 bg-surface hover:bg-surface/80 transition-colors flex items-center justify-center gap-2"
+              data-testid="toggle-show-all-clients"
+            >
+              {showAllClients ? (
+                <>
+                  <ChevronUp className="w-4 h-4" />
+                  Show less
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-4 h-4" />
+                  Show {inquiries.length - 3} more clients
+                </>
+              )}
+            </button>
           )}
         </div>
 
