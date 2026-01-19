@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import QuickGuide from "@/components/QuickGuide";
 import { useTheme } from "@/contexts/ThemeContext";
+import { SecretaryChatbox } from "@/components/SecretaryChatbox";
 
 function ThemeToggleButton() {
   const { theme, toggleTheme } = useTheme();
@@ -80,6 +81,9 @@ export default function ArtistAdmin() {
     notes: "",
   });
   const [creatingClient, setCreatingClient] = useState(false);
+  
+  // Secretary chatbox state
+  const [secretaryChatOpen, setSecretaryChatOpen] = useState(false);
   
   // Quick Chat state
   const [showQuickChat, setShowQuickChat] = useState(false);
@@ -1336,6 +1340,12 @@ export default function ArtistAdmin() {
           </div>
         </div>
       )}
+      
+      {/* AI Secretary Chatbox */}
+      <SecretaryChatbox 
+        isOpen={secretaryChatOpen} 
+        onToggle={() => setSecretaryChatOpen(!secretaryChatOpen)} 
+      />
     </div>
   );
 }

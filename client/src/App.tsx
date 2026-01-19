@@ -74,6 +74,7 @@ import ArtistClientInbox from "@/pages/ArtistClientInbox";
 import ArtistLogin from "@/pages/ArtistLogin";
 import AccessVerify from "@/pages/AccessVerify";
 import ArtistAvailability from "@/pages/ArtistAvailability";
+import PublicQuote from "@/pages/PublicQuote";
 
 // Domain-aware login - shows "Find Your Thread" on dateinquiry.com, full login on beauvette.app
 function DomainAwareLogin() {
@@ -155,6 +156,7 @@ function Router() {
       <Route path="/schedule/:shareToken">
         {(params) => <PublicSchedule shareToken={params.shareToken} />}
       </Route>
+      <Route path="/quote/:shareToken" component={PublicQuote} />
       <Route path="/schedules/:tokens">
         {(params) => <MultiDaySchedule tokens={params.tokens} />}
       </Route>
