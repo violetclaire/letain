@@ -1753,6 +1753,7 @@ export type ProposalLineItem = {
 export const proposals = pgTable("proposals", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   artistId: varchar("artist_id").notNull().references(() => users.id),
+  shareToken: varchar("share_token").unique(), // For shareable quote links
   // Client info
   clientName: text("client_name").notNull(),
   clientEmail: text("client_email").notNull(),
@@ -1782,6 +1783,31 @@ export const proposals = pgTable("proposals", {
   bookingId: varchar("booking_id").references(() => bookings.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Artist pricing menu for quote generation
+export type ArtistServicePrice = {
+  service: string; // e.g., "bridal_hair_makeup", "bridesmaid_hair", "touch_up_kit"
+  label: string; // Display label
+  price: number; // Price in cents
+  category: "bridal" | "attendant" | "addon" | "travel";
+};
+
+export const artistPricing = pgTable("artist_pricing", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  artistId: varchar("artist_id").notNull().references(() => users.id),
+  services: jsonb("services").$type<ArtistServicePrice[]>().notNull(),
+  travelFeePerMile: integer("travel_fee_per_mile").default(0), // cents per mile
+  travelFreeRadius: integer("travel_free_radius").default(25), // miles
+  minimumBooking: integer("minimum_booking").default(0), // cents
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertArtistPricingSchema = createInsertSchema(artistPricing).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 export const insertProposalSchema = createInsertSchema(proposals).omit({
@@ -2056,6 +2082,9 @@ export type AnalyticsEvent = typeof analyticsEvents.$inferSelect;
 // Proposal Types
 export type InsertProposal = z.infer<typeof insertProposalSchema>;
 export type Proposal = typeof proposals.$inferSelect;
+
+export type InsertArtistPricing = z.infer<typeof insertArtistPricingSchema>;
+export type ArtistPricing = typeof artistPricing.$inferSelect;
 
 export type InsertWaitlistSignup = z.infer<typeof insertWaitlistSignupSchema>;
 export type WaitlistSignup = typeof waitlistSignups.$inferSelect;
