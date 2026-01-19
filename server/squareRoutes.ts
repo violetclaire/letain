@@ -1,5 +1,5 @@
 import { Express, Request, Response } from "express";
-import { getSquare, getMerchantSquare, getSquareApplicationId, getSquareApplicationSecret, isSquareConfigured, isSquareOAuthConfigured } from "./squareClient";
+import { getSquare, getSquareOAuthClient, getMerchantSquare, getSquareApplicationId, getSquareApplicationSecret, isSquareConfigured, isSquareOAuthConfigured } from "./squareClient";
 import { storage } from "./storage";
 import { getAuthUserId } from "./routes";
 import crypto from "crypto";
@@ -240,7 +240,7 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
       const returnBaseUrl = stateData.returnBaseUrl;
       const callbackUrl = stateData.callbackUrl || `https://${req.get('host')}/api/square/connect/callback`;
 
-      const square = getSquare();
+      const square = getSquareOAuthClient();
       const applicationId = getSquareApplicationId();
       
       let applicationSecret: string;

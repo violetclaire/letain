@@ -23,6 +23,12 @@ export function getSquare(): SquareClient {
   return platformSquareClient;
 }
 
+export function getSquareOAuthClient(): SquareClient {
+  return new SquareClient({
+    baseUrl: 'https://connect.squareup.com',
+  });
+}
+
 export function getMerchantSquare(merchantAccessToken: string): SquareClient {
   if (!merchantAccessToken) {
     throw new Error('Merchant access token is required');
