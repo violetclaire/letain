@@ -256,33 +256,45 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
       console.log(`[Square OAuth] clientSecret: ${applicationSecret.substring(0, 10)}...`);
       console.log(`[Square OAuth] redirectUri: ${callbackUrl}`);
       
-      let response;
-      try {
-        response = await square.oAuth.obtainToken({
-          clientId: applicationId,
-          clientSecret: applicationSecret,
-          code: String(code),
-          grantType: 'authorization_code',
-          redirectUri: callbackUrl,
-        });
-      } catch (tokenError: any) {
-        console.error(`[Square OAuth] Token exchange FAILED:`, tokenError);
-        console.error(`[Square OAuth] Error details:`, JSON.stringify(tokenError, null, 2));
-        if (tokenError.body) {
-          console.error(`[Square OAuth] Error body:`, tokenError.body);
-        }
-        throw tokenError;
-      }
-
-      const tokenResponse = response as any;
-      console.log(`[Square OAuth] Token exchange succeeded`);
+      const tokenRequestBody = {
+        client_id: applicationId,
+        client_secret: applicationSecret,
+        code: String(code),
+        grant_type: 'authorization_code',
+        redirect_uri: callbackUrl,
+      };
       
-      if (!tokenResponse.accessToken || !tokenResponse.merchantId) {
+      console.log(`[Square OAuth] Making direct HTTP request to Square...`);
+      
+      const tokenFetchResponse = await fetch('https://connect.squareup.com/oauth2/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Square-Version': '2024-01-18',
+        },
+        body: JSON.stringify(tokenRequestBody),
+      });
+      
+      const tokenResponseJson = await tokenFetchResponse.json();
+      
+      if (!tokenFetchResponse.ok) {
+        console.error(`[Square OAuth] Token exchange FAILED - Status: ${tokenFetchResponse.status}`);
+        console.error(`[Square OAuth] Error response:`, JSON.stringify(tokenResponseJson, null, 2));
+        return res.redirect(`${errorRedirect}${encodeURIComponent(tokenResponseJson.message || tokenResponseJson.error || 'Token exchange failed')}`);
+      }
+      
+      console.log(`[Square OAuth] Token exchange succeeded`);
+      const tokenResponse = tokenResponseJson;
+      
+      if (!tokenResponse.access_token || !tokenResponse.merchant_id) {
         console.error("Square OAuth: Failed to obtain tokens", tokenResponse);
         return res.redirect(`${errorRedirect}Failed to obtain access token`);
       }
 
-      const { accessToken, refreshToken, expiresAt, merchantId } = tokenResponse;
+      const accessToken = tokenResponse.access_token;
+      const refreshToken = tokenResponse.refresh_token;
+      const expiresAt = tokenResponse.expires_at;
+      const merchantId = tokenResponse.merchant_id;
       const expiresAtDate = expiresAt ? new Date(expiresAt) : null;
 
       const user = await storage.getUser(userId);
