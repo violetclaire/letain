@@ -632,7 +632,7 @@ export async function createBookingFromAI(
     phone?: string;
     notes?: string;
   }
-): Promise<{ success: boolean; bookingId?: string; error?: string }> {
+): Promise<{ success: boolean; bookingId?: string; calendarEventId?: string; error?: string }> {
   try {
     let eventDate = parseLocalDate(booking.date);
 
@@ -673,7 +673,28 @@ export async function createBookingFromAI(
 
     console.log(`[AI] Created booking for ${booking.clientName} on ${booking.date}`, newBooking.id);
 
-    return { success: true, bookingId: newBooking.id };
+    let calendarEventId: string | undefined;
+    try {
+      const { createCalendarEvent } = await import("./googleCalendarClient");
+      const calendarResult = await createCalendarEvent({
+        title: `${booking.serviceType || "Appointment"} - ${booking.clientName}`,
+        description: `Client: ${booking.clientName}\n${booking.email ? `Email: ${booking.email}\n` : ''}${booking.phone ? `Phone: ${booking.phone}\n` : ''}${booking.notes ? `Notes: ${booking.notes}` : ''}`,
+        location: booking.location,
+        startTime: eventDate,
+        attendeeEmail: booking.email,
+      });
+      
+      if (calendarResult.success) {
+        calendarEventId = calendarResult.eventId;
+        console.log(`[AI] Created Google Calendar event for booking:`, calendarEventId);
+      } else {
+        console.log(`[AI] Could not create calendar event (calendar may not be connected):`, calendarResult.error);
+      }
+    } catch (calendarErr) {
+      console.log(`[AI] Google Calendar not available:`, calendarErr);
+    }
+
+    return { success: true, bookingId: newBooking.id, calendarEventId };
   } catch (err: any) {
     console.error("[AI] Failed to create booking:", err);
     return { success: false, error: err.message };

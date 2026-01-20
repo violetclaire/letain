@@ -4497,6 +4497,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             (result as any).bookingCreated = true;
             (result as any).bookingId = bookingResult.bookingId;
             console.log("Booking created successfully:", bookingResult.bookingId);
+            
+            if (bookingResult.calendarEventId) {
+              (result as any).calendarEventCreated = true;
+              result.response = result.response.replace(/!$/, '') + " and added to your Google Calendar!";
+            }
           } else {
             result.response = "I had trouble creating that booking. Please try again.";
             console.error("Booking creation failed:", bookingResult.error);
