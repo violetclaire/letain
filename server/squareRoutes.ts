@@ -35,8 +35,8 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
   // Debug endpoint to verify Square credentials
   app.get("/api/square/debug-credentials", async (req, res) => {
     try {
-      const appId = process.env.SQUARE_APPLICATION_ID || 'NOT SET';
-      const appSecret = process.env.SQUARE_APPLICATION_SECRET || 'NOT SET';
+      const appId = process.env.SQUARE_APP_ID || process.env.SQUARE_APPLICATION_ID || 'NOT SET';
+      const appSecret = process.env.SQUARE_APP_SECRET || process.env.SQUARE_APPLICATION_SECRET || 'NOT SET';
       res.json({
         appIdPrefix: appId.substring(0, 15),
         appSecretPrefix: appSecret.substring(0, 12),
