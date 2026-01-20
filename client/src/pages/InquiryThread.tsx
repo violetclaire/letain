@@ -209,6 +209,8 @@ export default function InquiryThread() {
         .map(item => `${item.clientType}: ${item.service} (x${item.qty}) - $${(item.qty * item.price).toFixed(2)}`)
         .join('\n');
       
+      const depositAmountNum = parseFloat(contractData.depositAmount) || 0;
+      
       const payload = {
         // New format with service items
         serviceItems: validItems.map(item => ({
@@ -224,14 +226,30 @@ export default function InquiryThread() {
         depositAmount: contractData.depositAmount || "0",
         eventLocation: contractData.eventLocation,
         travelFee: Math.round(travelFee * 100),
+        // Flag to also send retainer invoice
+        sendRetainerInvoice: depositAmountNum > 0,
       };
-      console.log("[Contract] Sending contract request:", payload);
+      console.log("[Contract] Sending contract + retainer request:", payload);
       const res = await apiRequest("POST", `/api/public/inquiry/${threadToken}/create-contract`, payload);
       console.log("[Contract] Response received:", res);
       return res;
     },
-    onSuccess: () => {
-      console.log("[Contract] Success!");
+    onSuccess: (result: any) => {
+      console.log("[Contract] Success!", result);
+      
+      // Show appropriate message based on what was sent
+      if (result.retainerError) {
+        toast({ 
+          title: "Contract Sent", 
+          description: "Contract sent, but retainer invoice failed. Please check Square connection.",
+          variant: "destructive"
+        });
+      } else if (result.retainerInvoiceSent) {
+        toast({ title: "Sent!", description: "Contract and retainer invoice sent to client" });
+      } else {
+        toast({ title: "Sent!", description: "Contract sent to client for signing" });
+      }
+      
       queryClient.invalidateQueries({ queryKey: [`/api/public/inquiry/${threadToken}`] });
       // Reset all form state
       setShowContractForm(false);
@@ -241,7 +259,7 @@ export default function InquiryThread() {
     },
     onError: (error: Error) => {
       console.error("[Contract] Error:", error);
-      alert("Contract error: " + error.message);
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -574,8 +592,8 @@ export default function InquiryThread() {
                   className="w-full py-4 border border-[#F5F0E8] hover:bg-[#F5F0E8] hover:text-[#1A1A1A] transition-all text-center rounded"
                   data-testid="button-send-contract"
                 >
-                  <p className="text-sm">Send Contract</p>
-                  <p className="text-[10px] opacity-50 mt-1">Create & send for signing</p>
+                  <p className="text-sm">Send Contract & Retainer</p>
+                  <p className="text-[10px] opacity-50 mt-1">Contract + deposit invoice together</p>
                 </button>
 
                 {showContractForm && !showContractReview && (
@@ -770,7 +788,7 @@ export default function InquiryThread() {
                         disabled={contractMutation.isPending}
                         className="flex-1 py-3 bg-[#F5F0E8] text-[#1A1A1A] text-sm rounded hover:bg-white transition-all disabled:opacity-50"
                       >
-                        {contractMutation.isPending ? "Sending..." : "Send Contract"}
+                        {contractMutation.isPending ? "Sending..." : "Send Contract & Retainer"}
                       </button>
                     </div>
                   </div>
@@ -782,7 +800,7 @@ export default function InquiryThread() {
                   data-testid="button-send-invoice"
                 >
                   <p className="text-sm">Send Invoice</p>
-                  <p className="text-[10px] text-[#F5F0E8]/50 mt-1">Collect retainer or balance</p>
+                  <p className="text-[10px] text-[#F5F0E8]/50 mt-1">For trials, final balance, or extras</p>
                 </button>
 
                 {showInvoiceForm && (

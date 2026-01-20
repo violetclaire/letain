@@ -889,6 +889,241 @@ export async function sendContractSignedNotification({
   }
 }
 
+// Send a copy of the signed contract to the client
+export async function sendSignedContractCopyToClient({
+  toEmail,
+  clientName,
+  artistName,
+  packageDetails,
+  totalAmount,
+  depositAmount,
+  eventDates,
+  signedAt,
+  contractHtml
+}: {
+  toEmail: string;
+  clientName: string;
+  artistName: string;
+  packageDetails: string;
+  totalAmount: number;
+  depositAmount: number;
+  eventDates?: string;
+  signedAt: string;
+  contractHtml?: string;
+}) {
+  const { client, fromEmail } = await getResendClient();
+
+  const signedDate = new Date(signedAt).toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  const formatCurrency = (cents: number) => {
+    if (!cents) return "$0.00";
+    return `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+  };
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: #ffffff; margin: 0; padding: 24px; color: #1a1a1a; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .header { padding: 24px 0; text-align: center; border-bottom: 1px solid #e5e5e5; }
+        .header h1 { margin: 0; font-size: 24px; color: #1a1a1a; font-weight: 600; }
+        .content { padding: 24px 0; }
+        .success-badge { display: inline-block; background: #e8f5e9; color: #2e7d32; padding: 8px 16px; border-radius: 20px; font-size: 14px; margin-bottom: 24px; }
+        .details { background: #f9f9f9; padding: 20px; border-left: 3px solid #1a1a1a; margin: 20px 0; }
+        .detail-row { margin: 8px 0; }
+        .detail-label { color: #666; font-size: 13px; }
+        .detail-value { color: #1a1a1a; font-weight: 600; }
+        .footer { padding: 24px 0; text-align: center; border-top: 1px solid #e5e5e5; color: #666; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>${escapeHtml(artistName)}</h1>
+        </div>
+        <div class="content">
+          <div style="text-align: center;">
+            <span class="success-badge">Contract Signed</span>
+          </div>
+          
+          <p style="margin-bottom: 16px;">Hi ${escapeHtml(clientName)},</p>
+          <p style="margin-bottom: 24px;">Thank you for signing your contract. Here is a copy for your records.</p>
+          
+          <div class="details">
+            <div class="detail-row">
+              <div class="detail-label">Services</div>
+              <div class="detail-value">${escapeHtml(packageDetails)}</div>
+            </div>
+            ${eventDates ? `
+            <div class="detail-row">
+              <div class="detail-label">Event Date</div>
+              <div class="detail-value">${escapeHtml(eventDates)}</div>
+            </div>
+            ` : ''}
+            <div class="detail-row">
+              <div class="detail-label">Total Amount</div>
+              <div class="detail-value">${formatCurrency(totalAmount)}</div>
+            </div>
+            ${depositAmount > 0 ? `
+            <div class="detail-row">
+              <div class="detail-label">Retainer</div>
+              <div class="detail-value">${formatCurrency(depositAmount)}</div>
+            </div>
+            ` : ''}
+            <div class="detail-row">
+              <div class="detail-label">Signed On</div>
+              <div class="detail-value">${signedDate}</div>
+            </div>
+          </div>
+          
+          <p style="color: #666; font-size: 14px; margin-top: 24px;">
+            Please keep this email for your records. If you have any questions, please contact ${escapeHtml(artistName)}.
+          </p>
+        </div>
+        <div class="footer">
+          ${escapeHtml(artistName)}
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const senderEmail = `${sanitizeSenderName(artistName)} <notifications@dateinquiry.com>`;
+  
+  try {
+    console.log("Sending signed contract copy to client:", toEmail);
+    const result = await client.emails.send({
+      from: senderEmail,
+      to: toEmail.trim(),
+      subject: `Your Signed Contract with ${artistName}`,
+      html: htmlContent
+    });
+    console.log("Signed contract copy sent:", JSON.stringify(result));
+    return { success: true, result };
+  } catch (err: any) {
+    console.error("Failed to send signed contract copy:", err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+// Send payment receipt to client
+export async function sendPaymentReceiptToClient({
+  toEmail,
+  clientName,
+  artistName,
+  amount,
+  description,
+  paymentDate,
+  paymentMethod
+}: {
+  toEmail: string;
+  clientName: string;
+  artistName: string;
+  amount: number;
+  description: string;
+  paymentDate?: string;
+  paymentMethod?: string;
+}) {
+  const { client, fromEmail } = await getResendClient();
+
+  const formattedAmount = (amount / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+  const formattedDate = paymentDate 
+    ? new Date(paymentDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    : new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: #ffffff; margin: 0; padding: 24px; color: #1a1a1a; }
+        .container { max-width: 560px; margin: 0 auto; }
+        .header { padding: 24px 0; text-align: center; border-bottom: 1px solid #e5e5e5; }
+        .header h1 { margin: 0; font-size: 24px; color: #1a1a1a; font-weight: 600; }
+        .content { padding: 24px 0; }
+        .success-badge { display: inline-block; background: #e8f5e9; color: #2e7d32; padding: 8px 16px; border-radius: 20px; font-size: 14px; margin-bottom: 24px; }
+        .amount { font-size: 36px; color: #1a1a1a; font-weight: bold; text-align: center; margin: 24px 0; }
+        .receipt-box { background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .receipt-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .receipt-row:last-child { border-bottom: none; }
+        .receipt-label { color: #666; }
+        .receipt-value { color: #1a1a1a; font-weight: 500; }
+        .footer { padding: 24px 0; text-align: center; border-top: 1px solid #e5e5e5; color: #666; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>${escapeHtml(artistName)}</h1>
+        </div>
+        <div class="content">
+          <div style="text-align: center;">
+            <span class="success-badge">Payment Received</span>
+          </div>
+          
+          <p style="margin-bottom: 16px;">Hi ${escapeHtml(clientName)},</p>
+          <p style="margin-bottom: 24px;">Thank you for your payment. Here is your receipt.</p>
+          
+          <div class="amount">${formattedAmount}</div>
+          
+          <div class="receipt-box">
+            <div class="receipt-row">
+              <span class="receipt-label">Description</span>
+              <span class="receipt-value">${escapeHtml(description)}</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-label">Date</span>
+              <span class="receipt-value">${formattedDate}</span>
+            </div>
+            ${paymentMethod ? `
+            <div class="receipt-row">
+              <span class="receipt-label">Payment Method</span>
+              <span class="receipt-value">${escapeHtml(paymentMethod)}</span>
+            </div>
+            ` : ''}
+            <div class="receipt-row">
+              <span class="receipt-label">Status</span>
+              <span class="receipt-value" style="color: #2e7d32;">Paid</span>
+            </div>
+          </div>
+          
+          <p style="color: #666; font-size: 14px; margin-top: 24px;">
+            Please keep this email as your receipt. If you have any questions, please contact ${escapeHtml(artistName)}.
+          </p>
+        </div>
+        <div class="footer">
+          ${escapeHtml(artistName)}
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const senderEmail = `${sanitizeSenderName(artistName)} <notifications@dateinquiry.com>`;
+  
+  try {
+    console.log("Sending payment receipt to client:", toEmail);
+    const result = await client.emails.send({
+      from: senderEmail,
+      to: toEmail.trim(),
+      subject: `Payment Receipt from ${artistName} - ${formattedAmount}`,
+      html: htmlContent
+    });
+    console.log("Payment receipt sent:", JSON.stringify(result));
+    return { success: true, result };
+  } catch (err: any) {
+    console.error("Failed to send payment receipt:", err.message);
+    return { success: false, error: err.message };
+  }
+}
+
 export async function sendAppointmentConfirmationEmail({
   toEmail,
   clientName,

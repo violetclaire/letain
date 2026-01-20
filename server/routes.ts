@@ -4061,6 +4061,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Notify artist via email
       const artist = await storage.getUser(contract.artistId);
+      const artistProfile = await storage.getArtistProfile(contract.artistId);
+      const artistName = artistProfile?.businessName || artist?.firstName || "Artist";
+      
       if (artist?.email) {
         try {
           const { sendContractSignedNotification } = await import("./emailService");
@@ -4073,6 +4076,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         } catch (emailError) {
           console.error("[Sign] Failed to send notification email:", emailError);
+        }
+      }
+      
+      // Send copy of signed contract to client
+      if (signedByEmail) {
+        try {
+          const { sendSignedContractCopyToClient } = await import("./emailService");
+          // Safely get eventDates as string
+          const eventDatesStr = contract.eventDates 
+            ? (typeof contract.eventDates === 'string' ? contract.eventDates : String(contract.eventDates))
+            : undefined;
+          
+          await sendSignedContractCopyToClient({
+            toEmail: signedByEmail,
+            clientName: signedByName,
+            artistName,
+            packageDetails: contract.packageDetails || "Beauty Services",
+            totalAmount: contract.totalAmount || 0,
+            depositAmount: contract.depositAmount || 0,
+            eventDates: eventDatesStr,
+            signedAt: new Date().toISOString(),
+          });
+          console.log("[Sign] Sent contract copy to client:", signedByEmail);
+        } catch (emailError) {
+          console.error("[Sign] Failed to send contract copy to client:", emailError);
         }
       }
       
@@ -11650,11 +11678,11 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
-  // Create contract from inquiry thread
+  // Create contract from inquiry thread (optionally with retainer invoice)
   app.post("/api/public/inquiry/:threadToken/create-contract", async (req, res) => {
     try {
       const { threadToken } = req.params;
-      const { packageDetails, totalAmount, depositAmount, eventLocation } = req.body;
+      const { packageDetails, totalAmount, depositAmount, eventLocation, sendRetainerInvoice } = req.body;
       
       const inquiry = await storage.getInquiryByThreadToken(threadToken);
       if (!inquiry) {
@@ -11668,6 +11696,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       
       // Generate signing token
       const signingToken = randomBytes(32).toString('hex');
+      const depositAmountNum = parseFloat(depositAmount) || 0;
       
       // Create a contract (bookingId is optional for inquiry-based contracts)
       const contract = await storage.createContract({
@@ -11676,7 +11705,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         clientId: inquiry.clientId || inquiry.vendorId,
         artistId: inquiry.vendorId,
         totalAmount: parseFloat(totalAmount) || 0,
-        depositAmount: parseFloat(depositAmount) || 0,
+        depositAmount: depositAmountNum,
         status: "pending",
         packageDetails: packageDetails || artist.contractTemplate || "",
         eventLocation: eventLocation || inquiry.eventLocation || "",
@@ -11699,7 +11728,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           artistName: artist.businessName || artist.firstName || 'Your Artist',
           packageDetails: packageDetails || artist.contractTemplate || 'Beauty Services',
           totalAmount: parseFloat(totalAmount) || 0,
-          depositAmount: parseFloat(depositAmount) || 0,
+          depositAmount: depositAmountNum,
           signingUrl: signingUrl,
         });
         console.log(`[Contract] Signing email sent to ${inquiry.clientEmail}`);
@@ -11707,14 +11736,53 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         console.error('[Contract] Failed to send signing email:', emailErr);
       }
       
-      // Update inquiry status
+      // Also send retainer invoice if requested and deposit amount > 0
+      let retainerInvoiceSent = false;
+      if (sendRetainerInvoice && depositAmountNum > 0) {
+        try {
+          const { sendPaymentLinkFromAI } = await import('./aiChat');
+          const retainerAmountCents = Math.round(depositAmountNum * 100);
+          
+          const invoiceResult = await sendPaymentLinkFromAI(inquiry.vendorId, {
+            clientName: inquiry.clientName,
+            clientEmail: inquiry.clientEmail,
+            amount: retainerAmountCents,
+            description: `Retainer for ${packageDetails || 'Beauty Services'}`,
+            bookingId: inquiry.bookingId || inquiry.id,
+          });
+          
+          if (invoiceResult.success) {
+            retainerInvoiceSent = true;
+            console.log(`[Contract] Retainer invoice sent to ${inquiry.clientEmail}`);
+          } else {
+            console.error('[Contract] Failed to send retainer invoice:', invoiceResult.error);
+          }
+        } catch (invoiceErr) {
+          console.error('[Contract] Error sending retainer invoice:', invoiceErr);
+        }
+      }
+      
+      // Update inquiry status - use contract_sent for consistency with existing status handling
       await storage.updateInquiry(inquiry.id, {
         status: "contract_sent",
         convertedToContractId: contract.id,
         lastActionAt: new Date(),
       });
       
-      res.json({ success: true, contractId: contract.id, message: "Contract sent to client for signing" });
+      // Build response message
+      let message: string;
+      let retainerError: string | null = null;
+      
+      if (sendRetainerInvoice && depositAmountNum > 0 && !retainerInvoiceSent) {
+        message = "Contract sent, but retainer invoice failed (Square may not be connected)";
+        retainerError = "Failed to create retainer invoice - please check Square connection";
+      } else if (retainerInvoiceSent) {
+        message = "Contract and retainer invoice sent to client";
+      } else {
+        message = "Contract sent to client for signing";
+      }
+      
+      res.json({ success: true, contractId: contract.id, retainerInvoiceSent, retainerError, message });
     } catch (error: any) {
       console.error("[Inquiry Thread] Error creating contract:", error);
       res.status(500).json({ error: error.message || "Failed to create contract" });

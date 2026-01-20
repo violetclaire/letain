@@ -673,6 +673,30 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
                   paymentStatus: 'paid',
                 });
                 console.log(`[Square Webhook] Updated booking ${booking.id} to paid`);
+                
+                // Send payment receipt to client
+                try {
+                  const inquiry = await storage.getInquiry(booking.inquiryId);
+                  const artist = await storage.getUser(booking.artistId);
+                  const artistProfile = await storage.getArtistProfile(booking.artistId);
+                  const artistName = artistProfile?.businessName || artist?.firstName || "Artist";
+                  
+                  if (inquiry?.clientEmail) {
+                    const { sendPaymentReceiptToClient } = await import("./emailService");
+                    await sendPaymentReceiptToClient({
+                      toEmail: inquiry.clientEmail,
+                      clientName: inquiry.clientFirstName || "Client",
+                      artistName,
+                      amount: Number(payment.amountMoney?.amount) || 0,
+                      description: booking.description || "Payment",
+                      paymentDate: new Date().toISOString(),
+                      paymentMethod: "Square",
+                    });
+                    console.log(`[Square Webhook] Payment receipt sent to ${inquiry.clientEmail}`);
+                  }
+                } catch (emailErr) {
+                  console.error(`[Square Webhook] Failed to send payment receipt:`, emailErr);
+                }
               }
             }
           }
@@ -689,6 +713,30 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
                 paymentStatus: 'paid',
               });
               console.log(`[Square Webhook] Updated booking ${booking.id} to paid`);
+              
+              // Send payment receipt to client
+              try {
+                const inquiry = await storage.getInquiry(booking.inquiryId);
+                const artist = await storage.getUser(booking.artistId);
+                const artistProfile = await storage.getArtistProfile(booking.artistId);
+                const artistName = artistProfile?.businessName || artist?.firstName || "Artist";
+                
+                if (inquiry?.clientEmail) {
+                  const { sendPaymentReceiptToClient } = await import("./emailService");
+                  await sendPaymentReceiptToClient({
+                    toEmail: inquiry.clientEmail,
+                    clientName: inquiry.clientFirstName || "Client",
+                    artistName,
+                    amount: Number(invoice.paymentRequests?.[0]?.computedAmountMoney?.amount) || 0,
+                    description: invoice.title || "Invoice Payment",
+                    paymentDate: new Date().toISOString(),
+                    paymentMethod: "Square",
+                  });
+                  console.log(`[Square Webhook] Payment receipt sent to ${inquiry.clientEmail}`);
+                }
+              } catch (emailErr) {
+                console.error(`[Square Webhook] Failed to send payment receipt:`, emailErr);
+              }
             }
           }
           break;
