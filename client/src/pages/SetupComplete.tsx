@@ -20,35 +20,35 @@ export default function SetupComplete() {
 
   if (isLoading) {
     return (
-      <div className="bg-black text-white min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-white/50" />
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'hsl(36 24% 95%)' }}>
+        <Loader2 className="h-8 w-8 animate-spin text-[#1a1a1a]" />
       </div>
     );
   }
 
   return (
-    <div className="bg-black text-white min-h-screen flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'hsl(36 24% 95%)' }}>
       <main className="max-w-lg mx-auto px-8 py-12 text-center">
-        <div className="w-20 h-20 rounded-full border-2 border-green-500 flex items-center justify-center mx-auto mb-6">
-          <Check className="h-10 w-10 text-green-500" />
+        <div className="w-20 h-20 rounded-full border-2 border-green-600 flex items-center justify-center mx-auto mb-6">
+          <Check className="h-10 w-10 text-green-600" />
         </div>
         
-        <h2 className="text-3xl italic mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>
+        <h2 className="text-3xl italic mb-4 text-[#1a1a1a]" style={{ fontFamily: "'Fraunces', serif" }}>
           You're All Set!
         </h2>
-        <p className="text-gray-400 mb-8">
+        <p className="text-[#3b3b3b] mb-8">
           You can now send contracts and collect payments directly from your conversation threads.
         </p>
         
         <div className="space-y-4">
           <a 
             href="/artist"
-            className="block w-full border border-white py-4 text-xs tracking-[0.2em] uppercase hover:bg-white hover:text-black transition-all"
+            className="block w-full border-2 border-[#1a1a1a] bg-[#1a1a1a] text-white py-4 text-xs tracking-[0.2em] uppercase hover:bg-transparent hover:text-[#1a1a1a] transition-all"
             data-testid="button-go-to-dashboard"
           >
             Go to Dashboard
           </a>
-          <p className="text-gray-500 text-xs">
+          <p className="text-[#595959] text-sm">
             Your inquire link: {secretaryLink}
           </p>
         </div>
