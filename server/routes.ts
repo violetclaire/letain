@@ -4770,80 +4770,186 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI Schedule Creation Chat
+  // AI Schedule Creation Chat - Enhanced with full time slot generation
   app.post("/api/ai/schedule-chat", isAuthenticated, async (req: any, res) => {
     try {
       const userId = getAuthUserId(req);
-      const { message } = req.body;
+      const { message, conversationHistory = [] } = req.body;
       
       if (!message) {
         return res.status(400).json({ error: "Message required" });
       }
       
       const currentDate = new Date();
-      const schedulePrompt = `You are a schedule creation assistant for a wedding beauty services platform.
+      const currentYear = currentDate.getFullYear();
+      const nextYear = currentYear + 1;
       
-Your job is to extract schedule details from the user's natural language input and return structured JSON.
+      // Build conversation context
+      const historyContext = conversationHistory.length > 0 
+        ? `\nPrevious conversation:\n${conversationHistory.map((m: any) => `${m.role}: ${m.content}`).join('\n')}\n`
+        : '';
+      
+      const schedulePrompt = `You are Beauvette Secretary, an intelligent schedule creation assistant for wedding beauty artists.
+
+Your job is to have a natural conversation with the artist to gather schedule details, then generate a complete schedule with calculated time slots.
 
 Current date: ${currentDate.toISOString().split('T')[0]}
+${historyContext}
+Current user message: ${message}
 
-EXTRACT THE FOLLOWING from the user's message:
-- eventName: The name of the event (e.g., "Smith Wedding", "Jones Engagement Party")
-- dates: Array of date strings in YYYY-MM-DD format
-- location: The venue/location (if mentioned)
-- readyByTime: The time the client needs to be ready (in HH:MM format, 24-hour)
-- sessionDetails: Any details about the session
-- recipientEmails: Emails to send the schedule to (if mentioned)
+INFORMATION YOU NEED TO CREATE A SCHEDULE:
+1. eventName - Name of the event (e.g., "Smith Wedding")
+2. eventDate - The date in YYYY-MM-DD format (if month mentioned without year, assume ${nextYear} for future dates)
+3. numPeople - How many people/clients need services (e.g., bride + 5 bridesmaids = 6 people)
+4. numArtists - How many artists will be working
+5. startTime - When to start services (in HH:MM 24-hour format)
+6. readyByTime - When everyone needs to be done (in HH:MM 24-hour format)
+7. location - Venue/location (optional)
 
-RESPOND WITH JSON ONLY in this exact format:
+CONVERSATION RULES:
+- If any REQUIRED info is missing (eventName, eventDate, numPeople, numArtists, startTime, readyByTime), ask for it naturally
+- Ask ONE question at a time to get missing info
+- Be friendly and conversational, not robotic
+- When you have ALL required info, generate the schedule
+
+TIME SLOT CALCULATION:
+- Each service takes 45 minutes
+- Calculate how many time slots fit between startTime and readyByTime
+- Generate timeSlots array with times in "HH:MM AM/PM" format
+- artistColumns should have one column per artist (e.g., ["Artist 1", "Artist 2"])
+- grid is a 2D array: grid[slotIndex][artistIndex] = { clientName: "", service: "" }
+
+RESPONSE FORMAT (JSON only):
+If you need more info:
 {
-  "scheduleData": {
-    "eventName": "Smith Wedding",
-    "dates": ["2025-12-14", "2025-12-15"],
-    "location": "Grand Ballroom Hotel",
-    "readyByTime": "14:00",
-    "sessionDetails": "Bride and bridal party",
-    "recipientEmails": ""
-  },
-  "response": "I'll create a 2-day schedule for the Smith Wedding on December 14-15 at the Grand Ballroom Hotel, with the bride ready by 2:00 PM.",
-  "needsMoreInfo": false,
-  "missingFields": []
+  "response": "Your friendly question here",
+  "needsMoreInfo": true,
+  "collectedData": { ...any data you've gathered so far... }
 }
 
-If critical information is missing (eventName or dates), set needsMoreInfo to true and list the missing fields.
+If you have everything and can build the schedule:
+{
+  "response": "Great! I'm creating your schedule with X time slots for Y people across Z artists.",
+  "needsMoreInfo": false,
+  "scheduleData": {
+    "eventName": "Smith Wedding",
+    "eventDate": "2026-03-15",
+    "location": "Grand Hotel",
+    "readyByTime": "11:00 AM",
+    "startTime": "7:00 AM",
+    "numPeople": 6,
+    "numArtists": 2,
+    "timeSlots": ["7:00 AM", "7:45 AM", "8:30 AM", "9:15 AM", "10:00 AM"],
+    "artistColumns": ["Artist 1", "Artist 2"],
+    "grid": [
+      [{"clientName": "", "service": ""}, {"clientName": "", "service": ""}],
+      [{"clientName": "", "service": ""}, {"clientName": "", "service": ""}],
+      ...
+    ]
+  }
+}
 
-Example inputs and outputs:
-- "Create a schedule for the Johnson wedding on December 20th" → Extract eventName="Johnson Wedding", dates=["2025-12-20"]
-- "Spanish Days event on Jan 5-7 at the Hilton, bride ready at 3pm" → Extract eventName="Spanish Days", dates=["2026-01-05","2026-01-06","2026-01-07"], location="Hilton", readyByTime="15:00"
-- "3 day wedding for Sarah Dec 10, 11 and 12" → Extract eventName="Sarah's Wedding", dates=["2025-12-10","2025-12-11","2025-12-12"]
+EXAMPLES:
+User: "I need a schedule for the Johnson wedding next Saturday, 6 people, 2 artists, starting at 7am ready by noon"
+→ You have all info! Calculate slots from 7:00-12:00 (45 min each = 6+ slots), return complete scheduleData
 
-User message: ${message}`;
+User: "Create a schedule for a wedding"
+→ Ask: "I'd love to help! What's the name of the wedding and what date is it?"
+
+User: "It's the Martinez wedding on February 8th"
+→ Ask: "Perfect! How many people will need services, and how many artists will be working?"
+
+User: "8 people and 3 artists"
+→ Ask: "Got it! What time should we start, and what time does everyone need to be ready by?"
+
+IMPORTANT: Always respond with valid JSON only. No markdown, no extra text.`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3-flash-preview",
         contents: [{ role: "user", parts: [{ text: schedulePrompt }] }],
-        config: { maxOutputTokens: 1024 }
+        config: { maxOutputTokens: 4096 }
       });
 
       const responseText = response.text || "";
       
       try {
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        // Clean up response - remove markdown code blocks if present
+        let cleanedResponse = responseText
+          .replace(/```json\s*/gi, '')
+          .replace(/```\s*/g, '')
+          .trim();
+        
+        const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]);
+          
+          // If we have complete schedule data with grid, ensure it's properly formatted
+          if (parsed.scheduleData && !parsed.needsMoreInfo) {
+            const sd = parsed.scheduleData;
+            
+            // Ensure timeSlots exist and are properly calculated if missing
+            if (!sd.timeSlots && sd.startTime && sd.readyByTime) {
+              const slots = [];
+              const parseTime = (t: string) => {
+                const match = t.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+                if (!match) return null;
+                let hours = parseInt(match[1]);
+                const mins = parseInt(match[2]);
+                const period = match[3]?.toUpperCase();
+                if (period === 'PM' && hours !== 12) hours += 12;
+                if (period === 'AM' && hours === 12) hours = 0;
+                return hours * 60 + mins;
+              };
+              
+              const formatTime = (mins: number) => {
+                const h = Math.floor(mins / 60);
+                const m = mins % 60;
+                const period = h >= 12 ? 'PM' : 'AM';
+                const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                return `${h12}:${m.toString().padStart(2, '0')} ${period}`;
+              };
+              
+              const startMins = parseTime(sd.startTime);
+              const endMins = parseTime(sd.readyByTime);
+              
+              if (startMins !== null && endMins !== null) {
+                let current = startMins;
+                while (current < endMins) {
+                  slots.push(formatTime(current));
+                  current += 45;
+                }
+                sd.timeSlots = slots;
+              }
+            }
+            
+            // Ensure artistColumns exist
+            if (!sd.artistColumns && sd.numArtists) {
+              sd.artistColumns = Array.from(
+                { length: sd.numArtists }, 
+                (_, i) => `Artist ${i + 1}`
+              );
+            }
+            
+            // Ensure grid exists
+            if (!sd.grid && sd.timeSlots && sd.artistColumns) {
+              sd.grid = sd.timeSlots.map(() => 
+                sd.artistColumns.map(() => ({ clientName: "", service: "" }))
+              );
+            }
+          }
+          
           res.json(parsed);
         } else {
           res.json({
-            response: "I couldn't understand that. Try something like: 'Create a schedule for the Smith Wedding on December 15th at the Grand Hotel'",
-            needsMoreInfo: true,
-            missingFields: ["eventName", "dates"]
+            response: "I'd be happy to help you create a schedule! What's the name of the event and when is it?",
+            needsMoreInfo: true
           });
         }
       } catch (parseErr) {
+        console.error("Parse error:", parseErr, "Response:", responseText);
         res.json({
-          response: "I had trouble processing that. Please try again with details like: event name, dates, and location.",
-          needsMoreInfo: true,
-          missingFields: ["eventName", "dates"]
+          response: "Tell me about the schedule you need - event name, date, number of people, and when everyone needs to be ready.",
+          needsMoreInfo: true
         });
       }
     } catch (error: any) {
@@ -5937,7 +6043,19 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   app.post("/api/event-schedules", isAuthenticated, async (req: any, res) => {
     try {
       const userId = getAuthUserId(req);
-      const { eventName, eventDate, eventLocation, readyByTime, notes, bookingId } = req.body;
+      const { 
+        eventName, 
+        eventDate, 
+        eventLocation, 
+        readyByTime, 
+        notes, 
+        bookingId,
+        sessionDetails,
+        recipientEmails,
+        timeSlots,
+        artistColumns,
+        grid
+      } = req.body;
       
       // Generate share token
       const shareToken = `${Date.now().toString(36)}-${Math.random().toString(36).substr(2, 9)}`;
@@ -5951,8 +6069,67 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         notes,
         bookingId,
         shareToken,
+        sessionDetails,
+        recipientEmails,
         status: 'draft',
       });
+      
+      // If AI provided timeSlots and artistColumns, create the grid structure
+      if (timeSlots && timeSlots.length > 0 && artistColumns && artistColumns.length > 0) {
+        // Create team members (artist columns)
+        const createdMembers = [];
+        for (let i = 0; i < artistColumns.length; i++) {
+          const member = await storage.createScheduleTeamMember({
+            scheduleId: schedule.id,
+            name: artistColumns[i],
+            role: 'stylist',
+            displayOrder: i,
+          });
+          createdMembers.push(member);
+        }
+        
+        // Create appointments for each time slot and artist
+        for (let slotIdx = 0; slotIdx < timeSlots.length; slotIdx++) {
+          const startTime = timeSlots[slotIdx];
+          
+          // Calculate end time (45 mins later)
+          const parseTime = (t: string) => {
+            const match = t.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+            if (!match) return null;
+            let hours = parseInt(match[1]);
+            const mins = parseInt(match[2]);
+            const period = match[3]?.toUpperCase();
+            if (period === 'PM' && hours !== 12) hours += 12;
+            if (period === 'AM' && hours === 12) hours = 0;
+            return hours * 60 + mins;
+          };
+          
+          const formatTime = (mins: number) => {
+            const h = Math.floor(mins / 60);
+            const m = mins % 60;
+            const period = h >= 12 ? 'PM' : 'AM';
+            const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+            return `${h12}:${m.toString().padStart(2, '0')} ${period}`;
+          };
+          
+          const startMins = parseTime(startTime);
+          const endTime = startMins !== null ? formatTime(startMins + 45) : startTime;
+          
+          for (let artistIdx = 0; artistIdx < createdMembers.length; artistIdx++) {
+            const gridCell = grid?.[slotIdx]?.[artistIdx];
+            
+            await storage.createScheduleAppointment({
+              scheduleId: schedule.id,
+              teamMemberId: createdMembers[artistIdx].id,
+              clientName: gridCell?.clientName || '',
+              serviceType: gridCell?.service || 'H',
+              startTime: startTime,
+              endTime: endTime,
+              displayOrder: slotIdx,
+            });
+          }
+        }
+      }
       
       res.json(schedule);
     } catch (error: any) {

@@ -75,17 +75,21 @@ export default function ScheduleList() {
   const sendAIMessage = async (message: string) => {
     if (!message.trim()) return;
     
-    setAiMessages(prev => [...prev, { role: 'user', content: message }]);
+    const newUserMessage = { role: 'user' as const, content: message };
+    const updatedHistory = [...aiMessages, newUserMessage];
+    setAiMessages(updatedHistory);
     setAiInput("");
     setAiLoading(true);
-    setPendingScheduleData(null); // Clear any stale pending data
     
     try {
       const res = await fetch('/api/ai/schedule-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ message })
+        body: JSON.stringify({ 
+          message,
+          conversationHistory: updatedHistory.slice(1) // Skip initial greeting
+        })
       });
       
       if (!res.ok) throw new Error('Failed to get response');
@@ -96,6 +100,8 @@ export default function ScheduleList() {
       
       if (data.scheduleData && !data.needsMoreInfo) {
         setPendingScheduleData(data.scheduleData);
+      } else if (data.collectedData) {
+        setPendingScheduleData(data.collectedData);
       }
     } catch (err) {
       setAiMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I had trouble understanding that. Please try again." }]);
@@ -107,19 +113,50 @@ export default function ScheduleList() {
   const createFromAI = async () => {
     if (!pendingScheduleData) return;
     
-    const { eventName, dates, location, readyByTime, sessionDetails, recipientEmails } = pendingScheduleData;
+    const { 
+      eventName, 
+      eventDate, 
+      dates, 
+      location, 
+      readyByTime, 
+      startTime,
+      sessionDetails, 
+      recipientEmails,
+      timeSlots,
+      artistColumns,
+      grid,
+      numPeople,
+      numArtists
+    } = pendingScheduleData;
     
-    if (!eventName || !dates || dates.length === 0) {
-      toast({ title: "Missing info", description: "Need at least event name and dates", variant: "destructive" });
+    // Support both old format (dates array) and new format (single eventDate)
+    const scheduleDates = dates || (eventDate ? [eventDate] : []);
+    
+    if (!eventName || scheduleDates.length === 0) {
+      toast({ title: "Missing info", description: "Need at least event name and date", variant: "destructive" });
       return;
     }
     
     try {
-      const sortedDates = dates.sort();
+      const sortedDates = [...scheduleDates].sort();
       const createdSchedules = [];
       
       for (let i = 0; i < sortedDates.length; i++) {
         const dayLabel = sortedDates.length > 1 ? ` - Day ${i + 1}` : "";
+        
+        // Build session details with time slot info
+        let enhancedDetails = sessionDetails || "";
+        if (numPeople || numArtists) {
+          enhancedDetails += enhancedDetails ? "\n" : "";
+          if (numPeople) enhancedDetails += `${numPeople} people`;
+          if (numPeople && numArtists) enhancedDetails += ", ";
+          if (numArtists) enhancedDetails += `${numArtists} artists`;
+        }
+        if (startTime) {
+          enhancedDetails += enhancedDetails ? "\n" : "";
+          enhancedDetails += `Start: ${startTime}`;
+        }
+        
         const res = await fetch("/api/event-schedules", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -129,8 +166,11 @@ export default function ScheduleList() {
             eventDate: sortedDates[i],
             eventLocation: location || "",
             readyByTime: readyByTime || "",
-            sessionDetails: sessionDetails || "",
-            recipientEmails: recipientEmails || ""
+            sessionDetails: enhancedDetails,
+            recipientEmails: recipientEmails || "",
+            timeSlots: timeSlots || [],
+            artistColumns: artistColumns || [],
+            grid: grid || []
           }),
         });
         
@@ -139,7 +179,25 @@ export default function ScheduleList() {
           throw new Error(errData.error || `Failed to create day ${i + 1}`);
         }
         
-        createdSchedules.push(await res.json());
+        const newSchedule = await res.json();
+        createdSchedules.push(newSchedule);
+        
+        // If we have time slots and grid, navigate to edit the schedule
+        if (timeSlots && timeSlots.length > 0 && createdSchedules.length === 1) {
+          queryClient.invalidateQueries({ queryKey: ["event-schedules"] });
+          setPendingScheduleData(null);
+          setShowAIChat(false);
+          setAiMessages([{ role: 'assistant', content: "Your assistant at your service! Tell me about the schedule you want to create." }]);
+          
+          toast({ 
+            title: "Schedule created with time slots!",
+            description: `${timeSlots.length} time slots ready for ${artistColumns?.length || 1} artists`
+          });
+          
+          // Navigate to the schedule builder to edit
+          navigate(`/artist/schedule/${newSchedule.id}`);
+          return;
+        }
       }
       
       if (createdSchedules.length === 0) {
