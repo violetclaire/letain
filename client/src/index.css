@@ -191,6 +191,24 @@
   input::placeholder, textarea::placeholder {
     color: #9ca3af !important;
   }
+  
+  /* Calendar/Date Picker - ensure visible text on light backgrounds */
+  [data-radix-popper-content-wrapper] *,
+  .rdp *,
+  [role="dialog"] button,
+  [role="gridcell"] button,
+  table button {
+    color: #1a1a1a !important;
+  }
+  .rdp-day_selected,
+  [aria-selected="true"] button {
+    background-color: #1a1a1a !important;
+    color: white !important;
+  }
+  .rdp-button:hover,
+  [role="gridcell"] button:hover {
+    background-color: #e5e5e5 !important;
+  }
 }
 
 @layer utilities {
