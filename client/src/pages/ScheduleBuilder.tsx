@@ -445,9 +445,9 @@ export default function ScheduleBuilder() {
                           onChange={(e) => updateArtist(colIdx, "type", e.target.value)}
                           className="w-full text-xs px-1 py-0.5 bg-white border border-[#E8E2D9] rounded text-[#666]"
                         >
-                          <option value="HM">HM (Hair & Makeup)</option>
-                          <option value="H">Hair</option>
-                          <option value="M">Makeup</option>
+                          <option value="HM">Hair & Makeup - 90 min</option>
+                          <option value="H">Hair - 30 min</option>
+                          <option value="M">Makeup - 30 min</option>
                         </select>
                       </div>
                     </th>
