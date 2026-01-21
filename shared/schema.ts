@@ -2099,3 +2099,20 @@ export type ThreadMessage = typeof threadMessages.$inferSelect;
 
 export type InsertThreadReferral = z.infer<typeof insertThreadReferralSchema>;
 export type ThreadReferral = typeof threadReferrals.$inferSelect;
+
+// Schedule Builder - Inspiration Photos
+export const inspirationPhotos = pgTable("inspiration_photos", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  personName: text("person_name").notNull(),
+  imageUrl: text("image_url").notNull(),
+  uploadedAt: timestamp("uploaded_at").defaultNow(),
+});
+
+export const insertInspirationPhotoSchema = createInsertSchema(inspirationPhotos).omit({
+  id: true,
+  uploadedAt: true,
+});
+
+export type InsertInspirationPhoto = z.infer<typeof insertInspirationPhotoSchema>;
+export type InspirationPhoto = typeof inspirationPhotos.$inferSelect;
+
