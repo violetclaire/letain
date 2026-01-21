@@ -535,6 +535,7 @@ export const scheduleAppointments = pgTable("schedule_appointments", {
   locationName: text("location_name"), // e.g., "Villa 21", "Pool Cabana"
   locationAddress: text("location_address"), // Full address if different from main venue
   notes: text("notes"),
+  inspirationPhotos: text("inspiration_photos").array(), // URLs of uploaded inspiration photos
   displayOrder: integer("display_order").default(0), // Order within the column
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

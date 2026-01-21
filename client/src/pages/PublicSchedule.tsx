@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Calendar, MapPin, Clock, User, Star, MessageSquare, Send, CreditCard, DollarSign, Loader2, CheckCircle, XCircle, Edit3, X } from "lucide-react";
+import { Calendar, MapPin, Clock, User, Star, MessageSquare, Send, CreditCard, DollarSign, Loader2, CheckCircle, XCircle, Edit3, X, Camera, Upload, Image, Trash2 } from "lucide-react";
 import ScheduleChat from "@/components/ScheduleChat";
 
 type ScheduleTeamMember = {
@@ -21,6 +21,7 @@ type ScheduleAppointment = {
   isVip: boolean;
   isBuffer: boolean;
   notes?: string;
+  inspirationPhotos?: string[];
 };
 
 type EventDaySchedule = {
@@ -67,7 +68,10 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
   const [processingPayment, setProcessingPayment] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<ScheduleAppointment | null>(null);
   const [editingNotes, setEditingNotes] = useState("");
+  const [editingName, setEditingName] = useState("");
   const [appointmentNoteSaved, setAppointmentNoteSaved] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Check for payment success/cancel in URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -115,10 +119,88 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
       setAppointmentNoteSaved(true);
       setTimeout(() => {
         setAppointmentNoteSaved(false);
-        setSelectedAppointment(null);
       }, 1500);
     },
   });
+
+  const appointmentNameMutation = useMutation({
+    mutationFn: async ({ appointmentId, clientName }: { appointmentId: string; clientName: string }) => {
+      const res = await fetch(`/api/event-schedules/share/${shareToken}/appointment/${appointmentId}/name`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientName }),
+      });
+      if (!res.ok) throw new Error("Failed to update name");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["public-schedule", shareToken] });
+    },
+  });
+
+  const uploadPhotoMutation = useMutation({
+    mutationFn: async ({ appointmentId, photos }: { appointmentId: string; photos: string[] }) => {
+      const res = await fetch(`/api/event-schedules/share/${shareToken}/appointment/${appointmentId}/photos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photos }),
+      });
+      if (!res.ok) throw new Error("Failed to upload photos");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["public-schedule", shareToken] });
+      if (selectedAppointment && data.photos) {
+        setSelectedAppointment({ ...selectedAppointment, inspirationPhotos: data.photos });
+      }
+    },
+  });
+
+  const deletePhotoMutation = useMutation({
+    mutationFn: async ({ appointmentId, photoUrl }: { appointmentId: string; photoUrl: string }) => {
+      const res = await fetch(`/api/event-schedules/share/${shareToken}/appointment/${appointmentId}/photos`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photoUrl }),
+      });
+      if (!res.ok) throw new Error("Failed to delete photo");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["public-schedule", shareToken] });
+      if (selectedAppointment && data.photos) {
+        setSelectedAppointment({ ...selectedAppointment, inspirationPhotos: data.photos });
+      }
+    },
+  });
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !selectedAppointment) return;
+    
+    setUploadingPhoto(true);
+    try {
+      const photoUrls: string[] = [];
+      
+      for (const file of Array.from(files)) {
+        const reader = new FileReader();
+        const dataUrl = await new Promise<string>((resolve) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+        photoUrls.push(dataUrl);
+      }
+      
+      await uploadPhotoMutation.mutateAsync({ appointmentId: selectedAppointment.id, photos: photoUrls });
+    } catch (err) {
+      console.error("Photo upload failed:", err);
+    } finally {
+      setUploadingPhoto(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
 
   const handleSendPayment = async () => {
     const amount = parseFloat(paymentAmount);
@@ -285,6 +367,7 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
                       if (!apt.isBuffer) {
                         setSelectedAppointment(apt);
                         setEditingNotes(apt.notes || "");
+                        setEditingName(apt.clientName || "");
                       }
                     }}
                     className={`w-full p-3 rounded-lg border text-left transition-all ${
@@ -483,8 +566,8 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
       {/* Appointment Edit Modal */}
       {selectedAppointment && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full shadow-xl" data-testid="modal-edit-appointment">
-            <div className="flex items-center justify-between p-4 border-b">
+          <div className="bg-white rounded-xl max-w-lg w-full shadow-xl max-h-[90vh] overflow-y-auto" data-testid="modal-edit-appointment">
+            <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
               <h3 className="font-header text-lg">Appointment Details</h3>
               <button
                 onClick={() => setSelectedAppointment(null)}
@@ -498,7 +581,22 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
               <div className="bg-cream p-3 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   {selectedAppointment.isVip && <Star className="w-4 h-4 text-gold fill-gold" />}
-                  <span className="font-medium text-lg">{selectedAppointment.clientName}</span>
+                  <input
+                    type="text"
+                    value={editingName}
+                    onChange={(e) => setEditingName(e.target.value)}
+                    onBlur={() => {
+                      if (editingName.trim() && editingName !== selectedAppointment.clientName) {
+                        appointmentNameMutation.mutate({ 
+                          appointmentId: selectedAppointment.id, 
+                          clientName: editingName.trim() 
+                        });
+                      }
+                    }}
+                    className="font-medium text-lg bg-transparent border-b border-dashed border-gray-400 focus:border-black focus:outline-none px-1"
+                    data-testid="input-appointment-name"
+                  />
+                  <Edit3 className="w-4 h-4 text-gray-400" />
                 </div>
                 <div className="flex items-center gap-4 text-sm text-gray-600">
                   <span className="flex items-center gap-1">
@@ -524,10 +622,59 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium mb-2 flex items-center gap-2">
+                  <Camera className="w-4 h-4" />
+                  Inspiration Photos
+                </label>
+                <p className="text-xs text-gray-500 mb-3">Upload photos of looks you love so your stylist can prepare</p>
+                
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handlePhotoUpload}
+                  className="hidden"
+                  data-testid="input-photo-upload"
+                />
+                
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  {(selectedAppointment.inspirationPhotos || []).map((photo, idx) => (
+                    <div key={idx} className="relative aspect-square rounded-lg overflow-hidden group">
+                      <img src={photo} alt={`Inspiration ${idx + 1}`} className="w-full h-full object-cover" />
+                      <button
+                        onClick={() => deletePhotoMutation.mutate({ appointmentId: selectedAppointment.id, photoUrl: photo })}
+                        className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        data-testid={`button-delete-photo-${idx}`}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                  
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingPhoto}
+                    className="aspect-square rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-400 flex flex-col items-center justify-center text-gray-400 hover:text-gray-500 transition-colors"
+                    data-testid="button-upload-photo"
+                  >
+                    {uploadingPhoto ? (
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                    ) : (
+                      <>
+                        <Upload className="w-6 h-6 mb-1" />
+                        <span className="text-xs">Add</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
               {appointmentNoteSaved && (
                 <div className="flex items-center gap-2 text-green-600 text-sm">
                   <CheckCircle className="w-4 h-4" />
-                  Note saved successfully!
+                  Saved!
                 </div>
               )}
 
@@ -537,7 +684,7 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
                   className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
                   data-testid="button-cancel-edit"
                 >
-                  Cancel
+                  Close
                 </button>
                 <button
                   onClick={() => appointmentNoteMutation.mutate({ 

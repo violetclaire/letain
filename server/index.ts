@@ -19,6 +19,7 @@ async function ensureDatabaseSchema() {
     { name: 'inquiries.sentiment_analysis', sql: sql`ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS sentiment_analysis jsonb` },
     { name: 'artist_profiles.login_code', sql: sql`ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS login_code varchar(255)` },
     { name: 'artist_profiles.login_code_expires_at', sql: sql`ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS login_code_expires_at timestamp` },
+    { name: 'schedule_appointments.inspiration_photos', sql: sql`ALTER TABLE schedule_appointments ADD COLUMN IF NOT EXISTS inspiration_photos text[]` },
   ];
   
   for (const migration of migrations) {

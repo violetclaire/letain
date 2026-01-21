@@ -82,16 +82,16 @@ export default function ScheduleChat({ shareToken, guestName }: ScheduleChatProp
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 bg-[#6B4A55] text-white p-4 rounded-full shadow-lg hover:bg-[#8a6270] transition-all z-50 flex items-center gap-2"
+          className="fixed top-4 right-4 bg-[#6B4A55] text-white p-3 rounded-full shadow-lg hover:bg-[#8a6270] transition-all z-50 flex items-center gap-2"
           data-testid="button-open-chat"
         >
-          <MessageCircle className="w-6 h-6" />
-          <span className="hidden sm:inline font-medium">Chat with AI</span>
+          <MessageCircle className="w-5 h-5" />
+          <span className="hidden sm:inline font-medium text-sm">Chat</span>
         </button>
       )}
 
       {isOpen && (
-        <div className="fixed bottom-6 right-6 w-[360px] max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 flex flex-col max-h-[500px]">
+        <div className="fixed top-4 right-4 w-[360px] max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 flex flex-col max-h-[500px]">
           <div className="flex items-center justify-between p-4 border-b bg-[#6B4A55] text-white rounded-t-xl">
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5" />

@@ -5420,6 +5420,97 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     }
   });
 
+  // Update appointment name (editable by guests)
+  app.post("/api/event-schedules/share/:shareToken/appointment/:appointmentId/name", async (req, res) => {
+    try {
+      const { clientName } = req.body;
+      const { shareToken, appointmentId } = req.params;
+      
+      if (!clientName || typeof clientName !== 'string' || clientName.trim().length === 0) {
+        return res.status(400).json({ error: "Name is required" });
+      }
+      
+      const schedule = await storage.getEventDayScheduleByShareToken(shareToken);
+      if (!schedule) {
+        return res.status(404).json({ error: "Schedule not found" });
+      }
+      
+      const appointment = await storage.getScheduleAppointment(appointmentId);
+      if (!appointment || appointment.scheduleId !== schedule.id) {
+        return res.status(404).json({ error: "Appointment not found" });
+      }
+      
+      await storage.updateScheduleAppointment(appointmentId, { clientName: clientName.trim() });
+      res.json({ success: true, message: "Name updated" });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Upload inspiration photos for an appointment
+  app.post("/api/event-schedules/share/:shareToken/appointment/:appointmentId/photos", async (req, res) => {
+    try {
+      const { photos } = req.body;
+      const { shareToken, appointmentId } = req.params;
+      
+      if (!photos || !Array.isArray(photos)) {
+        return res.status(400).json({ error: "Photos array is required" });
+      }
+      
+      if (photos.length > 10) {
+        return res.status(400).json({ error: "Maximum 10 photos per upload" });
+      }
+      
+      const schedule = await storage.getEventDayScheduleByShareToken(shareToken);
+      if (!schedule) {
+        return res.status(404).json({ error: "Schedule not found" });
+      }
+      
+      const appointment = await storage.getScheduleAppointment(appointmentId);
+      if (!appointment || appointment.scheduleId !== schedule.id) {
+        return res.status(404).json({ error: "Appointment not found" });
+      }
+      
+      const existingPhotos = appointment.inspirationPhotos || [];
+      if (existingPhotos.length + photos.length > 20) {
+        return res.status(400).json({ error: "Maximum 20 photos per appointment" });
+      }
+      
+      const updatedPhotos = [...existingPhotos, ...photos];
+      
+      await storage.updateScheduleAppointment(appointmentId, { inspirationPhotos: updatedPhotos });
+      res.json({ success: true, photos: updatedPhotos });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Delete inspiration photo from appointment
+  app.delete("/api/event-schedules/share/:shareToken/appointment/:appointmentId/photos", async (req, res) => {
+    try {
+      const { photoUrl } = req.body;
+      const { shareToken, appointmentId } = req.params;
+      
+      const schedule = await storage.getEventDayScheduleByShareToken(shareToken);
+      if (!schedule) {
+        return res.status(404).json({ error: "Schedule not found" });
+      }
+      
+      const appointment = await storage.getScheduleAppointment(appointmentId);
+      if (!appointment || appointment.scheduleId !== schedule.id) {
+        return res.status(404).json({ error: "Appointment not found" });
+      }
+      
+      const existingPhotos = appointment.inspirationPhotos || [];
+      const updatedPhotos = existingPhotos.filter(p => p !== photoUrl);
+      
+      await storage.updateScheduleAppointment(appointmentId, { inspirationPhotos: updatedPhotos });
+      res.json({ success: true, photos: updatedPhotos });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   // ========== SCHEDULE CHAT (Guest chat on public schedule - no auth required) ==========
   
   // Rate limiter for schedule chat to prevent abuse
@@ -5510,6 +5601,26 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
           senderType: 'ai',
           content: "Thanks for your message! I've noted that down. Feel free to add any other notes or questions about the schedule.",
         });
+      }
+      
+      // Send email notification to artist about new chat message
+      try {
+        if (schedule.artistId) {
+          const artist = await storage.getUser(schedule.artistId);
+          const artistProfile = await storage.getArtistProfile(schedule.artistId);
+          if (artist?.email) {
+            const { sendGeneralEmail } = await import("./emailService");
+            await sendGeneralEmail({
+              toEmail: artist.email,
+              subject: `New message on ${schedule.eventName} schedule from ${senderName}`,
+              content: `You have a new message on your schedule for ${schedule.eventName}:\n\n"${content}"\n\n- ${senderName}`,
+              senderName: artistProfile?.businessName || "Your Private Secretary",
+            });
+            console.log("[Schedule Chat] Email notification sent to artist:", artist.email);
+          }
+        }
+      } catch (emailErr) {
+        console.log("[Schedule Chat] Could not send email notification:", emailErr);
       }
       
       // Return all messages
