@@ -9,7 +9,9 @@ import { useAuth } from "@/hooks/useAuth";
 type SetupData = {
   eventName: string;
   eventDate: string;
-  numServices: number;
+  eventLocation: string;
+  numHair: number;
+  numMakeup: number;
   numArtists: number;
 };
 
@@ -64,7 +66,9 @@ export default function ScheduleBuilder() {
   const [setup, setSetup] = useState<SetupData>({
     eventName: "",
     eventDate: "",
-    numServices: 6,
+    eventLocation: "",
+    numHair: 6,
+    numMakeup: 6,
     numArtists: 2,
   });
   const [saving, setSaving] = useState(false);
@@ -93,10 +97,13 @@ export default function ScheduleBuilder() {
   const [shareToken, setShareToken] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Initialize grid when entering grid mode - uses numServices as exact row count
+  // Initialize grid when entering grid mode - auto-distribute services among artists
   useEffect(() => {
     if (step === "grid" && artists.length === 0) {
-      // Create artist columns - simple names
+      const totalServices = setup.numHair + setup.numMakeup;
+      const servicesPerArtist = Math.ceil(totalServices / setup.numArtists);
+      
+      // Create artist columns
       const initialArtists: ArtistColumn[] = Array.from(
         { length: setup.numArtists },
         (_, i) => ({ 
@@ -108,16 +115,40 @@ export default function ScheduleBuilder() {
       );
       setArtists(initialArtists);
       
-      // Create exact number of rows based on numServices
-      const initialGrid = Array.from({ length: setup.numServices }, () => 
+      // Build service assignments - distribute hair and makeup across artists
+      const services: Array<{type: "H" | "M", assigned: number}> = [];
+      for (let i = 0; i < setup.numHair; i++) {
+        services.push({ type: "H", assigned: i % setup.numArtists });
+      }
+      for (let i = 0; i < setup.numMakeup; i++) {
+        services.push({ type: "M", assigned: (i + setup.numHair) % setup.numArtists });
+      }
+      
+      // Create grid with distributed services
+      const initialGrid: GridCell[][] = Array.from({ length: servicesPerArtist }, () => 
         Array.from({ length: setup.numArtists }, () => ({
           timeRange: "",
           clientName: "",
         }))
       );
+      
+      // Fill in service types per artist column
+      const artistServiceCounts = Array(setup.numArtists).fill(0);
+      services.forEach(service => {
+        const artistIdx = service.assigned;
+        const rowIdx = artistServiceCounts[artistIdx];
+        if (rowIdx < servicesPerArtist) {
+          initialGrid[rowIdx][artistIdx] = {
+            timeRange: service.type === "H" ? "Hair" : "Makeup",
+            clientName: "",
+          };
+          artistServiceCounts[artistIdx]++;
+        }
+      });
+      
       setGrid(initialGrid);
     }
-  }, [step, artists.length, setup.numArtists, setup.numServices]);
+  }, [step, artists.length, setup.numArtists, setup.numHair, setup.numMakeup]);
 
   // Save schedule to database
   const saveSchedule = async () => {
@@ -130,6 +161,7 @@ export default function ScheduleBuilder() {
         body: JSON.stringify({
           eventName: setup.eventName,
           eventDate: setup.eventDate,
+          eventLocation: setup.eventLocation,
           artistColumns: artists.map(a => a.name),
           grid: grid,
         }),
@@ -310,21 +342,44 @@ export default function ScheduleBuilder() {
               />
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-[#666] mb-1">Location</label>
+              <input
+                type="text"
+                value={setup.eventLocation}
+                onChange={(e) => setSetup({ ...setup, eventLocation: e.target.value })}
+                placeholder="Hotel name, venue address..."
+                className="w-full px-3 py-2 border border-[#E8E2D9] rounded bg-[#FAF8F5] text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
+              />
+            </div>
+            
+            <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm text-[#666] mb-1">How many services?</label>
+                <label className="block text-sm text-[#666] mb-1">Hair services</label>
                 <input
                   type="number"
-                  min={1}
-                  max={20}
-                  value={setup.numServices}
-                  onChange={(e) => setSetup({ ...setup, numServices: parseInt(e.target.value) || 1 })}
+                  min={0}
+                  max={30}
+                  value={setup.numHair}
+                  onChange={(e) => setSetup({ ...setup, numHair: parseInt(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-[#E8E2D9] rounded bg-[#FAF8F5] text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
                 />
               </div>
               
               <div>
-                <label className="block text-sm text-[#666] mb-1">How many artists?</label>
+                <label className="block text-sm text-[#666] mb-1">Makeup services</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={30}
+                  value={setup.numMakeup}
+                  onChange={(e) => setSetup({ ...setup, numMakeup: parseInt(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-[#E8E2D9] rounded bg-[#FAF8F5] text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm text-[#666] mb-1">Artists</label>
                 <input
                   type="number"
                   min={1}
@@ -335,6 +390,10 @@ export default function ScheduleBuilder() {
                 />
               </div>
             </div>
+            
+            <p className="text-xs text-[#888] text-center">
+              {setup.numHair + setup.numMakeup} total services ÷ {setup.numArtists} artists = ~{Math.ceil((setup.numHair + setup.numMakeup) / setup.numArtists)} each
+            </p>
             
             <button
               onClick={handleStartBuilding}
