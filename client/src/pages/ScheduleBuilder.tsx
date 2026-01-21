@@ -9,11 +9,10 @@ import { useAuth } from "@/hooks/useAuth";
 type SetupData = {
   eventName: string;
   eventDate: string;
+  numLeadArtists: number;
   numHairArtists: number;
   numMakeupArtists: number;
-  numServices: number;
-  startTime: string;
-  slotDuration: number;
+  numPeople: number;
 };
 
 type GridCell = {
@@ -22,6 +21,12 @@ type GridCell = {
   serviceType: string;
   notes?: string;
   photoUrl?: string;
+};
+
+type PersonRow = {
+  name: string;
+  time: string;
+  cells: GridCell[];
 };
 
 type ChatMessage = {
@@ -62,16 +67,15 @@ export default function ScheduleBuilder() {
   const [setup, setSetup] = useState<SetupData>({
     eventName: "",
     eventDate: "",
-    numHairArtists: 1,
-    numMakeupArtists: 1,
-    numServices: 6,
-    startTime: "07:00",
-    slotDuration: 45,
+    numLeadArtists: 1,
+    numHairArtists: 0,
+    numMakeupArtists: 0,
+    numPeople: 6,
   });
   
-  // Grid state - rows are time slots, columns are artists
+  // Grid state - rows are people with their own times, columns are artists
   const [artistNames, setArtistNames] = useState<string[]>([]);
-  const [grid, setGrid] = useState<GridCell[][]>([]);
+  const [rows, setRows] = useState<PersonRow[]>([]);
   const [editingCell, setEditingCell] = useState<{row: number, col: number} | null>(null);
   const [selectedCell, setSelectedCell] = useState<{row: number, col: number} | null>(null);
   
@@ -91,49 +95,46 @@ export default function ScheduleBuilder() {
   const [shareToken, setShareToken] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Track artist types (H = Hair, M = Makeup)
+  // Track artist types (L = Lead, H = Hair, M = Makeup)
   const [artistTypes, setArtistTypes] = useState<string[]>([]);
+
+  // Default person names for wedding party
+  const defaultNames = ["Bride", "MOH", "Bridesmaid 1", "Bridesmaid 2", "Bridesmaid 3", "Mother of Bride", "Mother of Groom", "Flower Girl"];
 
   // Initialize grid when setup changes
   useEffect(() => {
     if (step === "grid" && artistNames.length === 0) {
-      // Initialize artist names - Hair artists first, then Makeup
+      // Initialize artist names - Lead first, then Hair, then Makeup
+      const leadNames = Array.from({ length: setup.numLeadArtists }, (_, i) => 
+        setup.numLeadArtists === 1 ? "Lead Artist" : `Lead ${i + 1}`
+      );
       const hairNames = Array.from({ length: setup.numHairArtists }, (_, i) => `Hair ${i + 1}`);
       const makeupNames = Array.from({ length: setup.numMakeupArtists }, (_, i) => `Makeup ${i + 1}`);
-      setArtistNames([...hairNames, ...makeupNames]);
+      setArtistNames([...leadNames, ...hairNames, ...makeupNames]);
       
       // Track artist types
       const types = [
+        ...Array(setup.numLeadArtists).fill("L"),
         ...Array(setup.numHairArtists).fill("H"),
         ...Array(setup.numMakeupArtists).fill("M")
       ];
       setArtistTypes(types);
       
-      const totalArtists = setup.numHairArtists + setup.numMakeupArtists;
+      const totalArtists = setup.numLeadArtists + setup.numHairArtists + setup.numMakeupArtists;
       
-      // Initialize grid with empty cells
-      const rows = Array.from({ length: setup.numServices }, (_, rowIdx) => {
-        return Array.from({ length: totalArtists }, (_, colIdx) => ({
+      // Initialize rows with default names and times
+      const initialRows: PersonRow[] = Array.from({ length: setup.numPeople }, (_, rowIdx) => ({
+        name: defaultNames[rowIdx] || `Person ${rowIdx + 1}`,
+        time: "",
+        cells: Array.from({ length: totalArtists }, (_, colIdx) => ({
           clientName: "",
-          serviceType: colIdx < setup.numHairArtists ? "H" : "M",
-        }));
-      });
-      setGrid(rows);
+          serviceType: colIdx < setup.numLeadArtists ? "L" : 
+                       colIdx < setup.numLeadArtists + setup.numHairArtists ? "H" : "M",
+        })),
+      }));
+      setRows(initialRows);
     }
   }, [step, setup, artistNames.length]);
-
-  // Get time slots based on setup
-  const getTimeSlots = () => {
-    return Array.from({ length: setup.numServices }, (_, i) => {
-      const startMinutes = timeToMinutes(setup.startTime) + (i * setup.slotDuration);
-      const endMinutes = startMinutes + setup.slotDuration;
-      return {
-        start: minutesToTime(startMinutes),
-        end: minutesToTime(endMinutes),
-        display: `${formatTimeDisplay(minutesToTime(startMinutes))} - ${formatTimeDisplay(minutesToTime(endMinutes))}`,
-      };
-    });
-  };
 
   // Create schedule mutation
   const createScheduleMutation = useMutation({
@@ -145,7 +146,7 @@ export default function ScheduleBuilder() {
         body: JSON.stringify({
           eventName: setup.eventName,
           eventDate: setup.eventDate,
-          notes: `${setup.numHairArtists} hair, ${setup.numMakeupArtists} makeup, ${setup.numServices} services starting at ${setup.startTime}`,
+          notes: `${setup.numLeadArtists} lead, ${setup.numHairArtists} hair, ${setup.numMakeupArtists} makeup for ${setup.numPeople} people`,
         }),
       });
       if (!res.ok) throw new Error("Failed to create schedule");
@@ -165,7 +166,7 @@ export default function ScheduleBuilder() {
       return;
     }
     
-    if (setup.numHairArtists === 0 && setup.numMakeupArtists === 0) {
+    if (setup.numLeadArtists === 0 && setup.numHairArtists === 0 && setup.numMakeupArtists === 0) {
       toast({ title: "Please add at least one artist", variant: "destructive" });
       return;
     }
@@ -176,12 +177,33 @@ export default function ScheduleBuilder() {
   };
 
   // Update cell
-  const updateCell = (row: number, col: number, field: keyof GridCell, value: string) => {
-    setGrid(prev => {
-      const newGrid = [...prev];
-      newGrid[row] = [...newGrid[row]];
-      newGrid[row][col] = { ...newGrid[row][col], [field]: value };
-      return newGrid;
+  const updateCell = (rowIdx: number, col: number, field: keyof GridCell, value: string) => {
+    setRows(prev => {
+      const newRows = [...prev];
+      newRows[rowIdx] = {
+        ...newRows[rowIdx],
+        cells: [...newRows[rowIdx].cells]
+      };
+      newRows[rowIdx].cells[col] = { ...newRows[rowIdx].cells[col], [field]: value };
+      return newRows;
+    });
+  };
+
+  // Update person name
+  const updatePersonName = (rowIdx: number, name: string) => {
+    setRows(prev => {
+      const newRows = [...prev];
+      newRows[rowIdx] = { ...newRows[rowIdx], name };
+      return newRows;
+    });
+  };
+
+  // Update person time
+  const updatePersonTime = (rowIdx: number, time: string) => {
+    setRows(prev => {
+      const newRows = [...prev];
+      newRows[rowIdx] = { ...newRows[rowIdx], time };
+      return newRows;
     });
   };
 
@@ -194,58 +216,78 @@ export default function ScheduleBuilder() {
     });
   };
 
-  // Add row
+  // Add row (person)
   const addRow = () => {
-    const totalArtists = setup.numHairArtists + setup.numMakeupArtists;
-    setGrid(prev => [
-      ...prev,
-      Array.from({ length: totalArtists }, (_, i) => ({ 
+    const totalArtists = setup.numLeadArtists + setup.numHairArtists + setup.numMakeupArtists;
+    const newPerson: PersonRow = {
+      name: `Person ${rows.length + 1}`,
+      time: "",
+      cells: Array.from({ length: totalArtists }, (_, i) => ({ 
         clientName: "", 
-        serviceType: artistTypes[i] || (i < setup.numHairArtists ? "H" : "M")
+        serviceType: artistTypes[i] || "L"
       })),
-    ]);
-    setSetup(prev => ({ ...prev, numServices: prev.numServices + 1 }));
+    };
+    setRows(prev => [...prev, newPerson]);
+    setSetup(prev => ({ ...prev, numPeople: prev.numPeople + 1 }));
   };
 
-  // Add column (artist) - adds to makeup section by default
-  const addColumn = (type: "H" | "M" = "M") => {
-    const newName = type === "H" ? `Hair ${setup.numHairArtists + 1}` : `Makeup ${setup.numMakeupArtists + 1}`;
+  // Add column (artist)
+  const addColumn = (type: "L" | "H" | "M" = "M") => {
+    let newName = "";
+    let insertIndex = 0;
     
-    if (type === "H") {
-      // Insert at end of hair section
-      const insertIndex = setup.numHairArtists;
-      setArtistNames(prev => [...prev.slice(0, insertIndex), newName, ...prev.slice(insertIndex)]);
-      setArtistTypes(prev => [...prev.slice(0, insertIndex), "H", ...prev.slice(insertIndex)]);
-      setGrid(prev => prev.map(row => [
-        ...row.slice(0, insertIndex),
-        { clientName: "", serviceType: "H" },
-        ...row.slice(insertIndex)
-      ]));
+    if (type === "L") {
+      newName = setup.numLeadArtists === 0 ? "Lead Artist" : `Lead ${setup.numLeadArtists + 1}`;
+      insertIndex = setup.numLeadArtists;
+    } else if (type === "H") {
+      newName = `Hair ${setup.numHairArtists + 1}`;
+      insertIndex = setup.numLeadArtists + setup.numHairArtists;
+    } else {
+      newName = `Makeup ${setup.numMakeupArtists + 1}`;
+      insertIndex = artistNames.length;
+    }
+    
+    setArtistNames(prev => [...prev.slice(0, insertIndex), newName, ...prev.slice(insertIndex)]);
+    setArtistTypes(prev => [...prev.slice(0, insertIndex), type, ...prev.slice(insertIndex)]);
+    setRows(prev => prev.map(row => ({
+      ...row,
+      cells: [
+        ...row.cells.slice(0, insertIndex),
+        { clientName: "", serviceType: type },
+        ...row.cells.slice(insertIndex)
+      ]
+    })));
+    
+    if (type === "L") {
+      setSetup(prev => ({ ...prev, numLeadArtists: prev.numLeadArtists + 1 }));
+    } else if (type === "H") {
       setSetup(prev => ({ ...prev, numHairArtists: prev.numHairArtists + 1 }));
     } else {
-      // Append to end (makeup section)
-      setArtistNames(prev => [...prev, newName]);
-      setArtistTypes(prev => [...prev, "M"]);
-      setGrid(prev => prev.map(row => [...row, { clientName: "", serviceType: "M" }]));
       setSetup(prev => ({ ...prev, numMakeupArtists: prev.numMakeupArtists + 1 }));
     }
   };
 
-  // Delete row
+  // Delete row (person)
   const deleteRow = (rowIdx: number) => {
-    if (grid.length <= 1) return;
-    setGrid(prev => prev.filter((_, i) => i !== rowIdx));
-    setSetup(prev => ({ ...prev, numServices: prev.numServices - 1 }));
+    if (rows.length <= 1) return;
+    setRows(prev => prev.filter((_, i) => i !== rowIdx));
+    setSetup(prev => ({ ...prev, numPeople: prev.numPeople - 1 }));
   };
 
   // Delete column (artist)
   const deleteColumn = (colIdx: number) => {
     if (artistNames.length <= 1) return;
-    const isHairArtist = artistTypes[colIdx] === "H";
+    const artistType = artistTypes[colIdx];
     setArtistNames(prev => prev.filter((_, i) => i !== colIdx));
     setArtistTypes(prev => prev.filter((_, i) => i !== colIdx));
-    setGrid(prev => prev.map(row => row.filter((_, i) => i !== colIdx)));
-    if (isHairArtist) {
+    setRows(prev => prev.map(row => ({
+      ...row,
+      cells: row.cells.filter((_, i) => i !== colIdx)
+    })));
+    
+    if (artistType === "L") {
+      setSetup(prev => ({ ...prev, numLeadArtists: Math.max(0, prev.numLeadArtists - 1) }));
+    } else if (artistType === "H") {
       setSetup(prev => ({ ...prev, numHairArtists: Math.max(0, prev.numHairArtists - 1) }));
     } else {
       setSetup(prev => ({ ...prev, numMakeupArtists: Math.max(0, prev.numMakeupArtists - 1) }));
@@ -342,11 +384,21 @@ export default function ScheduleBuilder() {
               />
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="block text-sm text-[#666] mb-1 flex items-center gap-1">
-                  <Scissors className="w-4 h-4" /> Hair Artists
-                </label>
+                <label className="block text-sm text-[#666] mb-1">Lead Artists</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={5}
+                  value={setup.numLeadArtists}
+                  onChange={(e) => setSetup({ ...setup, numLeadArtists: parseInt(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-[#E8E2D9] rounded bg-[#FAF8F5] text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm text-[#666] mb-1">Hair Artists</label>
                 <input
                   type="number"
                   min={0}
@@ -358,9 +410,7 @@ export default function ScheduleBuilder() {
               </div>
               
               <div>
-                <label className="block text-sm text-[#666] mb-1 flex items-center gap-1">
-                  <Users className="w-4 h-4" /> Makeup Artists
-                </label>
+                <label className="block text-sm text-[#666] mb-1">Makeup Artists</label>
                 <input
                   type="number"
                   min={0}
@@ -373,13 +423,13 @@ export default function ScheduleBuilder() {
             </div>
             
             <div>
-              <label className="block text-sm text-[#666] mb-1">How many people getting services?</label>
+              <label className="block text-sm text-[#666] mb-1">How many people in the party?</label>
               <input
                 type="number"
                 min={1}
                 max={20}
-                value={setup.numServices}
-                onChange={(e) => setSetup({ ...setup, numServices: parseInt(e.target.value) || 1 })}
+                value={setup.numPeople}
+                onChange={(e) => setSetup({ ...setup, numPeople: parseInt(e.target.value) || 1 })}
                 className="w-full px-3 py-2 border border-[#E8E2D9] rounded bg-[#FAF8F5] text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
               />
             </div>
