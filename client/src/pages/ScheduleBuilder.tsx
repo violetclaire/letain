@@ -9,6 +9,8 @@ import { useAuth } from "@/hooks/useAuth";
 type SetupData = {
   eventName: string;
   eventDate: string;
+  numColumns: number;
+  numRows: number;
 };
 
 type ArtistColumn = {
@@ -60,12 +62,13 @@ export default function ScheduleBuilder() {
   const [setup, setSetup] = useState<SetupData>({
     eventName: "",
     eventDate: "",
+    numColumns: 3,
+    numRows: 6,
   });
   
   // Grid state - columns are artists, rows are time slots
   const [artists, setArtists] = useState<ArtistColumn[]>([]);
   const [grid, setGrid] = useState<GridCell[][]>([]);
-  const [numRows, setNumRows] = useState(6);
   const [editingCell, setEditingCell] = useState<{row: number, col: number} | null>(null);
   const [selectedCell, setSelectedCell] = useState<{row: number, col: number} | null>(null);
   
@@ -90,57 +93,32 @@ export default function ScheduleBuilder() {
   // Initialize grid when entering grid mode
   useEffect(() => {
     if (step === "grid" && artists.length === 0) {
-      // Default: 1 Lead (HM) artist + starting rows
-      const initialArtists: ArtistColumn[] = [
-        { name: "Lead Artist", type: "HM" }
-      ];
+      // Create columns based on setup
+      const initialArtists: ArtistColumn[] = Array.from(
+        { length: setup.numColumns },
+        (_, i) => ({ name: i === 0 ? "Lead Artist" : `Artist ${i + 1}`, type: "HM" as const })
+      );
       setArtists(initialArtists);
       
       // Initialize grid with empty cells
-      const initialGrid = Array.from({ length: numRows }, () => 
-        Array.from({ length: initialArtists.length }, () => ({
+      const initialGrid = Array.from({ length: setup.numRows }, () => 
+        Array.from({ length: setup.numColumns }, () => ({
           timeRange: "",
           clientName: "",
         }))
       );
       setGrid(initialGrid);
     }
-  }, [step, artists.length, numRows]);
+  }, [step, artists.length, setup.numColumns, setup.numRows]);
 
-  // Create schedule mutation
-  const createScheduleMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch("/api/event-schedules", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          eventName: setup.eventName,
-          eventDate: setup.eventDate,
-          notes: `${artists.length} artists, ${grid.length} rows`,
-        }),
-      });
-      if (!res.ok) throw new Error("Failed to create schedule");
-      return res.json();
-    },
-    onSuccess: (data) => {
-      setScheduleId(data.id);
-      setShareToken(data.shareToken);
-      toast({ title: "Schedule created!" });
-    },
-  });
-
-  // Handle wizard completion
-  const handleStartBuilding = async () => {
+  // Handle wizard completion - just go straight to grid, no database needed
+  const handleStartBuilding = () => {
     if (!setup.eventName || !setup.eventDate) {
       toast({ title: "Please fill in event name and date", variant: "destructive" });
       return;
     }
-    
-        
-    // Create the schedule first
-    await createScheduleMutation.mutateAsync();
     setStep("grid");
+    toast({ title: "Schedule created!" });
   };
 
   // Update cell
@@ -169,7 +147,7 @@ export default function ScheduleBuilder() {
       ...prev,
       Array.from({ length: artists.length }, () => ({ timeRange: "", clientName: "" }))
     ]);
-    setNumRows(prev => prev + 1);
+    setSetup(prev => ({ ...prev, numRows: prev.numRows + 1 }));
   };
 
   // Add column (artist)
@@ -186,7 +164,7 @@ export default function ScheduleBuilder() {
   const deleteRow = (rowIdx: number) => {
     if (grid.length <= 1) return;
     setGrid(prev => prev.filter((_, i) => i !== rowIdx));
-    setNumRows(prev => prev - 1);
+    setSetup(prev => ({ ...prev, numRows: prev.numRows - 1 }));
   };
 
   // Delete column (artist)
@@ -285,16 +263,37 @@ export default function ScheduleBuilder() {
               />
             </div>
             
-            <p className="text-sm text-[#666] mb-2">
-              You'll add artists and time slots in the next step.
-            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-[#666] mb-1">How many artists (columns)?</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={setup.numColumns}
+                  onChange={(e) => setSetup({ ...setup, numColumns: parseInt(e.target.value) || 1 })}
+                  className="w-full px-3 py-2 border border-[#E8E2D9] rounded bg-[#FAF8F5] text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm text-[#666] mb-1">How many time slots (rows)?</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={setup.numRows}
+                  onChange={(e) => setSetup({ ...setup, numRows: parseInt(e.target.value) || 1 })}
+                  className="w-full px-3 py-2 border border-[#E8E2D9] rounded bg-[#FAF8F5] text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
+                />
+              </div>
+            </div>
             
             <button
               onClick={handleStartBuilding}
-              disabled={createScheduleMutation.isPending}
               className="w-full py-3 bg-black text-white rounded font-medium hover:bg-gray-800 disabled:opacity-50 transition-colors mt-4"
             >
-              {createScheduleMutation.isPending ? "Creating..." : "Start Building"}
+              Start Building
             </button>
           </div>
         </div>
