@@ -11395,11 +11395,14 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   app.post("/api/public/inquiry/:threadToken/message", async (req, res) => {
     try {
       const { threadToken } = req.params;
-      const { message } = req.body;
+      const { message, cc } = req.body;
       
       if (!message?.trim()) {
         return res.status(400).json({ error: "Message is required" });
       }
+      
+      // Parse CC emails
+      const ccEmails = Array.isArray(cc) ? cc.filter((e: string) => e && e.includes('@')) : [];
       
       const inquiry = await storage.getInquiryByThreadToken(threadToken);
       if (!inquiry) {
@@ -11481,7 +11484,8 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           artistName: artistUser?.firstName || artist?.businessName || 'Your Artist',
           businessName: artist?.businessName || undefined,
           message: message,
-          replyLink: clientThreadLink
+          replyLink: clientThreadLink,
+          cc: ccEmails
         });
         
         // Update notification status to sent

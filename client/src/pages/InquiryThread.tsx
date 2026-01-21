@@ -67,6 +67,7 @@ export default function InquiryThread() {
 
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [replyMessage, setReplyMessage] = useState("");
+  const [ccEmails, setCcEmails] = useState("");
   const [showContractForm, setShowContractForm] = useState(false);
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
   const [showContractReview, setShowContractReview] = useState(false);
@@ -160,12 +161,13 @@ export default function InquiryThread() {
   });
 
   const sendMessageMutation = useMutation({
-    mutationFn: async (message: string) => {
-      return apiRequest("POST", `/api/public/inquiry/${threadToken}/message`, { message });
+    mutationFn: async ({ message, cc }: { message: string; cc?: string[] }) => {
+      return apiRequest("POST", `/api/public/inquiry/${threadToken}/message`, { message, cc });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/public/inquiry/${threadToken}`] });
       setReplyMessage("");
+      setCcEmails("");
     },
   });
 
@@ -938,30 +940,47 @@ export default function InquiryThread() {
               </button>
             </div>
 
-            <div className="relative">
-              <textarea
-                value={replyMessage}
-                onChange={(e) => setReplyMessage(e.target.value)}
-                placeholder="Type your response..."
-                rows={4}
-                className="w-full bg-transparent border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-4 py-3 resize-none"
-                data-testid="input-reply"
-              />
-              <button
-                onClick={() => sendMessageMutation.mutate(replyMessage)}
-                disabled={!replyMessage.trim() || sendMessageMutation.isPending}
-                className="absolute bottom-3 right-3 px-4 py-2 bg-[#F5F0E8] text-[#1A1A1A] text-xs rounded hover:bg-white disabled:opacity-30 transition-all flex items-center gap-2"
-                data-testid="button-send-response"
-              >
-                {sendMessageMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <Send className="w-3 h-3" />
-                    Send Response
-                  </>
-                )}
-              </button>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs text-[#F5F0E8]/60 mb-1">CC (optional)</label>
+                <input
+                  type="text"
+                  value={ccEmails}
+                  onChange={(e) => setCcEmails(e.target.value)}
+                  placeholder="tessa@example.com, amy@example.com"
+                  className="w-full bg-transparent border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-4 py-2"
+                  data-testid="input-cc"
+                />
+                <p className="text-xs text-[#F5F0E8]/40 mt-1">Separate multiple emails with commas</p>
+              </div>
+              <div className="relative">
+                <textarea
+                  value={replyMessage}
+                  onChange={(e) => setReplyMessage(e.target.value)}
+                  placeholder="Type your response..."
+                  rows={4}
+                  className="w-full bg-transparent border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-4 py-3 resize-none"
+                  data-testid="input-reply"
+                />
+                <button
+                  onClick={() => {
+                    const ccList = ccEmails.split(',').map(e => e.trim()).filter(e => e);
+                    sendMessageMutation.mutate({ message: replyMessage, cc: ccList.length > 0 ? ccList : undefined });
+                  }}
+                  disabled={!replyMessage.trim() || sendMessageMutation.isPending}
+                  className="absolute bottom-3 right-3 px-4 py-2 bg-[#F5F0E8] text-[#1A1A1A] text-xs rounded hover:bg-white disabled:opacity-30 transition-all flex items-center gap-2"
+                  data-testid="button-send-response"
+                >
+                  {sendMessageMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Send className="w-3 h-3" />
+                      Send Response
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </section>
         )}

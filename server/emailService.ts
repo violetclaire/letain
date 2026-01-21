@@ -103,24 +103,35 @@ export async function getResendClient() {
 export async function sendEmail({
   to,
   subject,
-  html
+  html,
+  cc
 }: {
   to: string;
   subject: string;
   html: string;
+  cc?: string[];
 }) {
   const { client, fromEmail } = await getResendClient();
   
   const safeSubject = sanitizeSubject(subject);
   
-  console.log(`[Email] Sending to: ${to}, subject: ${safeSubject}`);
+  // Filter valid CC emails
+  const validCc = cc?.filter(email => email && email.includes('@')) || [];
   
-  const result = await client.emails.send({
+  console.log(`[Email] Sending to: ${to}, cc: ${validCc.join(', ') || 'none'}, subject: ${safeSubject}`);
+  
+  const emailPayload: any = {
     from: `Date Inquiry <${fromEmail}>`,
     to: [to],
     subject: safeSubject,
     html
-  });
+  };
+  
+  if (validCc.length > 0) {
+    emailPayload.cc = validCc;
+  }
+  
+  const result = await client.emails.send(emailPayload);
   
   console.log(`[Email] Send result:`, result);
   return result;
@@ -2240,7 +2251,8 @@ export async function sendThreadReplyEmail({
   artistName,
   businessName,
   message,
-  replyLink
+  replyLink,
+  cc
 }: {
   toEmail: string;
   clientName: string;
@@ -2248,9 +2260,13 @@ export async function sendThreadReplyEmail({
   businessName?: string;
   message: string;
   replyLink: string;
+  cc?: string[];
 }) {
   console.log("Getting Resend client for thread reply email...");
   const { client, fromEmail } = await getResendClient();
+  
+  // Filter valid CC emails
+  const validCc = cc?.filter(email => email && email.includes('@')) || [];
   
   const safeArtistName = sanitizeSenderName(artistName) || 'Your Artist';
   const safeBusinessName = businessName ? sanitizeSenderName(businessName) : safeArtistName;
@@ -2309,13 +2325,20 @@ export async function sendThreadReplyEmail({
   const senderEmail = `${safeBusinessName} <${fromEmail}>`;
   
   try {
-    console.log("Sending thread reply email to:", toEmail);
-    const result = await client.emails.send({
+    console.log("Sending thread reply email to:", toEmail, "cc:", validCc.join(', ') || 'none');
+    
+    const emailPayload: any = {
       from: senderEmail,
       to: toEmail.trim(),
       subject: sanitizeSubject(`New message from ${safeBusinessName}`),
       html: htmlContent
-    });
+    };
+    
+    if (validCc.length > 0) {
+      emailPayload.cc = validCc;
+    }
+    
+    const result = await client.emails.send(emailPayload);
     console.log("Thread reply email sent:", JSON.stringify(result));
     return { success: true, result };
   } catch (err: any) {
