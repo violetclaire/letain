@@ -513,7 +513,7 @@ export default function ScheduleList() {
               <span className="hidden sm:inline text-sm">Assistant</span>
             </button>
             <button
-              onClick={() => setShowCreate(true)}
+              onClick={() => navigate("/artist/schedule-builder")}
               className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded hover:bg-gray-800 transition-colors"
               data-testid="button-new-schedule"
             >
