@@ -19,6 +19,7 @@ type ArtistColumn = {
 type GridCell = {
   timeRange: string;
   clientName: string;
+  photoUrl?: string;
 };
 
 type ChatMessage = {
@@ -73,6 +74,12 @@ export default function ScheduleBuilder() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [recipientEmail, setRecipientEmail] = useState("");
+  
+  // Photo state
+  const [photoCell, setPhotoCell] = useState<{row: number, col: number} | null>(null);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [viewingPhoto, setViewingPhoto] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
     
   // Schedule ID after creation
@@ -224,7 +231,18 @@ export default function ScheduleBuilder() {
     setChatInput("");
   };
 
-  
+  // Handle photo upload
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !photoCell) return;
+    
+    const url = URL.createObjectURL(file);
+    updateCell(photoCell.row, photoCell.col, "photoUrl", url);
+    setShowPhotoModal(false);
+    setPhotoCell(null);
+    toast({ title: "Inspiration photo added!" });
+  };
+
   // Copy share link
   const copyShareLink = () => {
     if (shareToken) {
@@ -399,13 +417,37 @@ export default function ScheduleBuilder() {
                             placeholder="7:00-8:00"
                             className="w-full text-xs font-mono px-1 py-0.5 bg-[#FAF8F5] border border-[#E8E2D9] rounded text-[#666] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
                           />
-                          <input
-                            type="text"
-                            value={cell.clientName}
-                            onChange={(e) => updateCell(rowIdx, colIdx, "clientName", e.target.value)}
-                            placeholder="Client name"
-                            className="w-full text-sm px-1 py-0.5 bg-white border border-[#E8E2D9] rounded text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
-                          />
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={cell.clientName}
+                              onChange={(e) => updateCell(rowIdx, colIdx, "clientName", e.target.value)}
+                              placeholder="Client name"
+                              className="flex-1 text-sm px-1 py-0.5 bg-white border border-[#E8E2D9] rounded text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
+                            />
+                            {cell.clientName && (
+                              cell.photoUrl ? (
+                                <button
+                                  onClick={() => setViewingPhoto(cell.photoUrl!)}
+                                  className="w-6 h-6 rounded overflow-hidden border border-[#E8E2D9] hover:ring-2 hover:ring-[#1A1A1A]"
+                                  title="View inspiration photo"
+                                >
+                                  <img src={cell.photoUrl} alt="" className="w-full h-full object-cover" />
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    setPhotoCell({ row: rowIdx, col: colIdx });
+                                    setShowPhotoModal(true);
+                                  }}
+                                  className="p-1 text-[#999] hover:text-[#1A1A1A] transition-colors"
+                                  title="Add inspiration photo"
+                                >
+                                  <Image className="w-4 h-4" />
+                                </button>
+                              )
+                            )}
+                          </div>
                         </div>
                       </td>
                     ))}
@@ -496,6 +538,55 @@ export default function ScheduleBuilder() {
           </div>
         )}
       </div>
+
+      {/* Photo Upload Modal */}
+      {showPhotoModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowPhotoModal(false)}>
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-medium text-[#1A1A1A] mb-4" style={{ fontFamily: "'Fraunces', serif" }}>
+              Add Inspiration Photo
+            </h3>
+            <p className="text-sm text-[#666] mb-4">
+              Upload a photo for {grid[photoCell?.row || 0]?.[photoCell?.col || 0]?.clientName || "this client"}
+            </p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoUpload}
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full py-3 border-2 border-dashed border-[#E8E2D9] rounded-lg text-[#666] hover:border-[#1A1A1A] hover:text-[#1A1A1A] transition-colors flex items-center justify-center gap-2"
+            >
+              <Image className="w-5 h-5" />
+              Choose Photo
+            </button>
+            <button
+              onClick={() => setShowPhotoModal(false)}
+              className="w-full mt-3 py-2 text-sm text-[#666] hover:text-[#1A1A1A]"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Photo Viewer Modal */}
+      {viewingPhoto && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={() => setViewingPhoto(null)}>
+          <div className="max-w-2xl max-h-[80vh] mx-4">
+            <img src={viewingPhoto} alt="Inspiration" className="max-w-full max-h-[80vh] object-contain rounded-lg" />
+          </div>
+          <button
+            onClick={() => setViewingPhoto(null)}
+            className="absolute top-4 right-4 p-2 text-white hover:bg-white/20 rounded-full transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
