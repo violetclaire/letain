@@ -330,14 +330,14 @@ export default function InquiryThread() {
   const velocityHours = inquiry.createdAt 
     ? Math.round((new Date().getTime() - new Date(inquiry.createdAt).getTime()) / (1000 * 60 * 60))
     : 0;
-  const velocityColor = velocityHours < 48 ? "text-emerald-400" : "text-[#888]";
+  const velocityColor = velocityHours < 48 ? "text-emerald-600" : "text-[#888]";
 
   const getStatusBadge = (status: string) => {
     const s = status.toLowerCase();
-    if (s === "pending") return { text: "PENDING", color: "bg-amber-500/20 text-amber-400" };
-    if (s === "accepted" || s === "auto_responded") return { text: "ACCEPTED", color: "bg-emerald-500/20 text-emerald-400" };
-    if (s === "deposit_paid") return { text: "DEPOSIT PAID", color: "bg-emerald-500/30 text-emerald-300" };
-    if (s === "referred") return { text: "REFERRED", color: "bg-blue-500/20 text-blue-400" };
+    if (s === "pending") return { text: "PENDING", color: "bg-amber-500/20 text-amber-600" };
+    if (s === "accepted" || s === "auto_responded") return { text: "ACCEPTED", color: "bg-emerald-500/20 text-emerald-600" };
+    if (s === "deposit_paid") return { text: "DEPOSIT PAID", color: "bg-emerald-500/30 text-emerald-700" };
+    if (s === "referred") return { text: "REFERRED", color: "bg-blue-500/20 text-blue-600" };
     if (s === "declined") return { text: "DECLINED", color: "bg-[#F5F2ED] text-[#888]" };
     return { text: status.toUpperCase(), color: "bg-[#F5F2ED] text-[#888]" };
   };
@@ -424,7 +424,7 @@ export default function InquiryThread() {
                         </button>
                         <button
                           onClick={() => setIsEditingClient(false)}
-                          className="px-3 py-1.5 border border-[#E8E2D9] text-[#1A1A1A]/70 text-xs rounded hover:border-[#999]"
+                          className="px-3 py-1.5 border border-[#E8E2D9] text-[#555] text-xs rounded hover:border-[#999]"
                           data-testid="button-cancel-edit"
                         >
                           Cancel
@@ -497,7 +497,7 @@ export default function InquiryThread() {
 
           {isArtist && inquiry.message && (
             <div className="bg-white border border-[#E8E2D9] p-5 rounded">
-              <p className="text-sm text-[#1A1A1A]/70 leading-relaxed whitespace-pre-wrap">
+              <p className="text-sm text-[#555] leading-relaxed whitespace-pre-wrap">
                 {inquiry.message}
               </p>
             </div>
@@ -510,7 +510,7 @@ export default function InquiryThread() {
           <h3 className="text-sm font-medium text-[#333] mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Thread Conversation</h3>
           <div className="space-y-4">
             {messages.length === 0 ? (
-              <p className="text-sm text-[#1A1A1A]/30 italic py-4">No messages yet</p>
+              <p className="text-sm text-[#888] italic py-4">No messages yet</p>
             ) : (
               messages.map((msg) => {
                 const isArtistMsg = msg.sentBy === "artist" || msg.sentBy === artist?.businessName;
@@ -538,7 +538,7 @@ export default function InquiryThread() {
                           ))}
                         </div>
                       )}
-                      <p className="text-[10px] text-[#1A1A1A]/30 mt-2">
+                      <p className="text-[10px] text-[#888] mt-2">
                         {format(new Date(msg.sentAt), "h:mm a")}
                       </p>
                     </div>
@@ -577,7 +577,7 @@ export default function InquiryThread() {
                 className="py-5 border border-[#E8E2D9] hover:border-[#999] transition-all text-center rounded disabled:opacity-50"
                 data-testid="button-decline"
               >
-                <p className="text-sm text-[#1A1A1A]/70">Decline</p>
+                <p className="text-sm text-[#555]">Decline</p>
                 <p className="text-[10px] text-[#666] mt-1">Politely pass</p>
               </button>
             </div>
@@ -606,7 +606,7 @@ export default function InquiryThread() {
                         <button
                           type="button"
                           onClick={addServiceItem}
-                          className="flex items-center gap-1 text-xs text-[#1A1A1A]/60 hover:text-[#1A1A1A] transition-colors"
+                          className="flex items-center gap-1 text-xs text-[#666] hover:text-[#1A1A1A] transition-colors"
                         >
                           <Plus size={14} /> Add Service
                         </button>
@@ -652,7 +652,7 @@ export default function InquiryThread() {
                             <button
                               type="button"
                               onClick={() => removeServiceItem(index)}
-                              className="col-span-1 text-[#1A1A1A]/30 hover:text-red-400 transition-colors"
+                              className="col-span-1 text-[#888] hover:text-red-400 transition-colors"
                               disabled={serviceItems.length === 1}
                             >
                               <Trash2 size={14} />
@@ -663,11 +663,11 @@ export default function InquiryThread() {
                       
                       <div className="border-t border-[#E8E2D9] pt-4 space-y-3">
                         <div className="flex justify-between text-sm">
-                          <span className="text-[#1A1A1A]/60">Services Total</span>
+                          <span className="text-[#666]">Services Total</span>
                           <span className="text-[#1A1A1A]">${servicesTotal.toFixed(2)}</span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-[#1A1A1A]/60 text-sm">Travel Fee</span>
+                          <span className="text-[#666] text-sm">Travel Fee</span>
                           <div className="flex items-center gap-1">
                             <span className="text-[#666] text-xs">$</span>
                             <input
@@ -759,7 +759,7 @@ export default function InquiryThread() {
                             <td className="pt-2" colSpan={4}>Grand Total</td>
                             <td className="pt-2 text-right">${grandTotal.toFixed(2)}</td>
                           </tr>
-                          <tr className="text-[#1A1A1A]/60">
+                          <tr className="text-[#666]">
                             <td colSpan={4}>Retainer Due</td>
                             <td className="text-right">${parseFloat(contractData.depositAmount || '0').toFixed(2)}</td>
                           </tr>
@@ -767,7 +767,7 @@ export default function InquiryThread() {
                       </table>
                       
                       {contractData.eventLocation && (
-                        <p className="mt-4 text-xs text-[#1A1A1A]/60">
+                        <p className="mt-4 text-xs text-[#666]">
                           Location: {contractData.eventLocation}
                         </p>
                       )}
@@ -809,7 +809,7 @@ export default function InquiryThread() {
                   <div className="border border-[#E8E2D9] rounded p-6">
                     {!artist?.squareAccessToken ? (
                       <div className="text-center py-4">
-                        <p className="text-sm text-[#1A1A1A]/70 mb-4">Connect Square to send invoices</p>
+                        <p className="text-sm text-[#555] mb-4">Connect Square to send invoices</p>
                         <button
                           type="button"
                           onClick={() => {
@@ -882,7 +882,7 @@ export default function InquiryThread() {
                 <button
                   onClick={() => actionMutation.mutate({ action: "deposit" })}
                   disabled={actionMutation.isPending}
-                  className="w-full py-4 bg-emerald-600/20 border border-emerald-500/50 text-emerald-400 hover:bg-emerald-600/30 transition-all text-center rounded disabled:opacity-50"
+                  className="w-full py-4 bg-emerald-600/20 border border-emerald-500/50 text-emerald-600 hover:bg-emerald-600/30 transition-all text-center rounded disabled:opacity-50"
                   data-testid="button-deposit-paid"
                 >
                   <p className="text-sm">Mark Retainer Paid</p>
@@ -895,8 +895,8 @@ export default function InquiryThread() {
         {/* Terminal status messages - Artist only for internal statuses */}
         {inquiry.status.toLowerCase() === "deposit_paid" && (
           <section className="mb-10 text-center py-6">
-            <Check className="w-10 h-10 text-emerald-400 mx-auto mb-3" />
-            <p className="text-emerald-400 font-medium">{isArtist ? 'Retainer Received' : 'Booking Confirmed'}</p>
+            <Check className="w-10 h-10 text-emerald-600 mx-auto mb-3" />
+            <p className="text-emerald-600 font-medium">{isArtist ? 'Retainer Received' : 'Booking Confirmed'}</p>
             <p className="text-xs text-[#666] mt-1">{isArtist ? 'Booking confirmed' : 'Thank you for your payment'}</p>
           </section>
         )}
@@ -942,7 +942,7 @@ export default function InquiryThread() {
 
             <div className="space-y-3">
               <div>
-                <label className="block text-xs text-[#1A1A1A]/60 mb-1">CC (optional)</label>
+                <label className="block text-xs text-[#666] mb-1">CC (optional)</label>
                 <input
                   type="text"
                   value={ccEmails}
@@ -988,7 +988,7 @@ export default function InquiryThread() {
         {/* Client view - Simple status message */}
         {!isArtist && !isTerminal && (
           <section className="border-t border-[#E8E2D9] pt-8 text-center">
-            <p className="text-sm text-[#1A1A1A]/60">
+            <p className="text-sm text-[#666]">
               {artist?.businessName || 'Your artist'} will be in touch with you soon.
             </p>
             <p className="text-xs text-[#666] mt-2">
@@ -1011,7 +1011,7 @@ export default function InquiryThread() {
                   </button>
                 </div>
                 <div className="bg-white border border-[#E8E2D9] rounded p-4 mb-6 max-h-40 overflow-y-auto">
-                  <p className="text-xs text-[#1A1A1A]/60 leading-relaxed whitespace-pre-wrap">
+                  <p className="text-xs text-[#666] leading-relaxed whitespace-pre-wrap">
                     {artist?.infoSheetContent || "Your info sheet content will be sent to the client."}
                   </p>
                 </div>
@@ -1042,7 +1042,7 @@ export default function InquiryThread() {
                     <X className="w-5 h-5" />
                   </button>
                 </div>
-                <p className="text-sm text-[#1A1A1A]/70 mb-6">
+                <p className="text-sm text-[#555] mb-6">
                   This will let {inquiry.clientName} know you're unavailable and share your Trusted Circle referrals.
                 </p>
                 <div className="flex gap-3">
@@ -1072,7 +1072,7 @@ export default function InquiryThread() {
                     <X className="w-5 h-5" />
                   </button>
                 </div>
-                <p className="text-sm text-[#1A1A1A]/70 mb-6">
+                <p className="text-sm text-[#555] mb-6">
                   This will send a polite decline message to {inquiry.clientName}.
                 </p>
                 <div className="flex gap-3">
@@ -1157,7 +1157,7 @@ export default function InquiryThread() {
             ) : (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs text-[#1A1A1A]/60 mb-1">Who are you inviting?</label>
+                  <label className="block text-xs text-[#666] mb-1">Who are you inviting?</label>
                   <select
                     value={inviteData.role}
                     onChange={(e) => setInviteData({ ...inviteData, role: e.target.value as any })}
@@ -1170,7 +1170,7 @@ export default function InquiryThread() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs text-[#1A1A1A]/60 mb-1">Their Name</label>
+                  <label className="block text-xs text-[#666] mb-1">Their Name</label>
                   <input
                     type="text"
                     value={inviteData.name}
@@ -1181,7 +1181,7 @@ export default function InquiryThread() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-[#1A1A1A]/60 mb-1">Their Email *</label>
+                  <label className="block text-xs text-[#666] mb-1">Their Email *</label>
                   <input
                     type="email"
                     value={inviteData.email}
