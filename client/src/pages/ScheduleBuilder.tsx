@@ -9,7 +9,8 @@ import { useAuth } from "@/hooks/useAuth";
 type SetupData = {
   eventName: string;
   eventDate: string;
-  numArtists: number;
+  numHairArtists: number;
+  numMakeupArtists: number;
   numServices: number;
   startTime: string;
   slotDuration: number;
@@ -61,10 +62,11 @@ export default function ScheduleBuilder() {
   const [setup, setSetup] = useState<SetupData>({
     eventName: "",
     eventDate: "",
-    numArtists: 2,
+    numHairArtists: 1,
+    numMakeupArtists: 1,
     numServices: 6,
     startTime: "07:00",
-    slotDuration: 60,
+    slotDuration: 45,
   });
   
   // Grid state - rows are time slots, columns are artists
@@ -89,19 +91,31 @@ export default function ScheduleBuilder() {
   const [shareToken, setShareToken] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // Track artist types (H = Hair, M = Makeup)
+  const [artistTypes, setArtistTypes] = useState<string[]>([]);
+
   // Initialize grid when setup changes
   useEffect(() => {
     if (step === "grid" && artistNames.length === 0) {
-      // Initialize artist names
-      const names = Array.from({ length: setup.numArtists }, (_, i) => `Artist ${i + 1}`);
-      setArtistNames(names);
+      // Initialize artist names - Hair artists first, then Makeup
+      const hairNames = Array.from({ length: setup.numHairArtists }, (_, i) => `Hair ${i + 1}`);
+      const makeupNames = Array.from({ length: setup.numMakeupArtists }, (_, i) => `Makeup ${i + 1}`);
+      setArtistNames([...hairNames, ...makeupNames]);
+      
+      // Track artist types
+      const types = [
+        ...Array(setup.numHairArtists).fill("H"),
+        ...Array(setup.numMakeupArtists).fill("M")
+      ];
+      setArtistTypes(types);
+      
+      const totalArtists = setup.numHairArtists + setup.numMakeupArtists;
       
       // Initialize grid with empty cells
       const rows = Array.from({ length: setup.numServices }, (_, rowIdx) => {
-        const startMinutes = timeToMinutes(setup.startTime) + (rowIdx * setup.slotDuration);
-        return Array.from({ length: setup.numArtists }, () => ({
+        return Array.from({ length: totalArtists }, (_, colIdx) => ({
           clientName: "",
-          serviceType: "HM",
+          serviceType: colIdx < setup.numHairArtists ? "H" : "M",
         }));
       });
       setGrid(rows);
@@ -131,7 +145,7 @@ export default function ScheduleBuilder() {
         body: JSON.stringify({
           eventName: setup.eventName,
           eventDate: setup.eventDate,
-          notes: `${setup.numArtists} artists, ${setup.numServices} services starting at ${setup.startTime}`,
+          notes: `${setup.numHairArtists} hair, ${setup.numMakeupArtists} makeup, ${setup.numServices} services starting at ${setup.startTime}`,
         }),
       });
       if (!res.ok) throw new Error("Failed to create schedule");
@@ -148,6 +162,11 @@ export default function ScheduleBuilder() {
   const handleStartBuilding = async () => {
     if (!setup.eventName || !setup.eventDate) {
       toast({ title: "Please fill in event name and date", variant: "destructive" });
+      return;
+    }
+    
+    if (setup.numHairArtists === 0 && setup.numMakeupArtists === 0) {
+      toast({ title: "Please add at least one artist", variant: "destructive" });
       return;
     }
     
@@ -177,18 +196,39 @@ export default function ScheduleBuilder() {
 
   // Add row
   const addRow = () => {
+    const totalArtists = setup.numHairArtists + setup.numMakeupArtists;
     setGrid(prev => [
       ...prev,
-      Array.from({ length: setup.numArtists }, () => ({ clientName: "", serviceType: "HM" })),
+      Array.from({ length: totalArtists }, (_, i) => ({ 
+        clientName: "", 
+        serviceType: artistTypes[i] || (i < setup.numHairArtists ? "H" : "M")
+      })),
     ]);
     setSetup(prev => ({ ...prev, numServices: prev.numServices + 1 }));
   };
 
-  // Add column (artist)
-  const addColumn = () => {
-    setArtistNames(prev => [...prev, `Artist ${prev.length + 1}`]);
-    setGrid(prev => prev.map(row => [...row, { clientName: "", serviceType: "HM" }]));
-    setSetup(prev => ({ ...prev, numArtists: prev.numArtists + 1 }));
+  // Add column (artist) - adds to makeup section by default
+  const addColumn = (type: "H" | "M" = "M") => {
+    const newName = type === "H" ? `Hair ${setup.numHairArtists + 1}` : `Makeup ${setup.numMakeupArtists + 1}`;
+    
+    if (type === "H") {
+      // Insert at end of hair section
+      const insertIndex = setup.numHairArtists;
+      setArtistNames(prev => [...prev.slice(0, insertIndex), newName, ...prev.slice(insertIndex)]);
+      setArtistTypes(prev => [...prev.slice(0, insertIndex), "H", ...prev.slice(insertIndex)]);
+      setGrid(prev => prev.map(row => [
+        ...row.slice(0, insertIndex),
+        { clientName: "", serviceType: "H" },
+        ...row.slice(insertIndex)
+      ]));
+      setSetup(prev => ({ ...prev, numHairArtists: prev.numHairArtists + 1 }));
+    } else {
+      // Append to end (makeup section)
+      setArtistNames(prev => [...prev, newName]);
+      setArtistTypes(prev => [...prev, "M"]);
+      setGrid(prev => prev.map(row => [...row, { clientName: "", serviceType: "M" }]));
+      setSetup(prev => ({ ...prev, numMakeupArtists: prev.numMakeupArtists + 1 }));
+    }
   };
 
   // Delete row
@@ -201,9 +241,15 @@ export default function ScheduleBuilder() {
   // Delete column (artist)
   const deleteColumn = (colIdx: number) => {
     if (artistNames.length <= 1) return;
+    const isHairArtist = artistTypes[colIdx] === "H";
     setArtistNames(prev => prev.filter((_, i) => i !== colIdx));
+    setArtistTypes(prev => prev.filter((_, i) => i !== colIdx));
     setGrid(prev => prev.map(row => row.filter((_, i) => i !== colIdx)));
-    setSetup(prev => ({ ...prev, numArtists: prev.numArtists - 1 }));
+    if (isHairArtist) {
+      setSetup(prev => ({ ...prev, numHairArtists: Math.max(0, prev.numHairArtists - 1) }));
+    } else {
+      setSetup(prev => ({ ...prev, numMakeupArtists: Math.max(0, prev.numMakeupArtists - 1) }));
+    }
   };
 
   // Send chat message with email notification
@@ -299,31 +345,43 @@ export default function ScheduleBuilder() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-[#666] mb-1 flex items-center gap-1">
-                  <Users className="w-4 h-4" /> How many artists?
+                  <Scissors className="w-4 h-4" /> Hair Artists
                 </label>
                 <input
                   type="number"
-                  min={1}
+                  min={0}
                   max={10}
-                  value={setup.numArtists}
-                  onChange={(e) => setSetup({ ...setup, numArtists: parseInt(e.target.value) || 1 })}
+                  value={setup.numHairArtists}
+                  onChange={(e) => setSetup({ ...setup, numHairArtists: parseInt(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-[#E8E2D9] rounded bg-[#FAF8F5] text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
                 />
               </div>
               
               <div>
                 <label className="block text-sm text-[#666] mb-1 flex items-center gap-1">
-                  <Scissors className="w-4 h-4" /> How many services?
+                  <Users className="w-4 h-4" /> Makeup Artists
                 </label>
                 <input
                   type="number"
-                  min={1}
-                  max={20}
-                  value={setup.numServices}
-                  onChange={(e) => setSetup({ ...setup, numServices: parseInt(e.target.value) || 1 })}
+                  min={0}
+                  max={10}
+                  value={setup.numMakeupArtists}
+                  onChange={(e) => setSetup({ ...setup, numMakeupArtists: parseInt(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-[#E8E2D9] rounded bg-[#FAF8F5] text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
                 />
               </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm text-[#666] mb-1">How many people getting services?</label>
+              <input
+                type="number"
+                min={1}
+                max={20}
+                value={setup.numServices}
+                onChange={(e) => setSetup({ ...setup, numServices: parseInt(e.target.value) || 1 })}
+                className="w-full px-3 py-2 border border-[#E8E2D9] rounded bg-[#FAF8F5] text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
+              />
             </div>
             
             <div className="grid grid-cols-2 gap-4">
@@ -357,7 +415,7 @@ export default function ScheduleBuilder() {
             <button
               onClick={handleStartBuilding}
               disabled={createScheduleMutation.isPending}
-              className="w-full py-3 bg-[#1A1A1A] text-[#F5F0E8] rounded font-medium hover:bg-[#333] disabled:opacity-50 transition-colors mt-4"
+              className="w-full py-3 bg-black text-white rounded font-medium hover:bg-gray-800 disabled:opacity-50 transition-colors mt-4"
             >
               {createScheduleMutation.isPending ? "Creating..." : "Start Building"}
             </button>
@@ -396,7 +454,7 @@ export default function ScheduleBuilder() {
             <button
               onClick={() => setShowChat(!showChat)}
               className={`flex items-center gap-2 px-3 py-2 rounded transition-colors ${
-                showChat ? 'bg-[#1A1A1A] text-[#F5F0E8]' : 'bg-[#F5F0E8] text-[#1A1A1A] hover:bg-[#E8E2D9]'
+                showChat ? 'bg-black text-white' : 'bg-gray-100 text-black hover:bg-gray-200'
               }`}
             >
               <MessageCircle className="w-4 h-4" />
@@ -406,7 +464,7 @@ export default function ScheduleBuilder() {
             {shareToken && (
               <button
                 onClick={copyShareLink}
-                className="flex items-center gap-2 px-3 py-2 bg-[#1A1A1A] text-[#F5F0E8] rounded hover:bg-[#333] transition-colors"
+                className="flex items-center gap-2 px-3 py-2 bg-black text-white rounded hover:bg-gray-800 transition-colors"
               >
                 {copied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
                 <span className="hidden sm:inline">{copied ? "Copied!" : "Share"}</span>
@@ -447,14 +505,23 @@ export default function ScheduleBuilder() {
                       </div>
                     </th>
                   ))}
-                  <th className="border border-[#E8E2D9] bg-[#F5F0E8] w-10">
-                    <button
-                      onClick={addColumn}
-                      className="p-1 text-[#666] hover:text-[#1A1A1A] transition-colors"
-                      title="Add artist"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
+                  <th className="border border-[#E8E2D9] bg-[#F5F0E8] w-20">
+                    <div className="flex gap-1 justify-center">
+                      <button
+                        onClick={() => addColumn("H")}
+                        className="p-1 text-[#666] hover:text-[#1A1A1A] transition-colors text-xs"
+                        title="Add hair artist"
+                      >
+                        +H
+                      </button>
+                      <button
+                        onClick={() => addColumn("M")}
+                        className="p-1 text-[#666] hover:text-[#1A1A1A] transition-colors text-xs"
+                        title="Add makeup artist"
+                      >
+                        +M
+                      </button>
+                    </div>
                   </th>
                 </tr>
               </thead>
@@ -602,7 +669,7 @@ export default function ScheduleBuilder() {
                 />
                 <button
                   onClick={sendChatMessage}
-                  className="px-3 py-2 bg-[#1A1A1A] text-[#F5F0E8] rounded hover:bg-[#333] transition-colors"
+                  className="px-3 py-2 bg-black text-white rounded hover:bg-gray-800 transition-colors"
                 >
                   <Send className="w-4 h-4" />
                 </button>
