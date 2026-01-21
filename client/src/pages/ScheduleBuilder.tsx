@@ -9,8 +9,10 @@ import { useAuth } from "@/hooks/useAuth";
 type SetupData = {
   eventName: string;
   eventDate: string;
-  numColumns: number;
-  numRows: number;
+  numServices: number;
+  numArtists: number;
+  startTime: string;
+  readyTime: string;
 };
 
 type ArtistColumn = {
@@ -62,8 +64,10 @@ export default function ScheduleBuilder() {
   const [setup, setSetup] = useState<SetupData>({
     eventName: "",
     eventDate: "",
-    numColumns: 3,
-    numRows: 6,
+    numServices: 6,
+    numArtists: 3,
+    startTime: "07:00",
+    readyTime: "11:00",
   });
   
   // Grid state - columns are artists, rows are time slots
@@ -90,26 +94,49 @@ export default function ScheduleBuilder() {
   const [shareToken, setShareToken] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // Calculate time slots from start to ready time in 45 min increments
+  const calculateTimeSlots = () => {
+    const slots: string[] = [];
+    const [startH, startM] = setup.startTime.split(":").map(Number);
+    const [readyH, readyM] = setup.readyTime.split(":").map(Number);
+    
+    let currentMinutes = startH * 60 + startM;
+    const endMinutes = readyH * 60 + readyM;
+    
+    while (currentMinutes < endMinutes) {
+      const nextMinutes = currentMinutes + 45;
+      const startStr = `${Math.floor(currentMinutes / 60)}:${String(currentMinutes % 60).padStart(2, "0")}`;
+      const endStr = `${Math.floor(Math.min(nextMinutes, endMinutes) / 60)}:${String(Math.min(nextMinutes, endMinutes) % 60).padStart(2, "0")}`;
+      slots.push(`${startStr}-${endStr}`);
+      currentMinutes = nextMinutes;
+    }
+    return slots;
+  };
+
   // Initialize grid when entering grid mode
   useEffect(() => {
     if (step === "grid" && artists.length === 0) {
-      // Create columns based on setup
+      // Create artist columns
       const initialArtists: ArtistColumn[] = Array.from(
-        { length: setup.numColumns },
+        { length: setup.numArtists },
         (_, i) => ({ name: i === 0 ? "Lead Artist" : `Artist ${i + 1}`, type: "HM" as const })
       );
       setArtists(initialArtists);
       
-      // Initialize grid with empty cells
-      const initialGrid = Array.from({ length: setup.numRows }, () => 
-        Array.from({ length: setup.numColumns }, () => ({
-          timeRange: "",
+      // Calculate time slots
+      const timeSlots = calculateTimeSlots();
+      const numRows = Math.max(setup.numServices, timeSlots.length);
+      
+      // Initialize grid with time slots pre-filled
+      const initialGrid = Array.from({ length: numRows }, (_, rowIdx) => 
+        Array.from({ length: setup.numArtists }, () => ({
+          timeRange: timeSlots[rowIdx] || "",
           clientName: "",
         }))
       );
       setGrid(initialGrid);
     }
-  }, [step, artists.length, setup.numColumns, setup.numRows]);
+  }, [step, artists.length, setup.numArtists, setup.numServices, setup.startTime, setup.readyTime]);
 
   // Handle wizard completion - just go straight to grid, no database needed
   const handleStartBuilding = () => {
@@ -147,7 +174,6 @@ export default function ScheduleBuilder() {
       ...prev,
       Array.from({ length: artists.length }, () => ({ timeRange: "", clientName: "" }))
     ]);
-    setSetup(prev => ({ ...prev, numRows: prev.numRows + 1 }));
   };
 
   // Add column (artist)
@@ -164,7 +190,6 @@ export default function ScheduleBuilder() {
   const deleteRow = (rowIdx: number) => {
     if (grid.length <= 1) return;
     setGrid(prev => prev.filter((_, i) => i !== rowIdx));
-    setSetup(prev => ({ ...prev, numRows: prev.numRows - 1 }));
   };
 
   // Delete column (artist)
@@ -265,25 +290,47 @@ export default function ScheduleBuilder() {
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-[#666] mb-1">How many artists (columns)?</label>
+                <label className="block text-sm text-[#666] mb-1">How many services?</label>
                 <input
                   type="number"
                   min={1}
-                  max={10}
-                  value={setup.numColumns}
-                  onChange={(e) => setSetup({ ...setup, numColumns: parseInt(e.target.value) || 1 })}
+                  max={20}
+                  value={setup.numServices}
+                  onChange={(e) => setSetup({ ...setup, numServices: parseInt(e.target.value) || 1 })}
                   className="w-full px-3 py-2 border border-[#E8E2D9] rounded bg-[#FAF8F5] text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
                 />
               </div>
               
               <div>
-                <label className="block text-sm text-[#666] mb-1">How many time slots (rows)?</label>
+                <label className="block text-sm text-[#666] mb-1">How many artists?</label>
                 <input
                   type="number"
                   min={1}
-                  max={20}
-                  value={setup.numRows}
-                  onChange={(e) => setSetup({ ...setup, numRows: parseInt(e.target.value) || 1 })}
+                  max={10}
+                  value={setup.numArtists}
+                  onChange={(e) => setSetup({ ...setup, numArtists: parseInt(e.target.value) || 1 })}
+                  className="w-full px-3 py-2 border border-[#E8E2D9] rounded bg-[#FAF8F5] text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-[#666] mb-1">Start Time</label>
+                <input
+                  type="time"
+                  value={setup.startTime}
+                  onChange={(e) => setSetup({ ...setup, startTime: e.target.value })}
+                  className="w-full px-3 py-2 border border-[#E8E2D9] rounded bg-[#FAF8F5] text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm text-[#666] mb-1">Ready Time</label>
+                <input
+                  type="time"
+                  value={setup.readyTime}
+                  onChange={(e) => setSetup({ ...setup, readyTime: e.target.value })}
                   className="w-full px-3 py-2 border border-[#E8E2D9] rounded bg-[#FAF8F5] text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
                 />
               </div>
