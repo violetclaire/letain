@@ -11,9 +11,6 @@ type SetupData = {
   eventDate: string;
   numServices: number;
   numArtists: number;
-  startTime: string;
-  readyTime: string;
-  slotDuration: number;
 };
 
 type ArtistColumn = {
@@ -68,11 +65,9 @@ export default function ScheduleBuilder() {
     eventName: "",
     eventDate: "",
     numServices: 6,
-    numArtists: 3,
-    startTime: "07:00",
-    readyTime: "11:00",
-    slotDuration: 45,
+    numArtists: 2,
   });
+  const [saving, setSaving] = useState(false);
   
   // Grid state - columns are artists, rows are time slots
   const [artists, setArtists] = useState<ArtistColumn[]>([]);
@@ -98,76 +93,64 @@ export default function ScheduleBuilder() {
   const [shareToken, setShareToken] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Calculate time slots from start to ready time based on selected duration
-  const calculateTimeSlots = () => {
-    const slots: string[] = [];
-    const [startH, startM] = setup.startTime.split(":").map(Number);
-    const [readyH, readyM] = setup.readyTime.split(":").map(Number);
-    const duration = setup.slotDuration || 45;
-    
-    let currentMinutes = startH * 60 + startM;
-    const endMinutes = readyH * 60 + readyM;
-    
-    while (currentMinutes < endMinutes) {
-      const nextMinutes = currentMinutes + duration;
-      const startStr = `${Math.floor(currentMinutes / 60)}:${String(currentMinutes % 60).padStart(2, "0")}`;
-      const endStr = `${Math.floor(Math.min(nextMinutes, endMinutes) / 60)}:${String(Math.min(nextMinutes, endMinutes) % 60).padStart(2, "0")}`;
-      slots.push(`${startStr}-${endStr}`);
-      currentMinutes = nextMinutes;
-    }
-    return slots;
-  };
-
-  // Calculate slots for a specific artist duration
-  const calculateSlotsForDuration = (duration: number) => {
-    const slots: string[] = [];
-    const [startH, startM] = setup.startTime.split(":").map(Number);
-    const [readyH, readyM] = setup.readyTime.split(":").map(Number);
-    
-    let currentMinutes = startH * 60 + startM;
-    const endMinutes = readyH * 60 + readyM;
-    
-    while (currentMinutes < endMinutes) {
-      const nextMinutes = currentMinutes + duration;
-      const startStr = `${Math.floor(currentMinutes / 60)}:${String(currentMinutes % 60).padStart(2, "0")}`;
-      const endStr = `${Math.floor(Math.min(nextMinutes, endMinutes) / 60)}:${String(Math.min(nextMinutes, endMinutes) % 60).padStart(2, "0")}`;
-      slots.push(`${startStr}-${endStr}`);
-      currentMinutes = nextMinutes;
-    }
-    return slots;
-  };
-
-  // Initialize grid when entering grid mode
+  // Initialize grid when entering grid mode - uses numServices as exact row count
   useEffect(() => {
     if (step === "grid" && artists.length === 0) {
-      const defaultDuration = setup.slotDuration || 45;
-      const defaultSlots = calculateSlotsForDuration(defaultDuration);
-      
-      // Create artist columns with individual durations and slots
+      // Create artist columns - simple names
       const initialArtists: ArtistColumn[] = Array.from(
         { length: setup.numArtists },
         (_, i) => ({ 
           name: i === 0 ? "Lead Artist" : `Artist ${i + 1}`, 
           type: "HM" as const,
-          duration: defaultDuration,
-          slots: defaultSlots
+          duration: 45,
+          slots: []
         })
       );
       setArtists(initialArtists);
       
-      // Calculate max rows needed
-      const numRows = Math.max(setup.numServices, defaultSlots.length);
-      
-      // Initialize grid - each column gets its own time slots
-      const initialGrid = Array.from({ length: numRows }, (_, rowIdx) => 
-        Array.from({ length: setup.numArtists }, (_, colIdx) => ({
-          timeRange: defaultSlots[rowIdx] || "",
+      // Create exact number of rows based on numServices
+      const initialGrid = Array.from({ length: setup.numServices }, () => 
+        Array.from({ length: setup.numArtists }, () => ({
+          timeRange: "",
           clientName: "",
         }))
       );
       setGrid(initialGrid);
     }
-  }, [step, artists.length, setup.numArtists, setup.numServices, setup.startTime, setup.readyTime, setup.slotDuration]);
+  }, [step, artists.length, setup.numArtists, setup.numServices]);
+
+  // Save schedule to database
+  const saveSchedule = async () => {
+    setSaving(true);
+    try {
+      const response = await fetch("/api/event-schedules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          eventName: setup.eventName,
+          eventDate: setup.eventDate,
+          artistColumns: artists.map(a => a.name),
+          grid: grid,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to save");
+      }
+      
+      const data = await response.json();
+      setScheduleId(data.id);
+      setShareToken(data.shareToken);
+      queryClient.invalidateQueries({ queryKey: ["/api/event-schedules"] });
+      toast({ title: "Schedule saved!" });
+      navigate("/artist/schedules");
+    } catch (error) {
+      toast({ title: "Failed to save schedule", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // Handle wizard completion - just go straight to grid, no database needed
   const handleStartBuilding = () => {
@@ -199,31 +182,12 @@ export default function ScheduleBuilder() {
     });
   };
 
-  // Update artist duration and recalculate their slots
-  const updateArtistDuration = (colIdx: number, newDuration: number) => {
-    const newSlots = calculateSlotsForDuration(newDuration);
-    
+  // Update artist type
+  const updateArtistType = (colIdx: number, newType: ArtistColumn["type"]) => {
     setArtists(prev => {
       const newArtists = [...prev];
-      newArtists[colIdx] = { ...newArtists[colIdx], duration: newDuration, slots: newSlots };
+      newArtists[colIdx] = { ...newArtists[colIdx], type: newType };
       return newArtists;
-    });
-    
-    // Update grid column with new time slots
-    setGrid(prev => {
-      const maxRows = Math.max(prev.length, newSlots.length);
-      const newGrid = Array.from({ length: maxRows }, (_, rowIdx) => 
-        Array.from({ length: artists.length }, (_, cIdx) => {
-          if (cIdx === colIdx) {
-            return {
-              timeRange: newSlots[rowIdx] || "",
-              clientName: prev[rowIdx]?.[cIdx]?.clientName || "",
-            };
-          }
-          return prev[rowIdx]?.[cIdx] || { timeRange: "", clientName: "" };
-        })
-      );
-      return newGrid;
     });
   };
 
@@ -236,15 +200,12 @@ export default function ScheduleBuilder() {
   };
 
   // Add column (artist)
-  const addColumn = (type: "HM" | "H" | "M" = "M") => {
-    const typeLabel = type === "HM" ? "HM" : type === "H" ? "Hair" : "Makeup";
-    const count = artists.filter(a => a.type === type).length + 1;
-    const newName = type === "HM" ? `Artist ${count}` : `${typeLabel} ${count}`;
-    const defaultDuration = setup.slotDuration || 45;
-    const slots = calculateSlotsForDuration(defaultDuration);
+  const addColumn = () => {
+    const count = artists.length + 1;
+    const newName = `Artist ${count}`;
     
-    setArtists(prev => [...prev, { name: newName, type, duration: defaultDuration, slots }]);
-    setGrid(prev => prev.map((row, rowIdx) => [...row, { timeRange: slots[rowIdx] || "", clientName: "" }]));
+    setArtists(prev => [...prev, { name: newName, type: "HM" as const, duration: 45, slots: [] }]);
+    setGrid(prev => prev.map(row => [...row, { timeRange: "", clientName: "" }]));
   };
 
   // Delete row
@@ -375,41 +336,6 @@ export default function ScheduleBuilder() {
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm text-[#666] mb-1">Start Time</label>
-                <input
-                  type="time"
-                  value={setup.startTime}
-                  onChange={(e) => setSetup({ ...setup, startTime: e.target.value })}
-                  className="w-full px-3 py-2 border border-[#E8E2D9] rounded bg-[#FAF8F5] text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm text-[#666] mb-1">Ready Time</label>
-                <input
-                  type="time"
-                  value={setup.readyTime}
-                  onChange={(e) => setSetup({ ...setup, readyTime: e.target.value })}
-                  className="w-full px-3 py-2 border border-[#E8E2D9] rounded bg-[#FAF8F5] text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm text-[#666] mb-1">Slot Duration</label>
-              <select
-                value={setup.slotDuration}
-                onChange={(e) => setSetup({ ...setup, slotDuration: parseInt(e.target.value) })}
-                className="w-full px-3 py-2 border border-[#E8E2D9] rounded bg-[#FAF8F5] text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
-              >
-                <option value={30}>30 minutes</option>
-                <option value={45}>45 minutes</option>
-                <option value={60}>60 minutes</option>
-              </select>
-            </div>
-            
             <button
               onClick={handleStartBuilding}
               className="w-full py-3 bg-black text-white rounded font-medium hover:bg-gray-800 disabled:opacity-50 transition-colors mt-4"
@@ -460,12 +386,20 @@ export default function ScheduleBuilder() {
             {shareToken && (
               <button
                 onClick={copyShareLink}
-                className="flex items-center gap-2 px-3 py-2 bg-black text-white rounded hover:bg-gray-800 transition-colors"
+                className="flex items-center gap-2 px-3 py-2 bg-gray-100 text-black rounded hover:bg-gray-200 transition-colors"
               >
                 {copied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
                 <span className="hidden sm:inline">{copied ? "Copied!" : "Share"}</span>
               </button>
             )}
+            
+            <button
+              onClick={saveSchedule}
+              disabled={saving}
+              className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded hover:bg-gray-800 transition-colors disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save Schedule"}
+            </button>
           </div>
         </div>
       </div>
@@ -515,7 +449,7 @@ export default function ScheduleBuilder() {
                   ))}
                   <th className="border border-[#E8E2D9] bg-[#F5F0E8] w-12">
                     <button
-                      onClick={() => addColumn("HM")}
+                      onClick={() => addColumn()}
                       className="p-2 text-[#666] hover:text-[#1A1A1A] transition-colors"
                       title="Add artist column"
                     >
