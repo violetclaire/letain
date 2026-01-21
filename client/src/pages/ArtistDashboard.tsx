@@ -2113,10 +2113,10 @@ export default function ArtistDashboard() {
 
   if (authLoading || loading) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${isDateInquiry ? 'bg-[#1A1A1A]' : 'bg-powder-blue'}`}>
+      <div className="min-h-screen flex items-center justify-center bg-cream">
         <div className="text-center">
-          <div className={`animate-spin rounded-full h-8 w-8 border-b-2 mx-auto mb-4 ${isDateInquiry ? 'border-[#C4A052]' : 'border-black'}`}></div>
-          <p className={`text-sm ${isDateInquiry ? 'text-[#C4A052]/60' : 'text-black/60'}`}>Loading your dashboard...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto mb-4 border-black"></div>
+          <p className="text-sm text-black/60">Loading your dashboard...</p>
         </div>
       </div>
     );
@@ -2223,7 +2223,7 @@ export default function ArtistDashboard() {
   };
 
   return (
-    <div className={`font-sans min-h-screen overflow-y-auto p-2 sm:p-4 ${isDateInquiry ? 'bg-[#1A1A1A]' : 'bg-powder-blue'}`}>
+    <div className="font-sans min-h-screen overflow-y-auto p-2 sm:p-4 bg-cream">
       <div className="max-w-full sm:max-w-full lg:max-w-6xl mx-auto frame-outer shadow-sm">
         <div className="frame-inner">
           {/* HEADER - Desktop */}

@@ -30,8 +30,8 @@ export default function ArtistAvailability() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-[#F5F0E8]" />
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-black" />
       </div>
     );
   }
@@ -41,18 +41,18 @@ export default function ArtistAvailability() {
 
   if (!effectiveUser || (user && user.role !== 'artist')) {
     return (
-      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center">
-        <p className="text-[#F5F0E8]/60">Please log in as an artist to view this page.</p>
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <p className="text-black/60">Please log in as an artist to view this page.</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#1A1A1A] text-[#F5F0E8]" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-cream text-black" style={{ fontFamily: "'Inter', sans-serif" }}>
       <header className="px-8 md:px-16 py-8 border-b border-[#F5F0E8]/10">
         <button
           onClick={() => window.history.back()}
-          className="flex items-center gap-2 text-[#F5F0E8]/60 hover:text-[#F5F0E8] transition-colors mb-4"
+          className="flex items-center gap-2 text-black/60 hover:text-black transition-colors mb-4"
           data-testid="button-back"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -61,7 +61,7 @@ export default function ArtistAvailability() {
         <h1 className="text-2xl" style={{ fontFamily: "'Fraunces', serif" }}>
           Your Availability
         </h1>
-        <p className="text-sm text-[#F5F0E8]/50 mt-1">
+        <p className="text-sm text-black/50 mt-1">
           Click dates to toggle between available, pending, and booked
         </p>
       </header>
@@ -71,7 +71,7 @@ export default function ArtistAvailability() {
           <AvailabilityCalendar userId={effectiveUser.id} authToken={token || undefined} />
         </div>
         
-        <div className="mt-8 text-sm text-[#F5F0E8]/50 space-y-2">
+        <div className="mt-8 text-sm text-black/50 space-y-2">
           <p className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-[#C4A35A]"></span>
             Booked - You have a confirmed booking
