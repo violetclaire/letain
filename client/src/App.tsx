@@ -157,6 +157,7 @@ function Router() {
         {(params) => <PublicSchedule shareToken={params.shareToken} />}
       </Route>
       <Route path="/quote/:shareToken" component={PublicQuote} />
+      <Route path="/schedules/new" component={ScheduleBuilder} />
       <Route path="/schedules/:tokens">
         {(params) => <MultiDaySchedule tokens={params.tokens} />}
       </Route>
