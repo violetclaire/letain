@@ -73,10 +73,10 @@ export default function ChatInvite() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center">
+      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-[#F5F0E8] mx-auto mb-4" />
-          <p className="text-[#F5F0E8]/60">Loading your chat invite...</p>
+          <Loader2 className="w-12 h-12 animate-spin text-[#1A1A1A] mx-auto mb-4" />
+          <p className="text-[#1A1A1A]/60">Loading your chat invite...</p>
         </div>
       </div>
     );
@@ -84,16 +84,16 @@ export default function ChatInvite() {
 
   if (error || !inviteData) {
     return (
-      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="max-w-md w-full"
         >
-          <div className="border border-[#F5F0E8]/20 rounded-lg p-8 text-center">
+          <div className="border border-[#E8E2D9] rounded-lg p-8 text-center">
             <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-            <h2 className="font-serif text-2xl text-[#F5F0E8] mb-2">Invite Not Found</h2>
-            <p className="text-[#F5F0E8]/60 mb-6">
+            <h2 className="font-serif text-2xl text-[#1A1A1A] mb-2">Invite Not Found</h2>
+            <p className="text-[#1A1A1A]/60 mb-6">
               This chat invite may have expired or is no longer valid.
             </p>
             <button
@@ -110,26 +110,26 @@ export default function ChatInvite() {
   }
 
   return (
-    <div className="min-h-screen bg-[#1A1A1A] flex flex-col">
+    <div className="min-h-screen bg-[#FAF8F5] flex flex-col">
       <div className="flex-1 flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
-          <div className="border border-[#F5F0E8]/20 rounded-lg p-6 bg-[#1A1A1A]">
+          <div className="border border-[#E8E2D9] rounded-lg p-6 bg-[#FAF8F5]">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-[#F5F0E8]/10 border border-[#F5F0E8]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MessageCircle className="w-8 h-8 text-[#F5F0E8]" />
+              <div className="w-16 h-16 bg-[#F5F0E8]/10 border border-[#E8E2D9] rounded-full flex items-center justify-center mx-auto mb-4">
+                <MessageCircle className="w-8 h-8 text-[#1A1A1A]" />
               </div>
-              <h2 className="font-serif text-xl text-[#F5F0E8] mb-1">
+              <h2 className="font-serif text-xl text-[#1A1A1A] mb-1">
                 Chat with {inviteData.vendorName}
               </h2>
-              <p className="text-sm text-[#F5F0E8]/60">
+              <p className="text-sm text-[#1A1A1A]/60">
                 Hi {inviteData.clientName}! Send a message about your upcoming event.
               </p>
               {inviteData.eventDate && (
-                <p className="text-xs text-[#F5F0E8]/40 mt-2">
+                <p className="text-xs text-[#1A1A1A]/40 mt-2">
                   Event Date: {formatDateLocal(inviteData.eventDate, {
                     weekday: 'long',
                     year: 'numeric',
@@ -142,7 +142,7 @@ export default function ChatInvite() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm text-[#F5F0E8]/70 mb-1">
+                <label className="block text-sm text-[#1A1A1A]/70 mb-1">
                   Your Message
                 </label>
                 <textarea
@@ -150,7 +150,7 @@ export default function ChatInvite() {
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Type your message here..."
                   rows={4}
-                  className="w-full px-4 py-3 border border-[#F5F0E8]/20 focus:outline-none focus:border-[#F5F0E8]/40 bg-[#222] text-[#F5F0E8] placeholder:text-[#F5F0E8]/30 rounded resize-none"
+                  className="w-full px-4 py-3 border border-[#E8E2D9] focus:outline-none focus:border-[#999] bg-[#F5F2ED] text-[#1A1A1A] placeholder:text-[#999] rounded resize-none"
                   data-testid="input-chat-message"
                 />
               </div>
@@ -179,10 +179,10 @@ export default function ChatInvite() {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-4 p-3 bg-[#F5F0E8]/10 border border-[#F5F0E8]/20 rounded flex items-center gap-2"
+                className="mt-4 p-3 bg-[#F5F0E8]/10 border border-[#E8E2D9] rounded flex items-center gap-2"
               >
-                <CheckCircle className="w-5 h-5 text-[#F5F0E8]" />
-                <span className="text-sm text-[#F5F0E8]">
+                <CheckCircle className="w-5 h-5 text-[#1A1A1A]" />
+                <span className="text-sm text-[#1A1A1A]">
                   Message sent! {inviteData.vendorName} will reply soon.
                 </span>
               </motion.div>

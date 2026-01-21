@@ -49,7 +49,7 @@ export default function ArtistAvailability() {
 
   return (
     <div className="min-h-screen bg-cream text-black" style={{ fontFamily: "'Inter', sans-serif" }}>
-      <header className="px-8 md:px-16 py-8 border-b border-[#F5F0E8]/10">
+      <header className="px-8 md:px-16 py-8 border-b border-[#E8E2D9]">
         <button
           onClick={() => window.history.back()}
           className="flex items-center gap-2 text-black/60 hover:text-black transition-colors mb-4"
@@ -67,7 +67,7 @@ export default function ArtistAvailability() {
       </header>
 
       <main className="max-w-2xl mx-auto px-8 md:px-16 py-12">
-        <div className="bg-[#222] border border-[#F5F0E8]/10 rounded-lg p-6">
+        <div className="bg-[#F5F2ED] border border-[#E8E2D9] rounded-lg p-6">
           <AvailabilityCalendar userId={effectiveUser.id} authToken={token || undefined} />
         </div>
         

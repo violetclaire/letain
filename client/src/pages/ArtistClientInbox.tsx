@@ -70,7 +70,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 function getStatusColor(status: string): string {
   switch (status) {
-    case 'pending': return 'bg-[#1A1A1A] text-[#F5F0E8]';
+    case 'pending': return 'bg-[#FAF8F5] text-[#1A1A1A]';
     case 'responded': return 'bg-[#E8E2D9] text-[#1A1A1A]';
     case 'accepted': return 'bg-green-100 text-green-800';
     case 'contract sent': return 'bg-blue-100 text-blue-800';
@@ -309,19 +309,19 @@ export default function ArtistClientInbox() {
         <div className="px-2 py-1.5 border-b border-[#E8E2D9] flex gap-1">
           <button
             onClick={() => setStatusFilter('all')}
-            className={`px-1.5 py-0.5 text-[10px] rounded ${statusFilter === 'all' ? 'bg-[#1A1A1A] text-[#F5F0E8]' : 'bg-[#F5F0E8] text-[#666] hover:bg-[#E8E2D9]'}`}
+            className={`px-1.5 py-0.5 text-[10px] rounded ${statusFilter === 'all' ? 'bg-[#FAF8F5] text-[#1A1A1A]' : 'bg-[#F5F0E8] text-[#666] hover:bg-[#E8E2D9]'}`}
           >
             All
           </button>
           <button
             onClick={() => setStatusFilter('pending')}
-            className={`px-1.5 py-0.5 text-[10px] rounded ${statusFilter === 'pending' ? 'bg-[#1A1A1A] text-[#F5F0E8]' : 'bg-[#F5F0E8] text-[#666] hover:bg-[#E8E2D9]'}`}
+            className={`px-1.5 py-0.5 text-[10px] rounded ${statusFilter === 'pending' ? 'bg-[#FAF8F5] text-[#1A1A1A]' : 'bg-[#F5F0E8] text-[#666] hover:bg-[#E8E2D9]'}`}
           >
             New
           </button>
           <button
             onClick={() => setStatusFilter('accepted')}
-            className={`px-1.5 py-0.5 text-[10px] rounded ${statusFilter === 'accepted' ? 'bg-[#1A1A1A] text-[#F5F0E8]' : 'bg-[#F5F0E8] text-[#666] hover:bg-[#E8E2D9]'}`}
+            className={`px-1.5 py-0.5 text-[10px] rounded ${statusFilter === 'accepted' ? 'bg-[#FAF8F5] text-[#1A1A1A]' : 'bg-[#F5F0E8] text-[#666] hover:bg-[#E8E2D9]'}`}
           >
             Booked
           </button>
@@ -427,12 +427,12 @@ export default function ArtistClientInbox() {
                       <div
                         className={`max-w-[70%] rounded-lg px-4 py-3 ${
                           msg.isArtist
-                            ? 'bg-[#1A1A1A] text-[#F5F0E8]'
+                            ? 'bg-[#FAF8F5] text-[#1A1A1A]'
                             : 'bg-white border border-[#E8E2D9] text-[#1A1A1A]'
                         }`}
                       >
                         <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                        <p className={`text-xs mt-2 ${msg.isArtist ? 'text-[#F5F0E8]/60' : 'text-[#999]'}`}>
+                        <p className={`text-xs mt-2 ${msg.isArtist ? 'text-[#1A1A1A]/60' : 'text-[#999]'}`}>
                           {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
                         </p>
                       </div>
@@ -457,7 +457,7 @@ export default function ArtistClientInbox() {
                 <button
                   onClick={handleSend}
                   disabled={!message.trim() || sendThreadMessage.isPending || sendChatMessage.isPending}
-                  className="px-6 py-3 bg-[#1A1A1A] text-[#F5F0E8] rounded-lg hover:bg-[#333] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-6 py-3 bg-[#FAF8F5] text-[#1A1A1A] rounded-lg hover:bg-[#333] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {sendThreadMessage.isPending || sendChatMessage.isPending ? (
                     <Loader2 className="w-5 h-5 animate-spin" />

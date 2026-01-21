@@ -76,7 +76,7 @@ export default function DirectChat() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center">
+      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-[#C4A35A]" />
       </div>
     );
@@ -84,10 +84,10 @@ export default function DirectChat() {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-[#1A1A1A] text-[#F5F0E8] flex items-center justify-center">
+      <div className="min-h-screen bg-[#FAF8F5] text-[#1A1A1A] flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-xl mb-2" style={{ fontFamily: "'Fraunces', serif" }}>Chat Not Found</h1>
-          <p className="text-sm text-[#F5F0E8]/60">This link may have expired or is invalid.</p>
+          <p className="text-sm text-[#1A1A1A]/60">This link may have expired or is invalid.</p>
         </div>
       </div>
     );
@@ -96,13 +96,13 @@ export default function DirectChat() {
   const { chat, messages, artist } = data;
 
   return (
-    <div className="min-h-screen bg-[#1A1A1A] text-[#F5F0E8] flex flex-col">
-      <header className="border-b border-[#F5F0E8]/10 p-4">
+    <div className="min-h-screen bg-[#FAF8F5] text-[#1A1A1A] flex flex-col">
+      <header className="border-b border-[#E8E2D9] p-4">
         <div className="max-w-2xl mx-auto">
-          <p className="text-xs text-[#F5F0E8]/40 mb-1">Conversation with</p>
+          <p className="text-xs text-[#1A1A1A]/40 mb-1">Conversation with</p>
           <h1 className="text-lg" style={{ fontFamily: "'Fraunces', serif" }}>{artist.name}</h1>
           {chat.subject && (
-            <p className="text-sm text-[#F5F0E8]/60 mt-1">{chat.subject}</p>
+            <p className="text-sm text-[#1A1A1A]/60 mt-1">{chat.subject}</p>
           )}
         </div>
       </header>
@@ -111,8 +111,8 @@ export default function DirectChat() {
         <div className="max-w-2xl mx-auto space-y-4">
           {messages.length === 0 ? (
             <div className="text-center py-12">
-              <MessageSquare className="w-12 h-12 text-[#F5F0E8]/20 mx-auto mb-4" />
-              <p className="text-sm text-[#F5F0E8]/40">No messages yet. Start the conversation!</p>
+              <MessageSquare className="w-12 h-12 text-[#1A1A1A]/20 mx-auto mb-4" />
+              <p className="text-sm text-[#1A1A1A]/40">No messages yet. Start the conversation!</p>
             </div>
           ) : (
             messages.map((msg) => (
@@ -124,15 +124,15 @@ export default function DirectChat() {
                   className={`max-w-[80%] rounded-lg px-4 py-3 ${
                     msg.senderType === "participant"
                       ? "bg-[#C4A35A] text-[#1A1A1A]"
-                      : "bg-[#222] border border-[#F5F0E8]/10"
+                      : "bg-[#F5F2ED] border border-[#E8E2D9]"
                   }`}
                   data-testid={`message-${msg.id}`}
                 >
-                  <p className={`text-xs mb-1 ${msg.senderType === "participant" ? "text-[#1A1A1A]/60" : "text-[#F5F0E8]/50"}`}>
+                  <p className={`text-xs mb-1 ${msg.senderType === "participant" ? "text-[#1A1A1A]/60" : "text-[#1A1A1A]/50"}`}>
                     {msg.senderName}
                   </p>
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                  <p className={`text-xs mt-2 ${msg.senderType === "participant" ? "text-[#1A1A1A]/40" : "text-[#F5F0E8]/30"}`}>
+                  <p className={`text-xs mt-2 ${msg.senderType === "participant" ? "text-[#1A1A1A]/40" : "text-[#1A1A1A]/30"}`}>
                     {new Date(msg.createdAt).toLocaleString()}
                   </p>
                 </div>
@@ -143,7 +143,7 @@ export default function DirectChat() {
         </div>
       </div>
 
-      <div className="border-t border-[#F5F0E8]/10 p-4">
+      <div className="border-t border-[#E8E2D9] p-4">
         <div className="max-w-2xl mx-auto">
           <form
             onSubmit={(e) => {
@@ -159,7 +159,7 @@ export default function DirectChat() {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Type your message..."
-              className="flex-1 px-4 py-3 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+              className="flex-1 px-4 py-3 bg-[#F5F2ED] border border-[#E8E2D9] rounded text-sm focus:outline-none focus:border-[#999]"
               data-testid="input-chat-message"
             />
             <button

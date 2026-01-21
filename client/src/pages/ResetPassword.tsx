@@ -73,26 +73,26 @@ export default function ResetPassword() {
 
   if (isValidToken === null) {
     return (
-      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#F5F0E8]/40" />
+      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#1A1A1A]/40" />
       </div>
     );
   }
 
   if (!isValidToken) {
     return (
-      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
-          <div className="bg-[#1A1A1A] p-8 rounded border border-[#F5F0E8]/20 text-center">
+          <div className="bg-[#FAF8F5] p-8 rounded border border-[#E8E2D9] text-center">
             <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <XCircle className="w-8 h-8 text-red-400" />
             </div>
-            <h1 className="text-2xl text-[#F5F0E8] mb-2" style={{ fontFamily: "'Fraunces', serif" }}>Invalid Link</h1>
-            <p className="text-sm text-[#F5F0E8]/60 mb-6">
+            <h1 className="text-2xl text-[#1A1A1A] mb-2" style={{ fontFamily: "'Fraunces', serif" }}>Invalid Link</h1>
+            <p className="text-sm text-[#1A1A1A]/60 mb-6">
               This password reset link is invalid or has expired. Please request a new one.
             </p>
             <button
@@ -109,20 +109,20 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
       >
-        <div className="bg-[#1A1A1A] p-8 rounded border border-[#F5F0E8]/20">
+        <div className="bg-[#FAF8F5] p-8 rounded border border-[#E8E2D9]">
           {success ? (
             <div className="text-center">
               <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="w-8 h-8 text-emerald-400" />
               </div>
-              <h1 className="text-2xl text-[#F5F0E8] mb-2" style={{ fontFamily: "'Fraunces', serif" }}>Password Reset!</h1>
-              <p className="text-sm text-[#F5F0E8]/60 mb-6">
+              <h1 className="text-2xl text-[#1A1A1A] mb-2" style={{ fontFamily: "'Fraunces', serif" }}>Password Reset!</h1>
+              <p className="text-sm text-[#1A1A1A]/60 mb-6">
                 Your password has been successfully updated. You can now sign in with your new password.
               </p>
               <button
@@ -136,15 +136,15 @@ export default function ResetPassword() {
           ) : (
             <>
               <div className="text-center mb-8">
-                <h1 className="text-3xl text-[#F5F0E8] mb-2" style={{ fontFamily: "'Fraunces', serif" }}>Reset Password</h1>
-                <p className="text-sm text-[#F5F0E8]/60">
+                <h1 className="text-3xl text-[#1A1A1A] mb-2" style={{ fontFamily: "'Fraunces', serif" }}>Reset Password</h1>
+                <p className="text-sm text-[#1A1A1A]/60">
                   Enter your new password below
                 </p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
-                  <label className="text-[10px] uppercase tracking-[0.15em] text-[#F5F0E8]/40">
+                  <label className="text-[10px] uppercase tracking-[0.15em] text-[#1A1A1A]/40">
                     New Password
                   </label>
                   <div className="relative">
@@ -154,24 +154,24 @@ export default function ResetPassword() {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Enter new password"
                       required
-                      className="w-full border border-[#F5F0E8]/20 bg-transparent rounded px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 pr-12 placeholder:text-[#F5F0E8]/30"
+                      className="w-full border border-[#E8E2D9] bg-transparent rounded px-4 py-3 text-sm text-[#1A1A1A] focus:outline-none focus:border-[#F5F0E8]/50 pr-12 placeholder:text-[#999]"
                       data-testid="input-new-password"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#F5F0E8]/40 hover:text-[#F5F0E8]/70"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#1A1A1A]/40 hover:text-[#1A1A1A]/70"
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
-                  <p className="text-xs text-[#F5F0E8]/40">
+                  <p className="text-xs text-[#1A1A1A]/40">
                     At least 6 characters
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] uppercase tracking-[0.15em] text-[#F5F0E8]/40">
+                  <label className="text-[10px] uppercase tracking-[0.15em] text-[#1A1A1A]/40">
                     Confirm Password
                   </label>
                   <input
@@ -180,7 +180,7 @@ export default function ResetPassword() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Confirm new password"
                     required
-                    className="w-full border border-[#F5F0E8]/20 bg-transparent rounded px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#F5F0E8]/30"
+                    className="w-full border border-[#E8E2D9] bg-transparent rounded px-4 py-3 text-sm text-[#1A1A1A] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#999]"
                     data-testid="input-confirm-password"
                   />
                 </div>

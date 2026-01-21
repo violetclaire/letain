@@ -173,21 +173,21 @@ export default function ArtistLogin() {
 
   if (magicLinkSent) {
     return (
-      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
-          <div className="p-8 md:p-10 border border-[#F5F0E8]/20 rounded text-center">
+          <div className="p-8 md:p-10 border border-[#E8E2D9] rounded text-center">
             <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-[#F5F0E8]/10 flex items-center justify-center">
-              <Mail className="w-8 h-8 text-[#F5F0E8]" />
+              <Mail className="w-8 h-8 text-[#1A1A1A]" />
             </div>
-            <h1 className="text-2xl md:text-3xl mb-3 tracking-tight text-[#F5F0E8]" style={{ fontFamily: "'Fraunces', serif" }}>
+            <h1 className="text-2xl md:text-3xl mb-3 tracking-tight text-[#1A1A1A]" style={{ fontFamily: "'Fraunces', serif" }}>
               Check your inbox
             </h1>
-            <p className="text-sm text-[#F5F0E8]/60 mb-6">
-              We sent a login link to <span className="text-[#F5F0E8]">{email}</span>
+            <p className="text-sm text-[#1A1A1A]/60 mb-6">
+              We sent a login link to <span className="text-[#1A1A1A]">{email}</span>
             </p>
             <button
               onClick={() => {
@@ -195,7 +195,7 @@ export default function ArtistLogin() {
                 setShowMagicLink(false);
                 setEmail("");
               }}
-              className="text-sm text-[#F5F0E8]/50 hover:text-[#F5F0E8] underline"
+              className="text-sm text-[#1A1A1A]/50 hover:text-[#1A1A1A] underline"
               data-testid="button-different-email"
             >
               Use a different email
@@ -208,20 +208,20 @@ export default function ArtistLogin() {
 
   if (linkSuccess) {
     return (
-      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
-          <div className="p-8 md:p-10 border border-[#F5F0E8]/20 rounded text-center">
+          <div className="p-8 md:p-10 border border-[#E8E2D9] rounded text-center">
             <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-green-500/20 flex items-center justify-center">
               <Link2 className="w-8 h-8 text-green-400" />
             </div>
-            <h1 className="text-2xl md:text-3xl mb-3 tracking-tight text-[#F5F0E8]" style={{ fontFamily: "'Fraunces', serif" }}>
+            <h1 className="text-2xl md:text-3xl mb-3 tracking-tight text-[#1A1A1A]" style={{ fontFamily: "'Fraunces', serif" }}>
               Profile Linked!
             </h1>
-            <p className="text-sm text-[#F5F0E8]/60 mb-6">
+            <p className="text-sm text-[#1A1A1A]/60 mb-6">
               Your profile has been connected to your account. You can now sign in.
             </p>
             <button
@@ -243,25 +243,25 @@ export default function ArtistLogin() {
 
   if (showLinkProfile) {
     return (
-      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
-          <div className="p-8 md:p-10 border border-[#F5F0E8]/20 rounded">
+          <div className="p-8 md:p-10 border border-[#E8E2D9] rounded">
             <div className="text-center mb-8">
-              <h1 className="text-3xl md:text-4xl mb-2 tracking-tight text-[#F5F0E8]" style={{ fontFamily: "'Fraunces', serif" }}>
+              <h1 className="text-3xl md:text-4xl mb-2 tracking-tight text-[#1A1A1A]" style={{ fontFamily: "'Fraunces', serif" }}>
                 Link Your Profile
               </h1>
-              <p className="text-sm text-[#F5F0E8]/60">
+              <p className="text-sm text-[#1A1A1A]/60">
                 Connect your existing artist profile to your account
               </p>
             </div>
 
             <form onSubmit={(e) => handleLinkProfile(e, false)} className="space-y-5">
               <div className="space-y-2">
-                <label className="text-[10px] uppercase tracking-[0.15em] text-[#F5F0E8]/40">
+                <label className="text-[10px] uppercase tracking-[0.15em] text-[#1A1A1A]/40">
                   Your Email
                 </label>
                 <input
@@ -270,13 +270,13 @@ export default function ArtistLogin() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="your@email.com"
                   required
-                  className="w-full border border-[#F5F0E8]/20 bg-transparent px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#F5F0E8]/30 rounded"
+                  className="w-full border border-[#E8E2D9] bg-transparent px-4 py-3 text-sm text-[#1A1A1A] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#999] rounded"
                   data-testid="input-email-link"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] uppercase tracking-[0.15em] text-[#F5F0E8]/40">
+                <label className="text-[10px] uppercase tracking-[0.15em] text-[#1A1A1A]/40">
                   Your Profile URL Slug
                 </label>
                 <input
@@ -285,10 +285,10 @@ export default function ArtistLogin() {
                   onChange={(e) => setArtistSlug(e.target.value)}
                   placeholder="e.g. themakeupdolls"
                   required
-                  className="w-full border border-[#F5F0E8]/20 bg-transparent px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#F5F0E8]/30 rounded"
+                  className="w-full border border-[#E8E2D9] bg-transparent px-4 py-3 text-sm text-[#1A1A1A] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#999] rounded"
                   data-testid="input-artist-slug"
                 />
-                <p className="text-xs text-[#F5F0E8]/40">
+                <p className="text-xs text-[#1A1A1A]/40">
                   This is the part after dateinquiry.com/ in your profile URL
                 </p>
               </div>
@@ -325,14 +325,14 @@ export default function ArtistLogin() {
               </button>
             </form>
 
-            <div className="mt-6 pt-4 border-t border-[#F5F0E8]/10 text-center">
+            <div className="mt-6 pt-4 border-t border-[#E8E2D9] text-center">
               <button
                 onClick={() => {
                   setShowLinkProfile(false);
                   setError("");
                   setNeedsConfirmation(false);
                 }}
-                className="text-xs text-[#F5F0E8]/50 hover:text-[#F5F0E8] underline"
+                className="text-xs text-[#1A1A1A]/50 hover:text-[#1A1A1A] underline"
               >
                 Back to sign in
               </button>
@@ -346,21 +346,21 @@ export default function ArtistLogin() {
   if (showSetPassword) {
     if (resetEmailSent) {
       return (
-        <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="w-full max-w-md"
           >
-            <div className="p-8 md:p-10 border border-[#F5F0E8]/20 rounded text-center">
+            <div className="p-8 md:p-10 border border-[#E8E2D9] rounded text-center">
               <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-[#F5F0E8]/10 flex items-center justify-center">
-                <Mail className="w-8 h-8 text-[#F5F0E8]" />
+                <Mail className="w-8 h-8 text-[#1A1A1A]" />
               </div>
-              <h1 className="text-2xl md:text-3xl mb-3 tracking-tight text-[#F5F0E8]" style={{ fontFamily: "'Fraunces', serif" }}>
+              <h1 className="text-2xl md:text-3xl mb-3 tracking-tight text-[#1A1A1A]" style={{ fontFamily: "'Fraunces', serif" }}>
                 Check your inbox
               </h1>
-              <p className="text-sm text-[#F5F0E8]/60 mb-6">
-                If an account exists for <span className="text-[#F5F0E8]">{email}</span>, we've sent a link to set your password.
+              <p className="text-sm text-[#1A1A1A]/60 mb-6">
+                If an account exists for <span className="text-[#1A1A1A]">{email}</span>, we've sent a link to set your password.
               </p>
               <button
                 onClick={() => {
@@ -368,7 +368,7 @@ export default function ArtistLogin() {
                   setResetEmailSent(false);
                   setError("");
                 }}
-                className="text-xs text-[#F5F0E8]/50 hover:text-[#F5F0E8] underline"
+                className="text-xs text-[#1A1A1A]/50 hover:text-[#1A1A1A] underline"
               >
                 Back to sign in
               </button>
@@ -379,25 +379,25 @@ export default function ArtistLogin() {
     }
 
     return (
-      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
-          <div className="p-8 md:p-10 border border-[#F5F0E8]/20 rounded">
+          <div className="p-8 md:p-10 border border-[#E8E2D9] rounded">
             <div className="text-center mb-8">
-              <h1 className="text-3xl md:text-4xl mb-2 tracking-tight text-[#F5F0E8]" style={{ fontFamily: "'Fraunces', serif" }}>
+              <h1 className="text-3xl md:text-4xl mb-2 tracking-tight text-[#1A1A1A]" style={{ fontFamily: "'Fraunces', serif" }}>
                 Reset Password
               </h1>
-              <p className="text-sm text-[#F5F0E8]/60">
+              <p className="text-sm text-[#1A1A1A]/60">
                 We'll email you a secure link to set your password
               </p>
             </div>
 
             <form onSubmit={handleRequestPasswordReset} className="space-y-5">
               <div className="space-y-2">
-                <label className="text-[10px] uppercase tracking-[0.15em] text-[#F5F0E8]/40">
+                <label className="text-[10px] uppercase tracking-[0.15em] text-[#1A1A1A]/40">
                   Email Address
                 </label>
                 <input
@@ -407,7 +407,7 @@ export default function ArtistLogin() {
                   placeholder="your@email.com"
                   required
                   autoFocus
-                  className="w-full border border-[#F5F0E8]/20 bg-transparent px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#F5F0E8]/30 rounded"
+                  className="w-full border border-[#E8E2D9] bg-transparent px-4 py-3 text-sm text-[#1A1A1A] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#999] rounded"
                   data-testid="input-email-reset"
                 />
               </div>
@@ -435,13 +435,13 @@ export default function ArtistLogin() {
               </button>
             </form>
 
-            <div className="mt-6 pt-4 border-t border-[#F5F0E8]/10 text-center">
+            <div className="mt-6 pt-4 border-t border-[#E8E2D9] text-center">
               <button
                 onClick={() => {
                   setShowSetPassword(false);
                   setError("");
                 }}
-                className="text-xs text-[#F5F0E8]/50 hover:text-[#F5F0E8] underline"
+                className="text-xs text-[#1A1A1A]/50 hover:text-[#1A1A1A] underline"
               >
                 Back to sign in
               </button>
@@ -454,25 +454,25 @@ export default function ArtistLogin() {
 
   if (showMagicLink) {
     return (
-      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
-          <div className="p-8 md:p-10 border border-[#F5F0E8]/20 rounded">
+          <div className="p-8 md:p-10 border border-[#E8E2D9] rounded">
             <div className="text-center mb-8">
-              <h1 className="text-3xl md:text-4xl mb-2 tracking-tight text-[#F5F0E8]" style={{ fontFamily: "'Fraunces', serif" }}>
+              <h1 className="text-3xl md:text-4xl mb-2 tracking-tight text-[#1A1A1A]" style={{ fontFamily: "'Fraunces', serif" }}>
                 Get a login link
               </h1>
-              <p className="text-sm text-[#F5F0E8]/60">
+              <p className="text-sm text-[#1A1A1A]/60">
                 We'll email you a link to access your dashboard
               </p>
             </div>
 
             <form onSubmit={handleMagicLink} className="space-y-5">
               <div className="space-y-2">
-                <label className="text-[10px] uppercase tracking-[0.15em] text-[#F5F0E8]/40">
+                <label className="text-[10px] uppercase tracking-[0.15em] text-[#1A1A1A]/40">
                   Email Address
                 </label>
                 <input
@@ -482,7 +482,7 @@ export default function ArtistLogin() {
                   placeholder="your@email.com"
                   required
                   autoFocus
-                  className="w-full border border-[#F5F0E8]/20 bg-transparent px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#F5F0E8]/30 rounded"
+                  className="w-full border border-[#E8E2D9] bg-transparent px-4 py-3 text-sm text-[#1A1A1A] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#999] rounded"
                   data-testid="input-email-magic"
                 />
               </div>
@@ -510,10 +510,10 @@ export default function ArtistLogin() {
               </button>
             </form>
 
-            <div className="mt-6 pt-4 border-t border-[#F5F0E8]/10 text-center">
+            <div className="mt-6 pt-4 border-t border-[#E8E2D9] text-center">
               <button
                 onClick={() => setShowMagicLink(false)}
-                className="text-xs text-[#F5F0E8]/50 hover:text-[#F5F0E8] underline"
+                className="text-xs text-[#1A1A1A]/50 hover:text-[#1A1A1A] underline"
               >
                 Back to password login
               </button>
@@ -525,25 +525,25 @@ export default function ArtistLogin() {
   }
 
   return (
-    <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
       >
-        <div className="p-8 md:p-10 border border-[#F5F0E8]/20 rounded">
+        <div className="p-8 md:p-10 border border-[#E8E2D9] rounded">
           <div className="text-center mb-8">
-            <h1 className="text-3xl md:text-4xl mb-2 tracking-tight text-[#F5F0E8]" style={{ fontFamily: "'Fraunces', serif" }}>
+            <h1 className="text-3xl md:text-4xl mb-2 tracking-tight text-[#1A1A1A]" style={{ fontFamily: "'Fraunces', serif" }}>
               Sign in
             </h1>
-            <p className="text-sm text-[#F5F0E8]/60">
+            <p className="text-sm text-[#1A1A1A]/60">
               Access your dashboard
             </p>
           </div>
 
           <form onSubmit={handlePasswordLogin} className="space-y-5">
             <div className="space-y-2">
-              <label className="text-[10px] uppercase tracking-[0.15em] text-[#F5F0E8]/40">
+              <label className="text-[10px] uppercase tracking-[0.15em] text-[#1A1A1A]/40">
                 Email Address
               </label>
               <input
@@ -553,13 +553,13 @@ export default function ArtistLogin() {
                 placeholder="your@email.com"
                 required
                 autoFocus
-                className="w-full border border-[#F5F0E8]/20 bg-transparent px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#F5F0E8]/30 rounded"
+                className="w-full border border-[#E8E2D9] bg-transparent px-4 py-3 text-sm text-[#1A1A1A] focus:outline-none focus:border-[#F5F0E8]/50 placeholder:text-[#999] rounded"
                 data-testid="input-email"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] uppercase tracking-[0.15em] text-[#F5F0E8]/40">
+              <label className="text-[10px] uppercase tracking-[0.15em] text-[#1A1A1A]/40">
                 Password
               </label>
               <div className="relative">
@@ -569,13 +569,13 @@ export default function ArtistLogin() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   required
-                  className="w-full border border-[#F5F0E8]/20 bg-transparent px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 pr-12 placeholder:text-[#F5F0E8]/30 rounded"
+                  className="w-full border border-[#E8E2D9] bg-transparent px-4 py-3 text-sm text-[#1A1A1A] focus:outline-none focus:border-[#F5F0E8]/50 pr-12 placeholder:text-[#999] rounded"
                   data-testid="input-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#F5F0E8]/40 hover:text-[#F5F0E8]/70"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#1A1A1A]/40 hover:text-[#1A1A1A]/70"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -605,23 +605,23 @@ export default function ArtistLogin() {
             </button>
           </form>
 
-          <div className="mt-6 pt-4 border-t border-[#F5F0E8]/10 text-center space-y-3">
+          <div className="mt-6 pt-4 border-t border-[#E8E2D9] text-center space-y-3">
             <button
               onClick={() => setShowSetPassword(true)}
-              className="text-xs text-[#F5F0E8]/50 hover:text-[#F5F0E8] underline"
+              className="text-xs text-[#1A1A1A]/50 hover:text-[#1A1A1A] underline"
               data-testid="button-set-password-link"
             >
               Need to set or reset your password?
             </button>
             <button
               onClick={() => setShowMagicLink(true)}
-              className="text-xs text-[#F5F0E8]/50 hover:text-[#F5F0E8] underline"
+              className="text-xs text-[#1A1A1A]/50 hover:text-[#1A1A1A] underline"
             >
               Get a login link instead
             </button>
-            <p className="text-xs text-[#F5F0E8]/50">
+            <p className="text-xs text-[#1A1A1A]/50">
               New here?{" "}
-              <a href="/secretary" className="underline hover:text-[#F5F0E8]">
+              <a href="/secretary" className="underline hover:text-[#1A1A1A]">
                 Sign up
               </a>
             </p>

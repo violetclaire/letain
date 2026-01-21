@@ -125,7 +125,7 @@ export default function ClientThread() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center">
+      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-[#C4A35A]" />
       </div>
     );
@@ -133,9 +133,9 @@ export default function ClientThread() {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-4">
         <div className="text-center">
-          <h1 className="text-2xl font-serif text-[#F5F0E8] mb-4">Thread Not Found</h1>
+          <h1 className="text-2xl font-serif text-[#1A1A1A] mb-4">Thread Not Found</h1>
           <p className="text-[#888]">This link may have expired or is invalid.</p>
         </div>
       </div>
@@ -167,10 +167,10 @@ export default function ClientThread() {
   };
 
   return (
-    <div className="min-h-screen bg-[#1A1A1A]">
+    <div className="min-h-screen bg-[#FAF8F5]">
       <div className="max-w-2xl mx-auto px-4 py-8">
-        <header className="text-center mb-8 pb-6 border-b border-[#333]">
-          <h1 className="text-2xl font-serif text-[#F5F0E8] mb-2">
+        <header className="text-center mb-8 pb-6 border-b border-[#E8E2D9]">
+          <h1 className="text-2xl font-serif text-[#1A1A1A] mb-2">
             {artist?.businessName || "Your Artist"}
           </h1>
           <p className="text-[#888] text-sm">
@@ -190,7 +190,7 @@ export default function ClientThread() {
                 className={`p-4 rounded ${
                   msg.sentBy === "client"
                     ? "bg-[#333] ml-8"
-                    : "bg-[#222] border-l-2 border-[#C4A35A] mr-8"
+                    : "bg-[#F5F2ED] border-l-2 border-[#C4A35A] mr-8"
                 }`}
                 data-testid={`message-${msg.id}`}
               >
@@ -202,7 +202,7 @@ export default function ClientThread() {
                     {msg.sentAt ? format(new Date(msg.sentAt), "MMM d, h:mm a") : ""}
                   </span>
                 </div>
-                <p className="text-[#F5F0E8] whitespace-pre-wrap">{msg.content}</p>
+                <p className="text-[#1A1A1A] whitespace-pre-wrap">{msg.content}</p>
                 
                 {msg.attachments && msg.attachments.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -228,7 +228,7 @@ export default function ClientThread() {
           )}
         </div>
 
-        <div className="sticky bottom-0 bg-[#1A1A1A] pt-4 pb-6 border-t border-[#333]">
+        <div className="sticky bottom-0 bg-[#FAF8F5] pt-4 pb-6 border-t border-[#E8E2D9]">
           {pendingPhotos.length > 0 && (
             <div className="mb-3 flex flex-wrap gap-2">
               {pendingPhotos.map((url, idx) => (
@@ -262,7 +262,7 @@ export default function ClientThread() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="self-end bg-[#333] text-[#F5F0E8] px-4 py-3 rounded hover:bg-[#444] transition-colors disabled:opacity-50"
+              className="self-end bg-[#333] text-[#1A1A1A] px-4 py-3 rounded hover:bg-[#444] transition-colors disabled:opacity-50"
               title="Add inspiration photos"
               data-testid="button-add-photo"
             >
@@ -276,7 +276,7 @@ export default function ClientThread() {
               value={replyMessage}
               onChange={(e) => setReplyMessage(e.target.value)}
               placeholder="Type your message or add inspiration photos..."
-              className="flex-1 bg-[#222] border border-[#333] text-[#F5F0E8] placeholder-[#666] p-3 rounded resize-none focus:outline-none focus:border-[#C4A35A]"
+              className="flex-1 bg-[#F5F2ED] border border-[#E8E2D9] text-[#1A1A1A] placeholder-[#999] p-3 rounded resize-none focus:outline-none focus:border-[#C4A35A]"
               rows={3}
               data-testid="input-reply-message"
             />
@@ -298,7 +298,7 @@ export default function ClientThread() {
           )}
         </div>
 
-        <footer className="text-center mt-8 pt-6 border-t border-[#333]">
+        <footer className="text-center mt-8 pt-6 border-t border-[#E8E2D9]">
           <p className="text-[#666] text-xs">
             This is a private conversation thread for your inquiry.
           </p>

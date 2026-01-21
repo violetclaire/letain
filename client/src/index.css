@@ -110,8 +110,15 @@
   --ring: hsl(38 40% 50%);
 }
 
-/* Dark Theme - Sleek (Original Dark Editorial) */
-.dark {
+/* Force light mode globally - disable dark theme */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: light !important;
+  }
+}
+
+/* Dark Theme - DISABLED */
+.dark.disabled-dark-theme {
   --bg: 0 0% 10%;             /* #1A1A1A */
   --surface: 0 0% 13%;        /* #222 */
   --surface-2: 0 0% 16%;      /* slightly lighter */

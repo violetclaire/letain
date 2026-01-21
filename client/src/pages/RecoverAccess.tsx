@@ -36,24 +36,24 @@ export default function RecoverAccess() {
   };
 
   return (
-    <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
       >
-        <div className="p-8 md:p-10 border border-[#F5F0E8]/20 rounded">
+        <div className="p-8 md:p-10 border border-[#E8E2D9] rounded">
           {success ? (
             <div className="text-center">
               <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="w-8 h-8 text-emerald-400" />
               </div>
-              <h1 className="text-2xl text-[#F5F0E8] mb-2" style={{ fontFamily: "'Fraunces', serif" }}>Check Your Email</h1>
-              <p className="text-sm text-[#F5F0E8]/60 mb-6">
-                If we found any inquiry threads associated with <strong className="text-[#F5F0E8]">{email}</strong>, 
+              <h1 className="text-2xl text-[#1A1A1A] mb-2" style={{ fontFamily: "'Fraunces', serif" }}>Check Your Email</h1>
+              <p className="text-sm text-[#1A1A1A]/60 mb-6">
+                If we found any inquiry threads associated with <strong className="text-[#1A1A1A]">{email}</strong>, 
                 we've sent you links to access them.
               </p>
-              <p className="text-xs text-[#F5F0E8]/40 mb-6">
+              <p className="text-xs text-[#1A1A1A]/40 mb-6">
                 Didn't receive the email? Check your spam folder or try again.
               </p>
               <button
@@ -61,7 +61,7 @@ export default function RecoverAccess() {
                   setSuccess(false);
                   setEmail("");
                 }}
-                className="w-full border border-[#F5F0E8]/30 text-[#F5F0E8] text-sm uppercase tracking-widest py-3 rounded hover:border-[#F5F0E8] transition-colors"
+                className="w-full border border-[#F5F0E8]/30 text-[#1A1A1A] text-sm uppercase tracking-widest py-3 rounded hover:border-[#F5F0E8] transition-colors"
               >
                 Try Another Email
               </button>
@@ -70,17 +70,17 @@ export default function RecoverAccess() {
             <>
               <div className="text-center mb-8">
                 <div className="w-12 h-12 bg-[#F5F0E8]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Search className="w-6 h-6 text-[#F5F0E8]/60" />
+                  <Search className="w-6 h-6 text-[#1A1A1A]/60" />
                 </div>
-                <h1 className="text-3xl text-[#F5F0E8] mb-2" style={{ fontFamily: "'Fraunces', serif" }}>Find Your Thread</h1>
-                <p className="text-sm text-[#F5F0E8]/60">
+                <h1 className="text-3xl text-[#1A1A1A] mb-2" style={{ fontFamily: "'Fraunces', serif" }}>Find Your Thread</h1>
+                <p className="text-sm text-[#1A1A1A]/60">
                   Enter your email and we'll send you links to your inquiry conversations
                 </p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
-                  <label className="text-[10px] uppercase tracking-[0.15em] text-[#F5F0E8]/40">
+                  <label className="text-[10px] uppercase tracking-[0.15em] text-[#1A1A1A]/40">
                     Email Address
                   </label>
                   <div className="relative">
@@ -90,10 +90,10 @@ export default function RecoverAccess() {
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="your@email.com"
                       required
-                      className="w-full border border-[#F5F0E8]/20 bg-transparent rounded px-4 py-3 text-sm text-[#F5F0E8] focus:outline-none focus:border-[#F5F0E8]/50 pl-10 placeholder:text-[#F5F0E8]/30"
+                      className="w-full border border-[#E8E2D9] bg-transparent rounded px-4 py-3 text-sm text-[#1A1A1A] focus:outline-none focus:border-[#F5F0E8]/50 pl-10 placeholder:text-[#999]"
                       data-testid="input-recover-email"
                     />
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#F5F0E8]/40" />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1A1A1A]/40" />
                   </div>
                 </div>
 
@@ -120,9 +120,9 @@ export default function RecoverAccess() {
                 </button>
               </form>
 
-              <p className="mt-6 text-center text-xs text-[#F5F0E8]/40">
+              <p className="mt-6 text-center text-xs text-[#1A1A1A]/40">
                 This is for clients who have submitted inquiries. If you're an artist,{" "}
-                <a href="/artist-login" className="underline hover:text-[#F5F0E8]/60">
+                <a href="/artist-login" className="underline hover:text-[#1A1A1A]/60">
                   sign in here
                 </a>
               </p>

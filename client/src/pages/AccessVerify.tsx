@@ -14,10 +14,10 @@ export default function AccessVerify() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
-        <div className="w-full max-w-md p-8 border border-[#F5F0E8]/20 rounded text-center">
+      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <div className="w-full max-w-md p-8 border border-[#E8E2D9] rounded text-center">
           <p className="text-red-400 mb-4">{error}</p>
-          <a href="/login" className="text-[#F5F0E8] underline">
+          <a href="/login" className="text-[#1A1A1A] underline">
             Request a new login link
           </a>
         </div>
@@ -26,10 +26,10 @@ export default function AccessVerify() {
   }
 
   return (
-    <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
       <div className="text-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#F5F0E8] mx-auto mb-4" />
-        <p className="text-[#F5F0E8]/60">Signing you in...</p>
+        <Loader2 className="w-8 h-8 animate-spin text-[#1A1A1A] mx-auto mb-4" />
+        <p className="text-[#1A1A1A]/60">Signing you in...</p>
       </div>
     </div>
   );
