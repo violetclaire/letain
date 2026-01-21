@@ -13,6 +13,7 @@ type SetupData = {
   numArtists: number;
   startTime: string;
   readyTime: string;
+  slotDuration: number;
 };
 
 type ArtistColumn = {
@@ -68,6 +69,7 @@ export default function ScheduleBuilder() {
     numArtists: 3,
     startTime: "07:00",
     readyTime: "11:00",
+    slotDuration: 45,
   });
   
   // Grid state - columns are artists, rows are time slots
@@ -94,17 +96,18 @@ export default function ScheduleBuilder() {
   const [shareToken, setShareToken] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Calculate time slots from start to ready time in 45 min increments
+  // Calculate time slots from start to ready time based on selected duration
   const calculateTimeSlots = () => {
     const slots: string[] = [];
     const [startH, startM] = setup.startTime.split(":").map(Number);
     const [readyH, readyM] = setup.readyTime.split(":").map(Number);
+    const duration = setup.slotDuration || 45;
     
     let currentMinutes = startH * 60 + startM;
     const endMinutes = readyH * 60 + readyM;
     
     while (currentMinutes < endMinutes) {
-      const nextMinutes = currentMinutes + 45;
+      const nextMinutes = currentMinutes + duration;
       const startStr = `${Math.floor(currentMinutes / 60)}:${String(currentMinutes % 60).padStart(2, "0")}`;
       const endStr = `${Math.floor(Math.min(nextMinutes, endMinutes) / 60)}:${String(Math.min(nextMinutes, endMinutes) % 60).padStart(2, "0")}`;
       slots.push(`${startStr}-${endStr}`);
@@ -136,7 +139,7 @@ export default function ScheduleBuilder() {
       );
       setGrid(initialGrid);
     }
-  }, [step, artists.length, setup.numArtists, setup.numServices, setup.startTime, setup.readyTime]);
+  }, [step, artists.length, setup.numArtists, setup.numServices, setup.startTime, setup.readyTime, setup.slotDuration]);
 
   // Handle wizard completion - just go straight to grid, no database needed
   const handleStartBuilding = () => {
@@ -334,6 +337,19 @@ export default function ScheduleBuilder() {
                   className="w-full px-3 py-2 border border-[#E8E2D9] rounded bg-[#FAF8F5] text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
                 />
               </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm text-[#666] mb-1">Slot Duration</label>
+              <select
+                value={setup.slotDuration}
+                onChange={(e) => setSetup({ ...setup, slotDuration: parseInt(e.target.value) })}
+                className="w-full px-3 py-2 border border-[#E8E2D9] rounded bg-[#FAF8F5] text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
+              >
+                <option value={30}>30 minutes</option>
+                <option value={45}>45 minutes</option>
+                <option value={60}>60 minutes</option>
+              </select>
             </div>
             
             <button
