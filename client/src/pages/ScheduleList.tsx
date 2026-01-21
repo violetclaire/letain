@@ -613,9 +613,17 @@ export default function ScheduleList() {
                       disabled={{ before: new Date() }}
                       className="rdp-custom"
                       classNames={{
-                        day: "rdp-day hover:bg-powder rounded-full transition-colors",
-                        selected: "bg-black text-white hover:bg-black",
-                        today: "font-bold text-pink",
+                        months: "text-black",
+                        month: "text-black",
+                        caption: "text-black font-medium",
+                        caption_label: "text-black",
+                        nav_button: "text-black hover:bg-gray-100",
+                        head_cell: "text-gray-500 font-medium",
+                        cell: "text-black",
+                        day: "rdp-day hover:bg-gray-100 rounded-full transition-colors text-black w-9 h-9",
+                        day_selected: "bg-black text-white hover:bg-black",
+                        day_today: "font-bold text-pink",
+                        day_disabled: "text-gray-300",
                       }}
                     />
                     {selectedDates.length > 0 && (

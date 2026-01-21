@@ -184,6 +184,13 @@
     text-underline-offset: 4px;
     text-decoration-thickness: 1px;
   }
+  /* Ensure form inputs have readable dark text */
+  input, textarea, select {
+    color: #1a1a1a !important;
+  }
+  input::placeholder, textarea::placeholder {
+    color: #9ca3af !important;
+  }
 }
 
 @layer utilities {
