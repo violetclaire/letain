@@ -694,7 +694,53 @@ export async function createBookingFromAI(
       console.log(`[AI] Google Calendar not available:`, calendarErr);
     }
 
-    return { success: true, bookingId: newBooking.id, calendarEventId };
+    let emailSent = false;
+    if (booking.email) {
+      try {
+        const artistProfile = await storage.getArtistProfile(artistId);
+        const artistBusinessName = artistProfile?.businessName || "Your Beauty Artist";
+        const artistLogoUrl = artistProfile?.profileImageUrl || undefined;
+        
+        const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
+        const chatLink = artistProfile?.slug ? `${baseUrl}/chat/${artistProfile.slug}` : undefined;
+        
+        const formattedDate = eventDate.toLocaleDateString('en-US', { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        });
+        
+        const formattedTime = booking.time ? (() => {
+          const [hours, minutes] = booking.time.split(':').map(Number);
+          const ampm = hours >= 12 ? 'PM' : 'AM';
+          const hour12 = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours;
+          return `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+        })() : undefined;
+        
+        const { sendAppointmentConfirmationEmail } = await import("./emailService");
+        const emailResult = await sendAppointmentConfirmationEmail({
+          toEmail: booking.email,
+          clientName: booking.clientName,
+          artistBusinessName,
+          artistLogoUrl,
+          eventDate: formattedDate,
+          eventTime: formattedTime,
+          eventLocation: booking.location,
+          serviceType: booking.serviceType,
+          chatLink,
+        });
+        
+        if (emailResult.success) {
+          emailSent = true;
+          console.log(`[AI] Sent appointment confirmation email to ${booking.email}`);
+        }
+      } catch (emailErr) {
+        console.log(`[AI] Could not send confirmation email:`, emailErr);
+      }
+    }
+
+    return { success: true, bookingId: newBooking.id, calendarEventId, emailSent };
   } catch (err: any) {
     console.error("[AI] Failed to create booking:", err);
     return { success: false, error: err.message };

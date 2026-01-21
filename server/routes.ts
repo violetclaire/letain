@@ -4498,9 +4498,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             (result as any).bookingId = bookingResult.bookingId;
             console.log("Booking created successfully:", bookingResult.bookingId);
             
+            let extras: string[] = [];
             if (bookingResult.calendarEventId) {
               (result as any).calendarEventCreated = true;
-              result.response = result.response.replace(/!$/, '') + " and added to your Google Calendar!";
+              extras.push("added to your Google Calendar");
+            }
+            if (bookingResult.emailSent) {
+              (result as any).emailSent = true;
+              extras.push("sent a confirmation email");
+            }
+            if (extras.length > 0) {
+              result.response = result.response.replace(/!$/, '') + " - " + extras.join(" and ") + "!";
             }
           } else {
             result.response = "I had trouble creating that booking. Please try again.";

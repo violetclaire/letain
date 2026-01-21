@@ -1228,7 +1228,7 @@ export async function sendAppointmentConfirmationEmail({
             ${chatLink ? `<a href="${chatLink}" class="button button-secondary">Message Us</a>` : ''}
           </div>
           
-          <p style="margin-top: 24px; font-size: 14px; color: #666;">If you have any questions or need to make changes, please don't hesitate to reach out. We look forward to seeing you!</p>
+          <p style="margin-top: 24px; font-size: 14px; color: #666;">We're looking forward to your appointment! If you have any questions, feel free to use the chat link above to message us directly. You can also upload your inspiration pictures there so we can prepare the perfect look for you.</p>
           
           <p style="margin-top: 32px;">Warmly,<br><strong>${artistBusinessName}</strong></p>
         </div>
