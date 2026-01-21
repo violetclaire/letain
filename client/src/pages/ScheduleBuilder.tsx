@@ -501,23 +501,14 @@ export default function ScheduleBuilder() {
                         <select
                           value={artist.type}
                           onChange={(e) => updateArtist(colIdx, "type", e.target.value)}
-                          className="w-full text-xs px-1 py-0.5 bg-white border border-[#E8E2D9] rounded text-[#666] mb-1"
-                        >
-                          <option value="HM">Hair & Makeup</option>
-                          <option value="H">Hair</option>
-                          <option value="M">Makeup</option>
-                          <option value="BRIDE">Bride</option>
-                        </select>
-                        <select
-                          value={artist.duration}
-                          onChange={(e) => updateArtistDuration(colIdx, parseInt(e.target.value))}
                           className="w-full text-xs px-1 py-0.5 bg-white border border-[#E8E2D9] rounded text-[#666]"
                         >
-                          <option value={30}>30 min slots</option>
-                          <option value={45}>45 min slots</option>
-                          <option value={60}>60 min slots</option>
-                          <option value={90}>90 min slots</option>
-                          <option value={120}>2 hour slots</option>
+                          <option value="H30">Hair 30 min</option>
+                          <option value="H45">Hair 45 min</option>
+                          <option value="M30">Makeup 30 min</option>
+                          <option value="M45">Makeup 45 min</option>
+                          <option value="HM">Hair and Makeup</option>
+                          <option value="BRIDE">Bride 2 hours</option>
                         </select>
                       </div>
                     </th>
