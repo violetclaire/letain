@@ -19,6 +19,8 @@ type SetupData = {
 type ArtistColumn = {
   name: string;
   type: "HM" | "H" | "M" | "H45" | "M45" | "H30" | "M30" | "BRIDE";
+  duration: number;
+  slots: string[];
 };
 
 type GridCell = {
@@ -116,24 +118,50 @@ export default function ScheduleBuilder() {
     return slots;
   };
 
+  // Calculate slots for a specific artist duration
+  const calculateSlotsForDuration = (duration: number) => {
+    const slots: string[] = [];
+    const [startH, startM] = setup.startTime.split(":").map(Number);
+    const [readyH, readyM] = setup.readyTime.split(":").map(Number);
+    
+    let currentMinutes = startH * 60 + startM;
+    const endMinutes = readyH * 60 + readyM;
+    
+    while (currentMinutes < endMinutes) {
+      const nextMinutes = currentMinutes + duration;
+      const startStr = `${Math.floor(currentMinutes / 60)}:${String(currentMinutes % 60).padStart(2, "0")}`;
+      const endStr = `${Math.floor(Math.min(nextMinutes, endMinutes) / 60)}:${String(Math.min(nextMinutes, endMinutes) % 60).padStart(2, "0")}`;
+      slots.push(`${startStr}-${endStr}`);
+      currentMinutes = nextMinutes;
+    }
+    return slots;
+  };
+
   // Initialize grid when entering grid mode
   useEffect(() => {
     if (step === "grid" && artists.length === 0) {
-      // Create artist columns
+      const defaultDuration = setup.slotDuration || 45;
+      const defaultSlots = calculateSlotsForDuration(defaultDuration);
+      
+      // Create artist columns with individual durations and slots
       const initialArtists: ArtistColumn[] = Array.from(
         { length: setup.numArtists },
-        (_, i) => ({ name: i === 0 ? "Lead Artist" : `Artist ${i + 1}`, type: "HM" as const })
+        (_, i) => ({ 
+          name: i === 0 ? "Lead Artist" : `Artist ${i + 1}`, 
+          type: "HM" as const,
+          duration: defaultDuration,
+          slots: defaultSlots
+        })
       );
       setArtists(initialArtists);
       
-      // Calculate time slots
-      const timeSlots = calculateTimeSlots();
-      const numRows = Math.max(setup.numServices, timeSlots.length);
+      // Calculate max rows needed
+      const numRows = Math.max(setup.numServices, defaultSlots.length);
       
-      // Initialize grid with time slots pre-filled
+      // Initialize grid - each column gets its own time slots
       const initialGrid = Array.from({ length: numRows }, (_, rowIdx) => 
-        Array.from({ length: setup.numArtists }, () => ({
-          timeRange: timeSlots[rowIdx] || "",
+        Array.from({ length: setup.numArtists }, (_, colIdx) => ({
+          timeRange: defaultSlots[rowIdx] || "",
           clientName: "",
         }))
       );
@@ -171,6 +199,34 @@ export default function ScheduleBuilder() {
     });
   };
 
+  // Update artist duration and recalculate their slots
+  const updateArtistDuration = (colIdx: number, newDuration: number) => {
+    const newSlots = calculateSlotsForDuration(newDuration);
+    
+    setArtists(prev => {
+      const newArtists = [...prev];
+      newArtists[colIdx] = { ...newArtists[colIdx], duration: newDuration, slots: newSlots };
+      return newArtists;
+    });
+    
+    // Update grid column with new time slots
+    setGrid(prev => {
+      const maxRows = Math.max(prev.length, newSlots.length);
+      const newGrid = Array.from({ length: maxRows }, (_, rowIdx) => 
+        Array.from({ length: artists.length }, (_, cIdx) => {
+          if (cIdx === colIdx) {
+            return {
+              timeRange: newSlots[rowIdx] || "",
+              clientName: prev[rowIdx]?.[cIdx]?.clientName || "",
+            };
+          }
+          return prev[rowIdx]?.[cIdx] || { timeRange: "", clientName: "" };
+        })
+      );
+      return newGrid;
+    });
+  };
+
   // Add row
   const addRow = () => {
     setGrid(prev => [
@@ -184,9 +240,11 @@ export default function ScheduleBuilder() {
     const typeLabel = type === "HM" ? "HM" : type === "H" ? "Hair" : "Makeup";
     const count = artists.filter(a => a.type === type).length + 1;
     const newName = type === "HM" ? `Artist ${count}` : `${typeLabel} ${count}`;
+    const defaultDuration = setup.slotDuration || 45;
+    const slots = calculateSlotsForDuration(defaultDuration);
     
-    setArtists(prev => [...prev, { name: newName, type }]);
-    setGrid(prev => prev.map(row => [...row, { timeRange: "", clientName: "" }]));
+    setArtists(prev => [...prev, { name: newName, type, duration: defaultDuration, slots }]);
+    setGrid(prev => prev.map((row, rowIdx) => [...row, { timeRange: slots[rowIdx] || "", clientName: "" }]));
   };
 
   // Delete row
@@ -443,14 +501,23 @@ export default function ScheduleBuilder() {
                         <select
                           value={artist.type}
                           onChange={(e) => updateArtist(colIdx, "type", e.target.value)}
+                          className="w-full text-xs px-1 py-0.5 bg-white border border-[#E8E2D9] rounded text-[#666] mb-1"
+                        >
+                          <option value="HM">Hair & Makeup</option>
+                          <option value="H">Hair</option>
+                          <option value="M">Makeup</option>
+                          <option value="BRIDE">Bride</option>
+                        </select>
+                        <select
+                          value={artist.duration}
+                          onChange={(e) => updateArtistDuration(colIdx, parseInt(e.target.value))}
                           className="w-full text-xs px-1 py-0.5 bg-white border border-[#E8E2D9] rounded text-[#666]"
                         >
-                          <option value="HM">Hair & Makeup - 90 min</option>
-                          <option value="H45">Hair - 45 min</option>
-                          <option value="M45">Makeup - 45 min</option>
-                          <option value="H30">Hair - 30 min</option>
-                          <option value="M30">Makeup - 30 min</option>
-                          <option value="BRIDE">Bride - 2 hours</option>
+                          <option value={30}>30 min slots</option>
+                          <option value={45}>45 min slots</option>
+                          <option value={60}>60 min slots</option>
+                          <option value={90}>90 min slots</option>
+                          <option value={120}>2 hour slots</option>
                         </select>
                       </div>
                     </th>
