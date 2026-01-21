@@ -10,10 +10,27 @@ type SetupData = {
   eventName: string;
   eventDate: string;
   eventLocation: string;
+  startTime: string;
   numHair: number;
   numMakeup: number;
   numArtists: number;
 };
+
+// Generate time options from 4am to 11pm in 15 min increments
+function generateTimeOptions(): string[] {
+  const times: string[] = [];
+  for (let h = 4; h <= 23; h++) {
+    for (let m = 0; m < 60; m += 15) {
+      const hour = h % 12 || 12;
+      const ampm = h >= 12 ? "PM" : "AM";
+      const mins = m.toString().padStart(2, "0");
+      times.push(`${hour}:${mins} ${ampm}`);
+    }
+  }
+  return times;
+}
+
+const TIME_OPTIONS = generateTimeOptions();
 
 type ArtistColumn = {
   name: string;
@@ -67,6 +84,7 @@ export default function ScheduleBuilder() {
     eventName: "",
     eventDate: "",
     eventLocation: "",
+    startTime: "6:00 AM",
     numHair: 6,
     numMakeup: 6,
     numArtists: 2,
@@ -332,14 +350,29 @@ export default function ScheduleBuilder() {
               />
             </div>
             
-            <div>
-              <label className="block text-sm text-[#666] mb-1">Event Date</label>
-              <input
-                type="date"
-                value={setup.eventDate}
-                onChange={(e) => setSetup({ ...setup, eventDate: e.target.value })}
-                className="w-full px-3 py-2 border border-[#E8E2D9] rounded bg-[#FAF8F5] text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-[#666] mb-1">Event Date</label>
+                <input
+                  type="date"
+                  value={setup.eventDate}
+                  onChange={(e) => setSetup({ ...setup, eventDate: e.target.value })}
+                  className="w-full px-3 py-2 border border-[#E8E2D9] rounded bg-[#FAF8F5] text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm text-[#666] mb-1">Start Time</label>
+                <select
+                  value={setup.startTime}
+                  onChange={(e) => setSetup({ ...setup, startTime: e.target.value })}
+                  className="w-full px-3 py-2 border border-[#E8E2D9] rounded bg-[#FAF8F5] text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
+                >
+                  {TIME_OPTIONS.map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             
             <div>
@@ -526,13 +559,18 @@ export default function ScheduleBuilder() {
                         className="border border-[#E8E2D9] px-2 py-1 align-top"
                       >
                         <div className="space-y-1">
-                          <input
-                            type="text"
+                          <select
                             value={cell.timeRange}
                             onChange={(e) => updateCell(rowIdx, colIdx, "timeRange", e.target.value)}
-                            placeholder="7:00-8:00"
-                            className="w-full text-xs font-mono px-1 py-0.5 bg-[#FAF8F5] border border-[#E8E2D9] rounded text-[#666] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
-                          />
+                            className="w-full text-xs px-1 py-0.5 bg-[#FAF8F5] border border-[#E8E2D9] rounded text-[#666] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
+                          >
+                            <option value="">Select time</option>
+                            <option value="Hair">Hair</option>
+                            <option value="Makeup">Makeup</option>
+                            {TIME_OPTIONS.map(t => (
+                              <option key={t} value={t}>{t}</option>
+                            ))}
+                          </select>
                           <div className="flex items-center gap-1">
                             <input
                               type="text"
