@@ -285,17 +285,17 @@ export default function InquiryThread() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-[#F5F0E8]/30" />
+      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-[#6B4A55]" />
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center px-8">
+      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center px-8">
         <div className="text-center">
-          <p className="text-sm text-[#F5F0E8]/50">Inquiry not found</p>
+          <p className="text-sm text-[#666]">Inquiry not found</p>
         </div>
       </div>
     );
@@ -330,7 +330,7 @@ export default function InquiryThread() {
   const velocityHours = inquiry.createdAt 
     ? Math.round((new Date().getTime() - new Date(inquiry.createdAt).getTime()) / (1000 * 60 * 60))
     : 0;
-  const velocityColor = velocityHours < 48 ? "text-emerald-400" : "text-[#F5F0E8]/50";
+  const velocityColor = velocityHours < 48 ? "text-emerald-400" : "text-[#888]";
 
   const getStatusBadge = (status: string) => {
     const s = status.toLowerCase();
@@ -338,33 +338,33 @@ export default function InquiryThread() {
     if (s === "accepted" || s === "auto_responded") return { text: "ACCEPTED", color: "bg-emerald-500/20 text-emerald-400" };
     if (s === "deposit_paid") return { text: "DEPOSIT PAID", color: "bg-emerald-500/30 text-emerald-300" };
     if (s === "referred") return { text: "REFERRED", color: "bg-blue-500/20 text-blue-400" };
-    if (s === "declined") return { text: "DECLINED", color: "bg-[#F5F0E8]/10 text-[#F5F0E8]/50" };
-    return { text: status.toUpperCase(), color: "bg-[#F5F0E8]/10 text-[#F5F0E8]/50" };
+    if (s === "declined") return { text: "DECLINED", color: "bg-[#F5F2ED] text-[#888]" };
+    return { text: status.toUpperCase(), color: "bg-[#F5F2ED] text-[#888]" };
   };
 
   const statusBadge = getStatusBadge(inquiry.status);
 
   return (
-    <div className="min-h-screen bg-[#1A1A1A] text-[#F5F0E8]" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-[#FAF8F5] text-[#1A1A1A]" style={{ fontFamily: "'Inter', sans-serif" }}>
       {/* 1. HEADER */}
-      <header className="flex justify-between items-center px-6 md:px-12 py-6 border-b border-[#F5F0E8]/10">
+      <header className="flex justify-between items-center px-6 md:px-12 py-6 border-b border-[#E8E2D9]">
         <div>
-          <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F0E8]/40 mb-1">
+          <p className="text-[10px] tracking-[0.2em] uppercase text-[#666] mb-1">
             {isArtist ? 'Inquiry Thread' : 'Your Inquiry'}
           </p>
-          <h1 className="text-sm tracking-[0.15em] text-[#F5F0E8]/80" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <h1 className="text-sm tracking-[0.15em] text-[#333]" style={{ fontFamily: "'Playfair Display', serif" }}>
             {artist?.businessName || "Artist"}
           </h1>
         </div>
         {isArtist && (
           <div className="flex items-center gap-6">
             <div className="text-right">
-              <p className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40">Velocity</p>
+              <p className="text-[10px] tracking-[0.15em] uppercase text-[#666]">Velocity</p>
               <p className={`text-sm font-medium ${velocityColor}`}>{getVelocity()}</p>
             </div>
             <a 
               href={`/admin/${slug}`}
-              className="text-xs text-[#F5F0E8]/50 hover:text-[#F5F0E8] underline"
+              className="text-xs text-[#888] hover:text-[#1A1A1A] underline"
               data-testid="link-dashboard"
             >
               Dashboard
@@ -380,7 +380,7 @@ export default function InquiryThread() {
             <div>
               {isArtist ? (
                 <>
-                  <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F0E8]/40 mb-2">inquiry from</p>
+                  <p className="text-[10px] tracking-[0.2em] uppercase text-[#666] mb-2">inquiry from</p>
                   {isEditingClient ? (
                     <div className="space-y-3">
                       <input
@@ -388,7 +388,7 @@ export default function InquiryThread() {
                         value={editClientData.clientName}
                         onChange={(e) => setEditClientData({ ...editClientData, clientName: e.target.value })}
                         placeholder="Client name"
-                        className="w-full bg-[#F5F0E8]/10 border border-[#F5F0E8]/20 rounded px-3 py-2 text-[#F5F0E8] text-sm focus:outline-none focus:border-[#C4A35A]"
+                        className="w-full bg-[#F5F2ED] border border-[#E8E2D9] rounded px-3 py-2 text-[#1A1A1A] text-sm focus:outline-none focus:border-[#C4A35A]"
                         data-testid="input-client-name"
                       />
                       <input
@@ -396,7 +396,7 @@ export default function InquiryThread() {
                         value={editClientData.clientEmail}
                         onChange={(e) => setEditClientData({ ...editClientData, clientEmail: e.target.value })}
                         placeholder="Email"
-                        className="w-full bg-[#F5F0E8]/10 border border-[#F5F0E8]/20 rounded px-3 py-2 text-[#F5F0E8] text-sm focus:outline-none focus:border-[#C4A35A]"
+                        className="w-full bg-[#F5F2ED] border border-[#E8E2D9] rounded px-3 py-2 text-[#1A1A1A] text-sm focus:outline-none focus:border-[#C4A35A]"
                         data-testid="input-client-email"
                       />
                       <input
@@ -404,7 +404,7 @@ export default function InquiryThread() {
                         value={editClientData.clientPhone}
                         onChange={(e) => setEditClientData({ ...editClientData, clientPhone: e.target.value })}
                         placeholder="Phone (optional)"
-                        className="w-full bg-[#F5F0E8]/10 border border-[#F5F0E8]/20 rounded px-3 py-2 text-[#F5F0E8] text-sm focus:outline-none focus:border-[#C4A35A]"
+                        className="w-full bg-[#F5F2ED] border border-[#E8E2D9] rounded px-3 py-2 text-[#1A1A1A] text-sm focus:outline-none focus:border-[#C4A35A]"
                         data-testid="input-client-phone"
                       />
                       <div className="flex gap-2 pt-1">
@@ -424,7 +424,7 @@ export default function InquiryThread() {
                         </button>
                         <button
                           onClick={() => setIsEditingClient(false)}
-                          className="px-3 py-1.5 border border-[#F5F0E8]/20 text-[#F5F0E8]/70 text-xs rounded hover:border-[#F5F0E8]/40"
+                          className="px-3 py-1.5 border border-[#E8E2D9] text-[#1A1A1A]/70 text-xs rounded hover:border-[#999]"
                           data-testid="button-cancel-edit"
                         >
                           Cancel
@@ -433,12 +433,12 @@ export default function InquiryThread() {
                     </div>
                   ) : (
                     <div className="group relative">
-                      <h2 className="text-2xl text-[#F5F0E8] mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>
+                      <h2 className="text-2xl text-[#1A1A1A] mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>
                         {inquiry.clientName}
                       </h2>
-                      <p className="text-sm text-[#F5F0E8]/50">{inquiry.clientEmail}</p>
+                      <p className="text-sm text-[#888]">{inquiry.clientEmail}</p>
                       {inquiry.clientPhone && (
-                        <p className="text-sm text-[#F5F0E8]/50">{inquiry.clientPhone}</p>
+                        <p className="text-sm text-[#888]">{inquiry.clientPhone}</p>
                       )}
                       <div className="flex gap-3 mt-2">
                         <button
@@ -470,17 +470,17 @@ export default function InquiryThread() {
                 </>
               ) : (
                 <>
-                  <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F0E8]/40 mb-2">hello</p>
-                  <h2 className="text-2xl text-[#F5F0E8] mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>
+                  <p className="text-[10px] tracking-[0.2em] uppercase text-[#666] mb-2">hello</p>
+                  <h2 className="text-2xl text-[#1A1A1A] mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>
                     {inquiry.clientName}
                   </h2>
-                  <p className="text-sm text-[#F5F0E8]/50">Thank you for your inquiry</p>
+                  <p className="text-sm text-[#888]">Thank you for your inquiry</p>
                 </>
               )}
             </div>
             <div className="text-right">
-              <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F0E8]/40 mb-2">event date</p>
-              <p className="text-lg text-[#F5F0E8]" style={{ fontFamily: "'Playfair Display', serif" }}>
+              <p className="text-[10px] tracking-[0.2em] uppercase text-[#666] mb-2">event date</p>
+              <p className="text-lg text-[#1A1A1A]" style={{ fontFamily: "'Playfair Display', serif" }}>
                 {(() => {
                   const dateStr = inquiry.eventDate.split('T')[0];
                   const [year, month, day] = dateStr.split('-').map(Number);
@@ -496,8 +496,8 @@ export default function InquiryThread() {
           </div>
 
           {isArtist && inquiry.message && (
-            <div className="bg-[#F5F0E8]/5 border border-[#F5F0E8]/10 p-5 rounded">
-              <p className="text-sm text-[#F5F0E8]/70 leading-relaxed whitespace-pre-wrap">
+            <div className="bg-white border border-[#E8E2D9] p-5 rounded">
+              <p className="text-sm text-[#1A1A1A]/70 leading-relaxed whitespace-pre-wrap">
                 {inquiry.message}
               </p>
             </div>
@@ -507,18 +507,18 @@ export default function InquiryThread() {
 
         {/* 3. CONVERSATION THREAD - Moved above actions for context */}
         <section className="mb-10">
-          <h3 className="text-sm font-medium text-[#F5F0E8]/80 mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Thread Conversation</h3>
+          <h3 className="text-sm font-medium text-[#333] mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Thread Conversation</h3>
           <div className="space-y-4">
             {messages.length === 0 ? (
-              <p className="text-sm text-[#F5F0E8]/30 italic py-4">No messages yet</p>
+              <p className="text-sm text-[#1A1A1A]/30 italic py-4">No messages yet</p>
             ) : (
               messages.map((msg) => {
                 const isArtistMsg = msg.sentBy === "artist" || msg.sentBy === artist?.businessName;
                 const msgAttachments = (msg as any).attachments || [];
                 return (
                   <div key={msg.id} className={`flex ${isArtistMsg ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[80%] p-4 rounded ${isArtistMsg ? "bg-[#F5F0E8]/10" : "bg-[#F5F0E8]/5 border border-[#F5F0E8]/10"}`}>
-                      <p className="text-sm text-[#F5F0E8]/80 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                    <div className={`max-w-[80%] p-4 rounded ${isArtistMsg ? "bg-[#F5F2ED]" : "bg-white border border-[#E8E2D9]"}`}>
+                      <p className="text-sm text-[#333] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                       {msgAttachments.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-2">
                           {msgAttachments.map((url: string, idx: number) => (
@@ -532,13 +532,13 @@ export default function InquiryThread() {
                               <img
                                 src={url}
                                 alt={`Inspiration photo ${idx + 1}`}
-                                className="h-20 w-20 object-cover rounded border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/50 transition-colors"
+                                className="h-20 w-20 object-cover rounded border border-[#E8E2D9] hover:border-[#999] transition-colors"
                               />
                             </a>
                           ))}
                         </div>
                       )}
-                      <p className="text-[10px] text-[#F5F0E8]/30 mt-2">
+                      <p className="text-[10px] text-[#1A1A1A]/30 mt-2">
                         {format(new Date(msg.sentAt), "h:mm a")}
                       </p>
                     </div>
@@ -556,7 +556,7 @@ export default function InquiryThread() {
               <button
                 onClick={() => setActiveModal("accept")}
                 disabled={actionMutation.isPending}
-                className="py-5 bg-[#F5F0E8] text-[#1A1A1A] hover:bg-white transition-all text-center rounded disabled:opacity-50"
+                className="py-5 bg-[#1A1A1A] text-white hover:bg-[#333] transition-all text-center rounded disabled:opacity-50"
                 data-testid="button-accept"
               >
                 <p className="text-sm font-medium">Accept</p>
@@ -565,20 +565,20 @@ export default function InquiryThread() {
               <button
                 onClick={() => setActiveModal("refer")}
                 disabled={actionMutation.isPending}
-                className="py-5 border border-[#F5F0E8]/30 hover:border-[#F5F0E8] transition-all text-center rounded disabled:opacity-50"
+                className="py-5 border border-[#E8E2D9] hover:border-[#999] transition-all text-center rounded disabled:opacity-50"
                 data-testid="button-refer"
               >
                 <p className="text-sm">Refer</p>
-                <p className="text-[10px] text-[#F5F0E8]/50 mt-1">I'm unavailable</p>
+                <p className="text-[10px] text-[#888] mt-1">I'm unavailable</p>
               </button>
               <button
                 onClick={() => setActiveModal("decline")}
                 disabled={actionMutation.isPending}
-                className="py-5 border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40 transition-all text-center rounded disabled:opacity-50"
+                className="py-5 border border-[#E8E2D9] hover:border-[#999] transition-all text-center rounded disabled:opacity-50"
                 data-testid="button-decline"
               >
-                <p className="text-sm text-[#F5F0E8]/70">Decline</p>
-                <p className="text-[10px] text-[#F5F0E8]/40 mt-1">Politely pass</p>
+                <p className="text-sm text-[#1A1A1A]/70">Decline</p>
+                <p className="text-[10px] text-[#666] mt-1">Politely pass</p>
               </button>
             </div>
           </section>
@@ -587,11 +587,11 @@ export default function InquiryThread() {
         {/* 4. BOOKING ACTIONS (Shows when accepted OR when navigating from dashboard with tab param) */}
         {isArtist && showBookingActions && (
           <section className="mb-10">
-            <h3 className="text-sm font-medium text-[#F5F0E8]/80 mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Next Steps</h3>
+            <h3 className="text-sm font-medium text-[#333] mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Next Steps</h3>
             <div className="space-y-3">
                 <button
                   onClick={() => setShowContractForm(!showContractForm)}
-                  className="w-full py-4 border border-[#F5F0E8] hover:bg-[#F5F0E8] hover:text-[#1A1A1A] transition-all text-center rounded"
+                  className="w-full py-4 border border-[#E8E2D9] hover:bg-[#F5F2ED] transition-all text-center rounded"
                   data-testid="button-send-contract"
                 >
                   <p className="text-sm">Send Contract & Retainer</p>
@@ -599,14 +599,14 @@ export default function InquiryThread() {
                 </button>
 
                 {showContractForm && !showContractReview && (
-                  <div className="border border-[#F5F0E8]/10 rounded p-6">
+                  <div className="border border-[#E8E2D9] rounded p-6">
                     <div className="space-y-5">
                       <div className="flex items-center justify-between mb-4">
-                        <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40">Services</label>
+                        <label className="text-[10px] tracking-[0.15em] uppercase text-[#666]">Services</label>
                         <button
                           type="button"
                           onClick={addServiceItem}
-                          className="flex items-center gap-1 text-xs text-[#F5F0E8]/60 hover:text-[#F5F0E8] transition-colors"
+                          className="flex items-center gap-1 text-xs text-[#1A1A1A]/60 hover:text-[#1A1A1A] transition-colors"
                         >
                           <Plus size={14} /> Add Service
                         </button>
@@ -618,7 +618,7 @@ export default function InquiryThread() {
                             <select
                               value={item.clientType}
                               onChange={(e) => updateServiceItem(index, 'clientType', e.target.value)}
-                              className="col-span-3 bg-[#1A1A1A] border border-[#F5F0E8]/20 rounded text-xs text-[#F5F0E8] px-2 py-2"
+                              className="col-span-3 bg-white border border-[#E8E2D9] rounded text-xs text-[#1A1A1A] px-2 py-2"
                             >
                               {CLIENT_TYPES.map(type => (
                                 <option key={type} value={type}>{type}</option>
@@ -629,30 +629,30 @@ export default function InquiryThread() {
                               value={item.service}
                               onChange={(e) => updateServiceItem(index, 'service', e.target.value)}
                               placeholder="Hair & Makeup"
-                              className="col-span-4 bg-transparent border border-[#F5F0E8]/20 rounded text-xs text-[#F5F0E8] px-2 py-2"
+                              className="col-span-4 bg-transparent border border-[#E8E2D9] rounded text-xs text-[#1A1A1A] px-2 py-2"
                             />
                             <input
                               type="number"
                               value={item.qty}
                               onChange={(e) => updateServiceItem(index, 'qty', e.target.value)}
                               min="1"
-                              className="col-span-1 bg-transparent border border-[#F5F0E8]/20 rounded text-xs text-[#F5F0E8] px-2 py-2 text-center"
+                              className="col-span-1 bg-transparent border border-[#E8E2D9] rounded text-xs text-[#1A1A1A] px-2 py-2 text-center"
                             />
                             <div className="col-span-3 flex items-center gap-1">
-                              <span className="text-[#F5F0E8]/40 text-xs">$</span>
+                              <span className="text-[#666] text-xs">$</span>
                               <input
                                 type="number"
                                 value={item.price || ''}
                                 onChange={(e) => updateServiceItem(index, 'price', e.target.value)}
                                 placeholder="0"
                                 step="0.01"
-                                className="flex-1 bg-transparent border border-[#F5F0E8]/20 rounded text-xs text-[#F5F0E8] px-2 py-2"
+                                className="flex-1 bg-transparent border border-[#E8E2D9] rounded text-xs text-[#1A1A1A] px-2 py-2"
                               />
                             </div>
                             <button
                               type="button"
                               onClick={() => removeServiceItem(index)}
-                              className="col-span-1 text-[#F5F0E8]/30 hover:text-red-400 transition-colors"
+                              className="col-span-1 text-[#1A1A1A]/30 hover:text-red-400 transition-colors"
                               disabled={serviceItems.length === 1}
                             >
                               <Trash2 size={14} />
@@ -661,50 +661,50 @@ export default function InquiryThread() {
                         ))}
                       </div>
                       
-                      <div className="border-t border-[#F5F0E8]/10 pt-4 space-y-3">
+                      <div className="border-t border-[#E8E2D9] pt-4 space-y-3">
                         <div className="flex justify-between text-sm">
-                          <span className="text-[#F5F0E8]/60">Services Total</span>
-                          <span className="text-[#F5F0E8]">${servicesTotal.toFixed(2)}</span>
+                          <span className="text-[#1A1A1A]/60">Services Total</span>
+                          <span className="text-[#1A1A1A]">${servicesTotal.toFixed(2)}</span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-[#F5F0E8]/60 text-sm">Travel Fee</span>
+                          <span className="text-[#1A1A1A]/60 text-sm">Travel Fee</span>
                           <div className="flex items-center gap-1">
-                            <span className="text-[#F5F0E8]/40 text-xs">$</span>
+                            <span className="text-[#666] text-xs">$</span>
                             <input
                               type="number"
                               value={contractData.travelFee}
                               onChange={(e) => setContractData({ ...contractData, travelFee: e.target.value })}
                               step="0.01"
-                              className="w-24 bg-transparent border border-[#F5F0E8]/20 rounded text-xs text-[#F5F0E8] px-2 py-1 text-right"
+                              className="w-24 bg-transparent border border-[#E8E2D9] rounded text-xs text-[#1A1A1A] px-2 py-1 text-right"
                               placeholder="0"
                             />
                           </div>
                         </div>
-                        <div className="flex justify-between text-sm font-medium border-t border-[#F5F0E8]/10 pt-3">
-                          <span className="text-[#F5F0E8]">Grand Total</span>
-                          <span className="text-[#F5F0E8]">${grandTotal.toFixed(2)}</span>
+                        <div className="flex justify-between text-sm font-medium border-t border-[#E8E2D9] pt-3">
+                          <span className="text-[#1A1A1A]">Grand Total</span>
+                          <span className="text-[#1A1A1A]">${grandTotal.toFixed(2)}</span>
                         </div>
                       </div>
                       
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40 block mb-2">Retainer Amount ($)</label>
+                          <label className="text-[10px] tracking-[0.15em] uppercase text-[#666] block mb-2">Retainer Amount ($)</label>
                           <input
                             type="number"
                             value={contractData.depositAmount}
                             onChange={(e) => setContractData({ ...contractData, depositAmount: e.target.value })}
                             step="0.01"
-                            className="w-full bg-transparent border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-3 py-2"
+                            className="w-full bg-transparent border border-[#E8E2D9] rounded text-sm text-[#1A1A1A] focus:border-[#999] focus:outline-none px-3 py-2"
                             placeholder="500.00"
                           />
                         </div>
                         <div>
-                          <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40 block mb-2">Event Location</label>
+                          <label className="text-[10px] tracking-[0.15em] uppercase text-[#666] block mb-2">Event Location</label>
                           <input
                             type="text"
                             value={contractData.eventLocation}
                             onChange={(e) => setContractData({ ...contractData, eventLocation: e.target.value })}
-                            className="w-full bg-transparent border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-3 py-2"
+                            className="w-full bg-transparent border border-[#E8E2D9] rounded text-sm text-[#1A1A1A] focus:border-[#999] focus:outline-none px-3 py-2"
                             placeholder="Hotel name, address..."
                           />
                         </div>
@@ -714,7 +714,7 @@ export default function InquiryThread() {
                         type="button"
                         onClick={() => setShowContractReview(true)}
                         disabled={serviceItems.every(i => !i.service)}
-                        className="w-full py-3 bg-[#F5F0E8] text-[#1A1A1A] text-sm rounded hover:bg-white transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="w-full py-3 bg-[#1A1A1A] text-white text-sm rounded hover:bg-[#333] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                       >
                         <Eye size={16} /> Review Contract
                       </button>
@@ -723,13 +723,13 @@ export default function InquiryThread() {
                 )}
                 
                 {showContractReview && (
-                  <div className="border border-[#F5F0E8]/10 rounded p-6">
-                    <h4 className="text-sm font-medium text-[#F5F0E8] mb-4">Contract Review</h4>
+                  <div className="border border-[#E8E2D9] rounded p-6">
+                    <h4 className="text-sm font-medium text-[#1A1A1A] mb-4">Contract Review</h4>
                     
-                    <div className="bg-[#222] rounded p-4 mb-4 text-sm">
+                    <div className="bg-[#F5F2ED] rounded p-4 mb-4 text-sm">
                       <table className="w-full text-xs">
                         <thead>
-                          <tr className="text-[#F5F0E8]/40 text-left">
+                          <tr className="text-[#666] text-left">
                             <th className="pb-2">Client</th>
                             <th className="pb-2">Service</th>
                             <th className="pb-2 text-center">Qty</th>
@@ -737,9 +737,9 @@ export default function InquiryThread() {
                             <th className="pb-2 text-right">Total</th>
                           </tr>
                         </thead>
-                        <tbody className="text-[#F5F0E8]">
+                        <tbody className="text-[#1A1A1A]">
                           {serviceItems.filter(i => i.service).map((item, i) => (
-                            <tr key={i} className="border-t border-[#F5F0E8]/10">
+                            <tr key={i} className="border-t border-[#E8E2D9]">
                               <td className="py-2">{item.clientType}</td>
                               <td className="py-2">{item.service}</td>
                               <td className="py-2 text-center">{item.qty}</td>
@@ -748,18 +748,18 @@ export default function InquiryThread() {
                             </tr>
                           ))}
                           {travelFee > 0 && (
-                            <tr className="border-t border-[#F5F0E8]/10">
+                            <tr className="border-t border-[#E8E2D9]">
                               <td className="py-2" colSpan={4}>Travel Fee</td>
                               <td className="py-2 text-right">${travelFee.toFixed(2)}</td>
                             </tr>
                           )}
                         </tbody>
                         <tfoot>
-                          <tr className="border-t border-[#F5F0E8]/30 font-medium">
+                          <tr className="border-t border-[#E8E2D9] font-medium">
                             <td className="pt-2" colSpan={4}>Grand Total</td>
                             <td className="pt-2 text-right">${grandTotal.toFixed(2)}</td>
                           </tr>
-                          <tr className="text-[#F5F0E8]/60">
+                          <tr className="text-[#1A1A1A]/60">
                             <td colSpan={4}>Retainer Due</td>
                             <td className="text-right">${parseFloat(contractData.depositAmount || '0').toFixed(2)}</td>
                           </tr>
@@ -767,7 +767,7 @@ export default function InquiryThread() {
                       </table>
                       
                       {contractData.eventLocation && (
-                        <p className="mt-4 text-xs text-[#F5F0E8]/60">
+                        <p className="mt-4 text-xs text-[#1A1A1A]/60">
                           Location: {contractData.eventLocation}
                         </p>
                       )}
@@ -777,7 +777,7 @@ export default function InquiryThread() {
                       <button
                         type="button"
                         onClick={() => setShowContractReview(false)}
-                        className="flex-1 py-3 border border-[#F5F0E8]/30 text-[#F5F0E8] text-sm rounded hover:border-[#F5F0E8] transition-all"
+                        className="flex-1 py-3 border border-[#E8E2D9] text-[#1A1A1A] text-sm rounded hover:border-[#999] transition-all"
                       >
                         Edit
                       </button>
@@ -788,7 +788,7 @@ export default function InquiryThread() {
                           contractMutation.mutate();
                         }}
                         disabled={contractMutation.isPending}
-                        className="flex-1 py-3 bg-[#F5F0E8] text-[#1A1A1A] text-sm rounded hover:bg-white transition-all disabled:opacity-50"
+                        className="flex-1 py-3 bg-[#1A1A1A] text-white text-sm rounded hover:bg-[#333] transition-all disabled:opacity-50"
                       >
                         {contractMutation.isPending ? "Sending..." : "Send Contract & Retainer"}
                       </button>
@@ -798,25 +798,25 @@ export default function InquiryThread() {
 
                 <button
                   onClick={() => setShowInvoiceForm(!showInvoiceForm)}
-                  className="w-full py-4 border border-[#F5F0E8]/50 hover:border-[#F5F0E8] transition-all text-center rounded"
+                  className="w-full py-4 border border-[#999] hover:border-[#999] transition-all text-center rounded"
                   data-testid="button-send-invoice"
                 >
                   <p className="text-sm">Send Invoice</p>
-                  <p className="text-[10px] text-[#F5F0E8]/50 mt-1">For trials, final balance, or extras</p>
+                  <p className="text-[10px] text-[#888] mt-1">For trials, final balance, or extras</p>
                 </button>
 
                 {showInvoiceForm && (
-                  <div className="border border-[#F5F0E8]/10 rounded p-6">
+                  <div className="border border-[#E8E2D9] rounded p-6">
                     {!artist?.squareAccessToken ? (
                       <div className="text-center py-4">
-                        <p className="text-sm text-[#F5F0E8]/70 mb-4">Connect Square to send invoices</p>
+                        <p className="text-sm text-[#1A1A1A]/70 mb-4">Connect Square to send invoices</p>
                         <button
                           type="button"
                           onClick={() => {
                             const currentUrl = window.location.pathname + window.location.search;
                             window.location.href = `/api/square/connect/start/${artist?.artistSlug}?returnUrl=${encodeURIComponent(currentUrl)}`;
                           }}
-                          className="w-full py-3 bg-[#F5F0E8] text-[#1A1A1A] text-sm rounded hover:bg-white transition-all"
+                          className="w-full py-3 bg-[#1A1A1A] text-white text-sm rounded hover:bg-[#333] transition-all"
                           data-testid="button-connect-square-invoice"
                         >
                           Connect Square
@@ -831,11 +831,11 @@ export default function InquiryThread() {
                         className="space-y-5"
                       >
                         <div>
-                          <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40 block mb-2">Invoice Type</label>
+                          <label className="text-[10px] tracking-[0.15em] uppercase text-[#666] block mb-2">Invoice Type</label>
                           <select
                             value={invoiceData.type}
                             onChange={(e) => setInvoiceData({ ...invoiceData, type: e.target.value })}
-                            className="w-full bg-[#1A1A1A] border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-3 py-2"
+                            className="w-full bg-white border border-[#E8E2D9] rounded text-sm text-[#1A1A1A] focus:border-[#999] focus:outline-none px-3 py-2"
                           >
                             <option value="deposit">Retainer</option>
                             <option value="balance">Final Balance</option>
@@ -843,23 +843,23 @@ export default function InquiryThread() {
                           </select>
                         </div>
                         <div>
-                          <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40 block mb-2">Amount ($)</label>
+                          <label className="text-[10px] tracking-[0.15em] uppercase text-[#666] block mb-2">Amount ($)</label>
                           <input
                             type="number"
                             value={invoiceData.amount}
                             onChange={(e) => setInvoiceData({ ...invoiceData, amount: e.target.value })}
                             step="0.01"
-                            className="w-full bg-transparent border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-3 py-2"
+                            className="w-full bg-transparent border border-[#E8E2D9] rounded text-sm text-[#1A1A1A] focus:border-[#999] focus:outline-none px-3 py-2"
                             placeholder="500.00"
                           />
                         </div>
                         <div>
-                          <label className="text-[10px] tracking-[0.15em] uppercase text-[#F5F0E8]/40 block mb-2">Description</label>
+                          <label className="text-[10px] tracking-[0.15em] uppercase text-[#666] block mb-2">Description</label>
                           <textarea
                             value={invoiceData.description}
                             onChange={(e) => setInvoiceData({ ...invoiceData, description: e.target.value })}
                             rows={2}
-                            className="w-full bg-transparent border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-3 py-2 resize-none"
+                            className="w-full bg-transparent border border-[#E8E2D9] rounded text-sm text-[#1A1A1A] focus:border-[#999] focus:outline-none px-3 py-2 resize-none"
                             placeholder="Retainer for bridal services"
                           />
                         </div>
@@ -870,7 +870,7 @@ export default function InquiryThread() {
                             invoiceMutation.mutate(invoiceData);
                           }}
                           disabled={invoiceMutation.isPending}
-                          className="w-full py-3 bg-[#F5F0E8] text-[#1A1A1A] text-sm rounded hover:bg-white transition-all disabled:opacity-50"
+                          className="w-full py-3 bg-[#1A1A1A] text-white text-sm rounded hover:bg-[#333] transition-all disabled:opacity-50"
                         >
                           {invoiceMutation.isPending ? "Sending..." : "Create & Send Invoice"}
                         </button>
@@ -897,43 +897,43 @@ export default function InquiryThread() {
           <section className="mb-10 text-center py-6">
             <Check className="w-10 h-10 text-emerald-400 mx-auto mb-3" />
             <p className="text-emerald-400 font-medium">{isArtist ? 'Retainer Received' : 'Booking Confirmed'}</p>
-            <p className="text-xs text-[#F5F0E8]/40 mt-1">{isArtist ? 'Booking confirmed' : 'Thank you for your payment'}</p>
+            <p className="text-xs text-[#666] mt-1">{isArtist ? 'Booking confirmed' : 'Thank you for your payment'}</p>
           </section>
         )}
 
         {isArtist && inquiry.status.toLowerCase() === "referred" && (
           <section className="mb-10 text-center py-6">
-            <p className="text-sm text-[#F5F0E8]/50">This inquiry has been referred to your trusted circle.</p>
+            <p className="text-sm text-[#888]">This inquiry has been referred to your trusted circle.</p>
           </section>
         )}
 
         {isArtist && inquiry.status.toLowerCase() === "declined" && (
           <section className="mb-10 text-center py-6">
-            <p className="text-sm text-[#F5F0E8]/50">This inquiry has been politely declined.</p>
+            <p className="text-sm text-[#888]">This inquiry has been politely declined.</p>
           </section>
         )}
 
         {/* 5. QUICK TEMPLATES + REPLY FORM (Artist only) */}
         {isArtist && !isTerminal && (
-          <section className="border-t border-[#F5F0E8]/10 pt-8">
+          <section className="border-t border-[#E8E2D9] pt-8">
             <div className="flex gap-3 mb-4 flex-wrap">
               <button
                 onClick={() => setReplyMessage(artist?.infoSheetContent || "Here's my info sheet with pricing and services...")}
-                className="px-4 py-2 text-xs border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40 rounded transition-all"
+                className="px-4 py-2 text-xs border border-[#E8E2D9] hover:border-[#999] rounded transition-all"
                 data-testid="button-template-info"
               >
                 Info Sheet
               </button>
               <button
                 onClick={() => setReplyMessage(artist?.referralListTemplate || "Thank you so much for reaching out! Unfortunately I am not available. Please contact my trusted colleague for availability. Thank you!")}
-                className="px-4 py-2 text-xs border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40 rounded transition-all"
+                className="px-4 py-2 text-xs border border-[#E8E2D9] hover:border-[#999] rounded transition-all"
                 data-testid="button-template-referral"
               >
                 Referral List
               </button>
               <button
                 onClick={() => setReplyMessage(artist?.politeDeclineTemplate || "Thank you for reaching out. Unfortunately, I'm not available for your date.")}
-                className="px-4 py-2 text-xs border border-[#F5F0E8]/20 hover:border-[#F5F0E8]/40 rounded transition-all"
+                className="px-4 py-2 text-xs border border-[#E8E2D9] hover:border-[#999] rounded transition-all"
                 data-testid="button-template-decline"
               >
                 Polite Decline
@@ -942,16 +942,16 @@ export default function InquiryThread() {
 
             <div className="space-y-3">
               <div>
-                <label className="block text-xs text-[#F5F0E8]/60 mb-1">CC (optional)</label>
+                <label className="block text-xs text-[#1A1A1A]/60 mb-1">CC (optional)</label>
                 <input
                   type="text"
                   value={ccEmails}
                   onChange={(e) => setCcEmails(e.target.value)}
                   placeholder="tessa@example.com, amy@example.com"
-                  className="w-full bg-transparent border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-4 py-2"
+                  className="w-full bg-transparent border border-[#E8E2D9] rounded text-sm text-[#1A1A1A] focus:border-[#999] focus:outline-none px-4 py-2"
                   data-testid="input-cc"
                 />
-                <p className="text-xs text-[#F5F0E8]/40 mt-1">Separate multiple emails with commas</p>
+                <p className="text-xs text-[#666] mt-1">Separate multiple emails with commas</p>
               </div>
               <div className="relative">
                 <textarea
@@ -959,7 +959,7 @@ export default function InquiryThread() {
                   onChange={(e) => setReplyMessage(e.target.value)}
                   placeholder="Type your response..."
                   rows={4}
-                  className="w-full bg-transparent border border-[#F5F0E8]/20 rounded text-sm text-[#F5F0E8] focus:border-[#F5F0E8]/50 focus:outline-none px-4 py-3 resize-none"
+                  className="w-full bg-transparent border border-[#E8E2D9] rounded text-sm text-[#1A1A1A] focus:border-[#999] focus:outline-none px-4 py-3 resize-none"
                   data-testid="input-reply"
                 />
                 <button
@@ -968,7 +968,7 @@ export default function InquiryThread() {
                     sendMessageMutation.mutate({ message: replyMessage, cc: ccList.length > 0 ? ccList : undefined });
                   }}
                   disabled={!replyMessage.trim() || sendMessageMutation.isPending}
-                  className="absolute bottom-3 right-3 px-4 py-2 bg-[#F5F0E8] text-[#1A1A1A] text-xs rounded hover:bg-white disabled:opacity-30 transition-all flex items-center gap-2"
+                  className="absolute bottom-3 right-3 px-4 py-2 bg-[#1A1A1A] text-white text-xs rounded hover:bg-[#333] disabled:opacity-30 transition-all flex items-center gap-2"
                   data-testid="button-send-response"
                 >
                   {sendMessageMutation.isPending ? (
@@ -987,11 +987,11 @@ export default function InquiryThread() {
         
         {/* Client view - Simple status message */}
         {!isArtist && !isTerminal && (
-          <section className="border-t border-[#F5F0E8]/10 pt-8 text-center">
-            <p className="text-sm text-[#F5F0E8]/60">
+          <section className="border-t border-[#E8E2D9] pt-8 text-center">
+            <p className="text-sm text-[#1A1A1A]/60">
               {artist?.businessName || 'Your artist'} will be in touch with you soon.
             </p>
-            <p className="text-xs text-[#F5F0E8]/40 mt-2">
+            <p className="text-xs text-[#666] mt-2">
               Check your email for updates.
             </p>
           </section>
@@ -1001,31 +1001,31 @@ export default function InquiryThread() {
       {/* MODALS (Artist only) */}
       {isArtist && activeModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-6 z-50" onClick={() => setActiveModal(null)}>
-          <div className="bg-[#1A1A1A] border border-[#F5F0E8]/20 max-w-md w-full rounded-lg p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white border border-[#E8E2D9] max-w-md w-full rounded-lg p-6" onClick={(e) => e.stopPropagation()}>
             {activeModal === "accept" && (
               <>
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="text-sm font-medium">Send Info Sheet</h3>
-                  <button onClick={() => setActiveModal(null)} className="text-[#F5F0E8]/40 hover:text-[#F5F0E8]">
+                  <button onClick={() => setActiveModal(null)} className="text-[#666] hover:text-[#1A1A1A]">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
-                <div className="bg-[#F5F0E8]/5 border border-[#F5F0E8]/10 rounded p-4 mb-6 max-h-40 overflow-y-auto">
-                  <p className="text-xs text-[#F5F0E8]/60 leading-relaxed whitespace-pre-wrap">
+                <div className="bg-white border border-[#E8E2D9] rounded p-4 mb-6 max-h-40 overflow-y-auto">
+                  <p className="text-xs text-[#1A1A1A]/60 leading-relaxed whitespace-pre-wrap">
                     {artist?.infoSheetContent || "Your info sheet content will be sent to the client."}
                   </p>
                 </div>
                 <div className="flex gap-3">
                   <button
                     onClick={() => setActiveModal(null)}
-                    className="flex-1 py-3 border border-[#F5F0E8]/30 rounded text-sm hover:border-[#F5F0E8] transition-all"
+                    className="flex-1 py-3 border border-[#E8E2D9] rounded text-sm hover:border-[#999] transition-all"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={() => actionMutation.mutate({ action: "accept-client" })}
                     disabled={actionMutation.isPending}
-                    className="flex-1 py-3 bg-[#F5F0E8] text-[#1A1A1A] rounded text-sm hover:bg-white transition-all disabled:opacity-50"
+                    className="flex-1 py-3 bg-[#1A1A1A] text-white rounded text-sm hover:bg-[#333] transition-all disabled:opacity-50"
                     data-testid="button-confirm-accept"
                   >
                     {actionMutation.isPending ? "Sending..." : "Confirm & Send"}
@@ -1038,24 +1038,24 @@ export default function InquiryThread() {
               <>
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="text-sm font-medium">Send Referrals</h3>
-                  <button onClick={() => setActiveModal(null)} className="text-[#F5F0E8]/40 hover:text-[#F5F0E8]">
+                  <button onClick={() => setActiveModal(null)} className="text-[#666] hover:text-[#1A1A1A]">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
-                <p className="text-sm text-[#F5F0E8]/70 mb-6">
+                <p className="text-sm text-[#1A1A1A]/70 mb-6">
                   This will let {inquiry.clientName} know you're unavailable and share your Trusted Circle referrals.
                 </p>
                 <div className="flex gap-3">
                   <button
                     onClick={() => setActiveModal(null)}
-                    className="flex-1 py-3 border border-[#F5F0E8]/30 rounded text-sm hover:border-[#F5F0E8] transition-all"
+                    className="flex-1 py-3 border border-[#E8E2D9] rounded text-sm hover:border-[#999] transition-all"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={() => actionMutation.mutate({ action: "refer" })}
                     disabled={actionMutation.isPending}
-                    className="flex-1 py-3 bg-[#F5F0E8] text-[#1A1A1A] rounded text-sm hover:bg-white transition-all disabled:opacity-50"
+                    className="flex-1 py-3 bg-[#1A1A1A] text-white rounded text-sm hover:bg-[#333] transition-all disabled:opacity-50"
                     data-testid="button-confirm-refer"
                   >
                     {actionMutation.isPending ? "Sending..." : "Send Referrals"}
@@ -1068,24 +1068,24 @@ export default function InquiryThread() {
               <>
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="text-sm font-medium">Decline Inquiry</h3>
-                  <button onClick={() => setActiveModal(null)} className="text-[#F5F0E8]/40 hover:text-[#F5F0E8]">
+                  <button onClick={() => setActiveModal(null)} className="text-[#666] hover:text-[#1A1A1A]">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
-                <p className="text-sm text-[#F5F0E8]/70 mb-6">
+                <p className="text-sm text-[#1A1A1A]/70 mb-6">
                   This will send a polite decline message to {inquiry.clientName}.
                 </p>
                 <div className="flex gap-3">
                   <button
                     onClick={() => setActiveModal(null)}
-                    className="flex-1 py-3 border border-[#F5F0E8]/30 rounded text-sm hover:border-[#F5F0E8] transition-all"
+                    className="flex-1 py-3 border border-[#E8E2D9] rounded text-sm hover:border-[#999] transition-all"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={() => actionMutation.mutate({ action: "decline" })}
                     disabled={actionMutation.isPending}
-                    className="flex-1 py-3 bg-[#F5F0E8] text-[#1A1A1A] rounded text-sm hover:bg-white transition-all disabled:opacity-50"
+                    className="flex-1 py-3 bg-[#1A1A1A] text-white rounded text-sm hover:bg-[#333] transition-all disabled:opacity-50"
                     data-testid="button-confirm-decline"
                   >
                     {actionMutation.isPending ? "Sending..." : "Decline"}
@@ -1100,15 +1100,15 @@ export default function InquiryThread() {
       {/* Invite Participant Modal */}
       {showInviteModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1A1A1A] border border-[#F5F0E8]/20 rounded-lg p-6 max-w-md w-full">
+          <div className="bg-white border border-[#E8E2D9] rounded-lg p-6 max-w-md w-full">
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="text-lg" style={{ fontFamily: "'Fraunces', serif" }}>Invite to Conversation</h3>
-                <p className="text-xs text-[#F5F0E8]/50 mt-1">Add the client and/or planner to this thread</p>
+                <p className="text-xs text-[#888] mt-1">Add the client and/or planner to this thread</p>
               </div>
               <button 
                 onClick={() => { setShowInviteModal(false); setInviteLink(null); }} 
-                className="text-[#F5F0E8]/40 hover:text-[#F5F0E8]"
+                className="text-[#666] hover:text-[#1A1A1A]"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1123,7 +1123,7 @@ export default function InquiryThread() {
                       type="text"
                       value={inviteLink}
                       readOnly
-                      className="flex-1 px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-xs text-[#F5F0E8]/80"
+                      className="flex-1 px-3 py-2 bg-[#F5F2ED] border border-[#E8E2D9] rounded text-xs text-[#333]"
                     />
                     <button
                       onClick={() => {
@@ -1148,7 +1148,7 @@ export default function InquiryThread() {
                   </button>
                   <button
                     onClick={() => { setShowInviteModal(false); setInviteLink(null); }}
-                    className="flex-1 py-2 border border-[#F5F0E8]/20 rounded text-sm hover:bg-[#F5F0E8]/5"
+                    className="flex-1 py-2 border border-[#E8E2D9] rounded text-sm hover:bg-[#333]"
                   >
                     Done
                   </button>
@@ -1157,11 +1157,11 @@ export default function InquiryThread() {
             ) : (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs text-[#F5F0E8]/60 mb-1">Who are you inviting?</label>
+                  <label className="block text-xs text-[#1A1A1A]/60 mb-1">Who are you inviting?</label>
                   <select
                     value={inviteData.role}
                     onChange={(e) => setInviteData({ ...inviteData, role: e.target.value as any })}
-                    className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                    className="w-full px-3 py-2 bg-[#F5F2ED] border border-[#E8E2D9] rounded text-sm focus:outline-none focus:border-[#6B4A55]"
                     data-testid="select-invite-role"
                   >
                     <option value="planner">Wedding Planner</option>
@@ -1170,31 +1170,31 @@ export default function InquiryThread() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs text-[#F5F0E8]/60 mb-1">Their Name</label>
+                  <label className="block text-xs text-[#1A1A1A]/60 mb-1">Their Name</label>
                   <input
                     type="text"
                     value={inviteData.name}
                     onChange={(e) => setInviteData({ ...inviteData, name: e.target.value })}
                     placeholder={inviteData.role === 'planner' ? "Planner's name" : "Their name"}
-                    className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                    className="w-full px-3 py-2 bg-[#F5F2ED] border border-[#E8E2D9] rounded text-sm focus:outline-none focus:border-[#6B4A55]"
                     data-testid="input-invite-name"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-[#F5F0E8]/60 mb-1">Their Email *</label>
+                  <label className="block text-xs text-[#1A1A1A]/60 mb-1">Their Email *</label>
                   <input
                     type="email"
                     value={inviteData.email}
                     onChange={(e) => setInviteData({ ...inviteData, email: e.target.value })}
                     placeholder="planner@example.com"
-                    className="w-full px-3 py-2 bg-[#222] border border-[#F5F0E8]/20 rounded text-sm focus:outline-none focus:border-[#F5F0E8]/40"
+                    className="w-full px-3 py-2 bg-[#F5F2ED] border border-[#E8E2D9] rounded text-sm focus:outline-none focus:border-[#6B4A55]"
                     data-testid="input-invite-email"
                   />
                 </div>
                 <div className="flex gap-3 pt-2">
                   <button
                     onClick={() => setShowInviteModal(false)}
-                    className="flex-1 py-2 border border-[#F5F0E8]/20 rounded text-sm hover:bg-[#F5F0E8]/5"
+                    className="flex-1 py-2 border border-[#E8E2D9] rounded text-sm hover:bg-[#333]"
                   >
                     Cancel
                   </button>
