@@ -18,7 +18,7 @@ type SetupData = {
 
 type ArtistColumn = {
   name: string;
-  type: "HM" | "H" | "M";
+  type: "HM" | "H" | "M" | "H45" | "M45" | "H30" | "M30" | "BRIDE";
 };
 
 type GridCell = {
@@ -446,8 +446,11 @@ export default function ScheduleBuilder() {
                           className="w-full text-xs px-1 py-0.5 bg-white border border-[#E8E2D9] rounded text-[#666]"
                         >
                           <option value="HM">Hair & Makeup - 90 min</option>
-                          <option value="H">Hair - 30 min</option>
-                          <option value="M">Makeup - 30 min</option>
+                          <option value="H45">Hair - 45 min</option>
+                          <option value="M45">Makeup - 45 min</option>
+                          <option value="H30">Hair - 30 min</option>
+                          <option value="M30">Makeup - 30 min</option>
+                          <option value="BRIDE">Bride - 2 hours</option>
                         </select>
                       </div>
                     </th>
