@@ -430,9 +430,12 @@ export default function ScheduleCreator({ scheduleId }: { scheduleId: string }) 
                     className="w-full px-3 py-2 border rounded mb-2 text-sm bg-white text-black"
                     data-testid="select-team-service"
                   >
-                    <option value="hair">Hair Only</option>
-                    <option value="makeup">Makeup Only</option>
-                    <option value="both">Hair & Makeup</option>
+                    <option value="H30">Hair 30 min</option>
+                    <option value="H45">Hair 45 min</option>
+                    <option value="M30">Makeup 30 min</option>
+                    <option value="M45">Makeup 45 min</option>
+                    <option value="HM">Hair and Makeup</option>
+                    <option value="BRIDE">Bride 2 hours</option>
                   </select>
                   <input
                     type="url"
@@ -480,9 +483,12 @@ export default function ScheduleCreator({ scheduleId }: { scheduleId: string }) 
                         onChange={(e) => setEditingTeamMember({ ...editingTeamMember, serviceType: e.target.value })}
                         className="w-full px-3 py-2 border rounded mb-2 text-sm bg-white text-black"
                       >
-                        <option value="hair">Hair Only</option>
-                        <option value="makeup">Makeup Only</option>
-                        <option value="both">Hair & Makeup</option>
+                        <option value="H30">Hair 30 min</option>
+                        <option value="H45">Hair 45 min</option>
+                        <option value="M30">Makeup 30 min</option>
+                        <option value="M45">Makeup 45 min</option>
+                        <option value="HM">Hair and Makeup</option>
+                        <option value="BRIDE">Bride 2 hours</option>
                       </select>
                       <input
                         type="url"
@@ -595,9 +601,12 @@ export default function ScheduleCreator({ scheduleId }: { scheduleId: string }) 
                         className="w-full px-3 py-2 border rounded text-sm bg-white text-black"
                         data-testid="select-service-type"
                       >
-                        <option value="H">Hair (H) - 45 min</option>
-                        <option value="M">Makeup (M) - 60 min</option>
-                        <option value="HM">Hair & Makeup (HM) - 90 min</option>
+                        <option value="H30">Hair 30 min</option>
+                        <option value="H45">Hair 45 min</option>
+                        <option value="M30">Makeup 30 min</option>
+                        <option value="M45">Makeup 45 min</option>
+                        <option value="HM">Hair and Makeup</option>
+                        <option value="BRIDE">Bride 2 hours</option>
                       </select>
                     </div>
                     <div>
