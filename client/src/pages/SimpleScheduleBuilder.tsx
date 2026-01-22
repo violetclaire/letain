@@ -355,13 +355,36 @@ export default function SimpleScheduleBuilder() {
                   {/* Additional Artists */}
                   {row.artists.map((artist, artistIdx) => (
                     <td key={artistIdx} className="border border-[#E8E2D9] px-2 py-1 align-top">
-                      <input
-                        type="text"
-                        value={artist}
-                        onChange={(e) => updateArtist(rowIdx, artistIdx, e.target.value)}
-                        placeholder="Client name"
-                        className="w-full text-sm bg-transparent focus:outline-none focus:bg-[#FAF8F5] px-1 rounded"
-                      />
+                      <div className="space-y-1">
+                        <input
+                          type="text"
+                          value={artist}
+                          onChange={(e) => updateArtist(rowIdx, artistIdx, e.target.value)}
+                          placeholder="Client name"
+                          className="w-full text-sm bg-transparent focus:outline-none focus:bg-[#FAF8F5] px-1 rounded"
+                        />
+                        {artist && (
+                          <div className="flex items-center gap-1">
+                            {getPhotosForPerson(artist).slice(0, 2).map(photo => (
+                              <img
+                                key={photo.id}
+                                src={photo.imageUrl}
+                                alt=""
+                                className="w-6 h-6 rounded object-cover"
+                              />
+                            ))}
+                            <button
+                              onClick={() => {
+                                setUploadingFor(artist);
+                                fileInputRef.current?.click();
+                              }}
+                              className="w-6 h-6 rounded bg-[#F5F0E8] flex items-center justify-center text-[#999] hover:text-[#666]"
+                            >
+                              <Camera className="w-3 h-3" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </td>
                   ))}
                   
