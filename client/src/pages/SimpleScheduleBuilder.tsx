@@ -57,6 +57,8 @@ export default function SimpleScheduleBuilder() {
   
   // Photo upload state
   const [uploadingFor, setUploadingFor] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [shareLink, setShareLink] = useState<string | null>(null);
   
   // Fetch photos
   const { data: photos = [] } = useQuery<InspirationPhoto[]>({
@@ -146,6 +148,55 @@ export default function SimpleScheduleBuilder() {
   const getPhotosForPerson = (name: string) => {
     return photos.filter(p => p.personName.toLowerCase() === name.toLowerCase());
   };
+  
+  // Save schedule
+  const saveSchedule = async () => {
+    if (!eventName.trim()) {
+      toast({ title: "Please enter an event name", variant: "destructive" });
+      return;
+    }
+    
+    setSaving(true);
+    try {
+      const res = await fetch("/api/event-schedules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          eventName,
+          eventDate,
+          eventLocation,
+          artistColumns: artists,
+          timeSlots: schedule.map(s => s.time),
+          grid: schedule.map(slot => [
+            { clientName: slot.artist1, service: "H" },
+            { clientName: slot.artist2, service: "H" },
+            { clientName: slot.artist3, service: "M" },
+            { clientName: slot.artist4, service: "M" },
+          ]),
+        }),
+      });
+      
+      if (res.status === 401) {
+        toast({ title: "Please log in first", variant: "destructive" });
+        navigate("/artist/login");
+        return;
+      }
+      
+      if (!res.ok) {
+        throw new Error("Failed to save");
+      }
+      
+      const data = await res.json();
+      const link = `${window.location.origin}/schedule/${data.shareToken}`;
+      setShareLink(link);
+      toast({ title: "Schedule saved!" });
+    } catch (error) {
+      toast({ title: "Failed to save", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#FAF8F5]">
@@ -183,6 +234,27 @@ export default function SimpleScheduleBuilder() {
                 />
               </div>
             </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {shareLink && (
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(shareLink);
+                  toast({ title: "Link copied!" });
+                }}
+                className="px-3 py-2 text-sm border border-[#E8E2D9] rounded hover:bg-[#F5F0E8] transition-colors"
+              >
+                Copy Link
+              </button>
+            )}
+            <button
+              onClick={saveSchedule}
+              disabled={saving}
+              className="px-4 py-2 bg-[#1A1A1A] text-white rounded text-sm font-medium hover:bg-[#333] transition-colors disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save Schedule"}
+            </button>
           </div>
         </div>
       </div>
