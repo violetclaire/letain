@@ -187,7 +187,11 @@ export default function ScheduleBuilder() {
           eventDate: setup.eventDate,
           eventLocation: setup.eventLocation,
           artistColumns: artists.map(a => a.name),
-          grid: grid,
+          timeSlots: grid.map((_, idx) => `Slot ${idx + 1}`),
+          grid: grid.map(row => row.map(cell => ({
+            clientName: cell.clientName,
+            service: cell.timeRange === "Hair" ? "H" : cell.timeRange === "Makeup" ? "M" : cell.timeRange,
+          }))),
         }),
       });
       
