@@ -210,8 +210,8 @@ export default function ScheduleBuilder() {
       setScheduleId(data.id);
       setShareToken(data.shareToken);
       queryClient.invalidateQueries({ queryKey: ["/api/event-schedules"] });
-      toast({ title: "Schedule saved!" });
-      navigate("/artist/schedules");
+      toast({ title: "Schedule saved! Redirecting to view..." });
+      navigate(`/schedule/${data.shareToken}`);
     } catch (error: any) {
       toast({ title: error.message || "Failed to save schedule", variant: "destructive" });
     } finally {
