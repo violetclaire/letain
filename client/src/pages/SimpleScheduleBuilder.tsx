@@ -271,7 +271,7 @@ export default function SimpleScheduleBuilder() {
                     {artistColumns.length > 1 && (
                       <button
                         onClick={() => removeArtistColumn(i)}
-                        className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-opacity"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-[#1A1A1A] hover:text-red-600 transition-opacity"
                       >
                         <X className="w-3 h-3" />
                       </button>
