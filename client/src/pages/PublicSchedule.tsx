@@ -71,37 +71,51 @@ function timeToMinutes(time: string): number {
   return hours * 60 + minutes;
 }
 
-function formatTimeDisplay(time: string): string {
-  if (!time) return "";
+function formatSingleTime(timeStr: string): string {
+  const t = timeStr.trim();
   
-  // If already has AM/PM, just return it cleaned up
-  if (time.includes("AM") || time.includes("PM")) {
-    return time.trim();
+  // If already has AM/PM, return cleaned
+  if (t.includes("AM") || t.includes("PM")) {
+    return t;
   }
   
-  // Handle range format like "11:45-1:45" - just take the first time
-  const rangeParts = time.split("-");
-  const firstTime = rangeParts[0].trim();
-  
   // Handle HH:MM format
-  const [hours, minutes] = firstTime.split(":");
-  const h = parseInt(hours, 10);
-  if (isNaN(h)) return time;
+  const match = t.match(/(\d+):(\d+)/);
+  if (!match) return t;
   
-  // Wedding-smart logic: hours 1-7 are almost always PM (no one does hair at 1 AM)
-  // Hours 8-11 are AM, hours 12+ use standard logic
+  const h = parseInt(match[1], 10);
+  const mins = match[2];
+  
+  // Wedding-smart: 1-7 means PM, 8-11 means AM
   let ampm: string;
   if (h >= 1 && h <= 7) {
-    ampm = "PM"; // 1:00-7:00 means afternoon/evening
+    ampm = "PM";
   } else if (h >= 8 && h <= 11) {
-    ampm = "AM"; // 8:00-11:00 means morning
+    ampm = "AM";
+  } else if (h === 12) {
+    ampm = "PM";
   } else {
-    ampm = h >= 12 ? "PM" : "AM";
+    ampm = "AM";
   }
   
   const displayHour = h % 12 || 12;
-  const mins = minutes?.split(" ")[0] || "00";
   return `${displayHour}:${mins} ${ampm}`;
+}
+
+function formatTimeDisplay(time: string): string {
+  if (!time) return "";
+  
+  // Handle range format like "11:45-1:45" or "8:00 - 9:15"
+  if (time.includes("-")) {
+    const parts = time.split("-");
+    if (parts.length === 2) {
+      const start = formatSingleTime(parts[0]);
+      const end = formatSingleTime(parts[1]);
+      return `${start} - ${end}`;
+    }
+  }
+  
+  return formatSingleTime(time);
 }
 
 export default function PublicSchedule({ shareToken }: { shareToken: string }) {
