@@ -9486,6 +9486,36 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       res.status(500).json({ error: error.message });
     }
   });
+
+  // Update inquiry client info (via threadToken for magic link access)
+  app.patch("/api/inquiries/:threadToken", isAuthenticated, async (req: any, res) => {
+    try {
+      const { threadToken } = req.params;
+      const { clientName, clientEmail, clientPhone } = req.body;
+      
+      const inquiry = await storage.getInquiryByThreadToken(threadToken);
+      if (!inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+      
+      // Check access - vendor only
+      const userId = getAuthUserId(req);
+      if (inquiry.vendorId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const updateData: any = {};
+      if (clientName !== undefined) updateData.clientName = clientName;
+      if (clientEmail !== undefined) updateData.clientEmail = clientEmail;
+      if (clientPhone !== undefined) updateData.clientPhone = clientPhone;
+      
+      const updated = await storage.updateInquiry(inquiry.id, updateData);
+      res.json(updated);
+    } catch (error: any) {
+      console.error("[Inquiry] Error updating inquiry:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
   
   // Vendor responds to inquiry (send info sheet manually if not auto-sent)
   app.post("/api/inquiries/:id/respond", isAuthenticated, async (req: any, res) => {
