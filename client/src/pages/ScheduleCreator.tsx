@@ -76,12 +76,55 @@ function minutesToTime(minutes: number): string {
   return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
 }
 
-function formatTimeDisplay(time: string): string {
-  const [hours, minutes] = time.split(":");
-  const h = parseInt(hours, 10);
-  const ampm = h >= 12 ? "PM" : "AM";
+function formatSingleTime(timeStr: string): string {
+  const t = timeStr.trim();
+  
+  // If already has AM/PM, return cleaned
+  if (t.includes("AM") || t.includes("PM")) {
+    return t;
+  }
+  
+  // Handle HH:MM format
+  const match = t.match(/(\d+):(\d+)/);
+  if (!match) return t;
+  
+  const h = parseInt(match[1], 10);
+  const mins = match[2];
+  
+  // Wedding-smart: 1-7 means PM, 8-11 means AM, 12+ standard
+  let ampm: string;
+  if (h >= 1 && h <= 7) {
+    ampm = "PM";
+  } else if (h >= 8 && h <= 11) {
+    ampm = "AM";
+  } else if (h === 12) {
+    ampm = "PM";
+  } else if (h >= 13 && h <= 23) {
+    // Already 24h format
+    const displayH = h - 12;
+    return `${displayH}:${mins} PM`;
+  } else {
+    ampm = "AM";
+  }
+  
   const displayHour = h % 12 || 12;
-  return `${displayHour}:${minutes} ${ampm}`;
+  return `${displayHour}:${mins} ${ampm}`;
+}
+
+function formatTimeDisplay(time: string): string {
+  if (!time) return "";
+  
+  // Handle range format like "11:45-1:45" or "8:00 - 9:15"
+  if (time.includes("-")) {
+    const parts = time.split("-");
+    if (parts.length === 2) {
+      const start = formatSingleTime(parts[0]);
+      const end = formatSingleTime(parts[1]);
+      return `${start} - ${end}`;
+    }
+  }
+  
+  return formatSingleTime(time);
 }
 
 export default function ScheduleCreator({ scheduleId }: { scheduleId: string }) {
@@ -727,7 +770,7 @@ export default function ScheduleCreator({ scheduleId }: { scheduleId: string }) 
                               </span>
                             </div>
                             <span className="text-sm">
-                              {formatTimeDisplay(apt.startTime)} - {formatTimeDisplay(apt.endTime)}
+                              {formatTimeDisplay(apt.startTime)}
                             </span>
                           </div>
                         </div>
