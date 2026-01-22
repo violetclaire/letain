@@ -312,10 +312,14 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
                                   setEditingName(apt.clientName || "");
                                   setEditingService(apt.serviceType || "");
                                 }}
-                                className="text-[#1A1A1A] hover:underline cursor-pointer"
+                                className={`cursor-pointer px-2 py-1 rounded transition-colors ${
+                                  apt.clientName 
+                                    ? "text-[#1A1A1A] hover:bg-[#F5F3F0]" 
+                                    : "text-[#999] hover:bg-[#F5F3F0] text-xs"
+                                }`}
                                 data-testid={`appointment-${apt.id}`}
                               >
-                                {apt.clientName}
+                                {apt.clientName || "+ add"}
                               </button>
                             )}
                           </td>
@@ -334,10 +338,14 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
                                 setEditingService(apt.serviceType || "");
                               }
                             }}
-                            className="text-[#1A1A1A] hover:underline cursor-pointer"
+                            className={`cursor-pointer px-2 py-1 rounded transition-colors ${
+                              apt.clientName 
+                                ? "text-[#1A1A1A] hover:bg-[#F5F3F0]" 
+                                : "text-[#999] hover:bg-[#F5F3F0] text-xs"
+                            }`}
                             data-testid={`appointment-${apt.id}`}
                           >
-                            {apt.clientName}
+                            {apt.clientName || "+ add"}
                           </button>
                         ))}
                       </td>
