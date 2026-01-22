@@ -6,10 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface ScheduleSlot {
   time: string;
-  artist1: string;
-  artist2: string;
-  artist3: string;
-  artist4: string;
+  clients: string[];
 }
 
 interface InspirationPhoto {
@@ -37,16 +34,28 @@ export default function SimpleScheduleBuilder() {
   const [eventDate, setEventDate] = useState("2026-04-25");
   const [eventLocation, setEventLocation] = useState("Fairmont SF");
   
-  // Artist names
-  const [artists, setArtists] = useState(["Violet HM", "Hair", "Makeup", "Hair"]);
+  // Artist names (dynamic)
+  const [artists, setArtists] = useState(["Artist 1", "Artist 2"]);
+  
+  // Add artist column
+  const addArtist = () => {
+    if (artists.length >= 6) return;
+    setArtists([...artists, `Artist ${artists.length + 1}`]);
+  };
+  
+  // Remove artist column
+  const removeArtist = (index: number) => {
+    if (artists.length <= 1) return;
+    setArtists(artists.filter((_, i) => i !== index));
+  };
   
   // Schedule slots - just use start times
   const [schedule, setSchedule] = useState<ScheduleSlot[]>([
-    { time: "8:00 AM", artist1: "", artist2: "", artist3: "", artist4: "" },
-    { time: "9:00 AM", artist1: "", artist2: "", artist3: "", artist4: "" },
-    { time: "10:00 AM", artist1: "Kelly", artist2: "", artist3: "", artist4: "" },
-    { time: "11:00 AM", artist1: "", artist2: "", artist3: "", artist4: "" },
-    { time: "12:00 PM", artist1: "", artist2: "", artist3: "", artist4: "" },
+    { time: "8:00 AM", clients: ["", ""] },
+    { time: "9:00 AM", clients: ["", ""] },
+    { time: "10:00 AM", clients: ["", ""] },
+    { time: "11:00 AM", clients: ["", ""] },
+    { time: "12:00 PM", clients: ["", ""] },
   ]);
   
   // Chat state
@@ -80,18 +89,31 @@ export default function SimpleScheduleBuilder() {
     },
   });
   
-  // Update slot
-  const updateSlot = (index: number, field: keyof ScheduleSlot, value: string) => {
+  // Update slot time
+  const updateSlotTime = (index: number, value: string) => {
     setSchedule(prev => {
       const newSchedule = [...prev];
-      newSchedule[index] = { ...newSchedule[index], [field]: value };
+      newSchedule[index] = { ...newSchedule[index], time: value };
+      return newSchedule;
+    });
+  };
+  
+  // Update slot client
+  const updateSlotClient = (rowIdx: number, colIdx: number, value: string) => {
+    setSchedule(prev => {
+      const newSchedule = [...prev];
+      const newClients = [...newSchedule[rowIdx].clients];
+      // Ensure array is long enough
+      while (newClients.length <= colIdx) newClients.push("");
+      newClients[colIdx] = value;
+      newSchedule[rowIdx] = { ...newSchedule[rowIdx], clients: newClients };
       return newSchedule;
     });
   };
   
   // Add row
   const addRow = () => {
-    setSchedule(prev => [...prev, { time: "", artist1: "", artist2: "", artist3: "", artist4: "" }]);
+    setSchedule(prev => [...prev, { time: "", clients: new Array(artists.length).fill("") }]);
   };
   
   // Delete row
@@ -168,12 +190,12 @@ export default function SimpleScheduleBuilder() {
           eventLocation,
           artistColumns: artists,
           timeSlots: schedule.map(s => s.time),
-          grid: schedule.map(slot => [
-            { clientName: slot.artist1, service: "H" },
-            { clientName: slot.artist2, service: "H" },
-            { clientName: slot.artist3, service: "M" },
-            { clientName: slot.artist4, service: "M" },
-          ]),
+          grid: schedule.map(slot => 
+            artists.map((_, i) => ({
+              clientName: slot.clients[i] || "",
+              service: "HM",
+            }))
+          ),
         }),
       });
       
@@ -268,21 +290,41 @@ export default function SimpleScheduleBuilder() {
               <tr className="bg-[#F5F0E8]">
                 <th className="border border-[#E8E2D9] px-3 py-2 text-left text-sm font-medium">Time</th>
                 {artists.map((artist, i) => (
-                  <th key={i} className="border border-[#E8E2D9] px-3 py-2 min-w-[150px]">
-                    <input
-                      type="text"
-                      value={artist}
-                      onChange={(e) => {
-                        const newArtists = [...artists];
-                        newArtists[i] = e.target.value;
-                        setArtists(newArtists);
-                      }}
-                      className="w-full bg-transparent text-sm font-medium text-center focus:outline-none"
-                      style={{ fontFamily: "'Fraunces', serif" }}
-                    />
+                  <th key={i} className="border border-[#E8E2D9] px-2 py-2 min-w-[120px]">
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="text"
+                        value={artist}
+                        onChange={(e) => {
+                          const newArtists = [...artists];
+                          newArtists[i] = e.target.value;
+                          setArtists(newArtists);
+                        }}
+                        className="w-full bg-transparent text-sm font-medium text-center focus:outline-none"
+                      />
+                      {artists.length > 1 && (
+                        <button
+                          onClick={() => removeArtist(i)}
+                          className="text-[#999] hover:text-red-500 text-xs"
+                          title="Remove column"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
                   </th>
                 ))}
-                <th className="border border-[#E8E2D9] w-8"></th>
+                <th className="border border-[#E8E2D9] w-12">
+                  {artists.length < 6 && (
+                    <button
+                      onClick={addArtist}
+                      className="w-full text-[#666] hover:text-[#1A1A1A] text-sm"
+                      title="Add column"
+                    >
+                      + Add
+                    </button>
+                  )}
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -292,49 +334,23 @@ export default function SimpleScheduleBuilder() {
                     <input
                       type="text"
                       value={slot.time}
-                      onChange={(e) => updateSlot(rowIdx, "time", e.target.value)}
-                      placeholder="8:00 - 9:00"
-                      className="w-full text-sm font-mono bg-transparent focus:outline-none focus:bg-[#FAF8F5] px-1 rounded"
+                      onChange={(e) => updateSlotTime(rowIdx, e.target.value)}
+                      placeholder="8:00 AM"
+                      className="w-full text-sm bg-transparent focus:outline-none focus:bg-[#FAF8F5] px-1 rounded"
                     />
                   </td>
-                  {["artist1", "artist2", "artist3", "artist4"].map((field, colIdx) => {
-                    const value = slot[field as keyof ScheduleSlot];
-                    const personPhotos = value ? getPhotosForPerson(value) : [];
+                  {artists.map((_, colIdx) => {
+                    const value = slot.clients[colIdx] || "";
                     
                     return (
-                      <td key={colIdx} className="border border-[#E8E2D9] px-2 py-1 align-top">
-                        <div className="space-y-1">
-                          <input
-                            type="text"
-                            value={value}
-                            onChange={(e) => updateSlot(rowIdx, field as keyof ScheduleSlot, e.target.value)}
-                            placeholder="Client name"
-                            className="w-full text-sm bg-transparent focus:outline-none focus:bg-[#FAF8F5] px-1 rounded"
-                          />
-                          {value && (
-                            <div className="flex items-center gap-1">
-                              {personPhotos.length > 0 ? (
-                                personPhotos.slice(0, 2).map(photo => (
-                                  <img
-                                    key={photo.id}
-                                    src={photo.imageUrl}
-                                    alt=""
-                                    className="w-8 h-8 rounded object-cover border border-[#E8E2D9]"
-                                  />
-                                ))
-                              ) : null}
-                              <button
-                                onClick={() => {
-                                  setUploadingFor(value);
-                                  fileInputRef.current?.click();
-                                }}
-                                className="w-8 h-8 rounded border border-dashed border-[#CCC] flex items-center justify-center text-[#999] hover:text-[#666] hover:border-[#999] transition-colors"
-                              >
-                                <Camera className="w-4 h-4" />
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                      <td key={colIdx} className="border border-[#E8E2D9] px-2 py-1">
+                        <input
+                          type="text"
+                          value={value}
+                          onChange={(e) => updateSlotClient(rowIdx, colIdx, e.target.value)}
+                          placeholder="Client name"
+                          className="w-full text-sm bg-transparent focus:outline-none focus:bg-[#FAF8F5] px-1 rounded"
+                        />
                       </td>
                     );
                   })}
