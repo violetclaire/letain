@@ -48,6 +48,8 @@ import {
   threads,
   threadMessages,
   threadReferrals,
+  inspirationPhotos,
+  simpleChatMessages,
   type AnalyticsEvent,
   type InsertAnalyticsEvent,
   type User,
@@ -176,6 +178,10 @@ import {
   type InsertThreadMessage,
   type ThreadReferral,
   type InsertThreadReferral,
+  type InspirationPhoto,
+  type InsertInspirationPhoto,
+  type SimpleChatMessage,
+  type InsertSimpleChatMessage,
   artistFormConfigs,
   type ArtistFormConfig,
   type InsertArtistFormConfig,
@@ -3161,6 +3167,26 @@ export class DatabaseStorage implements IStorage {
       .insert(artistFormConfigs)
       .values({ artistId, config })
       .returning();
+    return created;
+  }
+
+  // Simple Schedule Builder - Photos
+  async getSimplePhotos(): Promise<InspirationPhoto[]> {
+    return db.select().from(inspirationPhotos).orderBy(desc(inspirationPhotos.uploadedAt));
+  }
+
+  async createSimplePhoto(photo: InsertInspirationPhoto): Promise<InspirationPhoto> {
+    const [created] = await db.insert(inspirationPhotos).values(photo).returning();
+    return created;
+  }
+
+  // Simple Schedule Builder - Messages
+  async getSimpleMessages(): Promise<SimpleChatMessage[]> {
+    return db.select().from(simpleChatMessages).orderBy(asc(simpleChatMessages.sentAt));
+  }
+
+  async createSimpleMessage(message: InsertSimpleChatMessage): Promise<SimpleChatMessage> {
+    const [created] = await db.insert(simpleChatMessages).values(message).returning();
     return created;
   }
 }

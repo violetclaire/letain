@@ -2116,3 +2116,19 @@ export const insertInspirationPhotoSchema = createInsertSchema(inspirationPhotos
 export type InsertInspirationPhoto = z.infer<typeof insertInspirationPhotoSchema>;
 export type InspirationPhoto = typeof inspirationPhotos.$inferSelect;
 
+// Schedule Builder - Chat Messages
+export const simpleChatMessages = pgTable("simple_chat_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  senderName: text("sender_name").notNull(),
+  message: text("message").notNull(),
+  sentAt: timestamp("sent_at").defaultNow(),
+});
+
+export const insertSimpleChatMessageSchema = createInsertSchema(simpleChatMessages).omit({
+  id: true,
+  sentAt: true,
+});
+
+export type InsertSimpleChatMessage = z.infer<typeof insertSimpleChatMessageSchema>;
+export type SimpleChatMessage = typeof simpleChatMessages.$inferSelect;
+

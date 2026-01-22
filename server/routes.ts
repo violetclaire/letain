@@ -15985,6 +15985,52 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // Simple schedule builder - photos API
+  app.get("/api/photos", async (req, res) => {
+    try {
+      const photos = await storage.getSimplePhotos();
+      res.json(photos);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/photos", async (req, res) => {
+    try {
+      const { personName, imageUrl } = req.body;
+      if (!personName || !imageUrl) {
+        return res.status(400).json({ error: "personName and imageUrl required" });
+      }
+      const photo = await storage.createSimplePhoto({ personName, imageUrl });
+      res.status(201).json(photo);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Simple schedule builder - messages API
+  app.get("/api/messages", async (req, res) => {
+    try {
+      const messages = await storage.getSimpleMessages();
+      res.json(messages);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/messages", async (req, res) => {
+    try {
+      const { senderName, message } = req.body;
+      if (!senderName || !message) {
+        return res.status(400).json({ error: "senderName and message required" });
+      }
+      const msg = await storage.createSimpleMessage({ senderName, message });
+      res.status(201).json(msg);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
