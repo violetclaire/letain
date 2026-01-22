@@ -42,7 +42,19 @@ type EventDaySchedule = {
 
 
 function timeToMinutes(time: string): number {
-  const [hours, minutes] = time.split(":").map(Number);
+  if (!time) return 0;
+  
+  // Handle "8:00 AM" or "10:30 PM" format
+  const match = time.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+  if (!match) return 0;
+  
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const period = match[3]?.toUpperCase();
+  
+  if (period === "PM" && hours !== 12) hours += 12;
+  if (period === "AM" && hours === 12) hours = 0;
+  
   return hours * 60 + minutes;
 }
 
@@ -296,7 +308,9 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
             </thead>
             <tbody>
               {sortedAppointments.length > 0 ? (
-                Array.from(new Set(sortedAppointments.map(a => a.startTime))).map((time) => (
+                Array.from(new Set(sortedAppointments.map(a => a.startTime)))
+                  .sort((a, b) => timeToMinutes(a) - timeToMinutes(b))
+                  .map((time) => (
                   <tr key={time} className="border-b border-[#E8E2D9] last:border-0">
                     <td className="px-3 py-2 text-[#666] whitespace-nowrap">{formatTimeDisplay(time)}</td>
                     {teamMembers.length > 0 ? (
