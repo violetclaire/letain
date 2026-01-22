@@ -40,13 +40,13 @@ export default function SimpleScheduleBuilder() {
   // Artist names
   const [artists, setArtists] = useState(["Violet HM", "Hair", "Makeup", "Hair"]);
   
-  // Schedule slots
+  // Schedule slots - just use start times
   const [schedule, setSchedule] = useState<ScheduleSlot[]>([
-    { time: "8:00 - 9:15", artist1: "", artist2: "", artist3: "", artist4: "" },
-    { time: "9:15 - 10:30", artist1: "", artist2: "", artist3: "", artist4: "" },
-    { time: "10:30 - 12:30", artist1: "Kelly", artist2: "", artist3: "", artist4: "" },
-    { time: "10:45 - 11:30", artist1: "", artist2: "", artist3: "", artist4: "" },
-    { time: "11:30 - 12:15", artist1: "", artist2: "", artist3: "", artist4: "" },
+    { time: "8:00 AM", artist1: "", artist2: "", artist3: "", artist4: "" },
+    { time: "9:00 AM", artist1: "", artist2: "", artist3: "", artist4: "" },
+    { time: "10:00 AM", artist1: "Kelly", artist2: "", artist3: "", artist4: "" },
+    { time: "11:00 AM", artist1: "", artist2: "", artist3: "", artist4: "" },
+    { time: "12:00 PM", artist1: "", artist2: "", artist3: "", artist4: "" },
   ]);
   
   // Chat state

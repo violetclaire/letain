@@ -47,11 +47,22 @@ function timeToMinutes(time: string): number {
 }
 
 function formatTimeDisplay(time: string): string {
+  if (!time) return "";
+  
+  // If already has AM/PM, just return it cleaned up
+  if (time.includes("AM") || time.includes("PM")) {
+    return time.trim();
+  }
+  
+  // Handle HH:MM format
   const [hours, minutes] = time.split(":");
   const h = parseInt(hours, 10);
+  if (isNaN(h)) return time;
+  
   const ampm = h >= 12 ? "PM" : "AM";
   const displayHour = h % 12 || 12;
-  return `${displayHour}:${minutes} ${ampm}`;
+  const mins = minutes?.split(" ")[0] || "00";
+  return `${displayHour}:${mins} ${ampm}`;
 }
 
 export default function PublicSchedule({ shareToken }: { shareToken: string }) {
