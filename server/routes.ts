@@ -11899,6 +11899,83 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           });
         });
         
+        // CREATE FORKED INQUIRIES for each trusted circle member
+        for (const member of trustedCircle.filter(m => m.status === 'accepted')) {
+          const memberUser = await storage.getUserByEmail(member.refereeEmail);
+          if (memberUser) {
+            // Create forked inquiry for this referral vendor
+            const forkedInquiry = await storage.createInquiry({
+              vendorId: memberUser.id,
+              clientId: inquiry.clientId,
+              clientEmail: inquiry.clientEmail,
+              clientName: inquiry.clientName,
+              clientPhone: inquiry.clientPhone,
+              eventDate: inquiry.eventDate,
+              eventType: inquiry.eventType,
+              eventLocation: inquiry.eventLocation,
+              serviceType: inquiry.serviceType,
+              partySize: inquiry.partySize,
+              message: `[Referral from ${vendorName}] ${inquiry.message || ''}`,
+              budget: inquiry.budget,
+              status: 'pending',
+              referralSourceInquiryId: inquiry.id,
+              referralSourceVendorId: inquiry.vendorId,
+              referralSentAt: new Date(),
+              metadata: {
+                ...inquiry.metadata as any,
+                source: 'referral',
+                referredBy: inquiry.vendorId,
+              },
+            });
+            
+            // Send email notification to the referral artist with direct link to respond
+            const threadLink = `${baseUrl}/inquiry/${forkedInquiry.threadToken}`;
+            const eventDateFormatted = inquiry.eventDate 
+              ? new Date(inquiry.eventDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) 
+              : 'TBD';
+            
+            import('./emailService').then(async ({ sendEmail }) => {
+              try {
+                await sendEmail({
+                  to: member.refereeEmail,
+                  subject: `Referral from ${vendorName}: ${inquiry.clientName} - ${eventDateFormatted}`,
+                  html: `
+                    <p>Hi ${member.refereeName},</p>
+                    <p><strong>${vendorName}</strong> has referred a client to you! Your info has been shared with them.</p>
+                    
+                    <h3 style="margin-top: 20px;">Client Details:</h3>
+                    <ul>
+                      <li><strong>Name:</strong> ${inquiry.clientName}</li>
+                      <li><strong>Email:</strong> ${inquiry.clientEmail}</li>
+                      <li><strong>Event Date:</strong> ${eventDateFormatted}</li>
+                      <li><strong>Location:</strong> ${inquiry.eventLocation || 'Not specified'}</li>
+                      <li><strong>Service:</strong> ${inquiry.serviceType || 'Beauty Services'}</li>
+                    </ul>
+                    
+                    ${inquiry.message ? `<p><strong>Their message:</strong> ${inquiry.message}</p>` : ''}
+                    
+                    <p style="margin-top: 20px;"><strong>Ready to send your pricing?</strong></p>
+                    <p>
+                      <a href="${threadLink}" style="display: inline-block; background-color: #1A1A1A; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin-top: 10px;">
+                        View Inquiry & Send Info Sheet
+                      </a>
+                    </p>
+                    
+                    <p style="margin-top: 20px; color: #666; font-size: 12px;">
+                      Click the button above to view the full inquiry and send your pricing sheet with one click.
+                    </p>
+                  `,
+                });
+                console.log(`[Inquiry Action] Referral notification sent to ${member.refereeEmail}`);
+              } catch (err) {
+                console.error(`[Inquiry Action] Failed to notify ${member.refereeEmail}:`, err);
+              }
+            });
+            
+            console.log(`[Inquiry Action] Created forked inquiry ${forkedInquiry.id} for ${member.refereeName}`);
+          }
+        }
+        
       } else if (action === 'decline') {
         notificationType = 'polite_decline';
         notificationContent = artist?.politeDeclineTemplate || 'Thank you for reaching out. Unfortunately, I am not available for your date.';
