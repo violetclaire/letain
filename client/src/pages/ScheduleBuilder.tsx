@@ -170,6 +170,12 @@ export default function ScheduleBuilder() {
 
   // Save schedule to database
   const saveSchedule = async () => {
+    if (!isAuthenticated) {
+      toast({ title: "Please log in to save schedules", variant: "destructive" });
+      navigate("/artist/login");
+      return;
+    }
+    
     setSaving(true);
     try {
       const response = await fetch("/api/event-schedules", {
@@ -185,8 +191,15 @@ export default function ScheduleBuilder() {
         }),
       });
       
+      if (response.status === 401) {
+        toast({ title: "Session expired. Please log in again.", variant: "destructive" });
+        navigate("/artist/login");
+        return;
+      }
+      
       if (!response.ok) {
-        throw new Error("Failed to save");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to save");
       }
       
       const data = await response.json();
@@ -195,8 +208,8 @@ export default function ScheduleBuilder() {
       queryClient.invalidateQueries({ queryKey: ["/api/event-schedules"] });
       toast({ title: "Schedule saved!" });
       navigate("/artist/schedules");
-    } catch (error) {
-      toast({ title: "Failed to save schedule", variant: "destructive" });
+    } catch (error: any) {
+      toast({ title: error.message || "Failed to save schedule", variant: "destructive" });
     } finally {
       setSaving(false);
     }
