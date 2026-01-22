@@ -44,16 +44,29 @@ type EventDaySchedule = {
 function timeToMinutes(time: string): number {
   if (!time) return 0;
   
+  // Handle range format like "11:45-1:45" - just take the first time
+  const rangeParts = time.split("-");
+  const firstTime = rangeParts[0].trim();
+  
   // Handle "8:00 AM" or "10:30 PM" format
-  const match = time.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+  const match = firstTime.match(/(\d+):(\d+)\s*(AM|PM)?/i);
   if (!match) return 0;
   
   let hours = parseInt(match[1], 10);
   const minutes = parseInt(match[2], 10);
   const period = match[3]?.toUpperCase();
   
-  if (period === "PM" && hours !== 12) hours += 12;
-  if (period === "AM" && hours === 12) hours = 0;
+  if (period) {
+    // If AM/PM is specified, use it
+    if (period === "PM" && hours !== 12) hours += 12;
+    if (period === "AM" && hours === 12) hours = 0;
+  } else {
+    // Wedding-smart: 1-7 means PM, 8-11 means AM
+    if (hours >= 1 && hours <= 7) {
+      hours += 12; // Convert to 24h (1pm = 13, 2pm = 14, etc.)
+    }
+    // Hours 8-11 stay as-is (AM), 12+ stay as-is (already PM in 24h)
+  }
   
   return hours * 60 + minutes;
 }
@@ -66,12 +79,26 @@ function formatTimeDisplay(time: string): string {
     return time.trim();
   }
   
+  // Handle range format like "11:45-1:45" - just take the first time
+  const rangeParts = time.split("-");
+  const firstTime = rangeParts[0].trim();
+  
   // Handle HH:MM format
-  const [hours, minutes] = time.split(":");
+  const [hours, minutes] = firstTime.split(":");
   const h = parseInt(hours, 10);
   if (isNaN(h)) return time;
   
-  const ampm = h >= 12 ? "PM" : "AM";
+  // Wedding-smart logic: hours 1-7 are almost always PM (no one does hair at 1 AM)
+  // Hours 8-11 are AM, hours 12+ use standard logic
+  let ampm: string;
+  if (h >= 1 && h <= 7) {
+    ampm = "PM"; // 1:00-7:00 means afternoon/evening
+  } else if (h >= 8 && h <= 11) {
+    ampm = "AM"; // 8:00-11:00 means morning
+  } else {
+    ampm = h >= 12 ? "PM" : "AM";
+  }
+  
   const displayHour = h % 12 || 12;
   const mins = minutes?.split(" ")[0] || "00";
   return `${displayHour}:${mins} ${ampm}`;
