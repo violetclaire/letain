@@ -11776,7 +11776,15 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       }
       
       if (action === 'accept-client' || action === 'accept-planner') {
-        updateData.infoSheetSentAt = new Date();
+        // Only set infoSheetSentAt if there's actually content to send
+        const artistProfile = await storage.getArtistProfile(inquiry.vendorId);
+        const hasInfoSheet = action === 'accept-planner'
+          ? !!((artistProfile as any)?.plannerInfoSheet || artistProfile?.infoSheetContent || artistProfile?.infoSheetPdfUrl)
+          : !!(artistProfile?.infoSheetContent || artistProfile?.infoSheetPdfUrl);
+        
+        if (hasInfoSheet) {
+          updateData.infoSheetSentAt = new Date();
+        }
         updateData.firstResponseAt = updateData.firstResponseAt || new Date();
       }
       
@@ -11815,8 +11823,19 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
             eventDate,
             serviceType: inquiry.serviceType || 'Beauty Services',
             chatLink
-          }).then(() => {
-            console.log(`[Inquiry Action] Info sheet email sent to ${inquiry.clientEmail}`);
+          }).then((result) => {
+            if (result.success) {
+              console.log(`[Inquiry Action] Info sheet email sent to ${inquiry.clientEmail}`);
+            } else {
+              console.warn(`[Inquiry Action] Info sheet NOT sent - ${result.error}`);
+              // Add a warning message to the thread
+              storage.createInquiryMessage({
+                inquiryId: inquiry.id,
+                senderType: 'system',
+                content: 'Note: Your info sheet was not sent because it has no content. Please add your info sheet in Settings.',
+                timestamp: new Date(),
+              }).catch(e => console.error('[Inquiry Action] Failed to add system message:', e));
+            }
           }).catch((err: any) => {
             console.error('[Inquiry Action] Failed to send info sheet email:', err);
           });

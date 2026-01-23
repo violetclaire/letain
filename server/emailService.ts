@@ -285,7 +285,17 @@ export async function sendInfoSheetEmail({
   eventDate: string;
   serviceType: string;
   chatLink?: string;
-}) {
+}): Promise<{ success: boolean; error?: string; result?: any }> {
+  // Check if there's actually content to send
+  const hasContent = infoSheetType === 'pdf' 
+    ? !!infoSheetPdfUrl 
+    : !!(infoSheetContent && infoSheetContent.trim());
+  
+  if (!hasContent) {
+    console.warn(`[Info Sheet Email] Skipping - no content to send for ${vendorName}. Type: ${infoSheetType}`);
+    return { success: false, error: 'No info sheet content configured' };
+  }
+  
   console.log("Getting Resend client for info sheet email...");
   const { client, fromEmail } = await getResendClient();
   
