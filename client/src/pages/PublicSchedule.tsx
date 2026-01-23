@@ -335,31 +335,42 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[#E8E2D9] bg-[#F5F3F0]">
-                <th className="px-3 py-2 text-left font-medium text-[#1A1A1A] w-24">Time</th>
                 {teamMembers.length > 0 ? (
                   teamMembers.map((member) => (
-                    <th key={member.id} className="px-2 py-2 text-center font-medium text-[#1A1A1A]">
+                    <th key={member.id} colSpan={2} className="px-2 py-2 text-center font-medium text-[#1A1A1A] border-r border-[#E8E2D9] last:border-r-0">
                       {member.name}
                     </th>
                   ))
                 ) : (
-                  <th className="px-2 py-2 text-center font-medium text-[#1A1A1A]">Client</th>
+                  <>
+                    <th className="px-3 py-2 text-left font-medium text-[#1A1A1A] w-24">Time</th>
+                    <th className="px-2 py-2 text-center font-medium text-[#1A1A1A]">Client</th>
+                  </>
                 )}
               </tr>
             </thead>
             <tbody>
-              {sortedAppointments.length > 0 ? (
-                Array.from(new Set(sortedAppointments.map(a => a.startTime)))
-                  .sort((a, b) => timeToMinutes(a) - timeToMinutes(b))
-                  .map((time) => (
-                  <tr key={time} className="border-b border-[#E8E2D9] last:border-0">
-                    <td className="px-3 py-2 text-[#666] whitespace-nowrap">{formatTimeDisplay(time)}</td>
-                    {teamMembers.length > 0 ? (
-                      teamMembers.map((member) => {
-                        const apt = groupedByTeamMember[member.id]?.find(a => a.startTime === time);
-                        return (
-                          <td key={member.id} className="px-2 py-2 text-center">
-                            {apt && !apt.isBuffer && (
+              {sortedAppointments.length > 0 && teamMembers.length > 0 ? (
+                (() => {
+                  // Get max rows needed (based on artist with most appointments)
+                  const maxRows = Math.max(...teamMembers.map(m => 
+                    (groupedByTeamMember[m.id] || []).filter(a => !a.isBuffer).length
+                  ));
+                  
+                  return Array.from({ length: maxRows }).map((_, rowIdx) => (
+                    <tr key={rowIdx} className="border-b border-[#E8E2D9] last:border-0">
+                      {teamMembers.map((member) => {
+                        const memberApts = (groupedByTeamMember[member.id] || [])
+                          .filter(a => !a.isBuffer)
+                          .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+                        const apt = memberApts[rowIdx];
+                        
+                        return [
+                          <td key={`${member.id}-time`} className="px-2 py-2 text-[#666] text-xs whitespace-nowrap border-r border-[#F0EDE8]">
+                            {apt ? formatTimeDisplay(apt.startTime) : ""}
+                          </td>,
+                          <td key={`${member.id}-name`} className="px-2 py-2 text-center border-r border-[#E8E2D9] last:border-r-0">
+                            {apt && (
                               <button
                                 onClick={() => {
                                   setSelectedAppointment(apt);
@@ -378,33 +389,36 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
                               </button>
                             )}
                           </td>
-                        );
-                      })
-                    ) : (
-                      <td className="px-2 py-2 text-center">
-                        {sortedAppointments.filter(a => a.startTime === time).map(apt => (
-                          <button
-                            key={apt.id}
-                            onClick={() => {
-                              if (!apt.isBuffer) {
-                                setSelectedAppointment(apt);
-                                setEditingNotes(apt.notes || "");
-                                setEditingName(apt.clientName || "");
-                                setEditingService(apt.serviceType || "");
-                              }
-                            }}
-                            className={`cursor-pointer px-2 py-1 rounded transition-colors ${
-                              apt.clientName 
-                                ? "text-[#1A1A1A] hover:bg-[#F5F3F0]" 
-                                : "text-[#999] hover:bg-[#F5F3F0] text-xs"
-                            }`}
-                            data-testid={`appointment-${apt.id}`}
-                          >
-                            {apt.clientName || "+ add"}
-                          </button>
-                        ))}
-                      </td>
-                    )}
+                        ];
+                      })}
+                    </tr>
+                  ));
+                })()
+              ) : sortedAppointments.length > 0 ? (
+                sortedAppointments
+                  .filter(a => !a.isBuffer)
+                  .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime))
+                  .map((apt) => (
+                  <tr key={apt.id} className="border-b border-[#E8E2D9] last:border-0">
+                    <td className="px-3 py-2 text-[#666] whitespace-nowrap">{formatTimeDisplay(apt.startTime)}</td>
+                    <td className="px-2 py-2 text-center">
+                      <button
+                        onClick={() => {
+                          setSelectedAppointment(apt);
+                          setEditingNotes(apt.notes || "");
+                          setEditingName(apt.clientName || "");
+                          setEditingService(apt.serviceType || "");
+                        }}
+                        className={`cursor-pointer px-2 py-1 rounded transition-colors ${
+                          apt.clientName 
+                            ? "text-[#1A1A1A] hover:bg-[#F5F3F0]" 
+                            : "text-[#999] hover:bg-[#F5F3F0] text-xs"
+                        }`}
+                        data-testid={`appointment-${apt.id}`}
+                      >
+                        {apt.clientName || "+ add"}
+                      </button>
+                    </td>
                   </tr>
                 ))
               ) : (
