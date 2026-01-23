@@ -13451,6 +13451,8 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       
       const { infoSheetType, infoSheetContent, infoSheetPdfUrl, infoSheetEnabled, formSuccessMessage, autoResponderMode, customResponse, politeDeclineTemplate, referralListTemplate, pricingInfo, plannerInfoSheet, plannerPricing } = req.body;
       
+      console.log(`[Settings Update] Artist: ${profile.artistSlug}, infoSheetType: ${infoSheetType}, hasContent: ${!!infoSheetContent}, contentLength: ${infoSheetContent?.length || 0}`);
+      
       const updateData: any = {};
       if (infoSheetType !== undefined) updateData.infoSheetType = infoSheetType;
       if (infoSheetContent !== undefined) updateData.infoSheetContent = infoSheetContent;
@@ -13466,6 +13468,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       if (plannerPricing !== undefined) updateData.plannerPricing = plannerPricing;
       
       const updatedProfile = await storage.updateArtistProfile(profile.userId, updateData);
+      console.log(`[Settings Update] Saved for ${profile.artistSlug}. New content length: ${updatedProfile?.infoSheetContent?.length || 0}`);
       
       res.json({
         success: true,
