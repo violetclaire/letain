@@ -82,20 +82,46 @@ export default function Revenue() {
   const [, params] = useRoute("/:artistSlug/revenue");
   const [, setLocation] = useLocation();
   const artistSlug = params?.artistSlug || "";
+  
+  // Get token from URL for authentication
+  const searchParams = new URLSearchParams(window.location.search);
+  const token = searchParams.get("token") || "";
+  const authParam = token ? `?token=${token}` : "";
 
   const { data, isLoading, error, refetch, isFetching } = useQuery<RevenueData>({
-    queryKey: ["/api/square/revenue", artistSlug],
+    queryKey: ["/api/square/revenue", artistSlug, token],
     queryFn: async () => {
-      const res = await fetch(`/api/square/revenue/${artistSlug}`);
+      const url = token 
+        ? `/api/square/revenue/${artistSlug}?token=${token}`
+        : `/api/square/revenue/${artistSlug}`;
+      const res = await fetch(url);
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || "Failed to load revenue data");
       }
       return res.json();
     },
-    enabled: !!artistSlug,
+    enabled: !!artistSlug && !!token,
     staleTime: 30000,
   });
+
+  // If no token, show auth required message
+  if (!token) {
+    return (
+      <div className="min-h-screen bg-bg flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+          <h2 className="font-fraunces text-xl mb-2">Authentication required</h2>
+          <p className="text-muted-ink mb-4">
+            Please access this page through your admin dashboard.
+          </p>
+          <Button onClick={() => setLocation(`/admin/${artistSlug}`)} variant="outline">
+            Go to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -112,7 +138,7 @@ export default function Revenue() {
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <h2 className="font-fraunces text-xl mb-2">Unable to load revenue data</h2>
           <p className="text-muted-ink mb-4">{(error as Error).message}</p>
-          <Button onClick={() => setLocation(`/${artistSlug}/settings`)} variant="outline">
+          <Button onClick={() => setLocation(`/${artistSlug}/settings${authParam}`)} variant="outline">
             Go to Settings
           </Button>
         </div>
@@ -129,7 +155,7 @@ export default function Revenue() {
           <p className="text-muted-ink mb-4">
             Connect your Square account in Settings to track invoices and payments.
           </p>
-          <Button onClick={() => setLocation(`/${artistSlug}/settings`)} variant="outline">
+          <Button onClick={() => setLocation(`/${artistSlug}/settings${authParam}`)} variant="outline">
             Go to Settings
           </Button>
         </div>
@@ -152,7 +178,7 @@ export default function Revenue() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setLocation(`/admin/${artistSlug}`)}
+                onClick={() => setLocation(`/admin/${artistSlug}${authParam}`)}
                 data-testid="button-back"
               >
                 <ArrowLeft className="h-5 w-5" />

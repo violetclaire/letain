@@ -633,15 +633,23 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
     }
   });
 
-  // Fetch invoices from Square for an artist
+  // Fetch invoices from Square for an artist (requires edit token for auth)
   app.get("/api/square/invoices/:artistSlug", async (req: Request, res: Response) => {
     try {
       const { artistSlug } = req.params;
-      const profile = await storage.getArtistProfileBySlug(artistSlug);
+      const token = req.query.token as string;
       
-      if (!profile) {
-        return res.status(404).json({ error: "Artist not found" });
+      // Validate authentication - require edit token
+      if (!token) {
+        return res.status(401).json({ error: "Authentication required" });
       }
+      
+      const tokenProfile = await storage.getArtistProfileByEditToken(token);
+      if (!tokenProfile || tokenProfile.artistSlug !== artistSlug) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const profile = tokenProfile;
       
       if (!profile.squareAccessToken) {
         return res.status(400).json({ error: "Square not connected", connected: false });
@@ -700,15 +708,23 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
     }
   });
 
-  // Fetch payments from Square for an artist
+  // Fetch payments from Square for an artist (requires edit token for auth)
   app.get("/api/square/payments/:artistSlug", async (req: Request, res: Response) => {
     try {
       const { artistSlug } = req.params;
-      const profile = await storage.getArtistProfileBySlug(artistSlug);
+      const token = req.query.token as string;
       
-      if (!profile) {
-        return res.status(404).json({ error: "Artist not found" });
+      // Validate authentication - require edit token
+      if (!token) {
+        return res.status(401).json({ error: "Authentication required" });
       }
+      
+      const tokenProfile = await storage.getArtistProfileByEditToken(token);
+      if (!tokenProfile || tokenProfile.artistSlug !== artistSlug) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const profile = tokenProfile;
       
       if (!profile.squareAccessToken) {
         return res.status(400).json({ error: "Square not connected", connected: false });
@@ -787,15 +803,23 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
     }
   });
 
-  // Combined revenue summary endpoint
+  // Combined revenue summary endpoint (requires edit token for auth)
   app.get("/api/square/revenue/:artistSlug", async (req: Request, res: Response) => {
     try {
       const { artistSlug } = req.params;
-      const profile = await storage.getArtistProfileBySlug(artistSlug);
+      const token = req.query.token as string;
       
-      if (!profile) {
-        return res.status(404).json({ error: "Artist not found" });
+      // Validate authentication - require edit token
+      if (!token) {
+        return res.status(401).json({ error: "Authentication required" });
       }
+      
+      const tokenProfile = await storage.getArtistProfileByEditToken(token);
+      if (!tokenProfile || tokenProfile.artistSlug !== artistSlug) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const profile = tokenProfile;
       
       if (!profile.squareAccessToken) {
         return res.json({ 
