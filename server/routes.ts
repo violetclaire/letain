@@ -13572,10 +13572,12 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const publicUrl = await objectService.uploadBuffer(objectPath, fileBuffer, mimeType);
       
       // Update profile with new info sheet URL
-      await storage.updateArtistProfile(profile.id, {
+      console.log(`[Info Sheet Upload] Uploading for artist: ${profile.artistSlug}, userId: ${profile.userId}`);
+      await storage.updateArtistProfile(profile.userId, {
         infoSheetPdfUrl: publicUrl,
         infoSheetType: 'pdf',
       });
+      console.log(`[Info Sheet Upload] Saved. URL: ${publicUrl}`);
       
       res.json({
         success: true,
