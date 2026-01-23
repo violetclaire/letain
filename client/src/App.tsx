@@ -76,6 +76,7 @@ import ArtistLogin from "@/pages/ArtistLogin";
 import AccessVerify from "@/pages/AccessVerify";
 import ArtistAvailability from "@/pages/ArtistAvailability";
 import PublicQuote from "@/pages/PublicQuote";
+import Revenue from "@/pages/Revenue";
 
 // Domain-aware login - shows "Find Your Thread" on dateinquiry.com, full login on beauvette.app
 function DomainAwareLogin() {
@@ -215,6 +216,7 @@ function Router() {
       <Route path="/:artistSlug/settings" component={ArtistSettings} />
       <Route path="/:artistSlug/calendar" component={PublicArtistCalendar} />
       <Route path="/:artistSlug/circle" component={TrustedCircle} />
+      <Route path="/:artistSlug/revenue" component={Revenue} />
       
       {/* Primary inquiry route - clean URL for sharing (dateinquiry.com/business-name) */}
       <Route path="/:artistSlug" component={InquirePage} />

@@ -633,6 +633,282 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any) {
     }
   });
 
+  // Fetch invoices from Square for an artist
+  app.get("/api/square/invoices/:artistSlug", async (req: Request, res: Response) => {
+    try {
+      const { artistSlug } = req.params;
+      const profile = await storage.getArtistProfileBySlug(artistSlug);
+      
+      if (!profile) {
+        return res.status(404).json({ error: "Artist not found" });
+      }
+      
+      if (!profile.squareAccessToken) {
+        return res.status(400).json({ error: "Square not connected", connected: false });
+      }
+
+      const square = getMerchantSquare(profile.squareAccessToken);
+      const locationId = profile.squareLocationId || process.env.SQUARE_LOCATION_ID;
+      
+      if (!locationId) {
+        return res.status(400).json({ error: "Square location not configured" });
+      }
+
+      // Fetch invoices from Square
+      const invoicesResponse = await square.invoices.list({
+        locationId,
+        limit: 100,
+      });
+
+      const invoices = (invoicesResponse as any).invoices || [];
+      
+      // Transform invoices to a simpler format
+      const formattedInvoices = invoices.map((inv: any) => ({
+        id: inv.id,
+        invoiceNumber: inv.invoiceNumber,
+        title: inv.title,
+        status: inv.status,
+        createdAt: inv.createdAt,
+        updatedAt: inv.updatedAt,
+        scheduledAt: inv.scheduledAt,
+        publicUrl: inv.publicUrl,
+        orderId: inv.orderId,
+        primaryRecipient: inv.primaryRecipient?.emailAddress,
+        paymentRequests: inv.paymentRequests?.map((pr: any) => ({
+          requestType: pr.requestType,
+          dueDate: pr.dueDate,
+          totalMoney: pr.computedAmountMoney ? {
+            amount: Number(pr.computedAmountMoney.amount) / 100,
+            currency: pr.computedAmountMoney.currency,
+          } : null,
+          tippingEnabled: pr.tippingEnabled,
+        })),
+        totalMoney: inv.paymentRequests?.[0]?.computedAmountMoney ? {
+          amount: Number(inv.paymentRequests[0].computedAmountMoney.amount) / 100,
+          currency: inv.paymentRequests[0].computedAmountMoney.currency,
+        } : null,
+      }));
+
+      res.json({
+        connected: true,
+        invoices: formattedInvoices,
+        count: formattedInvoices.length,
+      });
+    } catch (error: any) {
+      console.error("[Square Invoices] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch invoices" });
+    }
+  });
+
+  // Fetch payments from Square for an artist
+  app.get("/api/square/payments/:artistSlug", async (req: Request, res: Response) => {
+    try {
+      const { artistSlug } = req.params;
+      const profile = await storage.getArtistProfileBySlug(artistSlug);
+      
+      if (!profile) {
+        return res.status(404).json({ error: "Artist not found" });
+      }
+      
+      if (!profile.squareAccessToken) {
+        return res.status(400).json({ error: "Square not connected", connected: false });
+      }
+
+      const square = getMerchantSquare(profile.squareAccessToken);
+      const locationId = profile.squareLocationId || process.env.SQUARE_LOCATION_ID;
+      
+      if (!locationId) {
+        return res.status(400).json({ error: "Square location not configured" });
+      }
+
+      // Fetch payments from Square (last 60 days)
+      const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
+      
+      const paymentsResponse = await square.payments.list({
+        locationId,
+        beginTime: sixtyDaysAgo,
+        sortOrder: 'DESC',
+      });
+
+      const payments = (paymentsResponse as any).payments || [];
+      
+      // Transform payments to a simpler format
+      const formattedPayments = payments.map((pmt: any) => ({
+        id: pmt.id,
+        status: pmt.status,
+        createdAt: pmt.createdAt,
+        updatedAt: pmt.updatedAt,
+        orderId: pmt.orderId,
+        receiptUrl: pmt.receiptUrl,
+        sourceType: pmt.sourceType,
+        cardBrand: pmt.cardDetails?.card?.cardBrand,
+        last4: pmt.cardDetails?.card?.last4,
+        amountMoney: pmt.amountMoney ? {
+          amount: Number(pmt.amountMoney.amount) / 100,
+          currency: pmt.amountMoney.currency,
+        } : null,
+        tipMoney: pmt.tipMoney ? {
+          amount: Number(pmt.tipMoney.amount) / 100,
+          currency: pmt.tipMoney.currency,
+        } : null,
+        totalMoney: pmt.totalMoney ? {
+          amount: Number(pmt.totalMoney.amount) / 100,
+          currency: pmt.totalMoney.currency,
+        } : null,
+        processingFee: pmt.processingFee?.[0] ? {
+          amount: Number(pmt.processingFee[0].amountMoney.amount) / 100,
+          currency: pmt.processingFee[0].amountMoney.currency,
+        } : null,
+      }));
+
+      // Calculate totals
+      const totalRevenue = formattedPayments
+        .filter((p: any) => p.status === 'COMPLETED')
+        .reduce((sum: number, p: any) => sum + (p.amountMoney?.amount || 0), 0);
+      
+      const totalFees = formattedPayments
+        .filter((p: any) => p.status === 'COMPLETED')
+        .reduce((sum: number, p: any) => sum + (p.processingFee?.amount || 0), 0);
+
+      res.json({
+        connected: true,
+        payments: formattedPayments,
+        count: formattedPayments.length,
+        summary: {
+          totalRevenue,
+          totalFees,
+          netRevenue: totalRevenue - totalFees,
+          completedCount: formattedPayments.filter((p: any) => p.status === 'COMPLETED').length,
+        },
+      });
+    } catch (error: any) {
+      console.error("[Square Payments] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch payments" });
+    }
+  });
+
+  // Combined revenue summary endpoint
+  app.get("/api/square/revenue/:artistSlug", async (req: Request, res: Response) => {
+    try {
+      const { artistSlug } = req.params;
+      const profile = await storage.getArtistProfileBySlug(artistSlug);
+      
+      if (!profile) {
+        return res.status(404).json({ error: "Artist not found" });
+      }
+      
+      if (!profile.squareAccessToken) {
+        return res.json({ 
+          connected: false, 
+          invoices: [],
+          payments: [],
+          summary: {
+            totalInvoiced: 0,
+            totalPaid: 0,
+            totalPending: 0,
+            invoiceCount: 0,
+            paidCount: 0,
+            pendingCount: 0,
+          }
+        });
+      }
+
+      const square = getMerchantSquare(profile.squareAccessToken);
+      const locationId = profile.squareLocationId || process.env.SQUARE_LOCATION_ID;
+      
+      if (!locationId) {
+        return res.status(400).json({ error: "Square location not configured" });
+      }
+
+      // Fetch invoices
+      let invoices: any[] = [];
+      try {
+        const invoicesResponse = await square.invoices.list({
+          locationId,
+          limit: 100,
+        });
+        invoices = (invoicesResponse as any).invoices || [];
+      } catch (e) {
+        console.error("[Square Revenue] Failed to fetch invoices:", e);
+      }
+
+      // Fetch payments (last 60 days)
+      let payments: any[] = [];
+      try {
+        const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
+        const paymentsResponse = await square.payments.list({
+          locationId,
+          beginTime: sixtyDaysAgo,
+          sortOrder: 'DESC',
+        });
+        payments = (paymentsResponse as any).payments || [];
+      } catch (e) {
+        console.error("[Square Revenue] Failed to fetch payments:", e);
+      }
+
+      // Process invoices
+      const formattedInvoices = invoices.map((inv: any) => {
+        const amount = inv.paymentRequests?.[0]?.computedAmountMoney?.amount;
+        return {
+          id: inv.id,
+          invoiceNumber: inv.invoiceNumber,
+          title: inv.title,
+          status: inv.status,
+          createdAt: inv.createdAt,
+          dueDate: inv.paymentRequests?.[0]?.dueDate,
+          publicUrl: inv.publicUrl,
+          clientEmail: inv.primaryRecipient?.emailAddress,
+          amount: amount ? Number(amount) / 100 : 0,
+        };
+      });
+
+      // Process payments
+      const formattedPayments = payments.map((pmt: any) => ({
+        id: pmt.id,
+        status: pmt.status,
+        createdAt: pmt.createdAt,
+        receiptUrl: pmt.receiptUrl,
+        cardBrand: pmt.cardDetails?.card?.cardBrand,
+        last4: pmt.cardDetails?.card?.last4,
+        amount: pmt.amountMoney ? Number(pmt.amountMoney.amount) / 100 : 0,
+        tip: pmt.tipMoney ? Number(pmt.tipMoney.amount) / 100 : 0,
+        processingFee: pmt.processingFee?.[0] ? Number(pmt.processingFee[0].amountMoney.amount) / 100 : 0,
+      }));
+
+      // Calculate summary
+      const totalInvoiced = formattedInvoices.reduce((sum, inv) => sum + inv.amount, 0);
+      const paidInvoices = formattedInvoices.filter(inv => inv.status === 'PAID');
+      const pendingInvoices = formattedInvoices.filter(inv => ['UNPAID', 'SCHEDULED', 'PARTIALLY_PAID'].includes(inv.status));
+      
+      const totalPaid = paidInvoices.reduce((sum, inv) => sum + inv.amount, 0);
+      const totalPending = pendingInvoices.reduce((sum, inv) => sum + inv.amount, 0);
+
+      const completedPayments = formattedPayments.filter(p => p.status === 'COMPLETED');
+      const paymentRevenue = completedPayments.reduce((sum, p) => sum + p.amount, 0);
+      const totalFees = completedPayments.reduce((sum, p) => sum + p.processingFee, 0);
+
+      res.json({
+        connected: true,
+        invoices: formattedInvoices,
+        payments: formattedPayments,
+        summary: {
+          totalInvoiced,
+          totalPaid,
+          totalPending,
+          invoiceCount: formattedInvoices.length,
+          paidCount: paidInvoices.length,
+          pendingCount: pendingInvoices.length,
+          paymentRevenue,
+          totalFees,
+          netRevenue: paymentRevenue - totalFees,
+        },
+      });
+    } catch (error: any) {
+      console.error("[Square Revenue] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch revenue data" });
+    }
+  });
+
   app.post("/api/square/webhooks", async (req: Request, res: Response) => {
     try {
       const signature = req.headers['x-square-hmacsha256-signature'] as string;

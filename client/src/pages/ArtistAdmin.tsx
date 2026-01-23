@@ -482,6 +482,15 @@ export default function ArtistAdmin() {
                 Network
               </Link>
               <Link 
+                href={`/${getActualSlug()}/revenue${authParam}`}
+                className="flex items-center gap-3 px-4 py-3 text-sm text-ink/80 hover:bg-ink/10 transition-colors border-b border-ink/10"
+                onClick={() => setMenuOpen(false)}
+                data-testid="nav-revenue"
+              >
+                <DollarSign className="w-4 h-4" />
+                Revenue
+              </Link>
+              <Link 
                 href={`/${getActualSlug()}/settings${authParam}`}
                 className="flex items-center gap-3 px-4 py-3 text-sm text-ink/80 hover:bg-ink/10 transition-colors border-b border-ink/10"
                 onClick={() => setMenuOpen(false)}
