@@ -3,7 +3,7 @@ import { useRoute, useSearch } from "wouter";
 import { format } from "date-fns";
 import { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, Send, X, Check, Plus, Trash2, Eye, Pencil, UserPlus, Copy } from "lucide-react";
+import { Loader2, Send, X, Check, Plus, Trash2, Eye, Pencil, UserPlus, Copy, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ServiceItem {
@@ -42,6 +42,8 @@ interface ArtistProfile {
   prettyLinks?: Record<string, string>;
   onboardingCompleted?: boolean;
   infoSheetContent?: string;
+  infoSheetPdfUrl?: string;
+  infoSheetType?: string;
   pricingInfo?: string;
   politeDeclineTemplate?: string;
   referralListTemplate?: string;
@@ -1011,9 +1013,18 @@ export default function InquiryThread() {
                   </button>
                 </div>
                 <div className="bg-white border border-[#E8E2D9] rounded p-4 mb-6 max-h-40 overflow-y-auto">
-                  <p className="text-xs text-[#666] leading-relaxed whitespace-pre-wrap">
-                    {artist?.infoSheetContent || "Your info sheet content will be sent to the client."}
-                  </p>
+                  {artist?.infoSheetPdfUrl ? (
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-[#666]" />
+                      <a href={artist.infoSheetPdfUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-[#666] underline">
+                        View your info sheet PDF
+                      </a>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-[#666] leading-relaxed whitespace-pre-wrap">
+                      {artist?.infoSheetContent || "Your info sheet content will be sent to the client."}
+                    </p>
+                  )}
                 </div>
                 <div className="flex gap-3">
                   <button
