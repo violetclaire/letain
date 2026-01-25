@@ -549,6 +549,7 @@ export interface IStorage {
   // Inquiry Notifications
   createInquiryNotification(data: InsertInquiryNotification): Promise<InquiryNotification>;
   getInquiryNotifications(inquiryId: string): Promise<InquiryNotification[]>;
+  updateInquiryNotification(id: string, data: Partial<InsertInquiryNotification>): Promise<InquiryNotification | undefined>;
   
   // Trusted Circle
   getTrustedCircleByReferrer(referrerId: string): Promise<TrustedCircle[]>;
@@ -2688,6 +2689,15 @@ export class DatabaseStorage implements IStorage {
       .from(inquiryNotifications)
       .where(eq(inquiryNotifications.inquiryId, inquiryId))
       .orderBy(desc(inquiryNotifications.createdAt));
+  }
+  
+  async updateInquiryNotification(id: string, data: Partial<InsertInquiryNotification>): Promise<InquiryNotification | undefined> {
+    const [updated] = await db
+      .update(inquiryNotifications)
+      .set(data as any)
+      .where(eq(inquiryNotifications.id, id))
+      .returning();
+    return updated;
   }
   
   // Trusted Circle
