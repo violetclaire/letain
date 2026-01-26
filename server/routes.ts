@@ -10073,8 +10073,36 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           vendorName: vendor.name,
           businessName: vendor.businessName,
           inquiryId: forkedInquiry.id,
+          threadToken: forkedInquiry.threadToken,
+          clientThreadToken: forkedInquiry.clientThreadToken,
           fitScore,
         });
+        
+        // Send email notification to receiving artist about the referral
+        try {
+          const { sendInquiryNotificationEmail } = await import('./emailService');
+          const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
+          const vendorProfile = await storage.getArtistProfile(vendor.id);
+          
+          await sendInquiryNotificationEmail({
+            toEmail: vendor.email,
+            vendorName: vendor.name || vendorProfile?.businessName || 'Artist',
+            clientName: inquiry.clientName,
+            clientEmail: inquiry.clientEmail,
+            eventDate: inquiry.eventDate ? new Date(inquiry.eventDate).toLocaleDateString('en-US', { 
+              weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+            }) : 'Date TBD',
+            eventLocation: inquiry.eventLocation || undefined,
+            serviceType: inquiry.serviceType || undefined,
+            inquiryLink: `${baseUrl}/inquiry/${forkedInquiry.threadToken}`,
+            isReferral: true,
+            referredBy: referrerName,
+          });
+          
+          console.log(`[Referral] Sent notification email to receiving artist: ${vendor.email}`);
+        } catch (emailErr: any) {
+          console.error('[Referral] Failed to send artist notification:', emailErr);
+        }
         
         // Emit CDI event for referral inquiry created
         await storage.createCdiEvent({
@@ -10164,15 +10192,21 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       if (notifyClient) {
         try {
           const { sendReferralNotificationEmail } = await import('./emailService');
+          const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
+          
+          // Build vendor list with thread links for clients
+          const vendorsWithLinks = referralSummaries.map(r => ({
+            name: r.businessName || r.vendorName,
+            threadLink: r.clientThreadToken ? `${baseUrl}/thread/${r.clientThreadToken}` : undefined,
+          }));
+          
           await sendReferralNotificationEmail({
             toEmail: inquiry.clientEmail,
             clientName: inquiry.clientName,
             referrerName: referrerName,
             declineReason: declineReason,
             referralMessage: referralMessage,
-            referralVendors: referralVendors.map(v => ({
-              name: v.businessName || v.name,
-            })),
+            referralVendors: vendorsWithLinks,
           }).catch((err: any) => console.error('[Referral Email] Error:', err));
         } catch (emailErr: any) {
           console.error('[Referral Email] Failed to send:', emailErr);

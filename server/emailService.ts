@@ -1720,8 +1720,12 @@ export async function sendInquiryNotificationEmail({
   clientEmail,
   eventDate,
   location,
+  eventLocation,
+  serviceType,
   message,
-  inquiryLink
+  inquiryLink,
+  isReferral,
+  referredBy
 }: {
   toEmail: string;
   vendorName: string;
@@ -1729,16 +1733,24 @@ export async function sendInquiryNotificationEmail({
   clientEmail?: string;
   eventDate: string;
   location?: string;
-  message: string;
+  eventLocation?: string;
+  serviceType?: string;
+  message?: string;
   inquiryLink: string;
+  isReferral?: boolean;
+  referredBy?: string;
 }) {
   const { client } = await getResendClient();
 
   const safeVendorName = sanitizeSenderName(vendorName) || 'Artist';
   const safeClientName = escapeHtml(clientName);
   const safeClientEmail = clientEmail ? escapeHtml(clientEmail) : '';
-  const safeLocation = location ? escapeHtml(location) : '';
-  const safeMessage = escapeHtml(message).replace(/\n/g, '<br>');
+  const safeLocation = location || eventLocation ? escapeHtml(location || eventLocation || '') : '';
+  const safeMessage = message ? escapeHtml(message).replace(/\n/g, '<br>') : '';
+  const safeReferrer = referredBy ? escapeHtml(referredBy) : '';
+  
+  const title = isReferral ? `Referral from ${safeReferrer}` : 'New Inquiry';
+  const referralNote = isReferral ? `<p style="background: #f0f7ff; padding: 12px; border-radius: 4px; margin-bottom: 16px;"><strong>${safeReferrer}</strong> referred this client to you.</p>` : '';
   
   const htmlContent = `
     <!DOCTYPE html>
@@ -1757,12 +1769,14 @@ export async function sendInquiryNotificationEmail({
       </style>
     </head>
     <body>
-      <h1>New Inquiry</h1>
+      <h1>${title}</h1>
+      ${referralNote}
       <div class="details">
         <p style="margin-bottom: 12px;"><strong>${safeClientName}</strong></p>
         ${safeClientEmail ? `<p style="font-size: 14px; color: #666; margin-bottom: 8px;">${safeClientEmail}</p>` : ''}
         <p style="margin-top: 12px;"><strong>Date:</strong> ${eventDate}</p>
         ${safeLocation ? `<p><strong>Location:</strong> ${safeLocation}</p>` : ''}
+        ${serviceType ? `<p><strong>Service:</strong> ${escapeHtml(serviceType)}</p>` : ''}
       </div>
       ${safeMessage && safeMessage !== 'No message provided' ? `<p style="margin-top: 16px; font-style: italic; padding-left: 12px; border-left: 2px solid #ddd;">${safeMessage}</p>` : ''}
       <a href="${inquiryLink}" class="button">Review Inquiry</a>
@@ -1772,13 +1786,14 @@ export async function sendInquiryNotificationEmail({
   `;
 
   const senderEmail = 'notifications@dateinquiry.com';
+  const subject = isReferral ? `Referral: ${safeClientName} (from ${safeReferrer})` : `New Inquiry: ${safeClientName}`;
   
   try {
     console.log("Sending inquiry notification email to:", toEmail);
     const result = await client.emails.send({
       from: senderEmail,
       to: toEmail.trim(),
-      subject: `New Inquiry: ${safeClientName}`,
+      subject: subject,
       html: htmlContent
     });
     console.log("Inquiry notification email sent:", JSON.stringify(result));
@@ -1802,7 +1817,7 @@ export async function sendReferralNotificationEmail({
   referrerName: string;
   declineReason: string;
   referralMessage?: string;
-  referralVendors: Array<{ name: string }>;
+  referralVendors: Array<{ name: string; threadLink?: string }>;
 }) {
   const { client } = await getResendClient();
 
@@ -1811,7 +1826,16 @@ export async function sendReferralNotificationEmail({
   const safeDeclineReason = escapeHtml(declineReason);
   const safeMessage = referralMessage ? escapeHtml(referralMessage) : '';
   
-  const vendorList = referralVendors.map(v => `<li style="margin: 8px 0;">${escapeHtml(v.name)}</li>`).join('');
+  const vendorList = referralVendors.map(v => {
+    const vendorName = escapeHtml(v.name);
+    if (v.threadLink) {
+      return `<li style="margin: 12px 0;">
+        <strong>${vendorName}</strong><br>
+        <a href="${v.threadLink}" style="display: inline-block; margin-top: 8px; background: #1a1a1a; color: #fff; padding: 8px 16px; text-decoration: none; border-radius: 4px; font-size: 12px;">Message ${vendorName}</a>
+      </li>`;
+    }
+    return `<li style="margin: 8px 0;">${vendorName}</li>`;
+  }).join('');
   
   const htmlContent = `
     <!DOCTYPE html>
@@ -1832,7 +1856,7 @@ export async function sendReferralNotificationEmail({
         .message { font-style: italic; border-left: 2px solid #6B4A55; padding-left: 16px; margin: 20px 0; }
         .referrals { background: #FAF9F7; padding: 20px; margin: 24px 0; border: 1px solid #6B4A55; }
         .referrals h3 { margin: 0 0 12px 0; color: #6B4A55; }
-        .referrals ul { margin: 0; padding-left: 20px; }
+        .referrals ul { margin: 0; padding-left: 20px; list-style: none; }
         .footer { text-align: center; padding: 20px; color: #6B4A55; font-size: 12px; border-top: 1px solid #6B4A55; }
       </style>
     </head>
@@ -1848,14 +1872,12 @@ export async function sendReferralNotificationEmail({
           
           ${safeMessage ? `<div class="message">${safeMessage}</div>` : ''}
           
-          <p>However, I've recommended some wonderful colleagues who may be able to help:</p>
+          <p>However, I've recommended some wonderful colleagues who may be able to help. You can message them directly using the links below:</p>
           
           <div class="referrals">
             <h3>Recommended Vendors</h3>
             <ul>${vendorList}</ul>
           </div>
-          
-          <p>These artists will be reaching out to you shortly.</p>
           
           <p>Warm regards,<br>${safeReferrerName}</p>
         </div>
