@@ -12742,6 +12742,50 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
+  // Token-based create client (for Settings page with magic link)
+  app.post("/api/public/artists/settings/create-client", async (req, res) => {
+    try {
+      const { token } = req.query;
+      if (!token) {
+        return res.status(401).json({ error: "Access token required" });
+      }
+      
+      const profile = await storage.getArtistProfileByEditToken(token as string);
+      if (!profile) {
+        return res.status(401).json({ error: "Invalid access token" });
+      }
+      
+      const { clientName, clientEmail, clientPhone, eventDate, notes } = req.body;
+      
+      if (!clientName || !clientEmail) {
+        return res.status(400).json({ error: "Client name and email are required" });
+      }
+      
+      // Create an inquiry for this client (artist-initiated)
+      const inquiry = await storage.createInquiry({
+        vendorId: profile.userId,
+        clientName,
+        clientEmail,
+        clientPhone: clientPhone || null,
+        eventDate: eventDate ? new Date(eventDate) : null,
+        message: notes || "Manually added client",
+        status: "pending",
+        source: "manual",
+        serviceType: "Consultation",
+      });
+      
+      res.json({ 
+        success: true, 
+        inquiry,
+        threadToken: inquiry.threadToken,
+        message: `Client ${clientName} added successfully` 
+      });
+    } catch (error: any) {
+      console.error("[Create Client Token] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to create client" });
+    }
+  });
+
   // ========== DIRECT CHATS (Quick Chat) ==========
   
   // Create a new direct chat

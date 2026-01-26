@@ -69,6 +69,15 @@ export default function ArtistSettings() {
   const [editingEmail, setEditingEmail] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [squareConnecting, setSquareConnecting] = useState(false);
+  const [showAddClient, setShowAddClient] = useState(false);
+  const [newClientData, setNewClientData] = useState({
+    clientName: "",
+    clientEmail: "",
+    clientPhone: "",
+    eventDate: "",
+    notes: "",
+  });
+  const [creatingClient, setCreatingClient] = useState(false);
 
   // Check for Square OAuth callback
   const squareConnected = searchParams.get("square") === "connected";
@@ -87,6 +96,36 @@ export default function ArtistSettings() {
   const handleSquareConnect = async () => {
     setSquareConnecting(true);
     window.location.href = `/api/square/connect/start/${artistSlug}`;
+  };
+
+  const handleCreateClient = async () => {
+    if (!newClientData.clientName || !newClientData.clientEmail) {
+      toast({ title: "Name and email required", variant: "destructive" });
+      return;
+    }
+    setCreatingClient(true);
+    try {
+      const res = await fetch(`/api/public/artists/settings/create-client?token=${token}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newClientData),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to create client");
+      }
+      const data = await res.json();
+      toast({ title: "Client added successfully" });
+      setShowAddClient(false);
+      setNewClientData({ clientName: "", clientEmail: "", clientPhone: "", eventDate: "", notes: "" });
+      if (data.threadToken) {
+        window.location.href = `/inquiry/${data.threadToken}`;
+      }
+    } catch (error: any) {
+      toast({ title: "Failed to add client", description: error.message, variant: "destructive" });
+    } finally {
+      setCreatingClient(false);
+    }
   };
 
   const { data: settings, isLoading, error } = useQuery<ArtistSettingsData>({
@@ -576,6 +615,21 @@ export default function ArtistSettings() {
             )}
           </section>
 
+          {/* Add Client */}
+          <section className="border border-[#E8E2D9] rounded p-6">
+            <h2 className="text-lg font-serif text-black mb-2">Add New Client</h2>
+            <p className="text-[#666] text-sm mb-4">
+              Manually add a client to send them an invoice or contract.
+            </p>
+            <Button
+              onClick={() => setShowAddClient(true)}
+              className="bg-[#F5F0E8] text-[#1A1A1A] hover:bg-white"
+              data-testid="button-add-client-settings"
+            >
+              Add Client
+            </Button>
+          </section>
+
           {/* Upload Your Info Sheet */}
           <section className="border border-[#E8E2D9] rounded p-6">
             <h2 className="text-lg font-serif text-black mb-2">Upload Your Info Sheet</h2>
@@ -832,6 +886,92 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
           </section>
         </motion.div>
       </main>
+
+      {/* Add Client Modal */}
+      {showAddClient && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#FAF8F5] border border-[#E8E2D9] rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-serif text-black mb-4">Add New Client</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs text-[#666] mb-1">Client Name *</label>
+                <input
+                  type="text"
+                  value={newClientData.clientName}
+                  onChange={(e) => setNewClientData({ ...newClientData, clientName: e.target.value })}
+                  placeholder="Jane Smith"
+                  className="w-full px-3 py-2 bg-white border border-[#E8E2D9] rounded text-sm focus:outline-none focus:border-[#C4A35A]"
+                  data-testid="input-settings-client-name"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[#666] mb-1">Email *</label>
+                <input
+                  type="email"
+                  value={newClientData.clientEmail}
+                  onChange={(e) => setNewClientData({ ...newClientData, clientEmail: e.target.value })}
+                  placeholder="jane@example.com"
+                  className="w-full px-3 py-2 bg-white border border-[#E8E2D9] rounded text-sm focus:outline-none focus:border-[#C4A35A]"
+                  data-testid="input-settings-client-email"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[#666] mb-1">Phone</label>
+                <input
+                  type="tel"
+                  value={newClientData.clientPhone}
+                  onChange={(e) => setNewClientData({ ...newClientData, clientPhone: e.target.value })}
+                  placeholder="(555) 123-4567"
+                  className="w-full px-3 py-2 bg-white border border-[#E8E2D9] rounded text-sm focus:outline-none focus:border-[#C4A35A]"
+                  data-testid="input-settings-client-phone"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[#666] mb-1">Event Date</label>
+                <input
+                  type="date"
+                  value={newClientData.eventDate}
+                  onChange={(e) => setNewClientData({ ...newClientData, eventDate: e.target.value })}
+                  className="w-full px-3 py-2 bg-white border border-[#E8E2D9] rounded text-sm focus:outline-none focus:border-[#C4A35A]"
+                  data-testid="input-settings-client-date"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[#666] mb-1">Notes</label>
+                <textarea
+                  value={newClientData.notes}
+                  onChange={(e) => setNewClientData({ ...newClientData, notes: e.target.value })}
+                  placeholder="Any notes about this client..."
+                  rows={2}
+                  className="w-full px-3 py-2 bg-white border border-[#E8E2D9] rounded text-sm focus:outline-none focus:border-[#C4A35A] resize-none"
+                  data-testid="input-settings-client-notes"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowAddClient(false);
+                  setNewClientData({ clientName: "", clientEmail: "", clientPhone: "", eventDate: "", notes: "" });
+                }}
+                className="flex-1 px-4 py-2 border border-[#E8E2D9] rounded text-sm hover:bg-[#F5F2ED]"
+                data-testid="button-cancel-add-client-settings"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateClient}
+                disabled={creatingClient || !newClientData.clientName || !newClientData.clientEmail}
+                className="flex-1 px-4 py-2 bg-[#C4A35A] hover:bg-[#C4A35A]/90 text-[#1A1A1A] rounded text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                data-testid="button-create-client-settings"
+              >
+                {creatingClient ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                Add Client
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
