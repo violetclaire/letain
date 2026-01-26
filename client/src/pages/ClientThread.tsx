@@ -262,7 +262,7 @@ export default function ClientThread() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="self-end bg-[#333] text-[#1A1A1A] px-4 py-3 rounded hover:bg-[#444] transition-colors disabled:opacity-50"
+              className="self-end bg-[#E8E2D9] text-[#1A1A1A] px-4 py-3 rounded hover:bg-[#C4A35A] transition-colors disabled:opacity-50"
               title="Add inspiration photos"
               data-testid="button-add-photo"
             >
