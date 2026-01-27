@@ -383,10 +383,14 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
                                       setEditingName(apt.clientName || "");
                                       setEditingService(apt.serviceType || "");
                                     }}
-                                    className="text-[#1A1A1A] hover:underline text-left"
+                                    className="text-[#1A1A1A] hover:underline text-left group relative"
+                                    title="Click to add inspo pics & notes"
                                     data-testid={`appointment-${apt.id}`}
                                   >
                                     {apt.clientName}
+                                    <span className="absolute left-0 -bottom-5 bg-[#1A1A1A] text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
+                                      Click to add inspo pics & notes
+                                    </span>
                                   </button>
                                 ) : null}
                               </td>
