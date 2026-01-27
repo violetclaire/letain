@@ -333,106 +333,78 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
           </div>
         )}
 
-        {/* Schedule Table - Compact Single View */}
-        <div className="bg-white rounded-lg border border-[#E8E2D9] overflow-hidden mb-6">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[#E8E2D9] bg-[#F5F3F0]">
-                {teamMembers.length > 0 ? (
-                  teamMembers.map((member) => (
-                    <th key={member.id} colSpan={2} className="px-2 py-2 text-center font-medium text-[#1A1A1A] border-r border-[#E8E2D9] last:border-r-0">
+        {/* Schedule - Column Layout */}
+        <div className="mb-6">
+          {teamMembers.length > 0 ? (
+            <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${Math.min(teamMembers.length, 4)}, 1fr)` }}>
+              {teamMembers.map((member) => {
+                const memberApts = (groupedByTeamMember[member.id] || [])
+                  .filter(a => !a.isBuffer && a.clientName && a.clientName.trim())
+                  .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+                
+                return (
+                  <div key={member.id} className="bg-white rounded-lg border border-[#E8E2D9] overflow-hidden">
+                    <div className="bg-[#1A1A1A] text-white px-3 py-2 font-medium text-sm text-center">
                       {member.name}
-                    </th>
-                  ))
-                ) : (
-                  <>
-                    <th className="px-3 py-2 text-left font-medium text-[#1A1A1A] w-24">Time</th>
-                    <th className="px-2 py-2 text-center font-medium text-[#1A1A1A]">Client</th>
-                  </>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {sortedAppointments.length > 0 && teamMembers.length > 0 ? (
-                (() => {
-                  // Get max rows needed (based on artist with most appointments)
-                  const maxRows = Math.max(...teamMembers.map(m => 
-                    (groupedByTeamMember[m.id] || []).filter(a => !a.isBuffer).length
-                  ));
-                  
-                  return Array.from({ length: maxRows }).map((_, rowIdx) => (
-                    <tr key={rowIdx} className="border-b border-[#E8E2D9] last:border-0">
-                      {teamMembers.map((member) => {
-                        const memberApts = (groupedByTeamMember[member.id] || [])
-                          .filter(a => !a.isBuffer)
-                          .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
-                        const apt = memberApts[rowIdx];
-                        
-                        return [
-                          <td key={`${member.id}-time`} className="px-2 py-2 text-[#666] text-xs whitespace-nowrap border-r border-[#F0EDE8]">
-                            {apt ? formatTimeDisplay(apt.startTime) : ""}
-                          </td>,
-                          <td key={`${member.id}-name`} className="px-2 py-2 text-center border-r border-[#E8E2D9] last:border-r-0">
-                            {apt && (
-                              <button
-                                onClick={() => {
-                                  setSelectedAppointment(apt);
-                                  setEditingNotes(apt.notes || "");
-                                  setEditingName(apt.clientName || "");
-                                  setEditingService(apt.serviceType || "");
-                                }}
-                                className={`cursor-pointer px-2 py-1 rounded transition-colors ${
-                                  apt.clientName 
-                                    ? "text-[#1A1A1A] hover:bg-[#F5F3F0]" 
-                                    : "text-[#999] hover:bg-[#F5F3F0] text-xs"
-                                }`}
-                                data-testid={`appointment-${apt.id}`}
-                              >
-                                {apt.clientName || "+ add"}
-                              </button>
-                            )}
-                          </td>
-                        ];
-                      })}
-                    </tr>
-                  ));
-                })()
-              ) : sortedAppointments.length > 0 ? (
-                sortedAppointments
-                  .filter(a => !a.isBuffer)
-                  .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime))
+                    </div>
+                    <div className="divide-y divide-[#F0EDE8]">
+                      {memberApts.length > 0 ? (
+                        memberApts.map((apt) => (
+                          <button
+                            key={apt.id}
+                            onClick={() => {
+                              setSelectedAppointment(apt);
+                              setEditingNotes(apt.notes || "");
+                              setEditingName(apt.clientName || "");
+                              setEditingService(apt.serviceType || "");
+                            }}
+                            className="w-full px-3 py-2 text-left hover:bg-[#F5F3F0] transition-colors"
+                            data-testid={`appointment-${apt.id}`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-[#1A1A1A] font-medium text-sm">{apt.clientName}</span>
+                              <span className="text-[#666] text-xs">{formatTimeDisplay(apt.startTime)}</span>
+                            </div>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3 py-4 text-center text-[#999] text-sm">
+                          No appointments yet
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : sortedAppointments.length > 0 ? (
+            <div className="bg-white rounded-lg border border-[#E8E2D9] overflow-hidden">
+              <div className="divide-y divide-[#F0EDE8]">
+                {sortedAppointments
+                  .filter(a => !a.isBuffer && a.clientName && a.clientName.trim())
                   .map((apt) => (
-                  <tr key={apt.id} className="border-b border-[#E8E2D9] last:border-0">
-                    <td className="px-3 py-2 text-[#666] whitespace-nowrap">{formatTimeDisplay(apt.startTime)}</td>
-                    <td className="px-2 py-2 text-center">
-                      <button
-                        onClick={() => {
-                          setSelectedAppointment(apt);
-                          setEditingNotes(apt.notes || "");
-                          setEditingName(apt.clientName || "");
-                          setEditingService(apt.serviceType || "");
-                        }}
-                        className={`cursor-pointer px-2 py-1 rounded transition-colors ${
-                          apt.clientName 
-                            ? "text-[#1A1A1A] hover:bg-[#F5F3F0]" 
-                            : "text-[#999] hover:bg-[#F5F3F0] text-xs"
-                        }`}
-                        data-testid={`appointment-${apt.id}`}
-                      >
-                        {apt.clientName || "+ add"}
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={teamMembers.length + 1} className="px-3 py-8 text-center text-[#999]">
-                    No appointments scheduled
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                    <button
+                      key={apt.id}
+                      onClick={() => {
+                        setSelectedAppointment(apt);
+                        setEditingNotes(apt.notes || "");
+                        setEditingName(apt.clientName || "");
+                        setEditingService(apt.serviceType || "");
+                      }}
+                      className="w-full px-3 py-2 text-left hover:bg-[#F5F3F0] transition-colors flex items-center justify-between"
+                      data-testid={`appointment-${apt.id}`}
+                    >
+                      <span className="text-[#1A1A1A] font-medium text-sm">{apt.clientName}</span>
+                      <span className="text-[#666] text-xs">{formatTimeDisplay(apt.startTime)}</span>
+                    </button>
+                  ))}
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg border border-[#E8E2D9] px-3 py-8 text-center text-[#999]">
+              No appointments scheduled
+            </div>
+          )}
         </div>
 
         {/* Guest Notes Section */}
