@@ -1817,7 +1817,12 @@ export async function sendReferralNotificationEmail({
   referrerName: string;
   declineReason: string;
   referralMessage?: string;
-  referralVendors: Array<{ name: string; threadLink?: string }>;
+  referralVendors: Array<{ 
+    name: string; 
+    threadLink?: string;
+    infoSheet?: string;
+    pricingInfo?: string;
+  }>;
 }) {
   const { client } = await getResendClient();
 
@@ -1828,13 +1833,23 @@ export async function sendReferralNotificationEmail({
   
   const vendorList = referralVendors.map(v => {
     const vendorName = escapeHtml(v.name);
-    if (v.threadLink) {
-      return `<li style="margin: 12px 0;">
-        <strong>${vendorName}</strong><br>
-        <a href="${v.threadLink}" style="display: inline-block; margin-top: 8px; background: #1a1a1a; color: #fff; padding: 8px 16px; text-decoration: none; border-radius: 4px; font-size: 12px;">Message ${vendorName}</a>
-      </li>`;
+    let vendorHtml = `<div style="margin: 20px 0; padding: 20px; background: #fff; border: 1px solid #6B4A55;">
+      <strong style="font-size: 16px;">${vendorName}</strong>`;
+    
+    if (v.pricingInfo) {
+      vendorHtml += `<p style="margin: 12px 0 8px 0; font-size: 13px; color: #444;"><em>${escapeHtml(v.pricingInfo)}</em></p>`;
     }
-    return `<li style="margin: 8px 0;">${vendorName}</li>`;
+    
+    if (v.infoSheet) {
+      vendorHtml += `<div style="margin: 12px 0; padding: 12px; background: #FAF9F7; font-size: 13px; line-height: 1.5;">${v.infoSheet}</div>`;
+    }
+    
+    if (v.threadLink) {
+      vendorHtml += `<a href="${v.threadLink}" style="display: inline-block; margin-top: 12px; background: #1a1a1a; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-size: 13px;">Message ${vendorName}</a>`;
+    }
+    
+    vendorHtml += `</div>`;
+    return vendorHtml;
   }).join('');
   
   const htmlContent = `
@@ -1872,11 +1887,11 @@ export async function sendReferralNotificationEmail({
           
           ${safeMessage ? `<div class="message">${safeMessage}</div>` : ''}
           
-          <p>However, I've recommended some wonderful colleagues who may be able to help. You can message them directly using the links below:</p>
+          <p>However, I've recommended some wonderful colleagues who may be able to help:</p>
           
           <div class="referrals">
             <h3>Recommended Vendors</h3>
-            <ul>${vendorList}</ul>
+            ${vendorList}
           </div>
           
           <p>Warm regards,<br>${safeReferrerName}</p>

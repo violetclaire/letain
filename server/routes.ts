@@ -10194,10 +10194,17 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           const { sendReferralNotificationEmail } = await import('./emailService');
           const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
           
-          // Build vendor list with thread links for clients
-          const vendorsWithLinks = referralSummaries.map(r => ({
-            name: r.businessName || r.vendorName,
-            threadLink: r.clientThreadToken ? `${baseUrl}/thread/${r.clientThreadToken}` : undefined,
+          // Build vendor list with thread links and info sheets for clients
+          const vendorsWithLinks = await Promise.all(referralSummaries.map(async (r) => {
+            const vendorProfile = await storage.getArtistProfile(r.vendorId);
+            return {
+              name: r.businessName || r.vendorName,
+              threadLink: r.clientThreadToken ? `${baseUrl}/thread/${r.clientThreadToken}` : undefined,
+              infoSheet: vendorProfile?.infoSheetEnabled && vendorProfile?.infoSheetContent 
+                ? vendorProfile.infoSheetContent 
+                : undefined,
+              pricingInfo: vendorProfile?.pricingInfo || undefined,
+            };
           }));
           
           await sendReferralNotificationEmail({
@@ -11919,19 +11926,19 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         const vendor = await storage.getUser(inquiry.vendorId);
         const vendorName = artist?.businessName || vendor?.firstName || 'Your Artist';
         
-        // Build referral vendors array for email
-        const referralVendorsForEmail: Array<{ name: string }> = [];
+        // Build referral vendors array for email with info sheets
+        const referralVendorsForEmail: Array<{ name: string; threadLink?: string; infoSheet?: string; pricingInfo?: string }> = [];
         for (const member of trustedCircle.filter(m => m.status === 'accepted')) {
           const memberUser = await storage.getUserByEmail(member.refereeEmail);
           if (memberUser) {
             const memberProfile = await storage.getArtistProfile(memberUser.id);
-            if (memberProfile?.artistSlug) {
-              referralVendorsForEmail.push({ 
-                name: `${member.refereeName} - dateinquiry.com/${memberProfile.artistSlug}` 
-              });
-            } else {
-              referralVendorsForEmail.push({ name: `${member.refereeName} (${member.refereeEmail})` });
-            }
+            referralVendorsForEmail.push({ 
+              name: memberProfile?.businessName || member.refereeName,
+              infoSheet: memberProfile?.infoSheetEnabled && memberProfile?.infoSheetContent 
+                ? memberProfile.infoSheetContent 
+                : undefined,
+              pricingInfo: memberProfile?.pricingInfo || undefined,
+            });
           } else {
             referralVendorsForEmail.push({ name: `${member.refereeName} (${member.refereeEmail})` });
           }
@@ -15737,13 +15744,29 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
               if (activeMembers.length > 0) {
                 const { sendReferralNotificationEmail } = await import('./emailService');
                 
+                // Build referral vendors with info sheets
+                const referralVendorsWithInfo = await Promise.all(activeMembers.map(async (m) => {
+                  const memberUser = await storage.getUserByEmail(m.refereeEmail);
+                  if (memberUser) {
+                    const memberProfile = await storage.getArtistProfile(memberUser.id);
+                    return {
+                      name: memberProfile?.businessName || m.refereeName,
+                      infoSheet: memberProfile?.infoSheetEnabled && memberProfile?.infoSheetContent 
+                        ? memberProfile.infoSheetContent 
+                        : undefined,
+                      pricingInfo: memberProfile?.pricingInfo || undefined,
+                    };
+                  }
+                  return { name: m.refereeName };
+                }));
+                
                 await sendReferralNotificationEmail({
                   toEmail: clientEmail,
                   clientName,
                   referrerName,
                   declineReason: `Unfortunately, I'm already booked on ${parsedEventDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}.`,
                   referralMessage: artistProfile.referralListTemplate || `I've personally worked with these talented artists and can vouch for their work. I hope one of them can help make your day beautiful!`,
-                  referralVendors: activeMembers.map(m => ({ name: m.refereeName })),
+                  referralVendors: referralVendorsWithInfo,
                 });
                 
                 // Update inquiry status
