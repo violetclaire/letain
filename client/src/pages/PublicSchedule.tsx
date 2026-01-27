@@ -333,29 +333,81 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
           </div>
         )}
 
-        {/* Schedule - Simple List */}
+        {/* Schedule Grid - One Column Per Artist */}
         <div className="bg-white rounded-lg border border-[#E8E2D9] overflow-hidden mb-6">
-          {sortedAppointments.length > 0 ? (
+          {teamMembers.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-[#1A1A1A] text-white">
+                    {teamMembers.map((member) => (
+                      <th key={member.id} colSpan={2} className="px-3 py-2 text-center font-medium border-r border-[#333] last:border-r-0">
+                        {member.name}
+                      </th>
+                    ))}
+                  </tr>
+                  <tr className="bg-[#F5F3F0] text-xs text-[#666]">
+                    {teamMembers.map((member) => (
+                      <>
+                        <th key={`${member.id}-time`} className="px-2 py-1 text-left w-20">Time</th>
+                        <th key={`${member.id}-client`} className="px-2 py-1 text-left border-r border-[#E8E2D9] last:border-r-0">Client</th>
+                      </>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const maxRows = Math.max(...teamMembers.map(m => 
+                      (groupedByTeamMember[m.id] || []).filter(a => a.clientName?.trim()).length
+                    ), 1);
+                    
+                    return Array.from({ length: maxRows }).map((_, rowIdx) => (
+                      <tr key={rowIdx} className="border-b border-[#F0EDE8]">
+                        {teamMembers.map((member) => {
+                          const memberApts = (groupedByTeamMember[member.id] || [])
+                            .filter(a => a.clientName?.trim())
+                            .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+                          const apt = memberApts[rowIdx];
+                          
+                          return (
+                            <>
+                              <td key={`${member.id}-${rowIdx}-time`} className="px-2 py-2 text-[#666] text-xs whitespace-nowrap">
+                                {apt ? formatTimeDisplay(apt.startTime) : ""}
+                              </td>
+                              <td key={`${member.id}-${rowIdx}-client`} className="px-2 py-2 border-r border-[#E8E2D9] last:border-r-0">
+                                {apt ? (
+                                  <button
+                                    onClick={() => {
+                                      setSelectedAppointment(apt);
+                                      setEditingNotes(apt.notes || "");
+                                      setEditingName(apt.clientName || "");
+                                      setEditingService(apt.serviceType || "");
+                                    }}
+                                    className="text-[#1A1A1A] hover:underline text-left"
+                                    data-testid={`appointment-${apt.id}`}
+                                  >
+                                    {apt.clientName}
+                                  </button>
+                                ) : null}
+                              </td>
+                            </>
+                          );
+                        })}
+                      </tr>
+                    ));
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          ) : sortedAppointments.length > 0 ? (
             <div className="divide-y divide-[#F0EDE8]">
               {sortedAppointments
-                .filter(a => !a.isBuffer && a.clientName && a.clientName.trim())
+                .filter(a => a.clientName?.trim())
                 .map((apt) => (
-                  <button
-                    key={apt.id}
-                    onClick={() => {
-                      setSelectedAppointment(apt);
-                      setEditingNotes(apt.notes || "");
-                      setEditingName(apt.clientName || "");
-                      setEditingService(apt.serviceType || "");
-                    }}
-                    className="w-full px-4 py-3 text-left hover:bg-[#F5F3F0] transition-colors"
-                    data-testid={`appointment-${apt.id}`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <span className="text-[#666] text-sm w-20 shrink-0">{formatTimeDisplay(apt.startTime)}</span>
-                      <span className="text-[#1A1A1A] font-medium">{apt.clientName}</span>
-                    </div>
-                  </button>
+                  <div key={apt.id} className="px-4 py-3 flex items-center gap-4">
+                    <span className="text-[#666] text-sm w-20">{formatTimeDisplay(apt.startTime)}</span>
+                    <span className="text-[#1A1A1A] font-medium">{apt.clientName}</span>
+                  </div>
                 ))}
             </div>
           ) : (
