@@ -1821,6 +1821,7 @@ export async function sendReferralNotificationEmail({
     name: string; 
     threadLink?: string;
     infoSheet?: string;
+    infoSheetPdfUrl?: string;
     pricingInfo?: string;
   }>;
 }) {
@@ -1842,6 +1843,16 @@ export async function sendReferralNotificationEmail({
     
     if (v.infoSheet) {
       vendorHtml += `<div style="margin: 12px 0; padding: 12px; background: #FAF9F7; font-size: 13px; line-height: 1.5;">${v.infoSheet}</div>`;
+    }
+    
+    if (v.infoSheetPdfUrl) {
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
+      const fullPdfUrl = v.infoSheetPdfUrl.startsWith('http') ? v.infoSheetPdfUrl : `${baseUrl}${v.infoSheetPdfUrl}`;
+      vendorHtml += `<div style="margin: 12px 0;">
+        <p style="font-size: 13px; margin-bottom: 8px;">Pricing & Services:</p>
+        <a href="${fullPdfUrl}" target="_blank" style="display: inline-block; background: #6B4A55; color: #fff; padding: 8px 16px; text-decoration: none; border-radius: 4px; font-size: 12px;">View Pricing Guide</a>
+        <img src="${fullPdfUrl}" alt="${vendorName} Pricing" style="display: block; max-width: 100%; margin-top: 12px; border: 1px solid #ddd;" />
+      </div>`;
     }
     
     if (v.threadLink) {

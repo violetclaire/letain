@@ -10203,6 +10203,9 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
               infoSheet: vendorProfile?.infoSheetEnabled && vendorProfile?.infoSheetContent 
                 ? vendorProfile.infoSheetContent 
                 : undefined,
+              infoSheetPdfUrl: vendorProfile?.infoSheetEnabled && vendorProfile?.infoSheetPdfUrl
+                ? vendorProfile.infoSheetPdfUrl
+                : undefined,
               pricingInfo: vendorProfile?.pricingInfo || undefined,
             };
           }));
@@ -11927,7 +11930,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         const vendorName = artist?.businessName || vendor?.firstName || 'Your Artist';
         
         // Build referral vendors array for email with info sheets
-        const referralVendorsForEmail: Array<{ name: string; threadLink?: string; infoSheet?: string; pricingInfo?: string }> = [];
+        const referralVendorsForEmail: Array<{ name: string; threadLink?: string; infoSheet?: string; infoSheetPdfUrl?: string; pricingInfo?: string }> = [];
         for (const member of trustedCircle.filter(m => m.status === 'accepted')) {
           const memberUser = await storage.getUserByEmail(member.refereeEmail);
           if (memberUser) {
@@ -11936,6 +11939,9 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
               name: memberProfile?.businessName || member.refereeName,
               infoSheet: memberProfile?.infoSheetEnabled && memberProfile?.infoSheetContent 
                 ? memberProfile.infoSheetContent 
+                : undefined,
+              infoSheetPdfUrl: memberProfile?.infoSheetEnabled && memberProfile?.infoSheetPdfUrl
+                ? memberProfile.infoSheetPdfUrl
                 : undefined,
               pricingInfo: memberProfile?.pricingInfo || undefined,
             });
@@ -15753,6 +15759,9 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
                       name: memberProfile?.businessName || m.refereeName,
                       infoSheet: memberProfile?.infoSheetEnabled && memberProfile?.infoSheetContent 
                         ? memberProfile.infoSheetContent 
+                        : undefined,
+                      infoSheetPdfUrl: memberProfile?.infoSheetEnabled && memberProfile?.infoSheetPdfUrl
+                        ? memberProfile.infoSheetPdfUrl
                         : undefined,
                       pricingInfo: memberProfile?.pricingInfo || undefined,
                     };
