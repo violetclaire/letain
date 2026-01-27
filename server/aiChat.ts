@@ -284,8 +284,8 @@ Example request: "Bride hair+makeup, 2 bridesmaids makeup only, MOB makeup, Carm
   - Travel: $50-200 depending on distance
 
 === SCHEDULE/TIMELINE GENERATION ===
-Create wedding day schedules when vendor says: "create schedule", "make timeline", "wedding day timeline", etc.
-{"createSchedule": {"eventDate": "2026-05-15", "eventType": "wedding", "firstLookTime": "14:00", "ceremonyTime": "17:00", "partySize": 6, "notes": "Consider hair drying time"}, "response": "Here's your wedding day beauty timeline for a 5pm ceremony with 6 people..."}
+Create wedding day schedules when vendor says: "create schedule", "make timeline", "wedding day timeline", "schedule for [client name]", etc.
+{"createSchedule": {"clientName": "Madison", "eventDate": "2026-05-15", "eventType": "wedding", "location": "Villa Rosa", "firstLookTime": "14:00", "ceremonyTime": "17:00", "partySize": 6, "notes": "Consider hair drying time"}, "response": "Created a schedule for Madison! You can view and edit it at the link below."}
 
 === SEARCH ===
 Search when vendor asks: "find", "search", "look up", "who is", "show me clients named", etc.
@@ -378,11 +378,13 @@ interface ParsedResponse {
     notes?: string;
   };
   createSchedule?: {
+    clientName?: string;
     eventDate?: string;
     eventType?: string;
     firstLookTime?: string;
     ceremonyTime?: string;
     partySize?: number;
+    location?: string;
     notes?: string;
   };
   inquiryResponse?: {

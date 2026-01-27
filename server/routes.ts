@@ -4618,6 +4618,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Handle schedule creation
+      if (result?.createSchedule?.eventDate || result?.createSchedule?.clientName) {
+        console.log("Processing schedule creation:", result.createSchedule);
+        try {
+          const scheduleData = result.createSchedule;
+          const shareToken = randomUUID();
+          
+          // Get artist profile for business name
+          const artistProfile = await storage.getArtistProfile(userId);
+          const artistName = artistProfile?.businessName || "Beauty Artist";
+          
+          // Create the event day schedule
+          const schedule = await storage.createEventDaySchedule({
+            artistId: userId,
+            eventName: scheduleData.clientName || scheduleData.eventType || "New Schedule",
+            eventDate: scheduleData.eventDate ? new Date(scheduleData.eventDate) : new Date(),
+            eventLocation: scheduleData.location || null,
+            readyByTime: scheduleData.ceremonyTime || scheduleData.firstLookTime || null,
+            notes: scheduleData.notes || null,
+            shareToken,
+            status: "draft",
+          });
+          
+          // Return schedule info to frontend
+          (result as any).scheduleCreated = true;
+          (result as any).scheduleId = schedule.id;
+          (result as any).scheduleShareToken = shareToken;
+          (result as any).scheduleLink = `/artist/schedule/${schedule.id}`;
+          
+          // Update response with link
+          result.response = `Created a schedule for ${scheduleData.clientName || scheduleData.eventType || "your event"}! You can view and edit it here: /artist/schedule/${schedule.id}`;
+          
+          console.log("Schedule created successfully:", schedule.id);
+        } catch (scheduleError: any) {
+          console.error("Schedule creation error:", scheduleError);
+          result.response = "I had trouble creating that schedule. Please try again or use the Create Schedule button in the inquiry thread.";
+        }
+      }
+      
       // Handle quote/proposal creation
       if (result?.createQuote?.lineItems?.length > 0) {
         console.log("Processing quote creation:", result.createQuote);
