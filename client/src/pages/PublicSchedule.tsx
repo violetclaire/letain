@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Calendar, MapPin, Clock, MessageSquare, Send, Loader2, CheckCircle, X, Camera, Upload, Trash2 } from "lucide-react";
+import { Calendar, MapPin, Clock, MessageSquare, Send, Loader2, CheckCircle, X, Camera, Upload, Trash2, Plus, Minus } from "lucide-react";
 import ScheduleChat from "@/components/ScheduleChat";
 
 type ScheduleTeamMember = {
@@ -227,6 +227,35 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
     },
   });
 
+  const addAppointmentMutation = useMutation({
+    mutationFn: async ({ teamMemberId, clientName, startTime }: { teamMemberId: string; clientName: string; startTime: string }) => {
+      const res = await fetch(`/api/event-schedules/share/${shareToken}/appointment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teamMemberId, clientName, startTime, endTime: "", serviceType: "HM" }),
+      });
+      if (!res.ok) throw new Error("Failed to add client");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["public-schedule", shareToken] });
+    },
+  });
+
+  const deleteAppointmentMutation = useMutation({
+    mutationFn: async (appointmentId: string) => {
+      const res = await fetch(`/api/event-schedules/share/${shareToken}/appointment/${appointmentId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete client");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["public-schedule", shareToken] });
+      setSelectedAppointment(null);
+    },
+  });
+
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !selectedAppointment) return;
@@ -400,6 +429,26 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
                       </tr>
                     ));
                   })()}
+                  {/* Add client row - one + button per artist */}
+                  <tr className="border-t border-[#E8E2D9] bg-[#FAFAF8]">
+                    {teamMembers.map((member) => (
+                      <td key={`add-${member.id}`} colSpan={2} className="px-2 py-2 border-r border-[#E8E2D9] last:border-r-0">
+                        <button
+                          onClick={() => addAppointmentMutation.mutate({ 
+                            teamMemberId: member.id, 
+                            clientName: "New Client", 
+                            startTime: "" 
+                          })}
+                          className="flex items-center gap-1 text-xs text-[#666] hover:text-[#1A1A1A] hover:bg-[#F0EDE8] px-2 py-1 rounded transition-colors"
+                          title={`Add client for ${member.name}`}
+                          data-testid={`button-add-client-${member.id}`}
+                        >
+                          <Plus className="w-3 h-3" />
+                          Add
+                        </button>
+                      </td>
+                    ))}
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -613,6 +662,23 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
                   data-testid="button-save-appointment-notes"
                 >
                   {appointmentNoteMutation.isPending ? "Saving..." : "Save Note"}
+                </button>
+              </div>
+
+              {/* Delete client button */}
+              <div className="pt-4 border-t border-[#E8E2D9]">
+                <button
+                  onClick={() => {
+                    if (confirm("Remove this client from the schedule?")) {
+                      deleteAppointmentMutation.mutate(selectedAppointment.id);
+                    }
+                  }}
+                  disabled={deleteAppointmentMutation.isPending}
+                  className="flex items-center gap-2 text-sm text-red-600 hover:text-red-700"
+                  data-testid="button-delete-appointment"
+                >
+                  <Minus className="w-4 h-4" />
+                  {deleteAppointmentMutation.isPending ? "Removing..." : "Remove from schedule"}
                 </button>
               </div>
             </div>

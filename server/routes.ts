@@ -5656,6 +5656,53 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     }
   });
 
+  // Add appointment to schedule via share token
+  app.post("/api/event-schedules/share/:shareToken/appointment", async (req, res) => {
+    try {
+      const schedule = await storage.getEventDayScheduleByShareToken(req.params.shareToken);
+      if (!schedule) {
+        return res.status(404).json({ error: "Schedule not found" });
+      }
+
+      const { teamMemberId, clientName, startTime, endTime, serviceType } = req.body;
+
+      const appointment = await storage.createScheduleAppointment({
+        scheduleId: schedule.id,
+        teamMemberId: teamMemberId || null,
+        clientName: clientName || "",
+        startTime: startTime || "",
+        endTime: endTime || "",
+        serviceType: serviceType || "HM",
+        isVip: false,
+        isBuffer: false,
+      });
+
+      res.json(appointment);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Delete appointment from schedule via share token
+  app.delete("/api/event-schedules/share/:shareToken/appointment/:appointmentId", async (req, res) => {
+    try {
+      const schedule = await storage.getEventDayScheduleByShareToken(req.params.shareToken);
+      if (!schedule) {
+        return res.status(404).json({ error: "Schedule not found" });
+      }
+
+      const appointment = await storage.getScheduleAppointment(req.params.appointmentId);
+      if (!appointment || appointment.scheduleId !== schedule.id) {
+        return res.status(404).json({ error: "Appointment not found" });
+      }
+
+      await storage.deleteScheduleAppointment(req.params.appointmentId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   // ========== SCHEDULE CHAT (Guest chat on public schedule - no auth required) ==========
   
   // Rate limiter for schedule chat to prevent abuse
