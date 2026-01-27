@@ -872,14 +872,33 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
                   </Button>
                 </div>
                 <p className="text-xs text-[#777] mt-3">
-                  Style the form and success message however you want. Client never leaves your site, never sees any redirect.
+                  Advanced: Style the form however you want. Form submits without redirect.
                 </p>
+                
+                <div className="mt-6 pt-4 border-t border-[#E8E2D9]">
+                  <p className="text-xs text-[#555] font-medium mb-3">Easy Embed (for Square, Wix, Squarespace):</p>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const simpleEmbed = `<iframe src="https://dateinquiry.com/inquire/${settings.artistSlug}" width="100%" height="800" frameborder="0" style="border: none;"></iframe>`;
+                      navigator.clipboard.writeText(simpleEmbed);
+                      toast({ title: "Simple embed code copied!" });
+                    }}
+                    className="border-[#E8E2D9] text-black hover:bg-[#F5F2ED]"
+                    data-testid="button-copy-simple-embed"
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy Simple Embed
+                  </Button>
+                  <p className="text-xs text-[#777] mt-2">
+                    Just paste this one line. Your inquiry form appears on your site.
+                  </p>
+                </div>
                 
                 <div className="mt-4 p-3 bg-[#F5F2ED] border border-[#E8E2D9] rounded">
                   <p className="text-xs text-[#555] font-medium mb-1">For Instagram / Social Media:</p>
                   <p className="text-xs text-[#777]">
-                    Share your own website's contact page URL (e.g., themakeupdolls.com/contact). 
-                    Clients see only your brand, never ours.
+                    Share your direct link: dateinquiry.com/inquire/{settings.artistSlug}
                   </p>
                 </div>
             </div>
