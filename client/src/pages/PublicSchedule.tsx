@@ -126,6 +126,8 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
   const [editingNotes, setEditingNotes] = useState("");
   const [editingName, setEditingName] = useState("");
   const [editingService, setEditingService] = useState("");
+  const [editingStartTime, setEditingStartTime] = useState("");
+  const [editingEndTime, setEditingEndTime] = useState("");
   const [appointmentNoteSaved, setAppointmentNoteSaved] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -184,6 +186,21 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
         body: JSON.stringify({ clientName }),
       });
       if (!res.ok) throw new Error("Failed to update name");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["public-schedule", shareToken] });
+    },
+  });
+
+  const appointmentTimeMutation = useMutation({
+    mutationFn: async ({ appointmentId, startTime, endTime }: { appointmentId: string; startTime?: string; endTime?: string }) => {
+      const res = await fetch(`/api/event-schedules/share/${shareToken}/appointment/${appointmentId}/time`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ startTime, endTime }),
+      });
+      if (!res.ok) throw new Error("Failed to update time");
       return res.json();
     },
     onSuccess: () => {
@@ -411,6 +428,8 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
                                       setEditingNotes(apt.notes || "");
                                       setEditingName(apt.clientName || "");
                                       setEditingService(apt.serviceType || "");
+                                      setEditingStartTime(apt.startTime || "");
+                                      setEditingEndTime(apt.endTime || "");
                                     }}
                                     className="text-[#1A1A1A] hover:underline text-left group relative"
                                     title="Click to add inspo pics & notes"
@@ -556,11 +575,49 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
                     data-testid="input-appointment-name"
                   />
                 </div>
-                <div className="flex items-center gap-4 text-sm text-[#666]">
-                  <span className="flex items-center gap-1">
+                <div className="flex flex-wrap items-center gap-3 text-sm text-[#666]">
+                  <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
-                    {formatTimeDisplay(selectedAppointment.startTime)} - {formatTimeDisplay(selectedAppointment.endTime)}
-                  </span>
+                    <div>
+                      <label className="text-xs text-[#666] block mb-1">Start</label>
+                      <input
+                        type="text"
+                        value={editingStartTime}
+                        onChange={(e) => setEditingStartTime(e.target.value)}
+                        onBlur={() => {
+                          if (editingStartTime !== selectedAppointment.startTime) {
+                            appointmentTimeMutation.mutate({ 
+                              appointmentId: selectedAppointment.id, 
+                              startTime: editingStartTime 
+                            });
+                          }
+                        }}
+                        placeholder="9:00 AM"
+                        className="bg-white border border-[#E8E2D9] rounded px-2 py-1 text-sm focus:outline-none focus:border-[#1A1A1A] w-24"
+                        data-testid="input-appointment-start-time"
+                      />
+                    </div>
+                    <span>-</span>
+                    <div>
+                      <label className="text-xs text-[#666] block mb-1">End</label>
+                      <input
+                        type="text"
+                        value={editingEndTime}
+                        onChange={(e) => setEditingEndTime(e.target.value)}
+                        onBlur={() => {
+                          if (editingEndTime !== selectedAppointment.endTime) {
+                            appointmentTimeMutation.mutate({ 
+                              appointmentId: selectedAppointment.id, 
+                              endTime: editingEndTime 
+                            });
+                          }
+                        }}
+                        placeholder="10:00 AM"
+                        className="bg-white border border-[#E8E2D9] rounded px-2 py-1 text-sm focus:outline-none focus:border-[#1A1A1A] w-24"
+                        data-testid="input-appointment-end-time"
+                      />
+                    </div>
+                  </div>
                   <div>
                     <label className="text-xs text-[#666] block mb-1">Service</label>
                     <input

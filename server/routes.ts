@@ -5566,6 +5566,33 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   });
 
   // Update appointment name (editable by guests)
+  // Update appointment time via share token
+  app.post("/api/event-schedules/share/:shareToken/appointment/:appointmentId/time", async (req, res) => {
+    try {
+      const { appointmentId, shareToken } = req.params;
+      const { startTime, endTime } = req.body;
+
+      const schedule = await storage.getEventDayScheduleByShareToken(shareToken);
+      if (!schedule) {
+        return res.status(404).json({ error: "Schedule not found" });
+      }
+
+      const appointment = await storage.getScheduleAppointment(appointmentId);
+      if (!appointment || appointment.scheduleId !== schedule.id) {
+        return res.status(404).json({ error: "Appointment not found" });
+      }
+
+      const updates: any = {};
+      if (startTime !== undefined) updates.startTime = startTime;
+      if (endTime !== undefined) updates.endTime = endTime;
+
+      await storage.updateScheduleAppointment(appointmentId, updates);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   app.post("/api/event-schedules/share/:shareToken/appointment/:appointmentId/name", async (req, res) => {
     try {
       const { clientName } = req.body;
