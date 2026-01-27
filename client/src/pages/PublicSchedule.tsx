@@ -333,75 +333,33 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
           </div>
         )}
 
-        {/* Schedule - Column Layout */}
-        <div className="mb-6">
-          {teamMembers.length > 0 ? (
-            <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${Math.min(teamMembers.length, 4)}, 1fr)` }}>
-              {teamMembers.map((member) => {
-                const memberApts = (groupedByTeamMember[member.id] || [])
-                  .filter(a => !a.isBuffer && a.clientName && a.clientName.trim())
-                  .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
-                
-                return (
-                  <div key={member.id} className="bg-white rounded-lg border border-[#E8E2D9] overflow-hidden">
-                    <div className="bg-[#1A1A1A] text-white px-3 py-2 font-medium text-sm text-center">
-                      {member.name}
+        {/* Schedule - Simple List */}
+        <div className="bg-white rounded-lg border border-[#E8E2D9] overflow-hidden mb-6">
+          {sortedAppointments.length > 0 ? (
+            <div className="divide-y divide-[#F0EDE8]">
+              {sortedAppointments
+                .filter(a => !a.isBuffer && a.clientName && a.clientName.trim())
+                .map((apt) => (
+                  <button
+                    key={apt.id}
+                    onClick={() => {
+                      setSelectedAppointment(apt);
+                      setEditingNotes(apt.notes || "");
+                      setEditingName(apt.clientName || "");
+                      setEditingService(apt.serviceType || "");
+                    }}
+                    className="w-full px-4 py-3 text-left hover:bg-[#F5F3F0] transition-colors"
+                    data-testid={`appointment-${apt.id}`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <span className="text-[#666] text-sm w-20 shrink-0">{formatTimeDisplay(apt.startTime)}</span>
+                      <span className="text-[#1A1A1A] font-medium">{apt.clientName}</span>
                     </div>
-                    <div className="divide-y divide-[#F0EDE8]">
-                      {memberApts.length > 0 ? (
-                        memberApts.map((apt) => (
-                          <button
-                            key={apt.id}
-                            onClick={() => {
-                              setSelectedAppointment(apt);
-                              setEditingNotes(apt.notes || "");
-                              setEditingName(apt.clientName || "");
-                              setEditingService(apt.serviceType || "");
-                            }}
-                            className="w-full px-3 py-2 text-left hover:bg-[#F5F3F0] transition-colors"
-                            data-testid={`appointment-${apt.id}`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-[#1A1A1A] font-medium text-sm">{apt.clientName}</span>
-                              <span className="text-[#666] text-xs">{formatTimeDisplay(apt.startTime)}</span>
-                            </div>
-                          </button>
-                        ))
-                      ) : (
-                        <div className="px-3 py-4 text-center text-[#999] text-sm">
-                          No appointments yet
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : sortedAppointments.length > 0 ? (
-            <div className="bg-white rounded-lg border border-[#E8E2D9] overflow-hidden">
-              <div className="divide-y divide-[#F0EDE8]">
-                {sortedAppointments
-                  .filter(a => !a.isBuffer && a.clientName && a.clientName.trim())
-                  .map((apt) => (
-                    <button
-                      key={apt.id}
-                      onClick={() => {
-                        setSelectedAppointment(apt);
-                        setEditingNotes(apt.notes || "");
-                        setEditingName(apt.clientName || "");
-                        setEditingService(apt.serviceType || "");
-                      }}
-                      className="w-full px-3 py-2 text-left hover:bg-[#F5F3F0] transition-colors flex items-center justify-between"
-                      data-testid={`appointment-${apt.id}`}
-                    >
-                      <span className="text-[#1A1A1A] font-medium text-sm">{apt.clientName}</span>
-                      <span className="text-[#666] text-xs">{formatTimeDisplay(apt.startTime)}</span>
-                    </button>
-                  ))}
-              </div>
+                  </button>
+                ))}
             </div>
           ) : (
-            <div className="bg-white rounded-lg border border-[#E8E2D9] px-3 py-8 text-center text-[#999]">
+            <div className="px-4 py-8 text-center text-[#999]">
               No appointments scheduled
             </div>
           )}
