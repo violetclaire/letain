@@ -342,6 +342,7 @@ export interface IStorage {
   getDirectChatByParticipantToken(token: string): Promise<DirectChat | undefined>;
   getDirectChat(id: string): Promise<DirectChat | undefined>;
   createDirectChat(chat: InsertDirectChat): Promise<DirectChat>;
+  deleteDirectChat(id: string): Promise<void>;
   getDirectChatMessages(directChatId: string): Promise<DirectChatMessage[]>;
   createDirectChatMessage(message: InsertDirectChatMessage): Promise<DirectChatMessage>;
   updateDirectChatLastMessage(id: string): Promise<void>;
@@ -1577,6 +1578,13 @@ export class DatabaseStorage implements IStorage {
   async createDirectChat(chat: InsertDirectChat): Promise<DirectChat> {
     const [created] = await db.insert(directChats).values(chat as any).returning();
     return created;
+  }
+
+  async deleteDirectChat(id: string): Promise<void> {
+    // Delete messages first (foreign key)
+    await db.delete(directChatMessages).where(eq(directChatMessages.directChatId, id));
+    // Delete the chat
+    await db.delete(directChats).where(eq(directChats.id, id));
   }
 
   async getDirectChatMessages(directChatId: string): Promise<DirectChatMessage[]> {

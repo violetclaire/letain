@@ -234,6 +234,28 @@ export default function ArtistAdmin() {
     enabled: !!slug && (!!token || useSessionAuth),
   });
 
+  // Delete chat mutation
+  const deleteChatMutation = useMutation({
+    mutationFn: async (chatId: string) => {
+      const endpoint = token 
+        ? `/api/artist/direct-chat/${chatId}?token=${encodeURIComponent(token)}`
+        : `/api/artist/direct-chat/${chatId}`;
+      const res = await fetch(endpoint, { 
+        method: 'DELETE',
+        credentials: 'include' 
+      });
+      if (!res.ok) throw new Error("Failed to delete chat");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/direct-chats', token] });
+      toast({ title: "Chat deleted" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete chat", variant: "destructive" });
+    }
+  });
+
   // Fetch data using token OR session auth
   const { data, isLoading, error } = useQuery({
     queryKey: [`/api/artist-admin/${slug}`, token, useSessionAuth],
@@ -789,28 +811,41 @@ export default function ArtistAdmin() {
                 ? `/quick-chat/${chat.threadToken}?token=${encodeURIComponent(token)}`
                 : `/quick-chat/${chat.threadToken}`;
               return (
-                <Link
+                <div
                   key={chat.id}
-                  href={chatLink}
-                  className="block p-4 border border-ink/10 bg-surface hover:border-ink/30 transition-colors"
+                  className="relative p-4 border border-ink/10 bg-surface hover:border-ink/30 transition-colors"
                   data-testid={`quick-chat-${chat.id}`}
                 >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm font-medium">{chat.participantName}</p>
-                      <p className="text-xs text-ink/50">{chat.participantEmail}</p>
-                      <p className="text-xs text-ink/40 mt-1 capitalize">{chat.participantRole}</p>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm("Delete this chat?")) {
+                        deleteChatMutation.mutate(chat.id);
+                      }
+                    }}
+                    className="absolute top-2 right-2 p-1 text-ink/30 hover:text-red-600 transition-colors"
+                    data-testid={`delete-chat-${chat.id}`}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                  <Link href={chatLink} className="block">
+                    <div className="flex justify-between items-start pr-6">
+                      <div>
+                        <p className="text-sm font-medium">{chat.participantName}</p>
+                        <p className="text-xs text-ink/50">{chat.participantEmail}</p>
+                        <p className="text-xs text-ink/40 mt-1 capitalize">{chat.participantRole}</p>
+                      </div>
+                      <div className="text-right">
+                        {chat.lastMessageAt && (
+                          <p className="text-xs text-ink/40">
+                            {new Date(chat.lastMessageAt).toLocaleDateString()}
+                          </p>
+                        )}
+                        <p className="text-xs text-[#C4A35A] mt-1">View Chat</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      {chat.lastMessageAt && (
-                        <p className="text-xs text-ink/40">
-                          {new Date(chat.lastMessageAt).toLocaleDateString()}
-                        </p>
-                      )}
-                      <p className="text-xs text-[#C4A35A] mt-1">View Chat</p>
-                    </div>
-                  </div>
-                </Link>
+                  </Link>
+                </div>
               );
             })}
           </div>

@@ -13133,6 +13133,49 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
   
+  // Delete a direct chat (artist only - session or token auth)
+  app.delete("/api/artist/direct-chat/:chatId", async (req, res) => {
+    try {
+      // Support both session and token auth
+      const token = req.query.token as string;
+      let userId: string;
+      
+      if (token) {
+        const profile = await storage.getArtistProfileByEditToken(token);
+        if (!profile) {
+          return res.status(401).json({ error: "Invalid token" });
+        }
+        userId = profile.userId;
+      } else {
+        userId = (req.session as any)?.userId;
+        if (!userId) {
+          return res.status(401).json({ error: "Not authenticated" });
+        }
+      }
+      
+      const chatId = req.params.chatId;
+      
+      // Verify the chat belongs to this artist
+      const chat = await storage.getDirectChat(chatId);
+      if (!chat) {
+        return res.status(404).json({ error: "Chat not found" });
+      }
+      
+      if (chat.artistId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      // Delete the chat and its messages
+      await storage.deleteDirectChat(chatId);
+      
+      console.log(`[Direct Chat] Deleted chat ${chatId} for artist ${userId}`);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("[Direct Chat] Delete error:", error);
+      res.status(500).json({ error: error.message || "Failed to delete chat" });
+    }
+  });
+  
   // Public: Post message to direct chat (participant)
   app.post("/api/public/chat/:token/messages", async (req, res) => {
     try {
