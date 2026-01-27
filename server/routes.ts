@@ -6157,15 +6157,18 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
           for (let artistIdx = 0; artistIdx < createdMembers.length; artistIdx++) {
             const gridCell = grid?.[slotIdx]?.[artistIdx];
             
-            await storage.createScheduleAppointment({
-              scheduleId: schedule.id,
-              teamMemberId: createdMembers[artistIdx].id,
-              clientName: gridCell?.clientName || '',
-              serviceType: gridCell?.service || 'H',
-              startTime: startTime,
-              endTime: endTime,
-              displayOrder: slotIdx,
-            });
+            // Only create appointments with actual client names, not empty placeholders
+            if (gridCell?.clientName && gridCell.clientName.trim()) {
+              await storage.createScheduleAppointment({
+                scheduleId: schedule.id,
+                teamMemberId: createdMembers[artistIdx].id,
+                clientName: gridCell.clientName.trim(),
+                serviceType: gridCell?.service || 'H',
+                startTime: startTime,
+                endTime: endTime,
+                displayOrder: slotIdx,
+              });
+            }
           }
         }
       }

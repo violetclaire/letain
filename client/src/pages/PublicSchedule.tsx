@@ -277,7 +277,10 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
   const teamMembers = schedule.teamMembers || [];
   const appointments = schedule.appointments || [];
 
-  const sortedAppointments = [...appointments].sort((a, b) => {
+  // Filter out empty placeholder appointments (no client name)
+  const validAppointments = appointments.filter((apt) => apt.clientName && apt.clientName.trim());
+
+  const sortedAppointments = [...validAppointments].sort((a, b) => {
     return timeToMinutes(a.startTime) - timeToMinutes(b.startTime);
   });
 
