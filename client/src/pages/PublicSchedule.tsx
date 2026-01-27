@@ -529,7 +529,7 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
                 <textarea
                   value={editingNotes}
                   onChange={(e) => setEditingNotes(e.target.value)}
-                  placeholder="e.g., I'd like a natural look, allergies..."
+                  placeholder="e.g., I'd like a natural look, any notes or allergies..."
                   className="w-full px-3 py-2 border rounded-lg resize-none h-24 bg-white text-black"
                   data-testid="input-appointment-notes"
                 />
