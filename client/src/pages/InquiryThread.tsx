@@ -3,7 +3,8 @@ import { useRoute, useSearch } from "wouter";
 import { format } from "date-fns";
 import { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, Send, X, Check, Plus, Trash2, Eye, Pencil, UserPlus, Copy, FileText } from "lucide-react";
+import { Loader2, Send, X, Check, Plus, Trash2, Eye, Pencil, UserPlus, Copy, FileText, Calendar } from "lucide-react";
+import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
 interface ServiceItem {
@@ -591,13 +592,107 @@ export default function InquiryThread() {
           <section className="mb-10">
             <h3 className="text-sm font-medium text-[#333] mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Next Steps</h3>
             <div className="space-y-3">
+                <Link
+                  href={`/artist/schedule-builder?inquiryId=${inquiry?.id}&clientName=${encodeURIComponent(inquiry?.clientName || '')}&eventDate=${encodeURIComponent(inquiry?.eventDate || '')}`}
+                  className="w-full py-4 border border-[#E8E2D9] hover:bg-[#F5F2ED] transition-all text-center rounded flex items-center justify-center gap-2"
+                  data-testid="button-create-schedule"
+                >
+                  <Calendar size={16} className="text-[#666]" />
+                  <div>
+                    <p className="text-sm">Create Schedule</p>
+                    <p className="text-[10px] opacity-50 mt-1">Day-of timeline for client</p>
+                  </div>
+                </Link>
+
+                <button
+                  onClick={() => setShowInvoiceForm(!showInvoiceForm)}
+                  className="w-full py-4 border border-[#E8E2D9] hover:bg-[#F5F2ED] transition-all text-center rounded"
+                  data-testid="button-create-invoice"
+                >
+                  <p className="text-sm">Create Invoice</p>
+                  <p className="text-[10px] opacity-50 mt-1">For trials, balance, or extras</p>
+                </button>
+
+                {showInvoiceForm && (
+                  <div className="border border-[#E8E2D9] rounded p-6">
+                    {!artist?.squareAccessToken ? (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-[#555] mb-4">Connect Square to send invoices</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const currentUrl = window.location.pathname + window.location.search;
+                            window.location.href = `/api/square/connect/start/${artist?.artistSlug}?returnUrl=${encodeURIComponent(currentUrl)}`;
+                          }}
+                          className="w-full py-3 bg-[#1A1A1A] text-white text-sm rounded hover:bg-[#333] transition-all"
+                          data-testid="button-connect-square-invoice"
+                        >
+                          Connect Square
+                        </button>
+                      </div>
+                    ) : (
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          invoiceMutation.mutate(invoiceData);
+                        }}
+                        className="space-y-5"
+                      >
+                        <div>
+                          <label className="text-[10px] tracking-[0.15em] uppercase text-[#666] block mb-2">Invoice Type</label>
+                          <select
+                            value={invoiceData.type}
+                            onChange={(e) => setInvoiceData({ ...invoiceData, type: e.target.value })}
+                            className="w-full bg-white border border-[#E8E2D9] rounded text-sm text-[#1A1A1A] focus:border-[#999] focus:outline-none px-3 py-2"
+                          >
+                            <option value="deposit">Retainer</option>
+                            <option value="balance">Final Balance</option>
+                            <option value="custom">Custom</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[10px] tracking-[0.15em] uppercase text-[#666] block mb-2">Amount ($)</label>
+                          <input
+                            type="number"
+                            value={invoiceData.amount}
+                            onChange={(e) => setInvoiceData({ ...invoiceData, amount: e.target.value })}
+                            step="0.01"
+                            className="w-full bg-transparent border border-[#E8E2D9] rounded text-sm text-[#1A1A1A] focus:border-[#999] focus:outline-none px-3 py-2"
+                            placeholder="500.00"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] tracking-[0.15em] uppercase text-[#666] block mb-2">Description</label>
+                          <textarea
+                            value={invoiceData.description}
+                            onChange={(e) => setInvoiceData({ ...invoiceData, description: e.target.value })}
+                            rows={2}
+                            className="w-full bg-transparent border border-[#E8E2D9] rounded text-sm text-[#1A1A1A] focus:border-[#999] focus:outline-none px-3 py-2 resize-none"
+                            placeholder="Retainer for bridal services"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            invoiceMutation.mutate(invoiceData);
+                          }}
+                          disabled={invoiceMutation.isPending}
+                          className="w-full py-3 bg-[#1A1A1A] text-white text-sm rounded hover:bg-[#333] transition-all disabled:opacity-50"
+                        >
+                          {invoiceMutation.isPending ? "Sending..." : "Create & Send Invoice"}
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                )}
+
                 <button
                   onClick={() => setShowContractForm(!showContractForm)}
-                  className="w-full py-4 border border-[#E8E2D9] hover:bg-[#F5F2ED] transition-all text-center rounded"
+                  className="w-full py-4 border border-[#1A1A1A] bg-[#1A1A1A] text-white hover:bg-[#333] transition-all text-center rounded"
                   data-testid="button-send-contract"
                 >
-                  <p className="text-sm">Send Contract & Retainer</p>
-                  <p className="text-[10px] opacity-50 mt-1">Contract + deposit invoice together</p>
+                  <p className="text-sm">Create Contract & Invoice</p>
+                  <p className="text-[10px] opacity-70 mt-1">Contract + deposit invoice together</p>
                 </button>
 
                 {showContractForm && !showContractReview && (
@@ -795,89 +890,6 @@ export default function InquiryThread() {
                         {contractMutation.isPending ? "Sending..." : "Send Contract & Retainer"}
                       </button>
                     </div>
-                  </div>
-                )}
-
-                <button
-                  onClick={() => setShowInvoiceForm(!showInvoiceForm)}
-                  className="w-full py-4 border border-[#999] hover:border-[#999] transition-all text-center rounded"
-                  data-testid="button-send-invoice"
-                >
-                  <p className="text-sm">Send Invoice</p>
-                  <p className="text-[10px] text-[#888] mt-1">For trials, final balance, or extras</p>
-                </button>
-
-                {showInvoiceForm && (
-                  <div className="border border-[#E8E2D9] rounded p-6">
-                    {!artist?.squareAccessToken ? (
-                      <div className="text-center py-4">
-                        <p className="text-sm text-[#555] mb-4">Connect Square to send invoices</p>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const currentUrl = window.location.pathname + window.location.search;
-                            window.location.href = `/api/square/connect/start/${artist?.artistSlug}?returnUrl=${encodeURIComponent(currentUrl)}`;
-                          }}
-                          className="w-full py-3 bg-[#1A1A1A] text-white text-sm rounded hover:bg-[#333] transition-all"
-                          data-testid="button-connect-square-invoice"
-                        >
-                          Connect Square
-                        </button>
-                      </div>
-                    ) : (
-                      <form
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          invoiceMutation.mutate(invoiceData);
-                        }}
-                        className="space-y-5"
-                      >
-                        <div>
-                          <label className="text-[10px] tracking-[0.15em] uppercase text-[#666] block mb-2">Invoice Type</label>
-                          <select
-                            value={invoiceData.type}
-                            onChange={(e) => setInvoiceData({ ...invoiceData, type: e.target.value })}
-                            className="w-full bg-white border border-[#E8E2D9] rounded text-sm text-[#1A1A1A] focus:border-[#999] focus:outline-none px-3 py-2"
-                          >
-                            <option value="deposit">Retainer</option>
-                            <option value="balance">Final Balance</option>
-                            <option value="custom">Custom</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-[10px] tracking-[0.15em] uppercase text-[#666] block mb-2">Amount ($)</label>
-                          <input
-                            type="number"
-                            value={invoiceData.amount}
-                            onChange={(e) => setInvoiceData({ ...invoiceData, amount: e.target.value })}
-                            step="0.01"
-                            className="w-full bg-transparent border border-[#E8E2D9] rounded text-sm text-[#1A1A1A] focus:border-[#999] focus:outline-none px-3 py-2"
-                            placeholder="500.00"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] tracking-[0.15em] uppercase text-[#666] block mb-2">Description</label>
-                          <textarea
-                            value={invoiceData.description}
-                            onChange={(e) => setInvoiceData({ ...invoiceData, description: e.target.value })}
-                            rows={2}
-                            className="w-full bg-transparent border border-[#E8E2D9] rounded text-sm text-[#1A1A1A] focus:border-[#999] focus:outline-none px-3 py-2 resize-none"
-                            placeholder="Retainer for bridal services"
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            console.log("[Invoice] Button clicked, invoiceData:", invoiceData);
-                            invoiceMutation.mutate(invoiceData);
-                          }}
-                          disabled={invoiceMutation.isPending}
-                          className="w-full py-3 bg-[#1A1A1A] text-white text-sm rounded hover:bg-[#333] transition-all disabled:opacity-50"
-                        >
-                          {invoiceMutation.isPending ? "Sending..." : "Create & Send Invoice"}
-                        </button>
-                      </form>
-                    )}
                   </div>
                 )}
 
