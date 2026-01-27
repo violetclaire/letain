@@ -189,12 +189,12 @@ export default function SimpleScheduleBuilder() {
         {/* Schedule Grid */}
         <div className="bg-white rounded-lg border border-[#E8E2D9] overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm table-fixed">
               <thead>
                 {/* Artist names row */}
                 <tr className="bg-[#1A1A1A]">
                   {artists.map((artist, i) => (
-                    <th key={i} colSpan={2} className="relative group">
+                    <th key={i} colSpan={2} className="relative group" style={{ width: `${100 / (artists.length + 1)}%` }}>
                       <input
                         type="text"
                         value={artist}

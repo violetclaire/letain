@@ -337,11 +337,11 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
         <div className="bg-white rounded-lg border border-[#E8E2D9] overflow-hidden mb-6">
           {teamMembers.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm table-fixed">
                 <thead>
                   <tr className="bg-[#1A1A1A] text-white">
                     {teamMembers.map((member) => (
-                      <th key={member.id} colSpan={2} className="px-3 py-2 text-center font-medium border-r border-[#333] last:border-r-0">
+                      <th key={member.id} colSpan={2} className="px-3 py-2 text-center font-medium border-r border-[#333] last:border-r-0" style={{ width: `${100 / teamMembers.length}%` }}>
                         {member.name}
                       </th>
                     ))}
@@ -349,8 +349,8 @@ export default function PublicSchedule({ shareToken }: { shareToken: string }) {
                   <tr className="bg-[#F5F3F0] text-xs text-[#666]">
                     {teamMembers.map((member) => (
                       <>
-                        <th key={`${member.id}-time`} className="px-2 py-1 text-left w-20">Time</th>
-                        <th key={`${member.id}-client`} className="px-2 py-1 text-left border-r border-[#E8E2D9] last:border-r-0">Client</th>
+                        <th key={`${member.id}-time`} className="px-2 py-1 text-left" style={{ width: '30%' }}>Time</th>
+                        <th key={`${member.id}-client`} className="px-2 py-1 text-left border-r border-[#E8E2D9] last:border-r-0" style={{ width: '70%' }}>Client</th>
                       </>
                     ))}
                   </tr>
