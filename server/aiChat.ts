@@ -285,7 +285,15 @@ Example request: "Bride hair+makeup, 2 bridesmaids makeup only, MOB makeup, Carm
 
 === SCHEDULE/TIMELINE GENERATION ===
 Create wedding day schedules when vendor says: "create schedule", "make timeline", "wedding day timeline", "schedule for [client name]", etc.
-{"createSchedule": {"clientName": "Madison", "eventDate": "2026-05-15", "eventType": "wedding", "location": "Villa Rosa", "firstLookTime": "14:00", "ceremonyTime": "17:00", "partySize": 6, "notes": "Consider hair drying time"}, "response": "Created a schedule for Madison! You can view and edit it at the link below."}
+
+IMPORTANT: When user provides client names like "Hannah, Meredith, Emma, Lauren..." - extract ALL names into the clients array!
+Parse: number of artists, start time, client names with their services (hair, makeup, or both).
+
+Example with full details:
+{"createSchedule": {"eventName": "Hannah Wedding", "eventDate": "2026-02-28", "location": "San Francisco", "startTime": "08:00", "numArtists": 4, "clients": [{"name": "Hannah", "role": "Bride", "services": ["hair", "makeup"], "withLeadArtist": true}, {"name": "Meredith", "role": "Mom", "services": ["hair", "makeup"]}, {"name": "Stephanie", "role": "Mom", "services": ["hair", "makeup"]}, {"name": "Emma", "services": ["hair", "makeup"]}, {"name": "Lauren K", "services": ["hair", "makeup"]}], "notes": "Lead artist does bride"}, "response": "Created the Hannah Wedding schedule for 2/28 with 4 artists starting at 8 AM! I've filled in all the names you gave me. You can edit the times in the schedule link."}
+
+Simple example:
+{"createSchedule": {"eventName": "Madison Wedding", "eventDate": "2026-05-15", "location": "Villa Rosa", "startTime": "08:00", "numArtists": 2, "partySize": 6}, "response": "Created a schedule for Madison! You can view and edit it at the link below."}
 
 === SEARCH ===
 Search when vendor asks: "find", "search", "look up", "who is", "show me clients named", etc.
@@ -378,14 +386,23 @@ interface ParsedResponse {
     notes?: string;
   };
   createSchedule?: {
+    eventName?: string;
     clientName?: string;
     eventDate?: string;
     eventType?: string;
+    startTime?: string;
     firstLookTime?: string;
     ceremonyTime?: string;
+    numArtists?: number;
     partySize?: number;
     location?: string;
     notes?: string;
+    clients?: Array<{
+      name: string;
+      role?: string;
+      services?: string[];
+      withLeadArtist?: boolean;
+    }>;
   };
   inquiryResponse?: {
     detected: boolean;
@@ -745,6 +762,155 @@ export async function createBookingFromAI(
     return { success: true, bookingId: newBooking.id, calendarEventId, emailSent };
   } catch (err: any) {
     console.error("[AI] Failed to create booking:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function createScheduleFromAI(
+  artistId: string,
+  scheduleData: {
+    eventName?: string;
+    clientName?: string;
+    eventDate?: string;
+    startTime?: string;
+    numArtists?: number;
+    partySize?: number;
+    location?: string;
+    notes?: string;
+    clients?: Array<{
+      name: string;
+      role?: string;
+      services?: string[];
+      withLeadArtist?: boolean;
+    }>;
+  }
+): Promise<{ success: boolean; scheduleId?: string; shareLink?: string; error?: string }> {
+  try {
+    const eventName = scheduleData.eventName || scheduleData.clientName || "Wedding";
+    const eventDateStr = scheduleData.eventDate || new Date().toISOString().split('T')[0];
+    const eventDate = new Date(eventDateStr + 'T12:00:00');
+    const numArtists = scheduleData.numArtists || 2;
+    const startTime = scheduleData.startTime || "08:00";
+    
+    // Create the schedule
+    const schedule = await storage.createEventDaySchedule({
+      artistId,
+      eventName,
+      eventDate,
+      eventLocation: scheduleData.location || "",
+      notes: scheduleData.notes || "",
+      status: "draft",
+    });
+
+    // Create team members (artists)
+    const artistNames = ["Lead Artist", "Artist 2", "Artist 3", "Artist 4", "Artist 5", "Artist 6", "Artist 7", "Artist 8"];
+    const teamMembers: any[] = [];
+    
+    for (let i = 0; i < numArtists; i++) {
+      const member = await storage.createScheduleTeamMember({
+        scheduleId: schedule.id,
+        name: artistNames[i] || `Artist ${i + 1}`,
+        role: i === 0 ? "Lead" : "Team",
+        serviceType: "HM",
+        displayOrder: i,
+      });
+      teamMembers.push(member);
+    }
+
+    // If clients provided, create appointments
+    if (scheduleData.clients && scheduleData.clients.length > 0) {
+      // Parse start time
+      let hours = 8, minutes = 0;
+      const timeMatch = startTime.match(/(\d+):(\d+)/);
+      if (timeMatch) {
+        hours = parseInt(timeMatch[1]);
+        minutes = parseInt(timeMatch[2]);
+      }
+
+      // Distribute clients across artists
+      // Lead artist gets clients marked withLeadArtist
+      const leadClients = scheduleData.clients.filter(c => c.withLeadArtist);
+      const otherClients = scheduleData.clients.filter(c => !c.withLeadArtist);
+      
+      // Assign lead artist's clients
+      let leadTimeMinutes = hours * 60 + minutes;
+      for (const client of leadClients) {
+        const hasHair = client.services?.includes('hair');
+        const hasMakeup = client.services?.includes('makeup');
+        const duration = (hasHair && hasMakeup) ? 120 : 45; // 2 hours for both, 45 min for one
+        
+        const startH = Math.floor(leadTimeMinutes / 60);
+        const startM = leadTimeMinutes % 60;
+        const endMinutes = leadTimeMinutes + duration;
+        const endH = Math.floor(endMinutes / 60);
+        const endM = endMinutes % 60;
+        
+        const formatTime = (h: number, m: number) => {
+          const ampm = h >= 12 ? 'PM' : 'AM';
+          const hour12 = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+          return `${hour12}:${m.toString().padStart(2, '0')} ${ampm}`;
+        };
+        
+        await storage.createScheduleAppointment({
+          scheduleId: schedule.id,
+          teamMemberId: teamMembers[0]?.id,
+          clientName: `${client.name}${client.role ? ` (${client.role})` : ''} ${hasHair ? 'H' : ''}${hasMakeup ? 'M' : ''}`,
+          startTime: formatTime(startH, startM),
+          endTime: formatTime(endH, endM),
+          serviceType: "HM",
+          isVip: client.role === 'Bride',
+          isBuffer: false,
+        });
+        
+        leadTimeMinutes = endMinutes;
+      }
+
+      // Distribute other clients across remaining artists
+      const artistCount = teamMembers.length;
+      const artistTimeTrackers = teamMembers.map(() => hours * 60 + minutes);
+      
+      for (let i = 0; i < otherClients.length; i++) {
+        const client = otherClients[i];
+        // Round-robin assignment to artists (skip lead if they have clients)
+        const artistIdx = leadClients.length > 0 ? ((i % (artistCount - 1)) + 1) : (i % artistCount);
+        
+        const hasHair = client.services?.includes('hair');
+        const hasMakeup = client.services?.includes('makeup');
+        const duration = (hasHair && hasMakeup) ? 90 : 45;
+        
+        const currentTime = artistTimeTrackers[artistIdx];
+        const startH = Math.floor(currentTime / 60);
+        const startM = currentTime % 60;
+        const endMinutes = currentTime + duration;
+        const endH = Math.floor(endMinutes / 60);
+        const endM = endMinutes % 60;
+        
+        const formatTime = (h: number, m: number) => {
+          const ampm = h >= 12 ? 'PM' : 'AM';
+          const hour12 = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+          return `${hour12}:${m.toString().padStart(2, '0')} ${ampm}`;
+        };
+        
+        await storage.createScheduleAppointment({
+          scheduleId: schedule.id,
+          teamMemberId: teamMembers[artistIdx]?.id,
+          clientName: `${client.name}${client.role ? ` (${client.role})` : ''} ${hasHair ? 'H' : ''}${hasMakeup ? 'M' : ''}`,
+          startTime: formatTime(startH, startM),
+          endTime: formatTime(endH, endM),
+          serviceType: "HM",
+          isVip: false,
+          isBuffer: false,
+        });
+        
+        artistTimeTrackers[artistIdx] = endMinutes;
+      }
+    }
+
+    const shareLink = `/schedule/${schedule.shareToken}`;
+    
+    return { success: true, scheduleId: schedule.id, shareLink };
+  } catch (err: any) {
+    console.error("[AI] Failed to create schedule:", err);
     return { success: false, error: err.message };
   }
 }
