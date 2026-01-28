@@ -42,6 +42,7 @@ import DemoClientDashboard from "@/pages/demo/DemoClientDashboard";
 import DemoArtistDashboard from "@/pages/demo/DemoArtistDashboard";
 import DemoPlannerDashboard from "@/pages/demo/DemoPlannerDashboard";
 import DemoAdminDashboard from "@/pages/demo/DemoAdminDashboard";
+import InvestorDemo from "@/pages/demo/InvestorDemo";
 import ArtistRolodex from "@/pages/ArtistRolodex";
 import PaymentSuccess from "@/pages/PaymentSuccess";
 import PublicOnboarding from "@/pages/PublicOnboarding";
@@ -170,6 +171,8 @@ function Router() {
       <Route path="/demo/artist" component={DemoArtistDashboard} />
       <Route path="/demo/planner" component={DemoPlannerDashboard} />
       <Route path="/demo/admin" component={DemoAdminDashboard} />
+      <Route path="/demo/investor" component={InvestorDemo} />
+      <Route path="/demo/bessemer" component={InvestorDemo} />
       
       {/* Payment Routes */}
       <Route path="/payment-success" component={PaymentSuccess} />
