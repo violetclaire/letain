@@ -56,7 +56,8 @@ const sampleInquiries = [
     date: "May 15, 2026", 
     status: "deposit_paid",
     venue: "Fairmont Olympic, Seattle",
-    revenue: 1800
+    budget: "$520,000",
+    revenue: 6500
   },
   { 
     id: 2, 
@@ -64,7 +65,8 @@ const sampleInquiries = [
     date: "June 22, 2026", 
     status: "contract_sent",
     venue: "The Foundry, Portland",
-    revenue: 1400
+    budget: "$380,000",
+    revenue: 4200
   },
   { 
     id: 3, 
@@ -72,6 +74,7 @@ const sampleInquiries = [
     date: "July 8, 2026", 
     status: "pending",
     venue: "Chateau Ste Michelle",
+    budget: "$750,000",
     revenue: null
   },
   { 
@@ -80,6 +83,7 @@ const sampleInquiries = [
     date: "Aug 3, 2026", 
     status: "referred",
     venue: "Sodo Park",
+    budget: "$420,000",
     referredTo: "Erika Marie Artistry",
     revenue: null
   },
@@ -176,7 +180,7 @@ export default function InvestorDemo() {
                   <DollarSign size={18} className="text-[hsl(0,50%,24%)]" />
                 </div>
                 <div>
-                  <p className="text-2xl font-semibold text-[hsl(0,0%,10%)]">$34.5K</p>
+                  <p className="text-2xl font-semibold text-[hsl(0,0%,10%)]">$142K</p>
                   <p className="text-xs text-[hsl(0,0%,35%)]">Revenue</p>
                 </div>
               </div>

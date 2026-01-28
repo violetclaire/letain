@@ -107,7 +107,7 @@ export default function DemoArtistDashboard() {
                 <DollarSign size={20} className="text-pink" />
               </div>
               <div>
-                <p className="text-2xl font-bold">$2,700</p>
+                <p className="text-2xl font-bold">$18,500</p>
                 <p className="text-xs text-black/50">This Month</p>
               </div>
             </div>
