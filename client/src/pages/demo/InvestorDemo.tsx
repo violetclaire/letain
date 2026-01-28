@@ -282,57 +282,57 @@ export default function InvestorDemo() {
         </section>
 
         <section className="mb-8">
-          <Explainer tip="CDI = Client Distress Index. AI monitors thread sentiment, response times, and friction signals. High CDI = client about to churn. Artists can intervene before losing the booking." position="bottom">
-            <div className="bg-gradient-to-br from-rose-50 to-orange-50 rounded-xl p-6 border border-rose-200 cursor-help">
+          <Explainer tip="CDI = Choreography Depth Index. A backend coordination metric that quantifies human-system coordination readiness in real-time. Higher CDI = smoother coordination. Lower CDI = friction signals detected. We're showing you the backend view here." position="bottom">
+            <div className="bg-gradient-to-br from-violet-50 to-indigo-50 rounded-xl p-6 border border-violet-200 cursor-help">
               <div className="flex items-center gap-2 mb-4">
-                <TrendingUp size={18} className="text-rose-500" />
-                <h2 className="font-serif text-lg text-stone-900">Client Distress Index (CDI)</h2>
-                <span className="ml-auto text-xs bg-rose-500 text-white px-2 py-1 rounded-full">AI Powered</span>
+                <TrendingUp size={18} className="text-violet-500" />
+                <h2 className="font-serif text-lg text-stone-900">Choreography Depth Index (CDI)</h2>
+                <span className="ml-auto text-xs bg-violet-500 text-white px-2 py-1 rounded-full">Backend Metric</span>
               </div>
               
               <div className="grid grid-cols-4 gap-3">
-                <div className="bg-white/80 backdrop-blur rounded-lg p-4 border border-rose-100">
+                <div className="bg-white/80 backdrop-blur rounded-lg p-4 border border-emerald-100">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-stone-500">Amanda B.</span>
-                    <span className="text-xs font-bold text-rose-600">CDI: 85</span>
+                    <span className="text-xs text-stone-500">Sarah C.</span>
+                    <span className="text-xs font-bold text-emerald-600">CDI: 0.92</span>
                   </div>
                   <div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-rose-500 rounded-full" style={{ width: "85%" }} />
+                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: "92%" }} />
                   </div>
-                  <p className="text-[10px] text-rose-600 mt-2">Escalation detected</p>
-                </div>
-                
-                <div className="bg-white/80 backdrop-blur rounded-lg p-4 border border-orange-100">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-stone-500">Rachel G.</span>
-                    <span className="text-xs font-bold text-orange-600">CDI: 62</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-orange-500 rounded-full" style={{ width: "62%" }} />
-                  </div>
-                  <p className="text-[10px] text-orange-600 mt-2">Payment delay</p>
-                </div>
-                
-                <div className="bg-white/80 backdrop-blur rounded-lg p-4 border border-amber-100">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-stone-500">Monica G.</span>
-                    <span className="text-xs font-bold text-amber-600">CDI: 45</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-amber-500 rounded-full" style={{ width: "45%" }} />
-                  </div>
-                  <p className="text-[10px] text-amber-600 mt-2">Slow response</p>
+                  <p className="text-[10px] text-emerald-600 mt-2">High coordination</p>
                 </div>
                 
                 <div className="bg-white/80 backdrop-blur rounded-lg p-4 border border-emerald-100">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-stone-500">Phoebe B.</span>
-                    <span className="text-xs font-bold text-emerald-600">CDI: 12</span>
+                    <span className="text-xs text-stone-500">Jessica M.</span>
+                    <span className="text-xs font-bold text-emerald-600">CDI: 0.78</span>
                   </div>
                   <div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: "12%" }} />
+                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: "78%" }} />
                   </div>
-                  <p className="text-[10px] text-emerald-600 mt-2">Healthy</p>
+                  <p className="text-[10px] text-emerald-600 mt-2">Good coordination</p>
+                </div>
+                
+                <div className="bg-white/80 backdrop-blur rounded-lg p-4 border border-amber-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-stone-500">Emily T.</span>
+                    <span className="text-xs font-bold text-amber-600">CDI: 0.45</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-amber-500 rounded-full" style={{ width: "45%" }} />
+                  </div>
+                  <p className="text-[10px] text-amber-600 mt-2">Friction detected</p>
+                </div>
+                
+                <div className="bg-white/80 backdrop-blur rounded-lg p-4 border border-violet-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-stone-500">Amanda W.</span>
+                    <span className="text-xs font-bold text-violet-600">CDI: 0.31</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-violet-500 rounded-full" style={{ width: "31%" }} />
+                  </div>
+                  <p className="text-[10px] text-violet-600 mt-2">Needs attention</p>
                 </div>
               </div>
             </div>
