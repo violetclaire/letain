@@ -28,6 +28,29 @@ interface ThreadMessage {
   attachments?: string[];
 }
 
+// Helper to convert URLs in text to clickable links
+function linkifyText(text: string): React.ReactNode {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  
+  return parts.map((part, index) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a
+          key={index}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#6B4A55] underline hover:text-[#8B6A75] break-all"
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+}
+
 export default function ClientThread() {
   const [, params] = useRoute("/thread/:clientToken");
   const queryClient = useQueryClient();
@@ -202,7 +225,7 @@ export default function ClientThread() {
                     {msg.sentAt ? format(new Date(msg.sentAt), "MMM d, h:mm a") : ""}
                   </span>
                 </div>
-                <p className="text-[#1A1A1A] whitespace-pre-wrap">{msg.content}</p>
+                <p className="text-[#1A1A1A] whitespace-pre-wrap">{linkifyText(msg.content)}</p>
                 
                 {msg.attachments && msg.attachments.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-2">

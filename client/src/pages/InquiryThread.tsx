@@ -18,6 +18,29 @@ const CLIENT_TYPES = ["Bride", "Bridesmaid", "Mother of Bride", "Mother of Groom
 
 const defaultServiceItem: ServiceItem = { clientType: "Bride", service: "", qty: 1, price: 0 };
 
+// Helper to convert URLs in text to clickable links
+function linkifyText(text: string): React.ReactNode {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  
+  return parts.map((part, index) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a
+          key={index}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#6B4A55] underline hover:text-[#8B6A75] break-all"
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+}
+
 interface Inquiry {
   id: string;
   threadToken: string;
@@ -521,7 +544,7 @@ export default function InquiryThread() {
                 return (
                   <div key={msg.id} className={`flex ${isArtistMsg ? "justify-end" : "justify-start"}`}>
                     <div className={`max-w-[80%] p-4 rounded ${isArtistMsg ? "bg-[#F5F2ED]" : "bg-white border border-[#E8E2D9]"}`}>
-                      <p className="text-sm text-[#333] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                      <p className="text-sm text-[#333] leading-relaxed whitespace-pre-wrap">{linkifyText(msg.content)}</p>
                       {msgAttachments.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-2">
                           {msgAttachments.map((url: string, idx: number) => (
