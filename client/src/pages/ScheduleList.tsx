@@ -88,7 +88,8 @@ export default function ScheduleList() {
         credentials: 'include',
         body: JSON.stringify({ 
           message,
-          conversationHistory: updatedHistory.slice(1) // Skip initial greeting
+          conversationHistory: updatedHistory.slice(1), // Skip initial greeting
+          collectedData: pendingScheduleData // Pass previously collected data back
         })
       });
       

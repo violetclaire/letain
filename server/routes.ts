@@ -4816,7 +4816,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/ai/schedule-chat", isAuthenticated, async (req: any, res) => {
     try {
       const userId = getAuthUserId(req);
-      const { message, conversationHistory = [] } = req.body;
+      const { message, conversationHistory = [], collectedData = null } = req.body;
       
       if (!message) {
         return res.status(400).json({ error: "Message required" });
@@ -4831,12 +4831,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? `\nPrevious conversation:\n${conversationHistory.map((m: any) => `${m.role}: ${m.content}`).join('\n')}\n`
         : '';
       
+      // Include previously collected data context
+      const collectedDataContext = collectedData 
+        ? `\nPREVIOUSLY COLLECTED DATA (use this!):\n${JSON.stringify(collectedData, null, 2)}\n`
+        : '';
+      
       const schedulePrompt = `You are Beauvette Secretary, an intelligent schedule creation assistant for wedding beauty artists.
 
 Your job is to have a natural conversation with the artist to gather schedule details, then generate a complete schedule with calculated time slots.
 
 Current date: ${currentDate.toISOString().split('T')[0]}
-${historyContext}
+${historyContext}${collectedDataContext}
 Current user message: ${message}
 
 INFORMATION YOU NEED TO CREATE A SCHEDULE:
