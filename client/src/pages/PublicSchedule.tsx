@@ -86,20 +86,26 @@ function formatSingleTime(timeStr: string): string {
   const h = parseInt(match[1], 10);
   const mins = match[2];
   
-  // Wedding-smart: 1-7 means PM, 8-11 means AM
+  // Handle 24-hour format first (13:00 = 1 PM, etc.)
+  if (h >= 13 && h <= 23) {
+    return `${h - 12}:${mins} PM`;
+  } else if (h === 0) {
+    return `12:${mins} AM`;
+  } else if (h === 12) {
+    return `${h}:${mins} PM`;
+  }
+  
+  // Wedding-smart for ambiguous 12-hour times: 1-7 means PM, 8-11 means AM
   let ampm: string;
   if (h >= 1 && h <= 7) {
     ampm = "PM";
   } else if (h >= 8 && h <= 11) {
     ampm = "AM";
-  } else if (h === 12) {
-    ampm = "PM";
   } else {
     ampm = "AM";
   }
   
-  const displayHour = h % 12 || 12;
-  return `${displayHour}:${mins} ${ampm}`;
+  return `${h}:${mins} ${ampm}`;
 }
 
 function formatTimeDisplay(time: string): string {
