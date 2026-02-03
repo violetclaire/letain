@@ -313,7 +313,15 @@ export default function ContractEditor() {
                   )}
                   
                   {contract.status === 'signed' && (
-                    <div className="text-green-600 font-medium">Signed</div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-green-600 font-medium">Signed</div>
+                      <a 
+                        href={`/contract/${contract.id}`}
+                        className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-700"
+                      >
+                        View Contract
+                      </a>
+                    </div>
                   )}
                 </div>
               ))}

@@ -60,6 +60,7 @@ import DirectChat from "@/pages/DirectChat";
 import ArtistQuickChat from "@/pages/ArtistQuickChat";
 import ClientMessages from "@/pages/ClientMessages";
 import ContractSigning from "@/pages/ContractSigning";
+import ViewSignedContract from "@/pages/ViewSignedContract";
 import PlannerView from "@/pages/PlannerView";
 import SecretaryOnboarding from "@/pages/SecretaryOnboarding";
 import InquirePage from "@/pages/InquirePage";
@@ -185,6 +186,11 @@ function Router() {
       {/* Contract Signing Route (public - no auth required) */}
       <Route path="/sign/:token">
         {(params) => <ContractSigning token={params.token} />}
+      </Route>
+      
+      {/* View Signed Contract Route */}
+      <Route path="/contract/:contractId">
+        {(params) => <ViewSignedContract contractId={params.contractId} />}
       </Route>
       
       {/* Planner View Route (shared booking view for planners) */}
