@@ -2287,6 +2287,9 @@ export default function ArtistDashboard() {
               <Link href="/artist/schedules" className="text-xs ink-soft hover:ink-main flex items-center gap-1 transition-colors" data-testid="link-schedule-maker">
                 <Clock size={14} /> Day-Of Schedule
               </Link>
+              <Link href="/artist/contracts" className="text-xs ink-soft hover:ink-main flex items-center gap-1 transition-colors" data-testid="link-contracts">
+                <FileText size={14} /> Contracts
+              </Link>
               <Link href="/settings" className="text-xs ink-soft hover:ink-main flex items-center gap-1 transition-colors" data-testid="link-settings">
                 <Settings size={14} /> Settings
               </Link>
@@ -2374,6 +2377,10 @@ export default function ArtistDashboard() {
                   <Link href="/artist/schedules" className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 border-b border-[#e5e8f2]">
                     <Clock size={16} className="ink-soft" /> 
                     <span>Day-Of Schedule</span>
+                  </Link>
+                  <Link href="/artist/contracts" className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 border-b border-[#e5e8f2]">
+                    <FileText size={16} className="ink-soft" /> 
+                    <span>Contracts</span>
                   </Link>
                   <a href="/api/logout" className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 text-red-600">
                     <LogOut size={16} /> 
