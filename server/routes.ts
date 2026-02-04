@@ -14,6 +14,7 @@ import { GoogleGenAI, Modality } from "@google/genai";
 import * as smsService from "./smsService";
 import * as iqsService from "./iqsService";
 import { logActivity, getRecentActivity, getTodayActivity } from "./activityService";
+import { calculateCDI, runSampleCalculations, CDIInput, SAMPLE_TRANSACTIONS } from "./cdiService";
 
 // Rate limiter for auth endpoints to prevent brute force attacks
 const authLimiter = rateLimit({
@@ -1168,6 +1169,161 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
+  });
+
+  // ========== CDI (Choreography Depth Index) API ==========
+  
+  // CDI Calculation Endpoint
+  // POST /api/calculate-cdi
+  // Calculates trust score from coordination behavioral data
+  app.post("/api/calculate-cdi", async (req, res) => {
+    try {
+      const { behavior, complexity, customThresholds } = req.body;
+      
+      // Validate required fields
+      if (!behavior) {
+        return res.status(400).json({ 
+          error: "Missing required field: behavior",
+          required: {
+            behavior: {
+              responseTimesMinutes: "number[] - Response times in minutes",
+              communicationFrequency: "number - Messages per hour during active coordination",
+              iterationsToAlignment: "number - Number of iterations to reach alignment",
+              proactiveRatio: "number (0-1) - Ratio of proactive vs reactive communication",
+              historicalCompletionRate: "number (0-100) - Historical completion quality",
+            },
+            complexity: "string - 'simple' | 'medium' | 'complex'"
+          }
+        });
+      }
+      
+      if (!complexity || !['simple', 'medium', 'complex'].includes(complexity)) {
+        return res.status(400).json({ 
+          error: "Invalid or missing complexity field",
+          validValues: ['simple', 'medium', 'complex'],
+          description: {
+            simple: "1-artist, 2hr engagement",
+            medium: "3-artists, 4hr engagement",
+            complex: "Wedding, 6+ artists, 8hr"
+          }
+        });
+      }
+      
+      // Validate behavior fields
+      const requiredBehaviorFields = [
+        'responseTimesMinutes',
+        'communicationFrequency',
+        'iterationsToAlignment',
+        'proactiveRatio',
+        'historicalCompletionRate'
+      ];
+      
+      const missingFields = requiredBehaviorFields.filter(f => behavior[f] === undefined);
+      if (missingFields.length > 0) {
+        return res.status(400).json({
+          error: `Missing required behavior fields: ${missingFields.join(', ')}`,
+        });
+      }
+      
+      // Validate numeric ranges
+      if (behavior.proactiveRatio < 0 || behavior.proactiveRatio > 1) {
+        return res.status(400).json({ error: "proactiveRatio must be between 0 and 1" });
+      }
+      if (behavior.historicalCompletionRate < 0 || behavior.historicalCompletionRate > 100) {
+        return res.status(400).json({ error: "historicalCompletionRate must be between 0 and 100" });
+      }
+      
+      const input: CDIInput = {
+        behavior,
+        complexity,
+        customThresholds,
+      };
+      
+      const result = calculateCDI(input);
+      
+      res.json(result);
+    } catch (error: any) {
+      console.error("[CDI API] Calculation error:", error);
+      res.status(500).json({ error: error.message || "CDI calculation failed" });
+    }
+  });
+  
+  // CDI Sample Calculations Endpoint
+  // GET /api/cdi/samples
+  // Returns sample calculations demonstrating the algorithm across complexity levels
+  app.get("/api/cdi/samples", async (req, res) => {
+    try {
+      const samples = runSampleCalculations();
+      res.json({
+        description: "Sample CDI calculations demonstrating trust scoring across transaction complexities",
+        samples,
+        sampleInputs: SAMPLE_TRANSACTIONS,
+      });
+    } catch (error: any) {
+      console.error("[CDI API] Samples error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // CDI Algorithm Documentation Endpoint
+  // GET /api/cdi/docs
+  // Returns documentation about the CDI scoring algorithm
+  app.get("/api/cdi/docs", async (req, res) => {
+    res.json({
+      name: "Choreography Depth Index (CDI)",
+      version: "1.0.0",
+      description: "Trust scoring API that quantifies coordination quality for autonomous agent permission systems. Based on 16 years of high-stakes coordination patterns.",
+      
+      components: {
+        responsiveness: {
+          weight: 0.25,
+          description: "Response time patterns - fast and consistent responses indicate high trust",
+          scoring: "< 5min avg = excellent, < 15min = good, < 60min = acceptable, > 60min = needs improvement",
+        },
+        adaptability: {
+          weight: 0.25,
+          description: "Number of iterations to alignment - fewer iterations = better understanding",
+          scoring: "Compared to expected iterations by complexity level",
+        },
+        attention: {
+          weight: 0.25,
+          description: "Proactive updates vs reactive responses",
+          scoring: "Higher proactive ratio = higher score, optimal communication frequency bonus",
+        },
+        reliability: {
+          weight: 0.25,
+          description: "Historical completion quality with stress penalty",
+          scoring: "Based on completion rate, penalized for high stress indicators",
+        },
+      },
+      
+      autonomyLevels: {
+        full: {
+          threshold: ">= 85 (adjusted by complexity)",
+          description: "Agent can operate independently",
+        },
+        conditional: {
+          threshold: ">= 70 and < 85 (adjusted by complexity)",
+          description: "Agent should check in at key decision points",
+        },
+        restricted: {
+          threshold: "< 70 (adjusted by complexity)",
+          description: "Human approval required for significant actions",
+        },
+      },
+      
+      complexityAdjustments: {
+        simple: "Thresholds reduced by 5% - lower stakes",
+        medium: "Standard thresholds",
+        complex: "Thresholds increased by 5% - higher stakes require higher trust",
+      },
+      
+      endpoints: {
+        "POST /api/calculate-cdi": "Calculate CDI score from behavioral data",
+        "GET /api/cdi/samples": "View sample calculations across complexity levels",
+        "GET /api/cdi/docs": "This documentation",
+      },
+    });
   });
 
   // ========== INTAKE FORMS ==========
