@@ -229,159 +229,57 @@ export default function Landing() {
             backgroundSize: '300px'
           }} 
         />
-        <div className="relative z-10 py-32 md:py-40 max-w-[1100px] mx-auto w-full px-6 sm:px-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
-            {/* Left Column - Artist Pitch */}
-            <div>
-              <motion.p 
-                className="text-sm tracking-[0.12em] uppercase text-[#f5f3ef]/50"
-                {...fadeIn}
-              >
-                {CONTENT.hero.label}
-              </motion.p>
-              <motion.h1 
-                className="mt-6 text-4xl sm:text-5xl leading-[1.05] tracking-tight text-[#f5f3ef]"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1, duration: 0.3, ease: "easeOut" }}
-              >
-                {CONTENT.hero.h1}
-              </motion.h1>
-              <motion.p 
-                className="mt-6 text-xl leading-relaxed text-[#f5f3ef]/80 italic"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15, duration: 0.3, ease: "easeOut" }}
-              >
-                {CONTENT.hero.subline}
-              </motion.p>
-              <motion.p 
-                className="mt-4 text-lg leading-relaxed text-[#f5f3ef]/60"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.3, ease: "easeOut" }}
-              >
-                {CONTENT.hero.notList.join(" ")}
-              </motion.p>
-              <motion.div 
-                className="mt-10 flex flex-col sm:flex-row gap-3"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.3, ease: "easeOut" }}
-              >
-                <button
-                  onClick={() => setLocation("/secretary")}
-                  className="bg-[#f5f3ef] px-4 py-2.5 text-sm font-medium text-[#0a0a0a] hover:bg-[#f5f3ef]/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brass transition-colors"
-                  data-testid="button-hero-primary"
-                >
-                  {CONTENT.hero.primaryCta}
-                </button>
-                <a 
-                  href="#how" 
-                  className="self-center text-sm underline text-[#f5f3ef]/70 hover:text-[#f5f3ef] transition-colors"
-                >
-                  {CONTENT.hero.secondaryCta}
-                </a>
-              </motion.div>
-            </div>
-
-            {/* Right Column - Client Waitlist */}
-            <motion.div
-              className="lg:mt-8"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.35, duration: 0.4, ease: "easeOut" }}
-            >
-              <div className="border border-[#f5f3ef]/15 bg-[#f5f3ef]/[0.04] backdrop-blur-sm p-6 sm:p-8">
-                <p className="text-sm tracking-[0.1em] uppercase text-[#c9a96e]/80">
-                  Looking for an artist?
-                </p>
-                <h2 className="mt-3 font-serif text-2xl tracking-tight text-[#f5f3ef]">
-                  Join the client waitlist
-                </h2>
-                <p className="mt-4 text-sm text-[#f5f3ef]/60 leading-relaxed">
-                  We're building one place where you can:
-                </p>
-                <ul className="mt-4 space-y-2.5 text-sm text-[#f5f3ef]/70">
-                  <li className="flex items-start gap-2.5">
-                    <span className="text-[#c9a96e] mt-px flex-shrink-0 text-xs">&#9672;</span>
-                    <span>Search for vetted artists who match your style</span>
-                  </li>
-                  <li className="flex items-start gap-2.5">
-                    <span className="text-[#c9a96e] mt-px flex-shrink-0 text-xs">&#9672;</span>
-                    <span>Upload inspiration photos so they understand your vision</span>
-                  </li>
-                  <li className="flex items-start gap-2.5">
-                    <span className="text-[#c9a96e] mt-px flex-shrink-0 text-xs">&#9672;</span>
-                    <span>Chat directly to plan every detail</span>
-                  </li>
-                  <li className="flex items-start gap-2.5">
-                    <span className="text-[#c9a96e] mt-px flex-shrink-0 text-xs">&#9672;</span>
-                    <span>Sign your contract online</span>
-                  </li>
-                  <li className="flex items-start gap-2.5">
-                    <span className="text-[#c9a96e] mt-px flex-shrink-0 text-xs">&#9672;</span>
-                    <span>Make secure payments and track invoices</span>
-                  </li>
-                  <li className="flex items-start gap-2.5">
-                    <span className="text-[#c9a96e] mt-px flex-shrink-0 text-xs">&#9672;</span>
-                    <span>Get your day-of schedule so everyone knows where to be</span>
-                  </li>
-                  <li className="flex items-start gap-2.5">
-                    <span className="text-[#c9a96e] mt-px flex-shrink-0 text-xs">&#9672;</span>
-                    <span>No accounts, no passwords. Just links that work.</span>
-                  </li>
-                </ul>
-
-                {!waitlistSubmitted ? (
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      if (waitlistEmail) joinWaitlist.mutate(waitlistEmail);
-                    }}
-                    className="mt-6"
-                  >
-                    <div className="flex flex-col sm:flex-row gap-2.5">
-                      <input
-                        type="email"
-                        placeholder="your@email.com"
-                        value={waitlistEmail}
-                        onChange={(e) => setWaitlistEmail(e.target.value)}
-                        required
-                        className="flex-1 h-11 px-4 bg-[#f5f3ef]/10 border border-[#f5f3ef]/20 text-[#f5f3ef] placeholder:text-[#f5f3ef]/35 focus:outline-none focus:border-[#c9a96e]/60 transition-colors text-sm"
-                        data-testid="input-landing-waitlist-email"
-                      />
-                      <button
-                        type="submit"
-                        disabled={joinWaitlist.isPending}
-                        className="h-11 px-5 bg-[#f5f3ef] text-[#3d1a22] font-medium text-sm hover:bg-[#f5f3ef]/90 transition-colors disabled:opacity-50 flex-shrink-0"
-                        data-testid="button-landing-join-waitlist"
-                      >
-                        {joinWaitlist.isPending ? "Joining..." : "Join the waitlist"}
-                      </button>
-                    </div>
-                    {joinWaitlist.isError && (
-                      <p className="mt-2 text-xs text-red-300">
-                        {joinWaitlist.error?.message || "Something went wrong. Please try again."}
-                      </p>
-                    )}
-                  </form>
-                ) : (
-                  <div className="mt-6 flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-[#c9a96e] mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-medium text-[#f5f3ef]" data-testid="text-waitlist-success">
-                        Thank you so much for your support.
-                      </p>
-                      <p className="mt-1.5 text-sm text-[#f5f3ef]/50">
-                        We'll reach out as soon as client search goes live.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </div>
+        <div className="estate-prose relative z-10 py-32 md:py-40">
+        <motion.p 
+          className="text-sm tracking-[0.12em] uppercase text-[#f5f3ef]/50"
+          {...fadeIn}
+        >
+          {CONTENT.hero.label}
+        </motion.p>
+        <motion.h1 
+          className="mt-6 text-4xl sm:text-5xl leading-[1.05] tracking-tight text-[#f5f3ef]"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.3, ease: "easeOut" }}
+        >
+          {CONTENT.hero.h1}
+        </motion.h1>
+        <motion.p 
+          className="mt-6 text-xl leading-relaxed text-[#f5f3ef]/80 italic"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15, duration: 0.3, ease: "easeOut" }}
+        >
+          {CONTENT.hero.subline}
+        </motion.p>
+        <motion.p 
+          className="mt-4 text-lg leading-relaxed text-[#f5f3ef]/60"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.3, ease: "easeOut" }}
+        >
+          {CONTENT.hero.notList.join(" ")}
+        </motion.p>
+        <motion.div 
+          className="mt-10 flex flex-col sm:flex-row gap-3"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.3, ease: "easeOut" }}
+        >
+          <button
+            onClick={() => setLocation("/secretary")}
+            className="bg-[#f5f3ef] px-4 py-2.5 text-sm font-medium text-[#0a0a0a] hover:bg-[#f5f3ef]/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brass transition-colors"
+            data-testid="button-hero-primary"
+          >
+            {CONTENT.hero.primaryCta}
+          </button>
+          <a 
+            href="#how" 
+            className="self-center text-sm underline text-[#f5f3ef]/70 hover:text-[#f5f3ef] transition-colors"
+          >
+            {CONTENT.hero.secondaryCta}
+          </a>
+        </motion.div>
         </div>
       </section>
 
@@ -644,6 +542,54 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="estate-prose py-12 pb-20 md:pb-16 text-sm text-mutedink">
+        {/* Client Waitlist */}
+        <div className="border-t border-hairline pt-8 mb-8">
+          {!waitlistSubmitted ? (
+            <div>
+              <p className="text-ink text-base">
+                If you're a client, join the waitlist.
+              </p>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (waitlistEmail) joinWaitlist.mutate(waitlistEmail);
+                }}
+                className="mt-4 flex flex-col sm:flex-row gap-2.5 max-w-md"
+              >
+                <input
+                  type="email"
+                  placeholder="your@email.com"
+                  value={waitlistEmail}
+                  onChange={(e) => setWaitlistEmail(e.target.value)}
+                  required
+                  className="flex-1 h-10 px-3 bg-surface border border-hairline text-ink placeholder:text-faintink focus:outline-none focus:border-ink/40 transition-colors text-sm"
+                  data-testid="input-landing-waitlist-email"
+                />
+                <button
+                  type="submit"
+                  disabled={joinWaitlist.isPending}
+                  className="h-10 px-5 bg-ink text-bg text-sm font-medium hover:bg-ink/90 transition-colors disabled:opacity-50 flex-shrink-0"
+                  data-testid="button-landing-join-waitlist"
+                >
+                  {joinWaitlist.isPending ? "Joining..." : "Join"}
+                </button>
+              </form>
+              {joinWaitlist.isError && (
+                <p className="mt-2 text-xs text-red-600">
+                  {joinWaitlist.error?.message || "Something went wrong. Please try again."}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-2.5">
+              <CheckCircle className="w-4 h-4 text-ink flex-shrink-0" />
+              <p className="text-ink" data-testid="text-waitlist-success">
+                Thank you so much for your support.
+              </p>
+            </div>
+          )}
+        </div>
+
         <div className="flex gap-6">
           <a 
             href="https://www.instagram.com/dateinquiry" 
