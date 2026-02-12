@@ -12056,6 +12056,38 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       let statusReason = "";
       
       switch (action) {
+        case "resend-info-sheet": {
+          const artist = await storage.getArtistProfile(inquiry.vendorId);
+          const vendor = await storage.getUser(inquiry.vendorId);
+          const vendorName = artist?.businessName || vendor?.firstName || 'Your Artist';
+          const eventDate = inquiry.eventDate 
+            ? new Date(inquiry.eventDate).toLocaleDateString('en-US', { 
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+              })
+            : 'Date TBD';
+          const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
+          const chatLink = `${baseUrl}/thread/${inquiry.clientThreadToken}`;
+          
+          const { sendInfoSheetEmail } = await import('./emailService');
+          const result = await sendInfoSheetEmail({
+            toEmail: inquiry.clientEmail,
+            vendorName,
+            vendorEmail: vendor?.email || undefined,
+            infoSheetContent: artist?.infoSheetContent || undefined,
+            infoSheetPdfUrl: artist?.infoSheetPdfUrl || undefined,
+            infoSheetType: (artist?.infoSheetType as 'template' | 'custom' | 'pdf') || 'template',
+            eventDate,
+            serviceType: inquiry.serviceType || 'Beauty Services',
+            chatLink
+          });
+          
+          if (result.success) {
+            await storage.updateInquiry(inquiry.id, { infoSheetSentAt: new Date() } as any);
+            return res.json({ success: true, message: 'Info sheet resent successfully' });
+          } else {
+            return res.status(400).json({ error: result.error || 'Failed to send info sheet' });
+          }
+        }
         case "accept-client":
           if (inquiry.status !== 'pending') {
             return res.status(400).json({ error: "Can only accept pending inquiries" });
