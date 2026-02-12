@@ -109,3 +109,43 @@ All queries scoped by artist_id - artists only see their own data.
 
 ### Focus Style
 - focus-visible:ring-1 ring-oxblood/70 (keyboard only)
+
+## Agentic Commerce Layer (Toile Coordination Engine)
+
+### Overview
+The platform is fully agent-addressable. AI agents (like OpenClaw) can discover, query, and transact through structured APIs. CDI (Choreography Depth Index) governs what agents can do based on demonstrated coordination quality.
+
+### A2A Agent Card
+- Served at `/.well-known/ai-agent` (JSON-LD)
+- Describes all platform capabilities, authentication, trust model
+- Follows Agent-to-Agent (A2A) protocol for discovery
+
+### Agent Authentication
+- Self-service registration: POST /api/agent/register
+- Bearer token API keys (hashed, rotatable)
+- All actions audit-logged with CDI score at time of action
+
+### CDI-Gated Autonomy Levels
+- **Restricted (CDI 0-49):** Read-only - availability, pricing, CDI lookup, artist discovery, referrals
+- **Conditional (CDI 50-79):** Read + Write - submit inquiries, place holds, read schedules, proof of service
+- **Full (CDI 80-100):** All actions including contracts and invoices
+
+### Agent API Endpoints
+- `GET /api/agent/manifest` - Tool definitions for AI agents
+- `GET /api/agent/me` - Agent profile + capabilities
+- `GET /api/agent/artists` - Discover artists by service/location/CDI
+- `GET /api/agent/availability/:slug` - Instant availability check
+- `GET /api/agent/cdi/:slug` - CDI trust verification
+- `GET /api/agent/pricing/:slug` - Pricing & info sheet
+- `GET /api/agent/referrals/:slug` - Trusted Circle referrals
+- `POST /api/agent/inquiries` - Submit booking inquiry
+- `POST /api/agent/inquiries/:id/hold` - Place soft hold
+- `GET /api/agent/proof/:bookingId` - Proof of service (ACP escrow)
+- `GET /api/agent/schedule/:token` - Day-of schedule access
+- Webhook management: POST/GET/DELETE /api/agent/webhooks
+
+### Key Files
+- `server/agentRoutes.ts` - All agent endpoints, middleware, A2A card
+- `server/cdiService.ts` - CDI scoring algorithm
+- `server/cdiEngine.ts` - CDI behavioral event engine
+- Database tables: agents, agent_api_keys, agent_webhooks, agent_action_logs, agent_events

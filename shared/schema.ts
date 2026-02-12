@@ -2132,3 +2132,131 @@ export const insertSimpleChatMessageSchema = createInsertSchema(simpleChatMessag
 export type InsertSimpleChatMessage = z.infer<typeof insertSimpleChatMessageSchema>;
 export type SimpleChatMessage = typeof simpleChatMessages.$inferSelect;
 
+// ============================================================
+// AGENTIC COMMERCE LAYER - Agent Identity, API Keys, Webhooks
+// ============================================================
+
+export const agents = pgTable("agents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  ownerEmail: text("owner_email").notNull(),
+  platform: text("platform"),
+  scopes: text("scopes").array().default(sql`'{}'::text[]`),
+  cdiScore: integer("cdi_score").default(0),
+  autonomyLevel: text("autonomy_level").default("restricted"),
+  isActive: boolean("is_active").default(true),
+  rateLimitPerMinute: integer("rate_limit_per_minute").default(60),
+  metadata: jsonb("metadata"),
+  lastActiveAt: timestamp("last_active_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const agentApiKeys = pgTable("agent_api_keys", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  agentId: varchar("agent_id").notNull().references(() => agents.id),
+  keyHash: text("key_hash").notNull(),
+  keyPrefix: varchar("key_prefix", { length: 12 }).notNull(),
+  label: text("label"),
+  scopes: text("scopes").array().default(sql`'{}'::text[]`),
+  isActive: boolean("is_active").default(true),
+  lastUsedAt: timestamp("last_used_at"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const agentWebhooks = pgTable("agent_webhooks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  agentId: varchar("agent_id").notNull().references(() => agents.id),
+  url: text("url").notNull(),
+  events: text("events").array().default(sql`'{}'::text[]`),
+  secret: text("secret").notNull(),
+  isActive: boolean("is_active").default(true),
+  failureCount: integer("failure_count").default(0),
+  lastDeliveredAt: timestamp("last_delivered_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const agentActionLogs = pgTable("agent_action_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  agentId: varchar("agent_id").notNull().references(() => agents.id),
+  action: text("action").notNull(),
+  endpoint: text("endpoint").notNull(),
+  method: text("method").notNull(),
+  statusCode: integer("status_code"),
+  autonomyLevel: text("autonomy_level"),
+  cdiScoreAtTime: integer("cdi_score_at_time"),
+  requestBody: jsonb("request_body"),
+  responseBody: jsonb("response_body"),
+  durationMs: integer("duration_ms"),
+  ipAddress: text("ip_address"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_agent_action_logs_agent").on(table.agentId),
+  index("idx_agent_action_logs_created").on(table.createdAt),
+]);
+
+export const agentEvents = pgTable("agent_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventType: text("event_type").notNull(),
+  payload: jsonb("payload").notNull(),
+  artistId: varchar("artist_id"),
+  inquiryId: varchar("inquiry_id"),
+  delivered: boolean("delivered").default(false),
+  deliveredAt: timestamp("delivered_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_agent_events_type").on(table.eventType),
+  index("idx_agent_events_delivered").on(table.delivered),
+]);
+
+export const insertAgentSchema = createInsertSchema(agents).omit({
+  id: true,
+  cdiScore: true,
+  autonomyLevel: true,
+  lastActiveAt: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAgentApiKeySchema = createInsertSchema(agentApiKeys).omit({
+  id: true,
+  lastUsedAt: true,
+  createdAt: true,
+});
+
+export const insertAgentWebhookSchema = createInsertSchema(agentWebhooks).omit({
+  id: true,
+  failureCount: true,
+  lastDeliveredAt: true,
+  createdAt: true,
+});
+
+export const insertAgentActionLogSchema = createInsertSchema(agentActionLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertAgentEventSchema = createInsertSchema(agentEvents).omit({
+  id: true,
+  delivered: true,
+  deliveredAt: true,
+  createdAt: true,
+});
+
+export type InsertAgent = z.infer<typeof insertAgentSchema>;
+export type Agent = typeof agents.$inferSelect;
+
+export type InsertAgentApiKey = z.infer<typeof insertAgentApiKeySchema>;
+export type AgentApiKey = typeof agentApiKeys.$inferSelect;
+
+export type InsertAgentWebhook = z.infer<typeof insertAgentWebhookSchema>;
+export type AgentWebhook = typeof agentWebhooks.$inferSelect;
+
+export type InsertAgentActionLog = z.infer<typeof insertAgentActionLogSchema>;
+export type AgentActionLog = typeof agentActionLogs.$inferSelect;
+
+export type InsertAgentEvent = z.infer<typeof insertAgentEventSchema>;
+export type AgentEvent = typeof agentEvents.$inferSelect;
+
