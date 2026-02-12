@@ -2211,6 +2211,80 @@ export const agentEvents = pgTable("agent_events", {
   index("idx_agent_events_delivered").on(table.delivered),
 ]);
 
+// ACP (Agentic Commerce Protocol) Checkout Sessions
+export const acpCheckoutSessions = pgTable("acp_checkout_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  agentId: varchar("agent_id").notNull().references(() => agents.id),
+  artistId: varchar("artist_id").notNull(),
+  inquiryId: varchar("inquiry_id"),
+  bookingId: varchar("booking_id"),
+  status: text("status").notNull().default("created"), // created, payment_pending, completed, cancelled, expired
+  amountCents: integer("amount_cents").notNull(),
+  currency: text("currency").notNull().default("USD"),
+  platformFeeCents: integer("platform_fee_cents").notNull(),
+  description: text("description"),
+  squarePaymentLinkUrl: text("square_payment_link_url"),
+  squarePaymentLinkId: text("square_payment_link_id"),
+  squareOrderId: text("square_order_id"),
+  squarePaymentId: text("square_payment_id"),
+  paymentToken: text("payment_token"), // shared payment token for zero-login
+  clientName: text("client_name"),
+  clientEmail: text("client_email"),
+  metadata: jsonb("metadata"),
+  cdiScoreAtCheckout: integer("cdi_score_at_checkout").default(0),
+  completedAt: timestamp("completed_at"),
+  cancelledAt: timestamp("cancelled_at"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_acp_sessions_agent").on(table.agentId),
+  index("idx_acp_sessions_artist").on(table.artistId),
+  index("idx_acp_sessions_status").on(table.status),
+]);
+
+// Agent Coordination Challenges (Proof of Work)
+export const agentChallenges = pgTable("agent_challenges", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  agentId: varchar("agent_id").notNull().references(() => agents.id),
+  challengeType: text("challenge_type").notNull(), // 'travel_buffer', 'schedule_optimization', 'conflict_resolution'
+  challengeData: jsonb("challenge_data").notNull(),
+  expectedAnswer: jsonb("expected_answer").notNull(),
+  agentAnswer: jsonb("agent_answer"),
+  status: text("status").notNull().default("issued"), // issued, solved, failed, expired
+  difficulty: integer("difficulty").notNull().default(1), // 1-5
+  cdiReward: integer("cdi_reward").notNull().default(5), // CDI points awarded on solve
+  verificationToken: text("verification_token"), // TOILE_VERIFIED_ token issued on success
+  solvedAt: timestamp("solved_at"),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_agent_challenges_agent").on(table.agentId),
+  index("idx_agent_challenges_status").on(table.status),
+]);
+
+export const insertAcpCheckoutSessionSchema = createInsertSchema(acpCheckoutSessions).omit({
+  id: true,
+  completedAt: true,
+  cancelledAt: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAgentChallengeSchema = createInsertSchema(agentChallenges).omit({
+  id: true,
+  agentAnswer: true,
+  verificationToken: true,
+  solvedAt: true,
+  createdAt: true,
+});
+
+export type InsertAcpCheckoutSession = z.infer<typeof insertAcpCheckoutSessionSchema>;
+export type AcpCheckoutSession = typeof acpCheckoutSessions.$inferSelect;
+
+export type InsertAgentChallenge = z.infer<typeof insertAgentChallengeSchema>;
+export type AgentChallenge = typeof agentChallenges.$inferSelect;
+
 export const insertAgentSchema = createInsertSchema(agents).omit({
   id: true,
   cdiScore: true,

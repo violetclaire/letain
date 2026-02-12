@@ -4,6 +4,7 @@ import cors from "cors";
 import path from "path";
 import { registerRoutes } from "./routes";
 import { registerAgentRoutes } from "./agentRoutes";
+import { registerAcpRoutes } from "./acpHandler";
 import { startCronJobs } from "./cronJobs";
 import { serveStatic } from "./static";
 import { startScheduledEmailJob } from './scheduledEmailJob';
@@ -176,6 +177,7 @@ app.use((req, res, next) => {
     await ensureDatabaseSchema();
     
     registerAgentRoutes(app);
+    registerAcpRoutes(app);
     const httpServer = await registerRoutes(app);
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
