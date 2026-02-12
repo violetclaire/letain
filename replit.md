@@ -148,4 +148,19 @@ The platform is fully agent-addressable. AI agents (like OpenClaw) can discover,
 - `server/agentRoutes.ts` - All agent endpoints, middleware, A2A card
 - `server/cdiService.ts` - CDI scoring algorithm
 - `server/cdiEngine.ts` - CDI behavioral event engine
-- Database tables: agents, agent_api_keys, agent_webhooks, agent_action_logs, agent_events
+- `server/acpHandler.ts` - ACP payment endpoints + coordination challenge system
+- Database tables: agents, agent_api_keys, agent_webhooks, agent_action_logs, agent_events, acp_checkout_sessions, agent_challenges
+
+### ACP Payment Flow
+1. Agent creates checkout session: POST /api/acp/checkout (requires CDI >= 50)
+2. Square payment link generated with 1.5% platform fee
+3. Client pays via shared payment token (zero-login)
+4. Agent marks complete: POST /api/acp/complete (verifies Square payment, triggers CDI boost)
+5. Proof-of-service hash generated for escrow release
+
+### Coordination Challenge (Proof of Work)
+- Agents request puzzles: POST /api/agent/challenge
+- 3 puzzle types: travel_buffer, schedule_optimization, conflict_resolution
+- Correct solutions earn CDI points + TOILE_VERIFIED_ bearer tokens
+- Failed solutions don't penalize but don't reward
+- Makes spam expensive: each challenge requires industry-specific reasoning

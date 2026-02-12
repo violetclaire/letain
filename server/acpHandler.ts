@@ -40,10 +40,19 @@ async function acpAuthMiddleware(req: AgentRequest, res: Response, next: Functio
     const [challenge] = await db
       .select()
       .from(agentChallenges)
-      .where(eq(agentChallenges.verificationToken, apiKey));
+      .where(and(
+        eq(agentChallenges.verificationToken, apiKey),
+        eq(agentChallenges.status, "solved")
+      ));
 
     if (!challenge) {
-      return res.status(401).json({ error: "invalid_verification_token" });
+      return res.status(401).json({ error: "invalid_verification_token", message: "Token not found, expired, or already used." });
+    }
+
+    const tokenAge = Date.now() - new Date(challenge.solvedAt || challenge.createdAt!).getTime();
+    const TOKEN_MAX_AGE = 24 * 60 * 60 * 1000;
+    if (tokenAge > TOKEN_MAX_AGE) {
+      return res.status(401).json({ error: "verification_token_expired", message: "TOILE_VERIFIED_ tokens expire after 24 hours. Solve a new challenge." });
     }
 
     const [agent] = await db
@@ -51,7 +60,7 @@ async function acpAuthMiddleware(req: AgentRequest, res: Response, next: Functio
       .from(agents)
       .where(eq(agents.id, challenge.agentId));
 
-    if (!agent) {
+    if (!agent || !agent.isActive) {
       return res.status(403).json({ error: "agent_not_found" });
     }
 
