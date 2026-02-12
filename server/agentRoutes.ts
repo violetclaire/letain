@@ -22,6 +22,9 @@ import {
   insertInquirySchema,
 } from "@shared/schema";
 import { storage } from "./storage";
+import { ObjectStorageService } from "./objectStorage";
+
+const objectStorage = new ObjectStorageService();
 
 const ACTION_POLICY: Record<string, { minAutonomy: string; scopes: string[] }> = {
   "availability.check": { minAutonomy: "restricted", scopes: ["read:availability"] },
@@ -363,7 +366,7 @@ export function registerAgentRoutes(app: Express) {
         { method: "POST", path: "/api/agent/inquiries", description: "Submit a booking inquiry", auth: true, body: { artistSlug: "string", clientName: "string", clientEmail: "string", eventDate: "ISO date", serviceType: "string", message: "string?" } },
         { method: "GET", path: "/api/agent/inquiries/:id", description: "Get inquiry status", auth: true },
         { method: "POST", path: "/api/agent/inquiries/:id/hold", description: "Place a soft hold on a date", auth: true, body: { holdHours: "number?" } },
-        { method: "GET", path: "/api/agent/pricing/:artistSlug", description: "Get artist pricing and info sheet", auth: true },
+        { method: "GET", path: "/api/agent/pricing/:artistSlug", description: "Get artist info sheet and coordination requirements. Pricing is bespoke — submit an inquiry to start the conversation.", auth: true },
         { method: "GET", path: "/api/agent/referrals/:artistSlug", description: "Get artist's Trusted Circle referrals", auth: true, params: { date: "query:ISO date?" } },
         { method: "GET", path: "/api/agent/proof/:bookingId", description: "Get proof of service for escrow release", auth: true },
         { method: "GET", path: "/api/agent/schedule/:token", description: "Access event day schedule", auth: true },
@@ -890,17 +893,33 @@ export function registerAgentRoutes(app: Express) {
       const result = {
         artist: { slug: artistSlug, name: profile.businessName },
         pricing: {
-          available: profile.infoSheetEnabled,
-          type: profile.infoSheetType,
-          content: profile.infoSheetContent || null,
-          pdfUrl: pdfUrl,
+          structured: false,
+          reason: "Bridal beauty pricing is bespoke. Every artist prices differently based on party size, location, travel, services, and add-ons. There is no universal rate card — pricing requires a conversation.",
+          infoSheet: profile.infoSheetEnabled ? {
+            type: profile.infoSheetType,
+            pdfUrl: pdfUrl,
+            text: profile.infoSheetContent || null,
+            note: "This info sheet is a starting point only. Final pricing is determined through the inquiry conversation.",
+          } : null,
           pricingInfo: profile.pricingInfo || null,
         },
-        nextAction: {
-          action: "Submit inquiry to book",
+        coordination: {
+          required: true,
+          why: "This artist needs to know your client's event details before quoting. Submit an inquiry to start the coordination process.",
           endpoint: "POST /api/agent/inquiries",
-          body: { artistSlug, clientName: "string", clientEmail: "string", eventDate: "ISO date" },
+          body: {
+            artistSlug,
+            clientName: "string (required)",
+            clientEmail: "string (required)",
+            eventDate: "ISO date (required)",
+            eventType: "string (e.g. wedding, editorial, prom)",
+            partySize: "number (how many people need services)",
+            location: "string (venue or city)",
+            servicesNeeded: "string (e.g. bridal makeup, bridesmaids, hair)",
+            notes: "string (any details that help the artist quote accurately)",
+          },
         },
+        cdiNote: "Agents that provide detailed inquiry context earn higher CDI scores. Vague inquiries signal low coordination quality.",
       };
 
       await logAgentAction(req.agent!.id, "pricing.request", req, 200);
