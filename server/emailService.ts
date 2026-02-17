@@ -1779,8 +1779,8 @@ export async function sendInquiryNotificationEmail({
         ${serviceType ? `<p><strong>Service:</strong> ${escapeHtml(serviceType)}</p>` : ''}
       </div>
       ${safeMessage && safeMessage !== 'No message provided' ? `<p style="margin-top: 16px; font-style: italic; padding-left: 12px; border-left: 2px solid #ddd;">${safeMessage}</p>` : ''}
-      <a href="${inquiryLink}" class="button">Review Inquiry</a>
-      <p class="signature">${safeVendorName}</p>
+      <a href="${inquiryLink}" style="display: inline-block; background: #1a1a1a; color: #ffffff !important; padding: 12px 24px; text-decoration: none; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; margin: 16px 0;">Review Inquiry</a>
+      <p style="margin-top: 24px; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; color: #666;">${safeVendorName}</p>
     </body>
     </html>
   `;
