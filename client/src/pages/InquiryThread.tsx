@@ -103,6 +103,9 @@ export default function InquiryThread() {
     eventLocation: "",
     travelFee: "",
   });
+  const [isPreparing, setIsPreparing] = useState(false);
+  const [prepareNotes, setPrepareNotes] = useState<string | null>(null);
+  const [availabilityWarning, setAvailabilityWarning] = useState<string | null>(null);
   
   // Calculate totals from service items
   const servicesTotal = serviceItems.reduce((sum, item) => sum + (item.qty * item.price), 0);
@@ -121,6 +124,45 @@ export default function InquiryThread() {
     updated[index] = { ...updated[index], [field]: field === 'qty' || field === 'price' ? Number(value) : value };
     setServiceItems(updated);
   };
+  const prepareContract = async () => {
+    if (!threadToken) return;
+    setIsPreparing(true);
+    setPrepareNotes(null);
+    setAvailabilityWarning(null);
+    try {
+      const res = await apiRequest("POST", `/api/public/inquiry/${threadToken}/prepare-contract`, {});
+      const result = await res.json();
+      if (result.success && result.draft) {
+        const items: ServiceItem[] = (result.draft.serviceItems || []).map((item: any) => ({
+          clientType: CLIENT_TYPES.includes(item.clientType) ? item.clientType : "Other",
+          service: item.service || "",
+          qty: item.qty || 1,
+          price: item.price || 0,
+        }));
+        if (items.length > 0) {
+          setServiceItems(items);
+        }
+        setContractData({
+          depositAmount: result.draft.depositAmount ? String(result.draft.depositAmount) : "",
+          eventLocation: result.draft.eventLocation || "",
+          travelFee: result.draft.travelFee ? String(result.draft.travelFee) : "",
+        });
+        if (result.draft.notes) {
+          setPrepareNotes(result.draft.notes);
+        }
+        if (!result.availability?.available) {
+          setAvailabilityWarning(result.availability?.conflictReason || "Calendar conflict detected");
+        }
+        setShowContractForm(true);
+        toast({ title: "Contract prepared", description: "Review the details below and adjust anything before sending." });
+      }
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to prepare contract", variant: "destructive" });
+    } finally {
+      setIsPreparing(false);
+    }
+  };
+
   const [invoiceData, setInvoiceData] = useState({
     type: "deposit",
     amount: "",
@@ -709,14 +751,45 @@ export default function InquiryThread() {
                   </div>
                 )}
 
-                <button
-                  onClick={() => setShowContractForm(!showContractForm)}
-                  className="w-full py-4 border border-[#1A1A1A] bg-[#1A1A1A] text-white hover:bg-[#333] transition-all text-center rounded"
-                  data-testid="button-send-contract"
-                >
-                  <p className="text-sm">Create Contract & Invoice</p>
-                  <p className="text-[10px] opacity-70 mt-1">Contract + deposit invoice together</p>
-                </button>
+                <div className="space-y-2">
+                  <button
+                    onClick={prepareContract}
+                    disabled={isPreparing}
+                    className="w-full py-4 bg-[#1A1A1A] text-white hover:bg-[#333] transition-all text-center rounded disabled:opacity-50"
+                    data-testid="button-prepare-contract"
+                  >
+                    {isPreparing ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <Loader2 size={16} className="animate-spin" />
+                        <p className="text-sm">Reading conversation...</p>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-sm">Prepare Contract</p>
+                        <p className="text-[10px] opacity-70 mt-1">Secretary reads the conversation and drafts it for you</p>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => { setShowContractForm(!showContractForm); setAvailabilityWarning(null); setPrepareNotes(null); }}
+                    className="w-full py-2 text-[#666] text-xs underline hover:text-[#1A1A1A] transition-all text-center"
+                    data-testid="button-manual-contract"
+                  >
+                    or fill in manually
+                  </button>
+                </div>
+
+                {availabilityWarning && showContractForm && (
+                  <div className="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-800">
+                    <strong>Calendar conflict:</strong> {availabilityWarning}
+                  </div>
+                )}
+                
+                {prepareNotes && showContractForm && (
+                  <div className="bg-amber-50 border border-amber-200 rounded p-3 text-sm text-amber-800">
+                    <strong>Notes:</strong> {prepareNotes}
+                  </div>
+                )}
 
                 {showContractForm && !showContractReview && (
                   <div className="border border-[#E8E2D9] rounded p-6">

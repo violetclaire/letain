@@ -71,6 +71,7 @@ import {
   trustedCircle,
   blockedDates,
   inquiries,
+  availability,
   artistProfiles,
   users,
   type FormConfig,
@@ -12465,6 +12466,162 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     } catch (error: any) {
       console.error("[Inquiry] Error deleting inquiry:", error);
       res.status(500).json({ error: error.message || "Failed to delete inquiry" });
+    }
+  });
+
+  // AI-powered contract preparation: reads thread conversation, extracts service items, checks availability
+  app.post("/api/public/inquiry/:threadToken/prepare-contract", async (req, res) => {
+    try {
+      const { threadToken } = req.params;
+      
+      const inquiry = await storage.getInquiryByThreadToken(threadToken);
+      if (!inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+      
+      const viewerUserId = getAuthUserId(req);
+      if (!viewerUserId || viewerUserId !== inquiry.vendorId) {
+        return res.status(403).json({ error: "Only the artist can prepare contracts" });
+      }
+      
+      // 1. Check calendar availability for the event date
+      let availabilityStatus = { available: true, conflictReason: null as string | null };
+      if (inquiry.eventDate) {
+        const queryDate = new Date(inquiry.eventDate);
+        const blockedDates = await db
+          .select()
+          .from(availability)
+          .where(eq(availability.userId, inquiry.vendorId));
+        
+        for (const entry of blockedDates) {
+          const entryDate = new Date(entry.date);
+          if (entryDate.toDateString() === queryDate.toDateString() && !entry.isAvailable) {
+            availabilityStatus = { available: false, conflictReason: "Date is blocked on your calendar" };
+            break;
+          }
+        }
+        
+        if (availabilityStatus.available) {
+          const allInquiries = await db
+            .select()
+            .from(inquiries)
+            .where(eq(inquiries.vendorId, inquiry.vendorId));
+          
+          const confirmedOnDate = allInquiries.filter((i) => {
+            if (!i.eventDate || i.id === inquiry.id) return false;
+            const iDate = new Date(i.eventDate).toDateString();
+            return iDate === queryDate.toDateString() && ["accepted", "deposit_paid", "confirmed", "contract_sent"].includes(i.status);
+          });
+          
+          if (confirmedOnDate.length > 0) {
+            availabilityStatus = { available: false, conflictReason: `You have ${confirmedOnDate.length} other booking(s) on this date` };
+          }
+        }
+      }
+      
+      // 2. Get all thread messages
+      const notifications = await storage.getInquiryNotifications(inquiry.id);
+      const threadMessages = notifications
+        .filter(n => ['artist_reply', 'client_reply', 'info_sheet'].includes(n.type))
+        .sort((a, b) => new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime())
+        .map(n => ({
+          from: n.type === 'artist_reply' ? 'Artist' : n.type === 'client_reply' ? inquiry.clientName : 'System',
+          content: n.content || '',
+          date: n.sentAt || n.createdAt,
+        }));
+      
+      // Include original inquiry message
+      const conversationText = [
+        `ORIGINAL INQUIRY from ${inquiry.clientName} (${inquiry.clientEmail}):\nEvent Date: ${inquiry.eventDate ? new Date(inquiry.eventDate).toLocaleDateString() : 'TBD'}\nLocation: ${inquiry.eventLocation || 'TBD'}\nMessage: ${inquiry.message || 'No message'}`,
+        ...threadMessages.map(m => `${m.from}: ${m.content}`)
+      ].join('\n\n');
+      
+      // 3. Get artist's pricing info for context
+      const artistProfile = await storage.getArtistProfile(inquiry.vendorId);
+      const pricingContext = artistProfile?.pricingInfo || artistProfile?.infoSheetContent || '';
+      
+      // 4. Use AI to extract contract details from conversation
+      const { GoogleGenAI } = await import("@google/genai");
+      const ai = new GoogleGenAI({
+        apiKey: process.env.AI_INTEGRATIONS_GEMINI_API_KEY || "",
+        httpOptions: {
+          apiVersion: "",
+          baseUrl: process.env.AI_INTEGRATIONS_GEMINI_BASE_URL || "",
+        },
+      });
+      
+      const extractionPrompt = `You are a contract preparation assistant for a bridal beauty artist. Read this inquiry thread conversation and extract the agreed-upon services, quantities, and prices.
+
+CONVERSATION:
+${conversationText}
+
+${pricingContext ? `ARTIST'S PRICING REFERENCE:\n${pricingContext}\n` : ''}
+
+Extract the contract details into this exact JSON format. Be precise about what was discussed:
+
+{
+  "serviceItems": [
+    {
+      "clientType": "Bride|Bridesmaid|Mother of Bride|Mother of Groom|Flower Girl|Guest|Other",
+      "service": "description of service",
+      "qty": 1,
+      "price": 0.00
+    }
+  ],
+  "travelFee": 0.00,
+  "depositAmount": 0.00,
+  "eventLocation": "location if mentioned",
+  "notes": "any TBD items or notes about the pricing"
+}
+
+Rules:
+- clientType must be one of: Bride, Bridesmaid, Mother of Bride, Mother of Groom, Flower Girl, Guest, Other
+- All prices are in DOLLARS (not cents)
+- If deposit wasn't explicitly discussed, set it to 50% of total
+- If something is marked TBD, include it with $0 price and note it
+- Extract additional artist fees (extra artists, travel) as separate line items with clientType "Other"
+- Only include services that were actually discussed/agreed upon in the conversation
+- Be accurate to what was said, don't make up prices`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.0-flash",
+        contents: extractionPrompt,
+        config: {
+          responseMimeType: "application/json",
+        },
+      });
+      
+      let extracted;
+      try {
+        const responseText = response.text || '';
+        extracted = JSON.parse(responseText);
+      } catch (parseErr) {
+        console.error("[Prepare Contract] AI response parse error:", parseErr);
+        return res.status(500).json({ error: "Failed to parse contract details from conversation" });
+      }
+      
+      console.log("[Prepare Contract] Extracted:", JSON.stringify(extracted));
+      
+      res.json({
+        success: true,
+        availability: availabilityStatus,
+        client: {
+          name: inquiry.clientName,
+          email: inquiry.clientEmail,
+          phone: inquiry.clientPhone,
+          eventDate: inquiry.eventDate,
+        },
+        draft: {
+          serviceItems: extracted.serviceItems || [],
+          travelFee: extracted.travelFee || 0,
+          depositAmount: extracted.depositAmount || 0,
+          eventLocation: extracted.eventLocation || inquiry.eventLocation || '',
+          notes: extracted.notes || null,
+        },
+      });
+    } catch (error: any) {
+      console.error("[Prepare Contract] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to prepare contract" });
     }
   });
 
