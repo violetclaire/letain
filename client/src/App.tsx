@@ -79,6 +79,7 @@ import AccessVerify from "@/pages/AccessVerify";
 import ArtistAvailability from "@/pages/ArtistAvailability";
 import PublicQuote from "@/pages/PublicQuote";
 import Revenue from "@/pages/Revenue";
+import ToileInbound from "@/pages/ToileInbound";
 
 // Domain-aware login - shows "Find Your Thread" on dateinquiry.com, full login on beauvette.app
 function DomainAwareLogin() {
@@ -165,6 +166,9 @@ function Router() {
       <Route path="/schedules/:tokens">
         {(params) => <MultiDaySchedule tokens={params.tokens} />}
       </Route>
+      
+      {/* Toile Screenshots */}
+      <Route path="/toile/inbound" component={ToileInbound} />
       
       {/* Demo Mode Routes */}
       <Route path="/demo" component={DemoLanding} />
