@@ -20,13 +20,13 @@ export default function SimpleScheduleBuilder() {
   // Artists (columns)
   const [artists, setArtists] = useState(["Artist 1", "Artist 2", "Artist 3"]);
   
-  // Grid data - each row has cells for each artist
+  // Grid data - each row has cells for each artist (time ranges auto-populate)
   const [rows, setRows] = useState<GridCell[][]>([
-    [{ time: "9:00 AM", name: "" }, { time: "9:00 AM", name: "" }, { time: "9:00 AM", name: "" }],
-    [{ time: "9:45 AM", name: "" }, { time: "9:45 AM", name: "" }, { time: "9:45 AM", name: "" }],
-    [{ time: "10:30 AM", name: "" }, { time: "10:30 AM", name: "" }, { time: "10:30 AM", name: "" }],
-    [{ time: "11:15 AM", name: "" }, { time: "11:15 AM", name: "" }, { time: "11:15 AM", name: "" }],
-    [{ time: "12:00 PM", name: "" }, { time: "12:00 PM", name: "" }, { time: "12:00 PM", name: "" }],
+    [{ time: "8:00 AM-8:45 AM", name: "" }, { time: "8:00 AM-8:45 AM", name: "" }, { time: "8:00 AM-8:45 AM", name: "" }],
+    [{ time: "8:45 AM-9:30 AM", name: "" }, { time: "8:45 AM-9:30 AM", name: "" }, { time: "8:45 AM-9:30 AM", name: "" }],
+    [{ time: "9:30 AM-10:15 AM", name: "" }, { time: "9:30 AM-10:15 AM", name: "" }, { time: "9:30 AM-10:15 AM", name: "" }],
+    [{ time: "10:15 AM-11:00 AM", name: "" }, { time: "10:15 AM-11:00 AM", name: "" }, { time: "10:15 AM-11:00 AM", name: "" }],
+    [{ time: "11:00 AM-11:45 AM", name: "" }, { time: "11:00 AM-11:45 AM", name: "" }, { time: "11:00 AM-11:45 AM", name: "" }],
   ]);
   
   const [saving, setSaving] = useState(false);
@@ -53,9 +53,24 @@ export default function SimpleScheduleBuilder() {
     setArtists(newArtists);
   };
 
-  // Add row
+  // Add row with auto-calculated times based on previous row
   const addRow = () => {
-    setRows([...rows, artists.map(() => ({ time: "", name: "" }))]);
+    const lastRow = rows[rows.length - 1];
+    const newRow = artists.map((_, colIdx) => {
+      const prevTime = lastRow?.[colIdx]?.time || "";
+      const nextTime = prevTime.trim() ? getNextStartTime(prevTime) : "";
+      if (nextTime) {
+        const endMins = parseEndTime(prevTime);
+        const startMins = parseTimeStr(prevTime);
+        const duration = endMins !== null && startMins !== null ? endMins - startMins : DEFAULT_SLOT;
+        const nextStart = endMins !== null ? endMins : (startMins !== null ? startMins + DEFAULT_SLOT : null);
+        if (nextStart !== null) {
+          return { time: `${formatMinutes(nextStart)}-${formatMinutes(nextStart + duration)}`, name: "" };
+        }
+      }
+      return { time: "", name: "" };
+    });
+    setRows([...rows, newRow]);
   };
 
   // Remove row
@@ -64,12 +79,76 @@ export default function SimpleScheduleBuilder() {
     setRows(rows.filter((_, i) => i !== idx));
   };
 
-  // Update cell
+  const parseTimeStr = (t: string): number | null => {
+    const cleaned = t.trim().replace(/\./g, '').toUpperCase();
+    const match = cleaned.match(/^(\d{1,2}):?(\d{2})?\s*(AM|PM)?$/);
+    if (!match) return null;
+    let h = parseInt(match[1]);
+    const m = parseInt(match[2] || '0');
+    const ampm = match[3];
+    if (ampm === 'PM' && h < 12) h += 12;
+    if (ampm === 'AM' && h === 12) h = 0;
+    if (!ampm && h < 7) h += 12;
+    return h * 60 + m;
+  };
+
+  const formatMinutes = (mins: number): string => {
+    const h = Math.floor(mins / 60) % 24;
+    const m = mins % 60;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+    return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
+  };
+
+  const DEFAULT_SLOT = 45;
+
+  const parseEndTime = (timeStr: string): number | null => {
+    const dashMatch = timeStr.match(/[-–—]/);
+    if (dashMatch) {
+      const parts = timeStr.split(/[-–—]/);
+      if (parts[1]) return parseTimeStr(parts[1]);
+    }
+    return null;
+  };
+
+  const getNextStartTime = (timeStr: string): string => {
+    const endMins = parseEndTime(timeStr);
+    if (endMins !== null) return formatMinutes(endMins);
+    const startMins = parseTimeStr(timeStr);
+    if (startMins !== null) return formatMinutes(startMins + DEFAULT_SLOT);
+    return "";
+  };
+
+  // Update cell with auto-populate for time fields
   const updateCell = (rowIdx: number, colIdx: number, field: 'time' | 'name', value: string) => {
     const newRows = [...rows];
     newRows[rowIdx] = [...newRows[rowIdx]];
     newRows[rowIdx][colIdx] = { ...newRows[rowIdx][colIdx], [field]: value };
     setRows(newRows);
+  };
+
+  const handleTimeBlur = (rowIdx: number, colIdx: number) => {
+    const timeVal = rows[rowIdx]?.[colIdx]?.time || "";
+    if (!timeVal.trim()) return;
+    const nextRow = rowIdx + 1;
+    if (nextRow < rows.length) {
+      const nextCell = rows[nextRow]?.[colIdx];
+      if (nextCell && !nextCell.time.trim()) {
+        const nextTime = getNextStartTime(timeVal);
+        if (nextTime) {
+          const nextEndMins = parseEndTime(timeVal);
+          const startMins = parseTimeStr(timeVal);
+          const duration = nextEndMins !== null && startMins !== null ? nextEndMins - startMins : DEFAULT_SLOT;
+          const nextStart = nextEndMins !== null ? nextEndMins : (startMins !== null ? startMins + DEFAULT_SLOT : null);
+          if (nextStart !== null) {
+            const newRows = [...rows];
+            newRows[nextRow] = [...newRows[nextRow]];
+            newRows[nextRow][colIdx] = { ...newRows[nextRow][colIdx], time: `${formatMinutes(nextStart)}-${formatMinutes(nextStart + duration)}` };
+            setRows(newRows);
+          }
+        }
+      }
+    }
   };
 
   // Save schedule
@@ -246,7 +325,8 @@ export default function SimpleScheduleBuilder() {
                             type="text"
                             value={cell.time}
                             onChange={(e) => updateCell(rowIdx, colIdx, 'time', e.target.value)}
-                            placeholder="9:00 AM"
+                            onBlur={() => handleTimeBlur(rowIdx, colIdx)}
+                            placeholder="8:00-8:45"
                             className="w-full px-2 py-2 text-sm text-[#666] bg-transparent focus:outline-none focus:bg-[#FAF8F5]"
                             data-testid={`input-time-${rowIdx}-${colIdx}`}
                           />
