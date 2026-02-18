@@ -286,6 +286,25 @@ Example request: "Bride hair+makeup, 2 bridesmaids makeup only, MOB makeup, Carm
 === SCHEDULE/TIMELINE GENERATION ===
 Create wedding day schedules when vendor says: "create schedule", "make timeline", "wedding day timeline", "schedule for [client name]", etc.
 
+CRITICAL MULTI-STEP RULE: Schedule creation often requires MULTIPLE messages to gather all details. You MUST:
+1. REMEMBER everything the user has told you across ALL previous messages in this conversation
+2. Ask follow-up questions ONE AT A TIME until you have enough info
+3. Only output the createSchedule JSON when you have AT MINIMUM: event name/client name, event date, and either party size or client details
+4. NEVER forget details already provided. If user said "Emily" 3 messages ago, you still know the name is Emily.
+5. NEVER start over or re-ask questions already answered.
+
+Minimum info needed before creating:
+- Event name or client name (required)
+- Event date (required)  
+- Number of artists OR party size (at least one)
+- Start time OR ready-by time (can calculate the other)
+
+When user gives a "ready by" time, work BACKWARDS to calculate start time:
+- Each makeup service: 30-45 min
+- Each hair service: 45-60 min  
+- Both hair+makeup for bride: 90-120 min
+- Allow 15 min buffer between clients
+
 IMPORTANT: When user provides client names like "Hannah, Meredith, Emma, Lauren..." - extract ALL names into the clients array!
 Parse: number of artists, start time, client names with their services (hair, makeup, or both).
 
@@ -316,10 +335,19 @@ REMEMBER:
 - DETECT booking inquiries (pasted emails/messages) and draft professional responses with pricing!
 - You CAN do everything - bookings, contracts, emails, images, search!
 - Parse dates like "Dec 20" to "2025-12-20" or "2026-12-20" based on context
-- Convert times like "2pm" to "14:00"
+- Parse dates like "5/29" or "5/30/26" to "2026-05-29" or "2026-05-30"
+- Convert times like "2pm" to "14:00", "3:15" to "15:15", "1230" to "12:30"
 - Convert dollar amounts to cents for contracts
 - Be proactive and helpful - complete the task!
-- ALWAYS respond with valid JSON`;
+- ALWAYS respond with valid JSON
+
+CRITICAL CONVERSATION MEMORY RULES:
+- You have full conversation history in the messages above. USE IT.
+- NEVER ask a question that was already answered in earlier messages.
+- If the user already told you a name, date, number of artists, or any detail, REMEMBER it.
+- When gathering info across multiple messages, keep a running mental note of everything collected so far.
+- When you have enough info, ACT. Don't keep asking.
+- If unsure, summarize what you know so far and ask ONLY what's missing.`;
 
 interface ParsedResponse {
   response: string;
@@ -460,58 +488,73 @@ export async function processAIChatMessage(
     // Note: User message is saved in routes.ts before calling this function
     // to avoid duplicate entries
 
-    // Build conversation context from history
-    const historyContext = chatHistory.length > 0 
-      ? `\n\nRECENT CONVERSATION HISTORY (remember this context):\n${chatHistory.slice(-10).map(m => 
-          `${m.role === 'user' ? 'User' : 'You'}: ${m.content.substring(0, 300)}${m.content.length > 300 ? '...' : ''}`
-        ).join('\n')}`
-      : '';
-
-    // Build working memory context
-    const memoryContext = workingMemory.names.length > 0 || workingMemory.emails.length > 0
-      ? `\n\nWORKING MEMORY (entities mentioned in this conversation):
+    // Build working memory summary for system context
+    const memoryContext = workingMemory.names.length > 0 || workingMemory.emails.length > 0 || workingMemory.dates.length > 0
+      ? `\n\nWORKING MEMORY (key entities from this conversation):
 ${workingMemory.names.length > 0 ? `- Names: ${workingMemory.names.join(', ')}` : ''}
 ${workingMemory.emails.length > 0 ? `- Emails: ${workingMemory.emails.join(', ')}` : ''}
 ${workingMemory.phones.length > 0 ? `- Phones: ${workingMemory.phones.join(', ')}` : ''}
 ${workingMemory.dates.length > 0 ? `- Dates: ${workingMemory.dates.join(', ')}` : ''}
-${workingMemory.locations.length > 0 ? `- Locations: ${workingMemory.locations.join(', ')}` : ''}
-Use these entities when the user refers to "them", "her", "that email", etc. without repeating!`
+${workingMemory.locations.length > 0 ? `- Locations: ${workingMemory.locations.join(', ')}` : ''}`
       : '';
 
-    const contextMessage = `Current date: ${currentDate.toISOString().split("T")[0]}. Year: ${currentYear}. User ID: ${userId}.${historyContext}${memoryContext}${pricingSheetContext}${availabilityContext}
-    
-User message: ${message}`;
+    const systemContext = `Current date: ${currentDate.toISOString().split("T")[0]}. Year: ${currentYear}. User ID: ${userId}.${memoryContext}${pricingSheetContext}${availabilityContext}`;
 
-    const contentParts: any[] = [{ text: contextMessage }];
+    const enhancedSystemPrompt = SYSTEM_PROMPT + cdiToneModifier + `\n\n${systemContext}`;
 
+    // Build proper multi-turn conversation from history
+    // Each previous message becomes its own turn so the model truly remembers
+    const conversationTurns: Array<{ role: "user" | "model"; parts: any[] }> = [
+      { role: "user", parts: [{ text: enhancedSystemPrompt }] },
+      {
+        role: "model",
+        parts: [
+          {
+            text: '{"response": "I\'m your Private Secretary. I can create bookings, contracts, schedules, send invoices, manage availability, and more. What do you need?"}',
+          },
+        ],
+      },
+    ];
+
+    // Add conversation history as real multi-turn messages (last 16 messages, full content)
+    // Gemini requires strictly alternating user/model turns
+    const recentHistory = chatHistory.slice(-16);
+    for (const msg of recentHistory) {
+      const role = msg.role === 'user' ? 'user' : 'model';
+      const content = msg.content.substring(0, 1000);
+      const lastTurn = conversationTurns[conversationTurns.length - 1];
+      if (lastTurn && lastTurn.role === role) {
+        lastTurn.parts.push({ text: content });
+      } else {
+        conversationTurns.push({ role, parts: [{ text: content }] });
+      }
+    }
+
+    // Ensure the last turn in history is a model turn so the current user message is always fresh
+    // If history ended with a user message (e.g., assistant failed to respond), add a placeholder model turn
+    const lastHistoryTurn = conversationTurns[conversationTurns.length - 1];
+    if (lastHistoryTurn && lastHistoryTurn.role === 'user') {
+      conversationTurns.push({ role: "model", parts: [{ text: '{"response": "Got it, continue."}' }] });
+    }
+
+    // Add the current user message as a fresh turn (never merged into history)
+    const currentParts: any[] = [{ text: message }];
     for (const att of attachments) {
-      contentParts.push({
+      currentParts.push({
         inlineData: {
           mimeType: att.mimeType,
           data: att.data,
         },
       });
-      contentParts.push({
+      currentParts.push({
         text: "\n(User attached an image - comment on it or add to portfolio if asked)",
       });
     }
-
-    const enhancedSystemPrompt = SYSTEM_PROMPT + cdiToneModifier;
+    conversationTurns.push({ role: "user", parts: currentParts });
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-pro-preview",
-      contents: [
-        { role: "user", parts: [{ text: enhancedSystemPrompt }] },
-        {
-          role: "model",
-          parts: [
-            {
-              text: 'I understand. I\'m your full-featured AI assistant. I can create bookings, contracts, send thank you emails, generate images, search your data, manage availability, and update your portfolio. Just tell me what you need!',
-            },
-          ],
-        },
-        { role: "user", parts: contentParts },
-      ],
+      model: "gemini-2.5-flash",
+      contents: conversationTurns,
       config: {
         maxOutputTokens: 2048,
       },
