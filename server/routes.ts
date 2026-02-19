@@ -4290,6 +4290,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message });
     }
   });
+
+  // Artist countersign: GET contract details by signing token
+  app.get("/api/contracts/countersign/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const contract = await storage.getContractBySigningToken(token);
+      if (!contract) {
+        return res.status(404).json({ message: "Contract not found" });
+      }
+      const artist = await storage.getUser(contract.artistId);
+      const artistProfile = await storage.getArtistProfile(contract.artistId);
+      res.json({
+        id: contract.id,
+        status: contract.status,
+        contractHtml: contract.contractHtml,
+        clientName: contract.clientName,
+        clientSignature: contract.clientSignature,
+        signedAt: contract.signedAt,
+        signedByName: contract.signedByName,
+        artistSignature: contract.artistSignature,
+        artistSignedAt: contract.artistSignedAt,
+        packageDetails: contract.packageDetails,
+        totalAmount: contract.totalAmount,
+        depositAmount: contract.depositAmount,
+        eventDates: contract.eventDates,
+        eventLocation: contract.eventLocation,
+        artistName: artistProfile?.businessName || artist?.firstName || "Artist",
+        artistEmail: artist?.email,
+      });
+    } catch (error: any) {
+      console.error("[Countersign] Error fetching contract:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Artist countersign: POST artist signature
+  app.post("/api/contracts/countersign/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { artistSignature } = req.body;
+
+      if (!artistSignature) {
+        return res.status(400).json({ message: "Signature is required" });
+      }
+
+      const contract = await storage.getContractBySigningToken(token);
+      if (!contract) {
+        return res.status(404).json({ message: "Contract not found" });
+      }
+
+      if (contract.artistSignature) {
+        return res.status(400).json({ message: "Contract has already been countersigned" });
+      }
+
+      if (contract.status !== "signed") {
+        return res.status(400).json({ message: "Client must sign the contract first" });
+      }
+
+      await storage.updateContract(contract.id, {
+        artistSignature,
+        artistSignedAt: new Date(),
+        status: "fully_executed",
+      });
+
+      // Send fully executed contract copy to artist
+      const artist = await storage.getUser(contract.artistId);
+      const artistProfile = await storage.getArtistProfile(contract.artistId);
+      const artistName = artistProfile?.businessName || artist?.firstName || "Artist";
+
+      if (artist?.email) {
+        try {
+          const { Resend } = await import("resend");
+          const resend = new Resend(process.env.RESEND_API_KEY);
+
+          const fmtCurrency = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+          const now = new Date();
+          const signedBanner = `
+            <div style="background: #f0fdf4; border: 2px solid #16a34a; border-radius: 8px; padding: 20px; margin-bottom: 24px; text-align: center;">
+              <h2 style="color: #16a34a; margin: 0 0 12px 0; font-family: serif;">Fully Executed Contract</h2>
+              <p style="margin: 0; color: #333;">Client: <strong>${contract.clientSignature}</strong> - Signed ${contract.signedAt ? new Date(contract.signedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : ''}</p>
+              <p style="margin: 4px 0 0 0; color: #333;">Artist: <strong>${artistSignature}</strong> - Signed ${now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+            </div>
+          `;
+
+          await resend.emails.send({
+            from: `${artistName} <notifications@dateinquiry.com>`,
+            to: artist.email,
+            subject: `Fully Executed Contract - ${contract.clientName || 'Client'} - ${contract.eventDates || ''}`,
+            html: signedBanner + (contract.contractHtml || ''),
+          });
+          console.log("[Countersign] Sent fully executed contract to artist:", artist.email);
+        } catch (emailErr) {
+          console.error("[Countersign] Failed to send email:", emailErr);
+        }
+      }
+
+      res.json({ success: true, message: "Contract countersigned successfully" });
+    } catch (error: any) {
+      console.error("[Countersign] Error:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
   
   // Artist: Cancel a contract
   app.post("/api/contracts/:id/cancel", isAuthenticated, async (req: any, res) => {

@@ -410,6 +410,8 @@ export const contracts = pgTable("contracts", {
   signedOnBehalfOf: text("signed_on_behalf_of"), // Optional: if signing on behalf of someone else
   contractHtml: text("contract_html"), // Rendered contract HTML for signing page
   sentForSigningAt: timestamp("sent_for_signing_at"), // When the signing link was sent
+  artistSignature: text("artist_signature"),
+  artistSignedAt: timestamp("artist_signed_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
