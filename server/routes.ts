@@ -12744,7 +12744,7 @@ Rules:
                   artistId: inquiry.vendorId,
                   recipientEmail: inquiry.clientEmail,
                   recipientName: inquiry.clientName,
-                  type: 'invoice',
+                  communicationType: 'invoice',
                   subject: `Retainer for ${packageDetails || 'Beauty Services'}`,
                   bookingId: inquiry.bookingId || undefined,
                 });
