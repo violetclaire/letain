@@ -12629,7 +12629,7 @@ Rules:
   app.post("/api/public/inquiry/:threadToken/create-contract", async (req, res) => {
     try {
       const { threadToken } = req.params;
-      const { packageDetails, totalAmount, depositAmount, eventLocation, sendRetainerInvoice } = req.body;
+      const { packageDetails, totalAmount, depositAmount, eventLocation, sendRetainerInvoice, serviceItems, travelFee } = req.body;
       
       const inquiry = await storage.getInquiryByThreadToken(threadToken);
       if (!inquiry) {
@@ -12640,91 +12640,156 @@ Rules:
       if (!artist) {
         return res.status(404).json({ error: "Artist not found" });
       }
+
+      const artistUser = await storage.getUser(inquiry.vendorId);
+      const artistName = artist.businessName || (artistUser?.firstName ? `${artistUser.firstName} ${artistUser.lastName || ""}`.trim() : 'Your Artist');
       
-      // Generate signing token
       const signingToken = randomBytes(32).toString('hex');
       const depositAmountNum = parseFloat(depositAmount) || 0;
-      
-      // Create a contract (bookingId is optional for inquiry-based contracts)
-      const contract = await storage.createContract({
-        bookingId: inquiry.bookingId || undefined, // Only set if inquiry has an actual booking
-        inquiryId: inquiry.id, // Track which inquiry this came from
+      const totalAmountNum = parseFloat(totalAmount) || 0;
+      const travelFeeCents = travelFee || 0;
+
+      const contractServiceItems = serviceItems && Array.isArray(serviceItems) && serviceItems.length > 0
+        ? serviceItems
+        : undefined;
+
+      const contractData: any = {
+        bookingId: inquiry.bookingId || undefined,
+        inquiryId: inquiry.id,
         clientId: inquiry.clientId || inquiry.vendorId,
         artistId: inquiry.vendorId,
-        totalAmount: parseFloat(totalAmount) || 0,
+        totalAmount: totalAmountNum,
         depositAmount: depositAmountNum,
         status: "pending",
         packageDetails: packageDetails || artist.contractTemplate || "",
         eventLocation: eventLocation || inquiry.eventLocation || "",
         eventDate: inquiry.eventDate,
+        eventDates: inquiry.eventDate ? new Date(inquiry.eventDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : undefined,
         clientName: inquiry.clientName,
         clientEmail: inquiry.clientEmail,
+        clientContact: inquiry.clientEmail,
         signingToken: signingToken,
         sentForSigningAt: new Date(),
-      });
+        serviceItems: contractServiceItems,
+      };
+
+      const contract = await storage.createContract(contractData);
+
+      const contractForHtml = {
+        ...contract,
+        serviceItems: contractServiceItems,
+        totalAmount: Math.round(totalAmountNum * 100),
+        depositAmount: Math.round(depositAmountNum * 100),
+        eventLocation: eventLocation || inquiry.eventLocation || '',
+        eventDates: inquiry.eventDate ? new Date(inquiry.eventDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'To be determined',
+        clientName: inquiry.clientName,
+        clientContact: inquiry.clientEmail,
+        packageDetails: packageDetails || 'Beauty Services',
+      };
+      const contractHtml = generateContractHtml(contractForHtml, null, artistName);
+
+      await storage.updateContract(contract.id, { contractHtml });
       
-      // Send signing email to client
       const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
       const signingUrl = `${baseUrl}/sign/${signingToken}`;
       
-      try {
-        const { sendContractSigningEmail } = await import('./emailService');
-        await sendContractSigningEmail({
-          toEmail: inquiry.clientEmail,
-          clientName: inquiry.clientName,
-          artistName: artist.businessName || artist.firstName || 'Your Artist',
-          packageDetails: packageDetails || artist.contractTemplate || 'Beauty Services',
-          totalAmount: parseFloat(totalAmount) || 0,
-          depositAmount: depositAmountNum,
-          signingUrl: signingUrl,
-        });
-        console.log(`[Contract] Signing email sent to ${inquiry.clientEmail}`);
-      } catch (emailErr) {
-        console.error('[Contract] Failed to send signing email:', emailErr);
-      }
-      
-      // Also send retainer invoice if requested and deposit amount > 0
+      let paymentLinkUrl: string | undefined;
       let retainerInvoiceSent = false;
+      let retainerError: string | null = null;
+
       if (sendRetainerInvoice && depositAmountNum > 0) {
         try {
-          const { sendPaymentLinkFromAI } = await import('./aiChat');
-          const retainerAmountCents = Math.round(depositAmountNum * 100);
+          const { getMerchantSquare } = await import('./squareClient');
+          const crypto = await import('crypto');
           
-          const invoiceResult = await sendPaymentLinkFromAI(inquiry.vendorId, {
-            clientName: inquiry.clientName,
-            clientEmail: inquiry.clientEmail,
-            amount: retainerAmountCents,
-            description: `Retainer for ${packageDetails || 'Beauty Services'}`,
-            bookingId: inquiry.bookingId || inquiry.id,
-          });
-          
-          if (invoiceResult.success) {
-            retainerInvoiceSent = true;
-            console.log(`[Contract] Retainer invoice sent to ${inquiry.clientEmail}`);
+          if (!artist.squareAccessToken) {
+            retainerError = "Square account not connected. Please connect Square in Settings first.";
           } else {
-            console.error('[Contract] Failed to send retainer invoice:', invoiceResult.error);
+            const locationId = process.env.SQUARE_LOCATION_ID;
+            if (!locationId) {
+              retainerError = "Square location not configured";
+            } else {
+              const square = getMerchantSquare(artist.squareAccessToken);
+              const retainerAmountCents = Math.round(depositAmountNum * 100);
+              
+              const checkoutResponse = await (square.checkout as any).paymentLinks.create({
+                idempotencyKey: crypto.randomUUID(),
+                quickPay: {
+                  name: `Retainer for ${packageDetails || 'Beauty Services'}`,
+                  priceMoney: {
+                    amount: BigInt(retainerAmountCents),
+                    currency: 'USD',
+                  },
+                  locationId,
+                },
+                checkoutOptions: {
+                  redirectUrl: `${baseUrl}/payment-success?bookingId=${inquiry.bookingId || inquiry.id}`,
+                  askForShippingAddress: false,
+                },
+              });
+              
+              const checkoutResult = checkoutResponse as any;
+              if (checkoutResult.paymentLink?.url) {
+                paymentLinkUrl = checkoutResult.paymentLink.url;
+                retainerInvoiceSent = true;
+                console.log(`[Contract] Payment link created: ${paymentLinkUrl}`);
+                
+                if (inquiry.bookingId) {
+                  await storage.updateBooking(inquiry.bookingId, {
+                    squarePaymentLinkUrl: paymentLinkUrl,
+                  });
+                }
+                
+                await storage.createCommunicationLog({
+                  artistId: inquiry.vendorId,
+                  recipientEmail: inquiry.clientEmail,
+                  recipientName: inquiry.clientName,
+                  type: 'invoice',
+                  subject: `Retainer for ${packageDetails || 'Beauty Services'}`,
+                  bookingId: inquiry.bookingId || undefined,
+                });
+              } else {
+                retainerError = "Failed to create Square payment link";
+              }
+            }
           }
-        } catch (invoiceErr) {
-          console.error('[Contract] Error sending retainer invoice:', invoiceErr);
+        } catch (invoiceErr: any) {
+          console.error('[Contract] Error creating payment link:', invoiceErr);
+          retainerError = invoiceErr.message || "Failed to create retainer invoice";
         }
       }
       
-      // Update inquiry status - use contract_sent for consistency with existing status handling
+      try {
+        const { sendContractAndPaymentEmail } = await import('./emailService');
+        await sendContractAndPaymentEmail({
+          toEmail: inquiry.clientEmail,
+          clientName: inquiry.clientName,
+          artistName,
+          serviceItems: contractServiceItems,
+          travelFee: travelFeeCents,
+          totalAmount: totalAmountNum,
+          depositAmount: depositAmountNum,
+          signingUrl,
+          paymentUrl: paymentLinkUrl,
+          eventDate: inquiry.eventDate ? new Date(inquiry.eventDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : undefined,
+          eventLocation: eventLocation || inquiry.eventLocation || undefined,
+        });
+        console.log(`[Contract] Combined contract+payment email sent to ${inquiry.clientEmail}`);
+      } catch (emailErr) {
+        console.error('[Contract] Failed to send email:', emailErr);
+      }
+      
       await storage.updateInquiry(inquiry.id, {
         status: "contract_sent",
         convertedToContractId: contract.id,
         lastActionAt: new Date(),
       });
       
-      // Build response message
       let message: string;
-      let retainerError: string | null = null;
-      
       if (sendRetainerInvoice && depositAmountNum > 0 && !retainerInvoiceSent) {
         message = "Contract sent, but retainer invoice failed (Square may not be connected)";
-        retainerError = "Failed to create retainer invoice - please check Square connection";
       } else if (retainerInvoiceSent) {
-        message = "Contract and retainer invoice sent to client";
+        message = "Contract and retainer invoice sent to client in one email";
       } else {
         message = "Contract sent to client for signing";
       }

@@ -808,6 +808,176 @@ export async function sendContractSigningEmail({
   }
 }
 
+export async function sendContractAndPaymentEmail({
+  toEmail,
+  clientName,
+  artistName,
+  serviceItems,
+  travelFee,
+  totalAmount,
+  depositAmount,
+  signingUrl,
+  paymentUrl,
+  eventDate,
+  eventLocation,
+}: {
+  toEmail: string;
+  clientName: string;
+  artistName: string;
+  serviceItems?: Array<{ clientType: string; service: string; qty: number; price: number; total: number }>;
+  travelFee?: number;
+  totalAmount: number;
+  depositAmount: number;
+  signingUrl: string;
+  paymentUrl?: string;
+  eventDate?: string;
+  eventLocation?: string;
+}) {
+  const { client, fromEmail } = await getResendClient();
+  const fmtCents = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+  const fmtDollars = (dollars: number) => `$${dollars.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+
+  let serviceTableHtml = '';
+  if (serviceItems && serviceItems.length > 0) {
+    const rows = serviceItems.map(item => `
+      <tr>
+        <td style="padding: 10px 12px; border-bottom: 1px solid #e8e2d6; color: #333;">${escapeHtml(item.clientType || '')}</td>
+        <td style="padding: 10px 12px; border-bottom: 1px solid #e8e2d6; color: #333;">${escapeHtml(item.service || '')}</td>
+        <td style="padding: 10px 12px; border-bottom: 1px solid #e8e2d6; text-align: center; color: #333;">${item.qty || 1}</td>
+        <td style="padding: 10px 12px; border-bottom: 1px solid #e8e2d6; text-align: right; color: #333;">${fmtCents(item.price || 0)}</td>
+        <td style="padding: 10px 12px; border-bottom: 1px solid #e8e2d6; text-align: right; font-weight: 600; color: #333;">${fmtCents(item.total || 0)}</td>
+      </tr>
+    `).join('');
+
+    let travelRow = '';
+    if (travelFee && travelFee > 0) {
+      travelRow = `
+        <tr>
+          <td colspan="4" style="padding: 10px 12px; border-bottom: 1px solid #e8e2d6; color: #333;">Travel Fee</td>
+          <td style="padding: 10px 12px; border-bottom: 1px solid #e8e2d6; text-align: right; font-weight: 600; color: #333;">${fmtCents(travelFee)}</td>
+        </tr>
+      `;
+    }
+
+    serviceTableHtml = `
+      <table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px;">
+        <thead>
+          <tr style="background: #f5f1e8;">
+            <th style="padding: 10px 12px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #6B4A55; border-bottom: 2px solid #6B4A55;">Client</th>
+            <th style="padding: 10px 12px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #6B4A55; border-bottom: 2px solid #6B4A55;">Service</th>
+            <th style="padding: 10px 12px; text-align: center; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #6B4A55; border-bottom: 2px solid #6B4A55;">Qty</th>
+            <th style="padding: 10px 12px; text-align: right; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #6B4A55; border-bottom: 2px solid #6B4A55;">Price</th>
+            <th style="padding: 10px 12px; text-align: right; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #6B4A55; border-bottom: 2px solid #6B4A55;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+          ${travelRow}
+        </tbody>
+        <tfoot>
+          <tr style="background: #f5f1e8;">
+            <td colspan="4" style="padding: 12px; text-align: right; font-weight: bold; font-size: 15px; color: #333;">Total</td>
+            <td style="padding: 12px; text-align: right; font-weight: bold; font-size: 15px; color: #333;">${fmtDollars(totalAmount)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    `;
+  }
+
+  let detailsHtml = '';
+  if (eventDate || eventLocation) {
+    detailsHtml = `
+      <div style="background: #f5f1e8; padding: 16px 20px; border-radius: 6px; margin: 20px 0;">
+        ${eventDate ? `<p style="margin: 4px 0; color: #333; font-size: 14px;"><strong>Date:</strong> ${escapeHtml(eventDate)}</p>` : ''}
+        ${eventLocation ? `<p style="margin: 4px 0; color: #333; font-size: 14px;"><strong>Location:</strong> ${escapeHtml(eventLocation)}</p>` : ''}
+      </div>
+    `;
+  }
+
+  const paymentButtonHtml = paymentUrl && depositAmount > 0 ? `
+    <a href="${paymentUrl}" style="display: inline-block; background: #C9A961; color: white !important; padding: 16px 40px; text-decoration: none; border-radius: 6px; font-size: 16px; letter-spacing: 0.5px; font-weight: 600;">
+      Pay Retainer &mdash; ${fmtDollars(depositAmount)}
+    </a>
+  ` : '';
+
+  const retainerNote = paymentUrl && depositAmount > 0 ? `
+    <div style="background: #fff8e7; border-left: 3px solid #C9A961; padding: 12px 16px; margin: 20px 0; font-size: 13px; color: #666;">
+      <strong>Retainer:</strong> ${fmtDollars(depositAmount)} is due to hold your date. The remaining balance of ${fmtDollars(totalAmount - depositAmount)} is due two weeks before your event. The retainer is non-refundable.
+    </div>
+  ` : '';
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: Georgia, serif; background-color: #f5f1e8; margin: 0; padding: 20px;">
+      <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        
+        <div style="background-color: #FAF7F2; padding: 28px; text-align: center; border-bottom: 1px solid rgba(107, 74, 85, 0.2);">
+          <h1 style="font-family: 'Playfair Display', Georgia, serif; font-size: 28px; margin: 0; font-weight: normal; color: #6B4A55;">${escapeHtml(artistName)}</h1>
+        </div>
+        
+        <div style="padding: 32px;">
+          <p style="margin-bottom: 24px; color: #333; font-size: 16px;">Hi ${escapeHtml(clientName)},</p>
+          <p style="margin-bottom: 16px; color: #333; font-size: 15px;">Your service contract is ready. Please review the details below, sign the contract, ${paymentUrl && depositAmount > 0 ? 'and submit your retainer to hold the date.' : 'and let me know if you have any questions.'}</p>
+          
+          <div style="text-align: center; margin: 8px 0 24px 0;">
+            <p style="font-size: 18px; color: #6B4A55; font-weight: bold; margin: 0;">Service Contract</p>
+          </div>
+          
+          ${detailsHtml}
+          ${serviceTableHtml}
+          ${retainerNote}
+          
+          <div style="text-align: center; margin: 32px 0 16px 0;">
+            <a href="${signingUrl}" style="display: inline-block; background: #6B4A55; color: white !important; padding: 16px 40px; text-decoration: none; border-radius: 6px; font-size: 16px; letter-spacing: 0.5px; font-weight: 600;">
+              Review &amp; Sign Contract
+            </a>
+          </div>
+          
+          ${paymentButtonHtml ? `
+          <div style="text-align: center; margin: 16px 0 32px 0;">
+            ${paymentButtonHtml}
+          </div>
+          ` : ''}
+          
+          <p style="color: #888; font-size: 13px; text-align: center; margin-top: 20px;">
+            If you have any questions about the contract or payment, please reach out before signing.
+          </p>
+        </div>
+        
+        <div style="text-align: center; padding: 20px; color: #888; font-size: 12px; border-top: 1px solid #eee;">
+          ${escapeHtml(artistName)}
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const senderEmail = `${sanitizeSenderName(artistName)} <notifications@dateinquiry.com>`;
+  const subject = depositAmount > 0
+    ? `Contract & Retainer from ${artistName}`
+    : `Contract from ${artistName} - Ready for Your Signature`;
+
+  try {
+    console.log("Sending combined contract+payment email to:", toEmail);
+    const result = await client.emails.send({
+      from: senderEmail,
+      to: toEmail.trim(),
+      subject,
+      html: htmlContent
+    });
+    console.log("Combined email sent:", JSON.stringify(result));
+    return { success: true, result };
+  } catch (err: any) {
+    console.error("Failed to send combined email:", err.message);
+    return { success: false, error: err.message };
+  }
+}
+
 export async function sendContractSignedNotification({
   toEmail,
   artistName,
