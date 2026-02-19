@@ -12584,7 +12584,7 @@ Rules:
 - Be accurate to what was said, don't make up prices`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: "gemini-2.5-flash",
         contents: extractionPrompt,
         config: {
           responseMimeType: "application/json",
