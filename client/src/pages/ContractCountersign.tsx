@@ -48,7 +48,7 @@ export default function ContractCountersign({ token }: ContractCountersignProps)
     },
   });
 
-  const formatCurrency = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+  const formatCurrency = (amount: number) => `$${amount.toLocaleString()}`;
 
   if (isLoading) {
     return (
