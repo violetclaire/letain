@@ -192,7 +192,7 @@ export default function ToileOnboarding() {
                           I delegate to a team
                         </p>
                         <p className="text-xs text-[#E8E4DF]/70 leading-relaxed">
-                          You run the business and coordinate. Tasks get assigned to your team via email or text. Creative director, event producer, design firm principal, agency owner, studio owner.
+                          You run the business and coordinate. Tasks get assigned to your team via email or text. Creative director, event producer, estate manager, design firm principal, agency owner, studio owner.
                         </p>
                       </div>
                     </div>
