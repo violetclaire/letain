@@ -97,6 +97,7 @@ export default function InquiryThread() {
   const [showContractForm, setShowContractForm] = useState(false);
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
   const [showContractReview, setShowContractReview] = useState(false);
+  const [showSendConfirmation, setShowSendConfirmation] = useState(false);
   const [serviceItems, setServiceItems] = useState<ServiceItem[]>([{ ...defaultServiceItem }]);
   const [contractData, setContractData] = useState({
     depositAmount: "",
@@ -299,8 +300,9 @@ export default function InquiryThread() {
         // Flag to also send retainer invoice
         sendRetainerInvoice: depositAmountNum > 0,
       };
-      console.log("[Contract] Sending contract + retainer request:", payload);
-      const res = await apiRequest("POST", `/api/public/inquiry/${threadToken}/create-contract`, payload);
+      const confirmedPayload = { ...payload, confirmSend: true };
+      console.log("[Contract] Sending contract + retainer request:", confirmedPayload);
+      const res = await apiRequest("POST", `/api/public/inquiry/${threadToken}/create-contract`, confirmedPayload);
       console.log("[Contract] Response received:", res);
       return res;
     },
@@ -976,16 +978,47 @@ export default function InquiryThread() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => {
-                          console.log("[Contract] Send button clicked, calling mutation...");
-                          contractMutation.mutate();
-                        }}
-                        disabled={contractMutation.isPending}
-                        className="flex-1 py-3 bg-[#1A1A1A] text-white text-sm rounded hover:bg-[#333] transition-all disabled:opacity-50"
+                        onClick={() => setShowSendConfirmation(true)}
+                        className="flex-1 py-3 bg-[#1A1A1A] text-white text-sm rounded hover:bg-[#333] transition-all"
                       >
-                        {contractMutation.isPending ? "Sending..." : "Send Contract & Retainer"}
+                        Send Contract & Retainer
                       </button>
                     </div>
+
+                    {showSendConfirmation && (
+                      <div className="mt-4 border-2 border-amber-400 bg-amber-50 rounded-lg p-5">
+                        <p className="text-sm font-medium text-[#1A1A1A] mb-2">Confirm before sending</p>
+                        <p className="text-xs text-[#666] mb-1">
+                          This will email the contract and retainer invoice to:
+                        </p>
+                        <p className="text-sm font-medium text-[#1A1A1A] mb-4">
+                          {inquiry.clientName} ({inquiry.clientEmail})
+                        </p>
+                        <div className="flex gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setShowSendConfirmation(false)}
+                            className="flex-1 py-3 border border-[#E8E2D9] text-[#1A1A1A] text-sm rounded hover:border-[#999] transition-all"
+                            data-testid="button-cancel-send-contract"
+                          >
+                            Go Back
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              console.log("[Contract] Send confirmed, calling mutation...");
+                              setShowSendConfirmation(false);
+                              contractMutation.mutate();
+                            }}
+                            disabled={contractMutation.isPending}
+                            className="flex-1 py-3 bg-emerald-700 text-white text-sm rounded hover:bg-emerald-800 transition-all disabled:opacity-50"
+                            data-testid="button-confirm-send-contract"
+                          >
+                            {contractMutation.isPending ? "Sending..." : "Yes, Send to Client"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

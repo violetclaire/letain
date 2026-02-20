@@ -983,13 +983,15 @@ export async function sendContractSignedNotification({
   artistName,
   clientName,
   packageDetails,
-  signedAt
+  signedAt,
+  countersignUrl
 }: {
   toEmail: string;
   artistName: string;
   clientName: string;
   packageDetails: string;
   signedAt: string;
+  countersignUrl?: string;
 }) {
   const { client, fromEmail } = await getResendClient();
 
@@ -1050,9 +1052,20 @@ export async function sendContractSignedNotification({
             <p style="margin: 0;"><strong>Signed:</strong> ${signedDate}</p>
           </div>
           
+          ${countersignUrl ? `
+          <div style="text-align: center; margin: 24px 0;">
+            <a href="${countersignUrl}" style="display: inline-block; padding: 14px 32px; background-color: #1A1A1A; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 15px; font-weight: 500;">
+              Review & Countersign
+            </a>
+          </div>
+          <p style="color: #666; font-size: 13px; text-align: center;">
+            Click above to add your signature and finalize the contract.
+          </p>
+          ` : `
           <p style="color: #666; font-size: 14px;">
             The signed contract is now stored in your dashboard. You can view it anytime from your Contracts page.
           </p>
+          `}
         </div>
         <div class="footer">
           Your Private Secretary

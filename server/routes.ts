@@ -3842,7 +3842,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = getAuthUserId(req);
       const bookingId = req.params.bookingId;
-      const { serviceItems, totalAmount, depositAmount, depositPercent, clientName, clientEmail, eventDate, eventLocation } = req.body;
+      const { serviceItems, totalAmount, depositAmount, depositPercent, clientName, clientEmail, eventDate, eventLocation, confirmSend } = req.body;
+
+      if (!confirmSend) {
+        return res.status(400).json({ error: "Contract send must be explicitly confirmed" });
+      }
       
       const booking = await storage.getBooking(bookingId);
       if (!booking) {
@@ -4223,6 +4227,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (artist?.email) {
         try {
+          const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
+          const countersignUrl = `${baseUrl}/countersign/${token}`;
           const { sendContractSignedNotification } = await import("./emailService");
           await sendContractSignedNotification({
             toEmail: artist.email,
@@ -4230,6 +4236,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             clientName: signedByName,
             packageDetails: contract.packageDetails,
             signedAt: new Date().toISOString(),
+            countersignUrl,
           });
         } catch (emailError) {
           console.error("[Sign] Failed to send notification email:", emailError);
@@ -12731,7 +12738,11 @@ Rules:
   app.post("/api/public/inquiry/:threadToken/create-contract", async (req, res) => {
     try {
       const { threadToken } = req.params;
-      const { packageDetails, totalAmount, depositAmount, eventLocation, sendRetainerInvoice, serviceItems, travelFee } = req.body;
+      const { packageDetails, totalAmount, depositAmount, eventLocation, sendRetainerInvoice, serviceItems, travelFee, confirmSend } = req.body;
+
+      if (!confirmSend) {
+        return res.status(400).json({ error: "Contract send must be explicitly confirmed. Set confirmSend: true to proceed." });
+      }
       
       const inquiry = await storage.getInquiryByThreadToken(threadToken);
       if (!inquiry) {
