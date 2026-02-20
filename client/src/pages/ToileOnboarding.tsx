@@ -220,7 +220,7 @@ export default function ToileOnboarding() {
                       type="text"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full bg-transparent border-0 border-b border-[#E8E4DF]/25 text-white placeholder:text-[#E8E4DF]/40 focus:border-[#E8E4DF]/40 focus:outline-none focus:ring-0 px-0 py-4 text-base"
+                      className="w-full bg-transparent border-0 border-b border-[#E8E4DF]/25 text-[#F5F1E8] placeholder:text-[#E8E4DF]/40 focus:border-[#E8E4DF]/40 focus:outline-none focus:ring-0 px-0 py-4 text-base"
                       placeholder="Full name"
                       data-testid="input-name"
                     />
@@ -234,7 +234,7 @@ export default function ToileOnboarding() {
                       type="text"
                       value={formData.businessName}
                       onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
-                      className="w-full bg-transparent border-0 border-b border-[#E8E4DF]/25 text-white placeholder:text-[#E8E4DF]/40 focus:border-[#E8E4DF]/40 focus:outline-none focus:ring-0 px-0 py-4 text-base"
+                      className="w-full bg-transparent border-0 border-b border-[#E8E4DF]/25 text-[#F5F1E8] placeholder:text-[#E8E4DF]/40 focus:border-[#E8E4DF]/40 focus:outline-none focus:ring-0 px-0 py-4 text-base"
                       placeholder={userType === "executive" ? "Your company name" : "What clients call you"}
                       data-testid="input-business-name"
                     />
@@ -249,7 +249,7 @@ export default function ToileOnboarding() {
                       type="tel"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full bg-transparent border-0 border-b border-[#E8E4DF]/25 text-white placeholder:text-[#E8E4DF]/40 focus:border-[#E8E4DF]/40 focus:outline-none focus:ring-0 px-0 py-4 text-base"
+                      className="w-full bg-transparent border-0 border-b border-[#E8E4DF]/25 text-[#F5F1E8] placeholder:text-[#E8E4DF]/40 focus:border-[#E8E4DF]/40 focus:outline-none focus:ring-0 px-0 py-4 text-base"
                       placeholder="(555) 555-5555"
                       data-testid="input-phone"
                     />
@@ -268,7 +268,7 @@ export default function ToileOnboarding() {
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full bg-transparent border-0 border-b border-[#E8E4DF]/25 text-white placeholder:text-[#E8E4DF]/40 focus:border-[#E8E4DF]/40 focus:outline-none focus:ring-0 px-0 py-4 text-base"
+                      className="w-full bg-transparent border-0 border-b border-[#E8E4DF]/25 text-[#F5F1E8] placeholder:text-[#E8E4DF]/40 focus:border-[#E8E4DF]/40 focus:outline-none focus:ring-0 px-0 py-4 text-base"
                       placeholder="you@yourbusiness.com"
                       data-testid="input-email"
                     />
@@ -330,7 +330,7 @@ export default function ToileOnboarding() {
                             type="text"
                             value={newReferral.name}
                             onChange={(e) => setNewReferral({ ...newReferral, name: e.target.value })}
-                            className="w-full bg-transparent border-0 border-b border-[#E8E4DF]/25 text-white placeholder:text-[#E8E4DF]/40 focus:border-[#E8E4DF]/40 focus:outline-none focus:ring-0 px-0 py-3 text-sm"
+                            className="w-full bg-transparent border-0 border-b border-[#E8E4DF]/25 text-[#F5F1E8] placeholder:text-[#E8E4DF]/40 focus:border-[#E8E4DF]/40 focus:outline-none focus:ring-0 px-0 py-3 text-sm"
                             placeholder="Their name"
                             data-testid="input-referral-name"
                           />
@@ -343,7 +343,7 @@ export default function ToileOnboarding() {
                             type="text"
                             value={newReferral.relationship}
                             onChange={(e) => setNewReferral({ ...newReferral, relationship: e.target.value })}
-                            className="w-full bg-transparent border-0 border-b border-[#E8E4DF]/25 text-white placeholder:text-[#E8E4DF]/40 focus:border-[#E8E4DF]/40 focus:outline-none focus:ring-0 px-0 py-3 text-sm"
+                            className="w-full bg-transparent border-0 border-b border-[#E8E4DF]/25 text-[#F5F1E8] placeholder:text-[#E8E4DF]/40 focus:border-[#E8E4DF]/40 focus:outline-none focus:ring-0 px-0 py-3 text-sm"
                             placeholder={userType === "solo" ? "e.g. Photographer, Plumber, Stylist" : "e.g. Lead stylist, Project manager"}
                             data-testid="input-referral-relationship"
                           />
@@ -355,7 +355,7 @@ export default function ToileOnboarding() {
                               type="tel"
                               value={newReferral.phone}
                               onChange={(e) => setNewReferral({ ...newReferral, phone: e.target.value })}
-                              className="w-full bg-transparent border-0 border-b border-[#E8E4DF]/25 text-white placeholder:text-[#E8E4DF]/40 focus:border-[#E8E4DF]/40 focus:outline-none focus:ring-0 px-0 py-3 text-sm"
+                              className="w-full bg-transparent border-0 border-b border-[#E8E4DF]/25 text-[#F5F1E8] placeholder:text-[#E8E4DF]/40 focus:border-[#E8E4DF]/40 focus:outline-none focus:ring-0 px-0 py-3 text-sm"
                               placeholder="(555) 555-5555"
                               data-testid="input-referral-phone"
                             />
@@ -366,7 +366,7 @@ export default function ToileOnboarding() {
                               type="email"
                               value={newReferral.email}
                               onChange={(e) => setNewReferral({ ...newReferral, email: e.target.value })}
-                              className="w-full bg-transparent border-0 border-b border-[#E8E4DF]/25 text-white placeholder:text-[#E8E4DF]/40 focus:border-[#E8E4DF]/40 focus:outline-none focus:ring-0 px-0 py-3 text-sm"
+                              className="w-full bg-transparent border-0 border-b border-[#E8E4DF]/25 text-[#F5F1E8] placeholder:text-[#E8E4DF]/40 focus:border-[#E8E4DF]/40 focus:outline-none focus:ring-0 px-0 py-3 text-sm"
                               placeholder="them@email.com"
                               data-testid="input-referral-email"
                             />
