@@ -166,7 +166,7 @@ export default function ToileOnboarding() {
                           I do the work myself
                         </p>
                         <p className="text-xs text-[#E8E4DF]/70 leading-relaxed">
-                          Solopreneur, freelancer, or small business owner. You handle client inquiries, show up, and deliver the service personally. Plumber, photographer, stylist, consultant, tutor, chef.
+                          Solopreneur or independent professional. You handle client inquiries, show up, and deliver the service personally. Architect, makeup artist, personal chef, landscape architect, stylist, interior designer.
                         </p>
                       </div>
                     </div>
@@ -192,7 +192,7 @@ export default function ToileOnboarding() {
                           I delegate to a team
                         </p>
                         <p className="text-xs text-[#E8E4DF]/70 leading-relaxed">
-                          You run the business and coordinate. Tasks get assigned to your team via email or text. Event planner, agency owner, general contractor, property manager, studio owner.
+                          You run the business and coordinate. Tasks get assigned to your team via email or text. Creative director, event producer, design firm principal, agency owner, studio owner.
                         </p>
                       </div>
                     </div>
