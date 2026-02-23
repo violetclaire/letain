@@ -12888,6 +12888,61 @@ Rules:
           eventLocation: eventLocation || inquiry.eventLocation || undefined,
         });
         console.log(`[Contract] Combined contract+payment email sent to ${inquiry.clientEmail}`);
+
+        if (artistUser?.email) {
+          try {
+            const { Resend } = await import("resend");
+            const resend = new Resend(process.env.RESEND_API_KEY);
+            const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
+            const threadUrl = `${baseUrl}/inquiry/${inquiry.threadToken}`;
+
+            const fmtCurrency = (val: number) => `$${val.toFixed(2)}`;
+            const itemRows = contractServiceItems ? contractServiceItems.map((item: any) => 
+              `<tr><td style="padding:8px;border-bottom:1px solid #eee;">${item.clientType || ''}</td><td style="padding:8px;border-bottom:1px solid #eee;">${item.service || ''}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center;">${item.qty || 1}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right;">${fmtCurrency((item.price || 0) / 100)}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right;">${fmtCurrency((item.total || 0) / 100)}</td></tr>`
+            ).join('') : `<tr><td style="padding:8px;" colspan="5">${packageDetails || 'Services'}</td></tr>`;
+
+            await resend.emails.send({
+              from: `Your Secretary <notifications@dateinquiry.com>`,
+              to: artistUser.email,
+              subject: `Contract Sent to ${inquiry.clientName}`,
+              html: `
+                <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 8px; overflow: hidden;">
+                  <div style="background: #FAF7F2; padding: 24px; text-align: center; border-bottom: 1px solid #eee;">
+                    <h1 style="font-size: 20px; margin: 0; color: #1a1a1a;">Contract Sent</h1>
+                  </div>
+                  <div style="padding: 24px;">
+                    <p style="margin-bottom: 16px;">Hi ${artistUser.firstName || 'there'},</p>
+                    <p style="margin-bottom: 16px;">Your contract has been sent to <strong>${inquiry.clientName}</strong> at ${inquiry.clientEmail}.</p>
+                    <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 13px;">
+                      <thead><tr style="background: #f9f7f4;">
+                        <th style="padding:8px;text-align:left;">Client</th>
+                        <th style="padding:8px;text-align:left;">Service</th>
+                        <th style="padding:8px;text-align:center;">Qty</th>
+                        <th style="padding:8px;text-align:right;">Price</th>
+                        <th style="padding:8px;text-align:right;">Total</th>
+                      </tr></thead>
+                      <tbody>${itemRows}</tbody>
+                      <tfoot>
+                        ${travelFeeCents > 0 ? `<tr><td colspan="4" style="padding:8px;border-top:1px solid #ddd;">Travel Fee</td><td style="padding:8px;border-top:1px solid #ddd;text-align:right;">${fmtCurrency(travelFeeCents / 100)}</td></tr>` : ''}
+                        <tr style="font-weight:bold;"><td colspan="4" style="padding:8px;border-top:2px solid #333;">Grand Total</td><td style="padding:8px;border-top:2px solid #333;text-align:right;">${fmtCurrency(totalAmountNum)}</td></tr>
+                        <tr><td colspan="4" style="padding:8px;color:#666;">Retainer Due</td><td style="padding:8px;text-align:right;color:#666;">${fmtCurrency(depositAmountNum)}</td></tr>
+                      </tfoot>
+                    </table>
+                    ${eventLocation || inquiry.eventLocation ? `<p style="font-size:13px;color:#666;">Location: ${eventLocation || inquiry.eventLocation}</p>` : ''}
+                    ${inquiry.eventDate ? `<p style="font-size:13px;color:#666;">Event Date: ${new Date(inquiry.eventDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>` : ''}
+                    <div style="text-align:center;margin:24px 0;">
+                      <a href="${threadUrl}" style="display:inline-block;padding:12px 28px;background:#1A1A1A;color:#fff;text-decoration:none;border-radius:6px;font-size:14px;">View Thread</a>
+                    </div>
+                    <p style="font-size:12px;color:#999;text-align:center;">You'll be notified when ${inquiry.clientName} signs.</p>
+                  </div>
+                </div>
+              `,
+            });
+            console.log(`[Contract] Artist copy sent to ${artistUser.email}`);
+          } catch (artistEmailErr) {
+            console.error('[Contract] Failed to send artist copy:', artistEmailErr);
+          }
+        }
       } catch (emailErr) {
         console.error('[Contract] Failed to send email:', emailErr);
       }
