@@ -13122,7 +13122,8 @@ Rules:
       }
       
       // Upload to object storage using detected (verified) MIME type
-      const objectService = (await import('./objectStorage')).default;
+      const { ObjectStorageService } = await import('./objectStorage');
+      const objectService = new ObjectStorageService();
       const timestamp = Date.now();
       const safeFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
       const objectPath = `inquiries/${inquiry.id}/inspiration/${timestamp}_${safeFileName}`;
