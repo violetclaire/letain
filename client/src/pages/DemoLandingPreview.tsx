@@ -150,7 +150,7 @@ function LandingPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            Briarwood in action.
+            Briarwood — watch it work.
           </motion.h2>
           <motion.p
             className="text-center text-[#888] text-sm mb-12"
