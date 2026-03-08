@@ -6,96 +6,80 @@ export default function Privacy() {
   const [, setLocation] = useLocation();
 
   return (
-    <div className="min-h-screen bg-[#FCF9F4] py-16 px-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="max-w-2xl mx-auto"
-      >
+    <div className="min-h-screen bg-bg text-ink">
+      <div className="estate-pinstripe" />
+      <div className="max-w-[680px] mx-auto px-6 py-16 md:py-24">
         <button
           onClick={() => setLocation("/")}
-          className="flex items-center gap-2 text-[#5A1F2B]/60 hover:text-[#5A1F2B] mb-8 transition-colors"
+          className="flex items-center gap-2 text-faintink hover:text-ink mb-12 transition-colors text-sm"
           data-testid="button-back-home"
         >
-          <ArrowLeft size={18} />
-          <span className="text-sm">Back to Home</span>
+          <ArrowLeft size={14} />
+          Back
         </button>
 
-        <h1 className="font-script text-4xl text-[#5A1F2B] mb-8" data-testid="text-privacy-title">
-          Privacy Policy
-        </h1>
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+        >
+          <p className="text-xs tracking-[0.16em] uppercase text-faintink mb-8">Privacy</p>
 
-        <div className="space-y-6 text-[#5A1F2B]/80 text-sm leading-relaxed">
-          <p className="text-xs text-[#5A1F2B]/50">Last updated: December 2024</p>
+          <div className="space-y-6 text-mutedink leading-relaxed">
+            <h2 className="font-serif text-2xl sm:text-3xl tracking-tight text-ink leading-snug">
+              What you have built over decades belongs to you.
+            </h2>
 
-          <section>
-            <h2 className="font-medium text-[#5A1F2B] text-base mb-2">Your Privacy Matters</h2>
             <p>
-              We understand that you're entrusting us with personal details about your clients and business. We take that responsibility seriously and are committed to protecting your information.
+              The way you handle a difficult client. The judgment call that kept a job from falling apart. The recovery behavior that nobody saw but you. The referral you made because you knew exactly who to trust.
             </p>
-          </section>
 
-          <section>
-            <h2 className="font-medium text-[#5A1F2B] text-base mb-2">What We Collect</h2>
-            <ul className="list-disc list-inside space-y-1 ml-2">
-              <li>Contact information (email address)</li>
-              <li>Event details (date, location, services needed)</li>
-              <li>Inspiration images you choose to upload</li>
-              <li>Communications between you and artists</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="font-medium text-[#5A1F2B] text-base mb-2">How We Protect Your Data</h2>
-            <ul className="list-disc list-inside space-y-1 ml-2">
-              <li>All data is encrypted in transit using SSL/TLS</li>
-              <li>Information is stored on secure, enterprise-grade servers</li>
-              <li>Payment processing is handled by Square, a PCI-compliant provider</li>
-              <li>Access to your data is limited to vetted team members and artists you choose to work with</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="font-medium text-[#5A1F2B] text-base mb-2">How We Use Your Information</h2>
-            <p>We use your information to:</p>
-            <ul className="list-disc list-inside space-y-1 ml-2 mt-2">
-              <li>Match you with suitable beauty artists in your area</li>
-              <li>Facilitate communication and bookings</li>
-              <li>Send you updates about your waitlist status and bookings</li>
-              <li>Improve our platform and services</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="font-medium text-[#5A1F2B] text-base mb-2">We Never Sell Your Data</h2>
             <p>
-              Your personal information is never sold, rented, or shared with third parties for marketing purposes. Period.
+              That is not operational data. That is not metadata. That is behavioral truth — inseparable from the specific professional who generated it. It took years to build. It cannot be replicated. It cannot be transferred.
             </p>
-          </section>
 
-          <section>
-            <h2 className="font-medium text-[#5A1F2B] text-base mb-2">Your Rights</h2>
-            <p>You have the right to:</p>
-            <ul className="list-disc list-inside space-y-1 ml-2 mt-2">
-              <li>Access the personal data we hold about you</li>
-              <li>Request correction of inaccurate data</li>
-              <li>Request deletion of your data</li>
-              <li>Opt out of marketing communications</li>
-            </ul>
-          </section>
+            <p className="font-serif text-xl text-ink tracking-tight">
+              It is yours.
+            </p>
+          </div>
 
-          <section>
-            <h2 className="font-medium text-[#5A1F2B] text-base mb-2">Questions?</h2>
+          <div className="border-t border-hairline mt-12 pt-12 space-y-6 text-mutedink leading-relaxed">
+            <h2 className="font-serif text-xl sm:text-2xl tracking-tight text-ink leading-snug">
+              Briarwood exists to make that truth legible — not to own it.
+            </h2>
+
             <p>
-              If you have any questions about our privacy practices, please contact us at{" "}
-              <a href="mailto:violet@beauvette.com" className="text-[#5A1F2B] underline">
-                violet@beauvette.com
-              </a>
+              We capture behavioral excellence so it can work for the professional who built it. We do not sell it. We do not share it. We do not use it to train anyone else's model. We do not contact your clients. We do not put our name where yours belongs.
             </p>
-          </section>
-        </div>
-      </motion.div>
+
+            <p className="text-ink">
+              Your coordination history. Your referral network. Your client relationships. Your standards.
+            </p>
+
+            <p className="font-serif text-xl text-ink tracking-tight">
+              Yours. Always.
+            </p>
+          </div>
+
+          <div className="border-t border-hairline mt-12 pt-12 space-y-6 text-mutedink leading-relaxed">
+            <h2 className="font-serif text-xl sm:text-2xl tracking-tight text-ink leading-snug">
+              Why this matters.
+            </h2>
+
+            <p>
+              The behavioral data generated inside a word of mouth business is the most valuable and most unprotected data in the professional world. It has never had infrastructure built to hold it — which means it has always been vulnerable to being lost, stolen, or simply forgotten.
+            </p>
+
+            <p className="font-serif text-lg text-ink tracking-tight">
+              Briarwood is the first infrastructure built to protect it as seriously as it deserves.
+            </p>
+          </div>
+
+          <div className="border-t border-hairline mt-16 pt-8">
+            <p className="text-sm text-faintink">&copy; 2026 Briarwood AI</p>
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 }

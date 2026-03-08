@@ -502,6 +502,20 @@ export default function Landing() {
         </div>
 
         <div className="flex gap-6">
+          <button
+            onClick={() => setLocation("/about")}
+            className="underline hover:text-ink transition-colors"
+            data-testid="link-footer-about"
+          >
+            About
+          </button>
+          <button
+            onClick={() => setLocation("/privacy")}
+            className="underline hover:text-ink transition-colors"
+            data-testid="link-footer-privacy"
+          >
+            Privacy
+          </button>
           <a
             href="https://www.instagram.com/dateinquiry"
             target="_blank"
@@ -518,13 +532,6 @@ export default function Landing() {
           >
             Contact
           </a>
-          <button
-            onClick={() => setLocation("/privacy")}
-            className="underline hover:text-ink transition-colors"
-            data-testid="link-footer-privacy"
-          >
-            Privacy
-          </button>
         </div>
         <div className="mt-6 flex items-center justify-between">
           <span>&copy; 2025 Briarwood</span>
