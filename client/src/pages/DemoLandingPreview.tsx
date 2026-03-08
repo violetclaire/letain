@@ -33,6 +33,8 @@ function LandingPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
         <div className="max-w-[1100px] mx-auto px-6 sm:px-10 flex items-center justify-between py-4 md:py-6">
           <div className="font-serif text-lg md:text-xl tracking-tight">Briarwood</div>
           <nav className="flex items-center gap-6">
+            <button onClick={() => onNavigate("about")} className="text-sm text-[#888] hover:text-[#1a1a1a] transition-colors">About</button>
+            <button onClick={() => onNavigate("privacy")} className="text-sm text-[#888] hover:text-[#1a1a1a] transition-colors">Privacy</button>
             <span className="text-sm text-[#888]">Sign in</span>
             <button className="bg-ink text-bg px-4 py-2 text-sm hover:bg-ink/90 transition-colors">
               Join the waitlist
