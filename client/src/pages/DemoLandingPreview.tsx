@@ -251,15 +251,17 @@ function LandingPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
                 </p>
               </div>
               <div className="flex-shrink-0 w-full md:w-auto">
-                <motion.div
-                  className="bg-[#3d1a22] text-[#f5f3ef] rounded-lg px-4 py-3 max-w-xs shadow-md inline-block"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.3, duration: 0.35 }}
-                >
-                  <p className="text-sm italic">"Sarah referred me to you."</p>
-                </motion.div>
+                <div className="bg-white border border-[#e8e2d9] rounded-lg p-4 max-w-xs space-y-2">
+                  <div className="flex items-center gap-2 text-xs text-[#1a1a1a] font-medium">
+                    <Users size={12} className="text-[#3d1a22]" />
+                    <span>Refer to your network</span>
+                  </div>
+                  <div className="text-xs text-[#888]">or</div>
+                  <div className="flex items-center gap-2 text-xs text-[#1a1a1a] font-medium">
+                    <Users size={12} className="text-[#3d1a22]" />
+                    <span>Delegate to your team</span>
+                  </div>
+                </div>
               </div>
             </motion.div>
 
