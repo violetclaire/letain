@@ -144,7 +144,7 @@ function LandingPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
       <section id="demo" className="bg-[#f9f7f4] py-20 md:py-28">
         <div className="max-w-[1100px] mx-auto px-6 sm:px-10">
           <motion.h2
-            className="text-2xl sm:text-3xl tracking-tight text-center mb-4"
+            className="text-2xl sm:text-3xl tracking-tight text-right mb-4"
             style={{ fontFamily: "'Fraunces', serif" }}
             initial={{ opacity: 0, y: 8 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -153,7 +153,7 @@ function LandingPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
             Briarwood — watch it work.
           </motion.h2>
           <motion.p
-            className="text-center text-[#888] text-sm mb-12"
+            className="text-right text-[#888] text-sm mb-16"
             initial={{ opacity: 0, y: 8 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
