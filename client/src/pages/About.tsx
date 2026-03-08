@@ -26,72 +26,77 @@ export default function About() {
           <p className="text-xs tracking-[0.16em] uppercase text-faintink mb-8">About</p>
 
           <div className="space-y-6 text-mutedink leading-relaxed">
-            <h2 className="font-serif text-2xl sm:text-3xl tracking-tight text-ink leading-snug max-w-[20ch]">
-              Built by a professional, for professionals.
+            <h2 className="font-serif text-2xl sm:text-3xl tracking-tight text-ink leading-snug">
+              Briarwood was built by someone who did this manually.
             </h2>
-
-            <p>
-              Briarwood was built by someone who spent 16 years inside the work — coordinating high-stakes events, managing client relationships, making referrals, and carrying the invisible labor that holds a word of mouth business together.
+            <p className="text-ink font-medium">
+              Not as a case study. Not as a research project.<br />
+              For 28 years.
             </p>
 
             <p>
-              Over $1M coordinated the old way. Manually. Across calendars, inboxes, contracts, and phone calls. The kind of work that makes everything look effortless from the outside — while the professional carrying it knows exactly what it costs.
+              Violet Herod started her career at Nordstrom, where personal service is not a policy — it's a culture. That standard never left her. What she built over the next 28 years was not a business in the conventional sense. It was a reputation so precise, so reliable, that clients never needed to look anywhere else. Vendors requested to work with her by name. Referrals moved through private networks that no platform could see or touch.
             </p>
 
             <p>
-              Briarwood exists because that cost was never necessary. The standard was. The weight of holding it together alone was not.
+              That didn't happen by accident. It happened because of something that has never had a name — the professional intuition to read a room, manage a vendor relationship under pressure, know exactly what a client needed before they said it, and execute without a single visible seam.
+            </p>
+
+            <p className="text-ink font-medium">
+              That behavioral excellence is the most valuable thing in the physical service economy.
+            </p>
+
+            <p>
+              It has never been captured anywhere before.
+            </p>
+
+            <p className="font-serif text-xl text-ink tracking-tight">
+              Briarwood captures it.
             </p>
           </div>
 
           <div className="border-t border-hairline mt-12 pt-12 space-y-6 text-mutedink leading-relaxed">
             <h2 className="font-serif text-xl sm:text-2xl tracking-tight text-ink leading-snug">
-              What Briarwood is.
+              Why we built this.
             </h2>
 
             <p>
-              Infrastructure for the most trusted independent professionals in the physical service economy. The ones whose reputations were built on word of mouth, sustained through relationships, and earned through years of judgment that no platform can replicate.
+              The trust networks already exist. They have existed for decades — in the relationships, the referrals, the invisible labor of the best independent professionals in the physical world.
             </p>
 
             <p>
-              Briarwood doesn't replace that judgment. It gives it infrastructure. It makes the invisible labor — the coordination, the follow up, the contracts, the referrals — run with the precision and permanence the work has always deserved.
+              The problem was never the trust. The problem was that it lived nowhere a machine could reach. Nowhere permanent. Nowhere queryable. Nowhere that survived the professional who built it.
+            </p>
+
+            <p>
+              Every other system built for this economy captures what providers claim or what clients say after the fact. Briarwood captures what actually happened — in the moment it mattered, under pressure, at stakes.
+            </p>
+
+            <p>
+              That data has never existed anywhere before. We are the first to build the infrastructure to hold it. And because we built it from the inside — from 28 years of doing this work ourselves — we own the outcome in a way nobody else can.
             </p>
 
             <p className="font-serif text-lg text-ink tracking-tight">
-              Your reputation. Your network. Your standard. Now with infrastructure underneath it.
+              The networks were always there. Briarwood makes them legible for the first time.
             </p>
           </div>
 
           <div className="border-t border-hairline mt-12 pt-12 space-y-6 text-mutedink leading-relaxed">
-            <h2 className="font-serif text-xl sm:text-2xl tracking-tight text-ink leading-snug">
-              What Briarwood is not.
-            </h2>
-
             <p>
-              Not a marketplace. Not a lead generator. Not a platform that puts its name where yours belongs. Not a system that teaches you how to work or tells you what to charge.
-            </p>
-
-            <p>
-              Briarwood is invisible to your clients. They see your brand. Your contracts. Your invoices. Your name. That's the point.
+              Dundy Pasupuleti is Briarwood's co-founder and CTO.
             </p>
           </div>
 
-          <div className="border-t border-hairline mt-12 pt-12">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <button
-                onClick={() => setLocation("/secretary")}
-                className="bg-ink text-bg px-5 py-3 text-sm font-medium hover:bg-ink/90 transition-colors"
-                data-testid="button-about-waitlist"
-              >
-                Join the waitlist
-              </button>
-              <button
-                onClick={() => setLocation("/privacy")}
-                className="text-sm underline text-mutedink hover:text-ink transition-colors self-center"
-                data-testid="button-about-privacy"
-              >
-                Privacy
-              </button>
-            </div>
+          <div className="border-t border-hairline mt-12 pt-12 space-y-3">
+            <p className="font-serif text-xl text-ink tracking-tight leading-snug">
+              Independence. Sovereignty. Trust that travels.
+            </p>
+            <p className="text-mutedink leading-relaxed">
+              That is what we built our careers on.
+            </p>
+            <p className="text-ink font-medium">
+              That is what Briarwood protects.
+            </p>
           </div>
 
           <div className="border-t border-hairline mt-16 pt-8">
