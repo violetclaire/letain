@@ -56,6 +56,7 @@ import Waitlist from "@/pages/Waitlist";
 import ClientWaitlist from "@/pages/ClientWaitlist";
 import Privacy from "@/pages/Privacy";
 import About from "@/pages/About";
+import DemoLandingPreview from "@/pages/DemoLandingPreview";
 import ChatInvite from "@/pages/ChatInvite";
 import DirectChat from "@/pages/DirectChat";
 import ArtistQuickChat from "@/pages/ArtistQuickChat";
@@ -141,6 +142,7 @@ function Router() {
       <Route path="/clients" component={ClientWaitlist} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/about" component={About} />
+      <Route path="/demo-landing" component={DemoLandingPreview} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/import" component={AdminImport} />
       <Route path="/artist/import" component={VendorImport} />
