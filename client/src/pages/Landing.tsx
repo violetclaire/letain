@@ -2,101 +2,88 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, CheckCircle } from "lucide-react";
-
-const CONTENT = {
-  nav: {
-    brand: "Your Private Secretary",
-    cta: "Get your private link"
-  },
-  hero: {
-    label: "Built by a professional, for professionals",
-    h1: "The invisible layer behind your business.",
-    subline: "This is how we've worked for decades. Now it's programmable infrastructure for the modern era.",
-    notList: [
-      "Your clients only see your brand.",
-      "Never ours.",
-      "That's the point."
-    ],
-    primaryCta: "Get your private link",
-    secondaryCta: "How it works"
-  },
-  howItWorks: {
-    title: "How it fits into your business",
-    steps: [
-      {
-        num: "01",
-        title: "Your link, your brand",
-        body: "Add our invisible code to your website's contact page. Clients fill out inquiries on your site and see your confirmation. Never leave your domain, never see our name. Share your own website link on Instagram, in emails, anywhere. Your brand only."
-      },
-      {
-        num: "02",
-        title: "Your availability, answered",
-        body: "Block the dates you're booked. The rest stay open for inquiries. No instant booking. That's not how we run our business. We work on the most important days of people's lives. Auto-reply with your info sheet? One click."
-      },
-      {
-        num: "03",
-        title: "You decide once. We execute.",
-        decisions: [
-          { action: "Accept", result: "Contract generated (your terms), invoice sent, calendar blocked, client notified" },
-          { action: "Refer", result: "Client introduced to trusted artist, you stay copied, referral tracked" },
-          { action: "Decline", result: "Professional response sent, inquiry archived, relationship maintained" }
-        ]
-      }
-    ],
-    tagline: "High-stakes coordination executed flawlessly. Every time."
-  },
-  network: {
-    headline: "Independence doesn't mean isolation.",
-    body: "When you're booked, refer clients to artists you trust. Without losing the relationship.",
-    description: "A private, artist-led network built on reputation and reciprocity.",
-    tagline: "Real independence.",
-    notList: [
-      "Not rankings",
-      "Not bidding",
-      "Not a race to the bottom"
-    ]
-  },
-  privacy: {
-    headline: "Your clients. Your data.",
-    points: [
-      "We never contact your clients",
-      "Your business name on every contract and invoice",
-      "No competing brand in their inbox",
-      "Infrastructure that disappears"
-    ]
-  },
-  pricing: {
-    headline: "We earn when you do.",
-    fee: "1.5% infrastructure fee on top of what we already pay to process payments.",
-    noSubscription: "No subscriptions. No monthly charges.",
-    example: "$500 booking = $7.50 platform fee",
-    keepLine: "",
-    comparison: ""
-  },
-  proof: {
-    headline: "Volume I: Live in production",
-    stat: "$6,000 processed last week.",
-    details: "2 contracts signed. 2 invoices paid. Zero client logins required.",
-    narrative: [
-      "This is how trusted professionals have coordinated for decades. Inquiry, assessment, response, execution.",
-      "Now it's programmable infrastructure.",
-      "Built by a professional who did this manually for 16 years in the beauty industry. $1M+ coordinated the old way. Now deployed as infrastructure for the modern era."
-    ],
-    volExplainer: "Volume I is for artists. You're the foundation, the trusted professionals clients are looking for. Volume II brings client search to you. But first, we build the network that deserves them.",
-    cta: "Get your private link"
-  },
-  footer: {
-    links: ["Instagram", "Contact", "Privacy"],
-    copyright: "© 2025 Your Private Secretary"
-  }
-};
+import { Menu, X, CheckCircle, Inbox, CalendarCheck, Users, FileText, ArrowRight } from "lucide-react";
 
 const fadeIn = {
   initial: { opacity: 0, y: 8 },
   animate: { opacity: 1, y: 0 },
   transition: { duration: 0.3, ease: [0, 0, 0.2, 1] as const }
 };
+
+function InquiryCard() {
+  return (
+    <motion.div
+      className="bg-white border border-[#e8e2d9] rounded-lg p-5 shadow-sm max-w-lg"
+      initial={{ opacity: 0, y: 12 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: 0.1, duration: 0.4, ease: "easeOut" }}
+    >
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-8 h-8 rounded-full bg-[#f5f3ef] flex items-center justify-center">
+          <Inbox size={14} className="text-[#3d1a22]" />
+        </div>
+        <span className="text-xs tracking-[0.1em] uppercase text-[#888]">New Inquiry</span>
+      </div>
+      <p className="text-[#1a1a1a] text-sm leading-relaxed italic">
+        "Hi, my colleague worked with you last year and had nothing but great things to say. I'd love to know if you have any information and pricing you could share. Looking forward to chatting."
+      </p>
+    </motion.div>
+  );
+}
+
+function ReferralBubble() {
+  return (
+    <motion.div
+      className="bg-[#3d1a22] text-[#f5f3ef] rounded-lg px-4 py-3 max-w-xs shadow-md inline-block"
+      initial={{ opacity: 0, scale: 0.95 }}
+      whileInView={{ opacity: 1, scale: 1 }}
+      viewport={{ once: true }}
+      transition={{ delay: 0.3, duration: 0.35, ease: "easeOut" }}
+    >
+      <p className="text-sm italic">"Sarah referred me to you."</p>
+    </motion.div>
+  );
+}
+
+function ContractCard() {
+  return (
+    <motion.div
+      className="bg-white border border-[#e8e2d9] rounded-lg overflow-hidden shadow-sm max-w-sm"
+      initial={{ opacity: 0, y: 12 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: 0.2, duration: 0.4, ease: "easeOut" }}
+    >
+      <div className="bg-[#f9f7f4] px-5 py-3 border-b border-[#e8e2d9]">
+        <div className="flex items-center gap-2">
+          <FileText size={14} className="text-[#3d1a22]" />
+          <span className="text-xs tracking-[0.1em] uppercase text-[#888]">Contract Ready</span>
+        </div>
+      </div>
+      <div className="px-5 py-4 space-y-3">
+        <div className="flex justify-between text-sm">
+          <span className="text-[#888]">Service</span>
+          <span className="text-[#1a1a1a] font-medium">Full Day</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-[#888]">Total</span>
+          <span className="text-[#1a1a1a] font-medium">$8,000</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-[#888]">Starts in</span>
+          <span className="text-[#1a1a1a] font-medium">2 weeks</span>
+        </div>
+        <div className="pt-2 border-t border-[#e8e2d9]">
+          <div className="flex items-center gap-2 text-xs text-green-700">
+            <CheckCircle size={12} />
+            <span>Sent to client</span>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 export default function Landing() {
   const [, setLocation] = useLocation();
@@ -136,29 +123,28 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-bg text-ink">
-      {/* Pinstripe texture overlay */}
       <div className="estate-pinstripe" />
-      {/* Top Bar */}
+
       <header className="fixed top-0 left-0 right-0 z-40 bg-bg/95 backdrop-blur-sm">
         <div className="estate-container flex items-center justify-between py-4 md:py-8">
-          <div className="font-serif text-lg md:text-xl tracking-tight flex-shrink-0">Your Private Secretary</div>
+          <div className="font-serif text-lg md:text-xl tracking-tight flex-shrink-0">Briarwood</div>
           <nav className="hidden md:flex items-center gap-6">
             <button
               onClick={() => window.location.href = "https://dateinquiry.com/artist-login"}
               className="text-sm text-muted-ink hover:text-ink transition-colors"
               data-testid="button-nav-login"
             >
-              Artist Login
+              Sign in
             </button>
             <button
               onClick={() => setLocation("/secretary")}
               className="bg-ink text-bg px-4 py-2 text-sm hover:bg-ink/90 transition-colors"
               data-testid="button-nav-cta"
             >
-              Get started
+              Join the waitlist
             </button>
           </nav>
-          <button 
+          <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="md:hidden p-2 -mr-2 flex-shrink-0"
             aria-label="Toggle menu"
@@ -169,10 +155,9 @@ export default function Landing() {
         </div>
       </header>
 
-      {/* Mobile Menu - Outside header with higher z-index */}
       <AnimatePresence>
         {mobileMenuOpen && (
-          <motion.div 
+          <motion.div
             className="md:hidden fixed inset-0 bg-bg z-50"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -180,8 +165,8 @@ export default function Landing() {
             transition={{ duration: 0.25 }}
           >
             <div className="flex items-center justify-between px-6 py-4">
-              <div className="font-serif text-lg tracking-tight">Your Private Secretary</div>
-              <button 
+              <div className="font-serif text-lg tracking-tight">Briarwood</div>
+              <button
                 onClick={() => setMobileMenuOpen(false)}
                 className="p-2 -mr-2"
                 aria-label="Close menu"
@@ -195,359 +180,285 @@ export default function Landing() {
                 className="text-lg"
                 data-testid="button-mobile-login"
               >
-                Artist Login
+                Sign in
               </button>
               <button
                 onClick={() => { setMobileMenuOpen(false); setLocation("/secretary"); }}
                 className="text-lg font-medium"
                 data-testid="button-mobile-get-started"
               >
-                Get started
+                Join the waitlist
               </button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Hero Section - Dark Pinstripe */}
+      {/* Hero */}
       <section className="relative min-h-screen flex flex-col justify-center bg-[#3d1a22] text-[#f5f3ef] -mx-6 md:-mx-12 px-6 md:px-12">
-        {/* Pinstripe fabric texture */}
-        <div 
+        <div
           className="absolute inset-0 pointer-events-none opacity-35"
           style={{
             backgroundImage: 'url(/attached_assets/u4728191363_seamless_repeating_pinstripe_suiting_fabric_textu__1766382482762.png)',
             backgroundRepeat: 'repeat',
             backgroundSize: '500px'
-          }} 
+          }}
         />
-        {/* Film grain overlay */}
-        <div 
+        <div
           className="absolute inset-0 pointer-events-none opacity-60 mix-blend-overlay"
           style={{
             backgroundImage: 'url(/attached_assets/u4728191363_seamless_film_grain_texture_velvet_like_monochrom__1766382482759.png)',
             backgroundRepeat: 'repeat',
             backgroundSize: '300px'
-          }} 
+          }}
         />
         <div className="estate-prose relative z-10 py-32 md:py-40">
-        <motion.p 
-          className="text-sm tracking-[0.12em] uppercase text-[#f5f3ef]/50"
-          {...fadeIn}
-        >
-          {CONTENT.hero.label}
-        </motion.p>
-        <motion.h1 
-          className="mt-6 text-4xl sm:text-5xl leading-[1.05] tracking-tight text-[#f5f3ef]"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.3, ease: "easeOut" }}
-        >
-          {CONTENT.hero.h1}
-        </motion.h1>
-        <motion.p 
-          className="mt-6 text-xl leading-relaxed text-[#f5f3ef]/80 italic"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15, duration: 0.3, ease: "easeOut" }}
-        >
-          {CONTENT.hero.subline}
-        </motion.p>
-        <motion.p 
-          className="mt-4 text-lg leading-relaxed text-[#f5f3ef]/60"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.3, ease: "easeOut" }}
-        >
-          {CONTENT.hero.notList.join(" ")}
-        </motion.p>
-        <motion.div 
-          className="mt-10 flex flex-col sm:flex-row gap-3"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.3, ease: "easeOut" }}
-        >
-          <button
-            onClick={() => setLocation("/secretary")}
-            className="bg-[#f5f3ef] px-4 py-2.5 text-sm font-medium text-[#0a0a0a] hover:bg-[#f5f3ef]/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brass transition-colors"
-            data-testid="button-hero-primary"
+          <motion.p
+            className="text-xs tracking-[0.16em] uppercase text-[#f5f3ef]/40"
+            {...fadeIn}
           >
-            {CONTENT.hero.primaryCta}
-          </button>
-          <a 
-            href="#how" 
-            className="self-center text-sm underline text-[#f5f3ef]/70 hover:text-[#f5f3ef] transition-colors"
+            Briarwood AI
+          </motion.p>
+          <motion.p
+            className="mt-6 text-sm tracking-[0.12em] uppercase text-[#f5f3ef]/50"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05, duration: 0.3, ease: "easeOut" }}
           >
-            {CONTENT.hero.secondaryCta}
-          </a>
-        </motion.div>
+            Built by a professional, for professionals
+          </motion.p>
+          <motion.h1
+            className="mt-6 text-3xl sm:text-4xl md:text-5xl leading-[1.1] tracking-tight text-[#f5f3ef] max-w-[18ch]"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.3, ease: "easeOut" }}
+          >
+            You built your reputation on word of mouth. Compound it with Briarwood.
+          </motion.h1>
+          <motion.p
+            className="mt-6 text-lg leading-relaxed text-[#f5f3ef]/70 max-w-[52ch]"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15, duration: 0.3, ease: "easeOut" }}
+          >
+            The most trusted independent professionals in the physical service economy use Briarwood to operate with the precision and permanence their reputation deserves — transforming decades of relationships, referrals, and hard-earned judgment into infrastructure that scales their business and keeps their network compounding.
+          </motion.p>
+          <motion.div
+            className="mt-10 flex flex-col sm:flex-row gap-3"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25, duration: 0.3, ease: "easeOut" }}
+          >
+            <button
+              onClick={() => setLocation("/secretary")}
+              className="bg-[#f5f3ef] px-5 py-3 text-sm font-medium text-[#0a0a0a] hover:bg-[#f5f3ef]/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brass transition-colors"
+              data-testid="button-hero-primary"
+            >
+              Join the waitlist
+            </button>
+            <a
+              href="#demo"
+              className="self-center flex items-center gap-1.5 text-sm text-[#f5f3ef]/70 hover:text-[#f5f3ef] transition-colors group"
+            >
+              Request a demo <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+            </a>
+          </motion.div>
         </div>
       </section>
 
-      {/* How It Works */}
-      <section id="how" className="estate-prose py-16 md:py-20">
-        <motion.h2 
-          className="text-2xl sm:text-3xl tracking-tight"
+      {/* Invisible Labor */}
+      <section className="estate-prose py-20 md:py-28">
+        <motion.div
+          className="space-y-6"
           initial={{ opacity: 0, y: 8 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
         >
-          {CONTENT.howItWorks.title}
-        </motion.h2>
-        
-        <div className="mt-10 space-y-10">
-          {CONTENT.howItWorks.steps.map((step, index) => (
-            <motion.div 
-              key={index}
-              className="border-t border-hairline pt-8"
+          <h2 className="text-2xl sm:text-3xl tracking-tight leading-snug max-w-[22ch]">
+            Invisible labor is the engine underneath every great business built on word of mouth.
+          </h2>
+          <div className="space-y-5 text-mutedink leading-relaxed">
+            <p>
+              The coordination that happens before the client arrives. The follow up that keeps the relationship alive. The communication, the contracts, the calendar — the layer of work that makes every job look effortless from the outside.
+            </p>
+            <p>
+              It is not a burden. It is the standard. It is what separates the best from everyone else.
+            </p>
+            <p>
+              But it was never designed to be carried manually forever. The toll of doing it alone — on top of the actual work — is what keeps the best professionals from scaling what they built.
+            </p>
+          </div>
+          <motion.p
+            className="font-serif text-xl tracking-tight text-ink pt-2"
+            initial={{ opacity: 0, y: 8 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2, duration: 0.3, ease: "easeOut" }}
+          >
+            Briarwood automates the invisible labor. Your standard stays exactly what it is. The weight of holding it together alone — finally — lifts.
+          </motion.p>
+        </motion.div>
+      </section>
+
+      {/* Briarwood in Action */}
+      <section id="demo" className="bg-[#f9f7f4] -mx-6 md:-mx-12 px-6 md:px-12 py-20 md:py-28">
+        <div className="max-w-[1100px] mx-auto">
+          <motion.h2
+            className="font-serif text-2xl sm:text-3xl tracking-tight text-center mb-4"
+            initial={{ opacity: 0, y: 8 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+          >
+            Briarwood in action.
+          </motion.h2>
+          <motion.p
+            className="text-center text-mutedink text-sm mb-12"
+            initial={{ opacity: 0, y: 8 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.05, duration: 0.3, ease: "easeOut" }}
+          >
+            You have a new inquiry.
+          </motion.p>
+
+          <InquiryCard />
+
+          <div className="mt-16 space-y-20">
+            {/* Step 01 */}
+            <motion.div
+              className="flex flex-col md:flex-row gap-8 md:gap-16 items-start"
               initial={{ opacity: 0, y: 8 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: index * 0.1, duration: 0.3, ease: "easeOut" }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
             >
-              <div className="text-xs tracking-[0.16em] uppercase text-mutedink">{step.num}</div>
-              <div className="mt-2 font-serif text-xl tracking-tight">{step.title}</div>
-              {'body' in step && <p className="mt-3 text-mutedink leading-relaxed">{step.body}</p>}
-              {'decisions' in step && step.decisions && (
-                <div className="mt-4 space-y-2">
-                  {step.decisions.map((decision: { action: string; result: string }, i: number) => (
-                    <div key={i} className="flex items-start gap-3 text-mutedink">
-                      <span className="font-medium text-ink min-w-[70px]">{decision.action}</span>
-                      <span className="text-faintink">→</span>
-                      <span>{decision.result}</span>
-                    </div>
-                  ))}
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-[#3d1a22] flex items-center justify-center">
+                    <Inbox size={16} className="text-[#f5f3ef]" />
+                  </div>
+                  <span className="text-xs tracking-[0.16em] uppercase text-[#888]">01</span>
                 </div>
-              )}
+                <h3 className="font-serif text-xl tracking-tight mb-3">Inquiry received.</h3>
+                <p className="text-mutedink leading-relaxed">
+                  A new inquiry just arrived. Briarwood reads it, identifies the request, and prepares your response instantly. Your pricing, your information, your voice.
+                </p>
+              </div>
+              <div className="flex-shrink-0 w-full md:w-auto">
+                <div className="bg-white border border-[#e8e2d9] rounded-lg p-4 max-w-xs">
+                  <div className="flex items-center gap-2 text-xs text-green-700 mb-2">
+                    <CheckCircle size={12} />
+                    <span>Auto-response ready</span>
+                  </div>
+                  <div className="text-xs text-[#888]">Pricing sheet attached</div>
+                  <div className="text-xs text-[#888]">Info packet included</div>
+                  <div className="text-xs text-[#888]">Sent in your voice</div>
+                </div>
+              </div>
             </motion.div>
-          ))}
-        </div>
-        
-        {CONTENT.howItWorks.tagline && (
-          <motion.p 
-            className="mt-12 font-serif text-xl text-ink tracking-tight"
-            initial={{ opacity: 0, y: 8 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.4, duration: 0.3, ease: "easeOut" }}
-          >
-            {CONTENT.howItWorks.tagline}
-          </motion.p>
-        )}
-      </section>
 
-      {/* Network Section */}
-      <section className="estate-prose py-16 md:py-20">
-        <motion.h2 
-          className="text-2xl sm:text-3xl tracking-tight"
-          initial={{ opacity: 0, y: 8 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-        >
-          {CONTENT.network.headline}
-        </motion.h2>
-        <motion.p 
-          className="mt-6 text-mutedink leading-relaxed"
-          initial={{ opacity: 0, y: 8 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.1, duration: 0.3, ease: "easeOut" }}
-        >
-          {CONTENT.network.body}
-        </motion.p>
-        <motion.p 
-          className="mt-4 text-mutedink leading-relaxed"
-          initial={{ opacity: 0, y: 8 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.15, duration: 0.3, ease: "easeOut" }}
-        >
-          {CONTENT.network.description}
-        </motion.p>
-        <motion.p 
-          className="mt-4 font-serif text-xl tracking-tight"
-          initial={{ opacity: 0, y: 8 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.2, duration: 0.3, ease: "easeOut" }}
-        >
-          {CONTENT.network.tagline}
-        </motion.p>
-        <motion.ul 
-          className="mt-8 space-y-1 text-mutedink"
-          initial={{ opacity: 0, y: 8 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.25, duration: 0.3, ease: "easeOut" }}
-        >
-          {CONTENT.network.notList.map((line, i) => (
-            <li key={i} className="text-faintink">{line}</li>
-          ))}
-        </motion.ul>
-      </section>
-
-      {/* Privacy Section */}
-      <section className="estate-prose py-16 md:py-20 border-t border-hairline">
-        <motion.h2 
-          className="text-2xl sm:text-3xl tracking-tight"
-          initial={{ opacity: 0, y: 8 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-        >
-          {CONTENT.privacy.headline}
-        </motion.h2>
-        <motion.ul 
-          className="mt-6 space-y-2 text-mutedink"
-          initial={{ opacity: 0, y: 8 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.1, duration: 0.3, ease: "easeOut" }}
-        >
-          {CONTENT.privacy.points.map((point, i) => (
-            <li key={i}>{point}</li>
-          ))}
-        </motion.ul>
-      </section>
-
-      {/* Pricing Section */}
-      <section className="estate-prose py-16 md:py-20 border-t border-hairline">
-        <motion.h2 
-          className="text-2xl sm:text-3xl tracking-tight"
-          initial={{ opacity: 0, y: 8 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-        >
-          {CONTENT.pricing.headline}
-        </motion.h2>
-        <motion.p 
-          className="mt-4 text-lg text-ink"
-          initial={{ opacity: 0, y: 8 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.1, duration: 0.3, ease: "easeOut" }}
-        >
-          {CONTENT.pricing.fee}
-        </motion.p>
-        <motion.p 
-          className="mt-2 text-mutedink"
-          initial={{ opacity: 0, y: 8 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.15, duration: 0.3, ease: "easeOut" }}
-        >
-          {CONTENT.pricing.noSubscription}
-        </motion.p>
-        <motion.p 
-          className="mt-6 font-serif text-xl text-ink"
-          initial={{ opacity: 0, y: 8 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.2, duration: 0.3, ease: "easeOut" }}
-        >
-          {CONTENT.pricing.example}
-        </motion.p>
-        <motion.p 
-          className="mt-4 text-mutedink leading-relaxed"
-          initial={{ opacity: 0, y: 8 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.25, duration: 0.3, ease: "easeOut" }}
-        >
-          {CONTENT.pricing.keepLine}
-        </motion.p>
-        {CONTENT.pricing.comparison && (
-          <motion.p 
-            className="mt-6 text-faintink text-sm"
-            initial={{ opacity: 0, y: 8 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.3, duration: 0.3, ease: "easeOut" }}
-          >
-            {CONTENT.pricing.comparison}
-          </motion.p>
-        )}
-      </section>
-
-      {/* Proof Section */}
-      <section className="estate-prose py-16 md:py-20 border-t border-hairline">
-        <motion.h2 
-          className="text-2xl sm:text-3xl tracking-tight"
-          initial={{ opacity: 0, y: 8 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-        >
-          {CONTENT.proof.headline}
-        </motion.h2>
-        <motion.p 
-          className="mt-6 font-serif text-2xl text-ink"
-          initial={{ opacity: 0, y: 8 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.1, duration: 0.3, ease: "easeOut" }}
-        >
-          {CONTENT.proof.stat}
-        </motion.p>
-        <motion.p 
-          className="mt-2 text-mutedink"
-          initial={{ opacity: 0, y: 8 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.15, duration: 0.3, ease: "easeOut" }}
-        >
-          {CONTENT.proof.details}
-        </motion.p>
-        <div className="mt-8 space-y-4">
-          {CONTENT.proof.narrative.map((line, i) => (
-            <motion.p 
-              key={i}
-              className="text-mutedink leading-relaxed"
+            {/* Step 02 */}
+            <motion.div
+              className="flex flex-col md:flex-row gap-8 md:gap-16 items-start"
               initial={{ opacity: 0, y: 8 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: 0.2 + i * 0.05, duration: 0.3, ease: "easeOut" }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
             >
-              {line}
-            </motion.p>
-          ))}
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-[#3d1a22] flex items-center justify-center">
+                    <CalendarCheck size={16} className="text-[#f5f3ef]" />
+                  </div>
+                  <span className="text-xs tracking-[0.16em] uppercase text-[#888]">02</span>
+                </div>
+                <h3 className="font-serif text-xl tracking-tight mb-3">Calendar checked.</h3>
+                <p className="text-mutedink leading-relaxed">
+                  Briarwood checks your calendar in real time. You have an event at The Four Seasons that day. You're covered. No double booking. No missed dates. Ever.
+                </p>
+              </div>
+              <div className="flex-shrink-0 w-full md:w-auto">
+                <div className="bg-white border border-[#e8e2d9] rounded-lg p-4 max-w-xs">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-[#3d1a22]"></div>
+                      <span className="text-xs text-[#1a1a1a]">Oct 17 — The Four Seasons</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-[#e8e2d9]"></div>
+                      <span className="text-xs text-[#888]">Oct 18 — Available</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-[#e8e2d9]"></div>
+                      <span className="text-xs text-[#888]">Oct 19 — Available</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Step 03 */}
+            <motion.div
+              className="flex flex-col md:flex-row gap-8 md:gap-16 items-start"
+              initial={{ opacity: 0, y: 8 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+            >
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-[#3d1a22] flex items-center justify-center">
+                    <Users size={16} className="text-[#f5f3ef]" />
+                  </div>
+                  <span className="text-xs tracking-[0.16em] uppercase text-[#888]">03</span>
+                </div>
+                <h3 className="font-serif text-xl tracking-tight mb-3">Referral activated.</h3>
+                <p className="text-mutedink leading-relaxed">
+                  You're unavailable. Briarwood checks your trusted network and finds who is. One tap to refer. The introduction goes out with your name attached.
+                </p>
+              </div>
+              <div className="flex-shrink-0 w-full md:w-auto">
+                <ReferralBubble />
+              </div>
+            </motion.div>
+
+            {/* Step 04 */}
+            <motion.div
+              className="flex flex-col md:flex-row gap-8 md:gap-16 items-start"
+              initial={{ opacity: 0, y: 8 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+            >
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-[#3d1a22] flex items-center justify-center">
+                    <FileText size={16} className="text-[#f5f3ef]" />
+                  </div>
+                  <span className="text-xs tracking-[0.16em] uppercase text-[#888]">04</span>
+                </div>
+                <h3 className="font-serif text-xl tracking-tight mb-3">Contract and retainer sent.</h3>
+                <p className="text-mutedink leading-relaxed">
+                  You're available. Client is ready. Briarwood generates the contract and invoice — $8,000, work begins in two weeks — and sends it. Done.
+                </p>
+              </div>
+              <div className="flex-shrink-0 w-full md:w-auto">
+                <ContractCard />
+              </div>
+            </motion.div>
+          </div>
         </div>
-        <motion.p 
-          className="mt-8 text-ink font-medium leading-relaxed"
-          initial={{ opacity: 0, y: 8 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.4, duration: 0.3, ease: "easeOut" }}
-        >
-          {CONTENT.proof.volExplainer}
-        </motion.p>
-        <motion.div 
-          className="mt-8"
-          initial={{ opacity: 0, y: 8 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.5, duration: 0.3, ease: "easeOut" }}
-        >
-          <button
-            onClick={() => setLocation("/secretary")}
-            className="bg-ink text-bg px-5 py-3 text-sm font-medium hover:bg-ink/90 transition-colors"
-            data-testid="button-proof-cta"
-          >
-            {CONTENT.proof.cta}
-          </button>
-        </motion.div>
       </section>
 
       {/* Footer */}
       <footer className="estate-prose py-12 pb-20 md:pb-16 text-sm text-mutedink">
-        {/* Client Waitlist */}
         <div className="border-t border-hairline pt-8 mb-8">
           {!waitlistSubmitted ? (
             <div>
               <p className="text-ink text-base">
-                If you're a client, join the waitlist.
+                Join the waitlist.
               </p>
               <form
                 onSubmit={(e) => {
@@ -584,30 +495,30 @@ export default function Landing() {
             <div className="flex items-center gap-2.5">
               <CheckCircle className="w-4 h-4 text-ink flex-shrink-0" />
               <p className="text-ink" data-testid="text-waitlist-success">
-                Thank you so much for your support.
+                Thank you. We'll be in touch.
               </p>
             </div>
           )}
         </div>
 
         <div className="flex gap-6">
-          <a 
-            href="https://www.instagram.com/dateinquiry" 
-            target="_blank" 
-            rel="noopener noreferrer" 
+          <a
+            href="https://www.instagram.com/dateinquiry"
+            target="_blank"
+            rel="noopener noreferrer"
             className="underline hover:text-ink transition-colors"
             data-testid="link-footer-instagram"
           >
             Instagram
           </a>
-          <a 
-            href="mailto:violet@beauvette.com" 
+          <a
+            href="mailto:violet@beauvette.com"
             className="underline hover:text-ink transition-colors"
             data-testid="link-footer-contact"
           >
             Contact
           </a>
-          <button 
+          <button
             onClick={() => setLocation("/privacy")}
             className="underline hover:text-ink transition-colors"
             data-testid="link-footer-privacy"
@@ -616,7 +527,7 @@ export default function Landing() {
           </button>
         </div>
         <div className="mt-6 flex items-center justify-between">
-          <span>{CONTENT.footer.copyright}</span>
+          <span>&copy; 2025 Briarwood</span>
           <button
             onClick={() => setLocation("/login")}
             className="underline hover:text-ink transition-colors"
