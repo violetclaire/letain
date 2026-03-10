@@ -43,11 +43,11 @@ export default function BriarwoodSpec() {
               For 20 years, Silicon Valley built "deterministic" software -- legacy CRMs, HoneyBook, Yelp. Deterministic software forces the human to do data entry so the computer can understand what happened.
             </p>
             <p className="text-[#555] leading-relaxed">
-              The elite professionals who run the $20 trillion physical service economy -- event producers, private estate managers, elite chefs -- rejected this. They don't have time to "tag" a 5 AM crisis recovery in a dashboard. Their excellence lives in their invisible labor: the texts, the organic email threads, the rapid calendar adjustments, and their private word-of-mouth referral networks.
+              The quality layer of professionals who run the $20 trillion physical service economy -- event coordinators, estate managers, landscape architects, industrial designers -- rejected this. They don't have time to "tag" a 5 AM crisis recovery in a dashboard. Their excellence lives in their invisible labor: the texts, the organic email threads, the rapid calendar adjustments, and their private word-of-mouth referral networks.
             </p>
             <div className="bg-[#3d1a22] text-[#f5f3ef] rounded-lg p-6">
               <p className="text-sm leading-relaxed font-medium">
-                Because elite professionals refused to use platforms, AI agents are currently blind to the physical world.
+                Because the quality layer refused to use platforms, AI agents are currently blind to the physical world.
               </p>
             </div>
           </div>
@@ -59,7 +59,7 @@ export default function BriarwoodSpec() {
               Why we win.
             </h2>
             <p className="text-[#555] leading-relaxed">
-              The tech world is obsessed with building AI agents and humanoid robots. But digital agents have no hands. When an AI agent needs to execute a task in the physical world -- book a caterer, staff a private estate, recover a broken timeline -- it cannot rely on fake Yelp reviews or SEO-optimized directories.
+              The tech world is obsessed with building AI agents and humanoid robots. But digital agents have no hands. When an AI agent needs to execute a task in the physical world -- staff an estate, coordinate a multi-vendor event, recover a broken timeline -- it cannot rely on fake Yelp reviews or SEO-optimized directories.
             </p>
             <p className="text-[#555] leading-relaxed">
               If an agent books a fake or incompetent provider, the physical outcome fails catastrophically.
@@ -87,7 +87,7 @@ export default function BriarwoodSpec() {
               </div>
             </div>
             <p className="text-[#555] leading-relaxed">
-              We do not ask the 582 million independent professionals to migrate to a new platform. We deploy seamlessly on top of where the work already happens: their existing inbox and calendar via OAuth.
+              We do not ask 582 million independent professionals to migrate to a new platform. We deploy seamlessly on top of where the work already happens: their existing inbox and calendar via OAuth.
             </p>
             <div className="bg-white border border-[#e8e2d9] rounded-lg p-5 space-y-4">
               <div>
@@ -198,7 +198,7 @@ export default function BriarwoodSpec() {
                 <div className="p-5">
                   <p className="text-xs tracking-[0.12em] uppercase text-[#c44] mb-2">The Old Internet</p>
                   <p className="text-sm text-[#555] leading-relaxed">
-                    Yelp, The Knot, Thumbtack. A list of names, a phone number, some fake reviews. An AI agent using this is flying blind. It doesn't know if the caterer is available this weekend. It doesn't know if the estate manager responds to emails.
+                    Yelp. Instagram. A list of names, a phone number, some curated photos. An AI agent using this is flying blind. It doesn't know if the coordinator is available this weekend. It doesn't know if the estate manager responds to emails.
                   </p>
                 </div>
                 <div className="p-5">
@@ -246,13 +246,13 @@ export default function BriarwoodSpec() {
               When you type a destination into a GPS, it doesn't send you down a dirt road because it's technically shorter. It analyzes the roads to find the most reliable route.
             </p>
             <p className="text-[#555] leading-relaxed">
-              When an AI agent says, "I need a private chef for 50 people on Saturday," Briarwood doesn't spit out a random name. It runs the query through the Coordination Depth Index:
+              When an AI agent says, "I need a verified event coordinator in San Francisco for a 200-person dinner on Saturday," Briarwood doesn't spit out a random name. It runs the query through the Coordination Depth Index:
             </p>
             <div className="space-y-2">
               {[
-                "Does this chef respond within 10 minutes?",
+                "Does this coordinator respond within 10 minutes?",
                 "Do they have a 99% success rate on high-stakes events?",
-                "Are they vetted by the private networks of other elite professionals?",
+                "Are they vetted by the private networks of other quality professionals?",
               ].map((q, i) => (
                 <div key={i} className="bg-white border border-[#e8e2d9] rounded-lg px-4 py-3">
                   <p className="text-sm text-[#333]">{q}</p>
@@ -277,7 +277,7 @@ export default function BriarwoodSpec() {
               What happens when you're driving and a tree falls across the highway? The GPS instantly recalculates and routes you around the disaster so you still reach your destination.
             </p>
             <p className="text-[#555] leading-relaxed">
-              What happens when a digital agent books a makeup artist for a high-stakes wedding, and the artist gets violently ill at 5 AM?
+              What happens when a digital agent books an event coordinator for a high-stakes private dinner, and the coordinator gets violently ill at 5 AM?
             </p>
             <div className="bg-white border border-[#e8e2d9] rounded-lg overflow-hidden">
               <div className="grid grid-cols-2 divide-x divide-[#e8e2d9]">
@@ -403,7 +403,7 @@ export default function BriarwoodSpec() {
                 <div>
                   <p className="font-medium text-sm">You approve (or adjust).</p>
                   <p className="text-sm text-[#555] mt-1 leading-relaxed">
-                    You can say "yes" and all four go out. Or you can say "make October 4 one combined contract instead of two" or "use the wedding day rate for April 25, not the standard rate" or "add a travel fee for Montage." Briarwood adjusts and regenerates.
+                    You can say "yes" and all four go out. Or you can say "make October 4 one combined contract instead of two" or "use the event day rate for April 25, not the standard rate" or "add a travel fee for Montage." Briarwood adjusts and regenerates.
                   </p>
                 </div>
               </div>
@@ -613,7 +613,7 @@ export default function BriarwoodSpec() {
                         <p className="text-xs text-[#1a1a1a] truncate">Jessica Reyes</p>
                         <p className="text-[10px] text-[#888]">Yesterday</p>
                       </div>
-                      <p className="text-xs text-[#333] truncate">Inquiry: June 12 Wedding</p>
+                      <p className="text-xs text-[#333] truncate">Inquiry: June 12 Event</p>
                       <p className="text-[11px] text-[#888] truncate">Hi! I found you through Kim and would love to chat about...</p>
                     </div>
                   </div>
