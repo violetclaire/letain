@@ -173,7 +173,136 @@ export default function BriarwoodSpec() {
             </div>
           </div>
 
-          {/* Divider */}
+          {/* GPS Analogy */}
+          <div className="space-y-6 border-t-2 border-[#3d1a22] pt-12">
+            <p className="text-xs tracking-[0.16em] uppercase text-[#888]">The GPS Analogy</p>
+            <h2 className="text-2xl tracking-tight leading-[1.15]" style={{ fontFamily: "'Fraunces', serif" }}>
+              Why "GPS for agents" is not a metaphor. It's the architecture.
+            </h2>
+            <p className="text-[#555] leading-relaxed">
+              When we say Briarwood is the GPS for agents, we mean it literally. A GPS does three things. Briarwood does the same three things for the physical service economy.
+            </p>
+          </div>
+
+          {/* GPS 1: Real-time positioning */}
+          <div className="space-y-5">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#1a1a1a] text-white flex items-center justify-center text-sm font-medium">1</div>
+              <div>
+                <p className="text-xs tracking-[0.12em] uppercase text-[#888] mb-1">Yellow Pages vs. GPS</p>
+                <h3 className="text-lg tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>Real-time positioning, not a static list.</h3>
+              </div>
+            </div>
+            <div className="bg-white border border-[#e8e2d9] rounded-lg overflow-hidden">
+              <div className="grid grid-cols-2 divide-x divide-[#e8e2d9]">
+                <div className="p-5">
+                  <p className="text-xs tracking-[0.12em] uppercase text-[#c44] mb-2">The Old Internet</p>
+                  <p className="text-sm text-[#555] leading-relaxed">
+                    Yelp, The Knot, Thumbtack. A list of names, a phone number, some fake reviews. An AI agent using this is flying blind. It doesn't know if the caterer is available this weekend. It doesn't know if the estate manager responds to emails.
+                  </p>
+                </div>
+                <div className="p-5">
+                  <p className="text-xs tracking-[0.12em] uppercase text-[#3d1a22] mb-2">Briarwood</p>
+                  <p className="text-sm text-[#555] leading-relaxed">
+                    Real-time positioning and dynamic routing. We know exactly who is booked, who is free, who is currently ignoring emails, and who is actively taking clients right now. No static directory. Live coordinates.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* GPS 2: Traffic conditions */}
+          <div className="space-y-5">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#1a1a1a] text-white flex items-center justify-center text-sm font-medium">2</div>
+              <div>
+                <p className="text-xs tracking-[0.12em] uppercase text-[#888] mb-1">The Live Sensor Network</p>
+                <h3 className="text-lg tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>Mapping real-time traffic.</h3>
+              </div>
+            </div>
+            <p className="text-[#555] leading-relaxed">
+              For a GPS to work, it has to know where the traffic jams are and what roads are closed.
+            </p>
+            <div className="bg-[#f5f3ef] border border-[#e8e2d9] rounded-lg p-5">
+              <p className="text-sm text-[#333] leading-relaxed">
+                Because Briarwood sits invisibly on top of the provider's Gmail and Google Calendar, it acts as a live sensor network. We know exactly who is booked, who is free, who is currently ignoring emails, and who is actively taking clients right now.
+              </p>
+              <p className="text-sm text-[#333] leading-relaxed mt-3">
+                We don't ask the provider to "update their availability" in a dashboard (which they never do). We read the raw, non-deterministic data. We know the exact traffic conditions of the physical service economy in real-time.
+              </p>
+            </div>
+          </div>
+
+          {/* GPS 3: Routing algorithm */}
+          <div className="space-y-5">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#1a1a1a] text-white flex items-center justify-center text-sm font-medium">3</div>
+              <div>
+                <p className="text-xs tracking-[0.12em] uppercase text-[#888] mb-1">The Routing Algorithm</p>
+                <h3 className="text-lg tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>The CDI is the turn-by-turn directions.</h3>
+              </div>
+            </div>
+            <p className="text-[#555] leading-relaxed">
+              When you type a destination into a GPS, it doesn't send you down a dirt road because it's technically shorter. It analyzes the roads to find the most reliable route.
+            </p>
+            <p className="text-[#555] leading-relaxed">
+              When an AI agent says, "I need a private chef for 50 people on Saturday," Briarwood doesn't spit out a random name. It runs the query through the Coordination Depth Index:
+            </p>
+            <div className="space-y-2">
+              {[
+                "Does this chef respond within 10 minutes?",
+                "Do they have a 99% success rate on high-stakes events?",
+                "Are they vetted by the private networks of other elite professionals?",
+              ].map((q, i) => (
+                <div key={i} className="bg-white border border-[#e8e2d9] rounded-lg px-4 py-3">
+                  <p className="text-sm text-[#333]">{q}</p>
+                </div>
+              ))}
+            </div>
+            <p className="text-[#555] leading-relaxed">
+              We aren't just giving the agent a name. We are calculating the exact behavioral route that guarantees the physical outcome.
+            </p>
+          </div>
+
+          {/* GPS 4: Dynamic rerouting */}
+          <div className="space-y-5">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#1a1a1a] text-white flex items-center justify-center text-sm font-medium">4</div>
+              <div>
+                <p className="text-xs tracking-[0.12em] uppercase text-[#888] mb-1">The Superpower</p>
+                <h3 className="text-lg tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>Dynamic rerouting. The 5 AM recovery.</h3>
+              </div>
+            </div>
+            <p className="text-[#555] leading-relaxed">
+              What happens when you're driving and a tree falls across the highway? The GPS instantly recalculates and routes you around the disaster so you still reach your destination.
+            </p>
+            <p className="text-[#555] leading-relaxed">
+              What happens when a digital agent books a makeup artist for a high-stakes wedding, and the artist gets violently ill at 5 AM?
+            </p>
+            <div className="bg-white border border-[#e8e2d9] rounded-lg overflow-hidden">
+              <div className="grid grid-cols-2 divide-x divide-[#e8e2d9]">
+                <div className="p-5 bg-[#fdf5f5]">
+                  <p className="text-xs tracking-[0.12em] uppercase text-[#c44] mb-2">Without Briarwood</p>
+                  <p className="text-sm text-[#555] leading-relaxed">
+                    The agent fails. The physical event is ruined.
+                  </p>
+                </div>
+                <div className="p-5">
+                  <p className="text-xs tracking-[0.12em] uppercase text-[#3d1a22] mb-2">With Briarwood</p>
+                  <p className="text-sm text-[#555] leading-relaxed">
+                    The system detects the cancellation, instantly queries the provider's trusted referral network, finds an available peer with an equal CDI score, and executes the handoff.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-[#3d1a22] text-[#f5f3ef] rounded-lg p-6">
+              <p className="text-sm leading-relaxed">
+                Briarwood dynamically reroutes the physical economy to save the outcome. A digital directory just tells an agent who exists. A GPS tells an agent how to get the job done safely.
+              </p>
+            </div>
+          </div>
+
+          {/* Divider to Part II */}
           <div className="border-t-2 border-[#3d1a22] pt-12">
             <p className="text-xs tracking-[0.16em] uppercase text-[#888] mb-4">Part II — The Assistant</p>
             <h2 className="text-2xl sm:text-3xl tracking-tight leading-[1.1]" style={{ fontFamily: "'Fraunces', serif" }}>
