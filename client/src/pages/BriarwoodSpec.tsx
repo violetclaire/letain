@@ -526,20 +526,365 @@ export default function BriarwoodSpec() {
             </p>
           </div>
 
-          {/* The Interface */}
-          <div className="space-y-6">
-            <h2 className="text-xl tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>
-              The interface.
+          {/* The Interface — Where It Lives */}
+          <div className="space-y-6 border-t-2 border-[#3d1a22] pt-12">
+            <p className="text-xs tracking-[0.16em] uppercase text-[#888]">Part III — Where It Lives</p>
+            <h2 className="text-2xl sm:text-3xl tracking-tight leading-[1.1]" style={{ fontFamily: "'Fraunces', serif" }}>
+              The interface meets you where you already are.
             </h2>
             <p className="text-[#555] leading-relaxed">
-              One conversational thread per professional. Not a dashboard with 15 tabs. Not a CRM with a learning curve. A single place where Briarwood talks to you and you talk to Briarwood.
+              Briarwood doesn't ask you to open a new app. It surfaces inside the tools you already use -- Gmail on your laptop, text messages on your phone.
             </p>
-            <p className="text-[#555] leading-relaxed">
-              Think of it like texting your most competent assistant -- one who already has your calendar open, knows your pricing by heart, has every client's history at hand, and never forgets a follow-up.
+          </div>
+
+          {/* Gmail Mockup */}
+          <div className="space-y-5">
+            <h3 className="text-lg tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>
+              On your laptop: the Briarwood button in Gmail.
+            </h3>
+            <p className="text-sm text-[#555] leading-relaxed">
+              A small button lives in the corner of your Gmail. Pinstripe texture. The word Briarwood. You click it and the assistant opens right there -- no new tab, no new app.
             </p>
-            <p className="text-[#555] leading-relaxed">
-              The thread can live inside the existing dashboard. It can work over SMS. It can work through email forwarding. The channel is flexible. The intelligence underneath is the same.
+
+            {/* Gmail UI Mockup */}
+            <div className="bg-white border border-[#d4d4d4] rounded-lg overflow-hidden shadow-sm">
+              {/* Gmail top bar */}
+              <div className="bg-[#f6f8fc] border-b border-[#e0e0e0] px-4 py-2 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-[#ff5f57]"></div>
+                    <div className="w-3 h-3 rounded-full bg-[#febc2e]"></div>
+                    <div className="w-3 h-3 rounded-full bg-[#28c840]"></div>
+                  </div>
+                  <div className="flex items-center gap-2 bg-white border border-[#ddd] rounded-full px-4 py-1.5 text-xs text-[#888] w-64">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    Search mail
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-[#e0e0e0]"></div>
+                </div>
+              </div>
+
+              {/* Gmail body */}
+              <div className="flex min-h-[320px]">
+                {/* Sidebar */}
+                <div className="w-16 md:w-48 border-r border-[#e0e0e0] p-3 flex-shrink-0">
+                  <div className="bg-[#c2e7ff] rounded-2xl px-3 py-2 text-xs font-medium text-[#001d35] mb-1 hidden md:block">Compose</div>
+                  <div className="bg-[#c2e7ff] rounded-full w-10 h-10 flex items-center justify-center md:hidden mb-2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#001d35" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  </div>
+                  <div className="space-y-0.5 mt-2 hidden md:block">
+                    <div className="text-xs py-1.5 px-3 bg-[#d3e3fd] rounded-r-full font-medium text-[#001d35]">Inbox</div>
+                    <div className="text-xs py-1.5 px-3 text-[#444]">Starred</div>
+                    <div className="text-xs py-1.5 px-3 text-[#444]">Sent</div>
+                    <div className="text-xs py-1.5 px-3 text-[#444]">Drafts</div>
+                  </div>
+                </div>
+
+                {/* Email list */}
+                <div className="flex-1 relative">
+                  <div className="border-b border-[#e8e8e8] px-4 py-3 hover:bg-[#f8f8f8] flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-[#e8d5c4] flex items-center justify-center text-xs font-medium text-[#5a3e2b]">SB</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-semibold text-[#1a1a1a] truncate">Solmaz Burke</p>
+                        <p className="text-[10px] text-[#888]">10:14 AM</p>
+                      </div>
+                      <p className="text-xs text-[#333] font-medium truncate">Proposals for Stanly Ranch & Montage</p>
+                      <p className="text-[11px] text-[#888] truncate">Hi Violet, Could you please send over proposals based on our conversation...</p>
+                    </div>
+                  </div>
+                  <div className="border-b border-[#e8e8e8] px-4 py-3 hover:bg-[#f8f8f8] flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-[#d4e4d4] flex items-center justify-center text-xs font-medium text-[#2e4a2e]">EM</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-[#1a1a1a] truncate">Erin McNulty</p>
+                        <p className="text-[10px] text-[#888]">9:41 AM</p>
+                      </div>
+                      <p className="text-xs text-[#333] truncate">Re: Contract for October 18</p>
+                      <p className="text-[11px] text-[#888] truncate">Looking forward to it! I'll get the deposit sent over...</p>
+                    </div>
+                  </div>
+                  <div className="border-b border-[#e8e8e8] px-4 py-3 hover:bg-[#f8f8f8] flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-[#e0d4e8] flex items-center justify-center text-xs font-medium text-[#4a2e5a]">JR</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-[#1a1a1a] truncate">Jessica Reyes</p>
+                        <p className="text-[10px] text-[#888]">Yesterday</p>
+                      </div>
+                      <p className="text-xs text-[#333] truncate">Inquiry: June 12 Wedding</p>
+                      <p className="text-[11px] text-[#888] truncate">Hi! I found you through Kim and would love to chat about...</p>
+                    </div>
+                  </div>
+                  <div className="border-b border-[#e8e8e8] px-4 py-3 hover:bg-[#f8f8f8] flex items-center gap-3 opacity-50">
+                    <div className="w-8 h-8 rounded-full bg-[#e0e0e0] flex items-center justify-center text-xs font-medium text-[#666]">FS</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-[#1a1a1a] truncate">Four Seasons Napa</p>
+                        <p className="text-[10px] text-[#888]">Mar 7</p>
+                      </div>
+                      <p className="text-xs text-[#333] truncate">Vendor parking update for March events</p>
+                    </div>
+                  </div>
+
+                  {/* The Briarwood Button — floating in bottom right */}
+                  <div className="absolute bottom-4 right-4">
+                    <div className="relative group cursor-pointer">
+                      {/* Notification badge */}
+                      <div className="absolute -top-2 -right-1 w-5 h-5 bg-[#c44] rounded-full flex items-center justify-center z-10">
+                        <span className="text-[10px] text-white font-bold">2</span>
+                      </div>
+                      {/* The button */}
+                      <div
+                        className="rounded-lg shadow-lg overflow-hidden border border-[#555] flex items-center gap-2 px-4 py-2.5"
+                        style={{
+                          backgroundImage: "url(/pinstripe.jpeg)",
+                          backgroundSize: "cover",
+                          backgroundPosition: "center",
+                        }}
+                      >
+                        <span
+                          className="text-[#e8e2d9] text-sm tracking-[0.08em]"
+                          style={{ fontFamily: "'Fraunces', serif", textShadow: "0 1px 3px rgba(0,0,0,0.5)" }}
+                        >
+                          Briarwood
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-[#888] leading-relaxed">
+              The badge shows pending prompts. Click it and the assistant panel slides open alongside your inbox. You can read Solmaz's email on the left and tell Briarwood what to do on the right.
             </p>
+          </div>
+
+          {/* Briarwood Panel Open State */}
+          <div className="space-y-5">
+            <h3 className="text-lg tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>
+              The panel opens. Briarwood already read the email.
+            </h3>
+
+            <div className="bg-white border border-[#d4d4d4] rounded-lg overflow-hidden shadow-sm">
+              <div className="flex min-h-[380px]">
+                {/* Collapsed email preview */}
+                <div className="flex-1 border-r border-[#e0e0e0] p-4 bg-[#fafafa]">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-full bg-[#e8d5c4] flex items-center justify-center text-xs font-medium text-[#5a3e2b]">SB</div>
+                    <div>
+                      <p className="text-xs font-semibold text-[#1a1a1a]">Solmaz Burke</p>
+                      <p className="text-[10px] text-[#888]">to me, 10:14 AM</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-[#555] leading-relaxed">
+                    Hi Violet, Could you please send over proposals based on our conversation this morning?
+                  </p>
+                  <ul className="mt-2 space-y-1 text-xs text-[#555]">
+                    <li>April 24 -- Bride hair & makeup, Stanly Ranch</li>
+                    <li>April 25 -- Guest hair & makeup, Stanly Ranch</li>
+                    <li>Oct 4 -- Bride + 3 (Vanessa), Montage</li>
+                    <li>Oct 4 -- 3 guests, Montage</li>
+                  </ul>
+                </div>
+
+                {/* Briarwood Panel */}
+                <div className="w-[280px] flex-shrink-0 flex flex-col"
+                  style={{
+                    backgroundImage: "url(/pinstripe.jpeg)",
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }}
+                >
+                  {/* Panel header */}
+                  <div className="px-4 py-3 border-b border-[#555]">
+                    <p className="text-[#e8e2d9] text-sm tracking-[0.06em]" style={{ fontFamily: "'Fraunces', serif", textShadow: "0 1px 2px rgba(0,0,0,0.4)" }}>
+                      Briarwood
+                    </p>
+                  </div>
+
+                  {/* Chat area */}
+                  <div className="flex-1 p-4 space-y-3 overflow-y-auto">
+                    <div className="bg-[#f5f3ef]/95 rounded-lg p-3 shadow-sm">
+                      <p className="text-xs text-[#333] leading-relaxed">
+                        I see Solmaz's email. 4 proposals needed:
+                      </p>
+                      <ul className="mt-1.5 space-y-1 text-[11px] text-[#555]">
+                        <li>Apr 24 -- Bride, rehearsal, Stanly Ranch</li>
+                        <li>Apr 25 -- Guest, wedding, Stanly Ranch</li>
+                        <li>Oct 4 -- Bride + 3 (Vanessa), Montage</li>
+                        <li>Oct 4 -- 3 guests, Montage</li>
+                      </ul>
+                      <p className="mt-2 text-xs text-[#333]">
+                        Standard pricing? Or adjustments?
+                      </p>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <div className="bg-white/90 rounded-md px-2.5 py-1.5 text-[11px] text-[#1a1a1a] font-medium shadow-sm cursor-pointer hover:bg-white">
+                        Send all 4
+                      </div>
+                      <div className="bg-white/70 rounded-md px-2.5 py-1.5 text-[11px] text-[#555] shadow-sm cursor-pointer hover:bg-white/90">
+                        Let me adjust
+                      </div>
+                    </div>
+
+                    <div className="bg-[#f5f3ef]/95 rounded-lg p-3 shadow-sm mt-2">
+                      <p className="text-xs text-[#333] leading-relaxed">
+                        Also -- Jessica Reyes inquired about June 12. You're available. Want to send your info sheet?
+                      </p>
+                      <div className="flex gap-1.5 mt-2">
+                        <div className="bg-white/90 rounded-md px-2.5 py-1.5 text-[11px] text-[#1a1a1a] font-medium shadow-sm">
+                          Yes, send it
+                        </div>
+                        <div className="bg-white/70 rounded-md px-2.5 py-1.5 text-[11px] text-[#555] shadow-sm">
+                          Not yet
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Input */}
+                  <div className="p-3 border-t border-[#555]">
+                    <div className="bg-white/90 rounded-md px-3 py-2 text-[11px] text-[#aaa] flex items-center justify-between">
+                      Tell Briarwood what to do...
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-[#888] leading-relaxed">
+              Briarwood has already parsed the email and is waiting for your instruction. Two prompts queued: Solmaz's proposals and Jessica's new inquiry. One tap each.
+            </p>
+          </div>
+
+          {/* Mobile / SMS Mockup */}
+          <div className="space-y-5">
+            <h3 className="text-lg tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>
+              On your phone: it's a text message.
+            </h3>
+            <p className="text-sm text-[#555] leading-relaxed">
+              When you're on your phone, Briarwood prompts you via SMS. Same intelligence. No app to open.
+            </p>
+
+            {/* iPhone text mockup */}
+            <div className="max-w-[300px] mx-auto">
+              <div className="bg-[#000] rounded-[2rem] p-3 shadow-xl">
+                <div className="bg-[#f2f2f7] rounded-[1.5rem] overflow-hidden">
+                  {/* Status bar */}
+                  <div className="bg-[#f2f2f7] px-6 pt-3 pb-1 flex items-center justify-between">
+                    <p className="text-[10px] font-semibold text-[#1a1a1a]">9:41</p>
+                    <div className="flex items-center gap-1">
+                      <div className="w-4 h-2.5 border border-[#1a1a1a] rounded-sm relative">
+                        <div className="absolute inset-0.5 bg-[#1a1a1a] rounded-[1px]" style={{ width: "70%" }}></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Messages header */}
+                  <div className="px-4 py-2 flex items-center justify-center border-b border-[#d1d1d6]">
+                    <div className="text-center">
+                      <div
+                        className="w-10 h-10 rounded-full mx-auto mb-1 border border-[#555] overflow-hidden"
+                        style={{
+                          backgroundImage: "url(/pinstripe.jpeg)",
+                          backgroundSize: "cover",
+                        }}
+                      ></div>
+                      <p className="text-xs font-semibold text-[#1a1a1a]">Briarwood</p>
+                    </div>
+                  </div>
+
+                  {/* Messages */}
+                  <div className="px-3 py-4 space-y-2 min-h-[280px] bg-white">
+                    {/* Briarwood message */}
+                    <div className="flex justify-start">
+                      <div className="bg-[#e5e5ea] rounded-2xl rounded-bl-md px-3.5 py-2.5 max-w-[220px]">
+                        <p className="text-[13px] text-[#1a1a1a] leading-relaxed">
+                          New inquiry from Jessica Reyes for June 12. You're available. Want to send your info sheet?
+                        </p>
+                      </div>
+                    </div>
+                    {/* User reply */}
+                    <div className="flex justify-end">
+                      <div className="bg-[#007aff] rounded-2xl rounded-br-md px-3.5 py-2.5 max-w-[220px]">
+                        <p className="text-[13px] text-white leading-relaxed">
+                          Yes send it
+                        </p>
+                      </div>
+                    </div>
+                    {/* Briarwood confirmation */}
+                    <div className="flex justify-start">
+                      <div className="bg-[#e5e5ea] rounded-2xl rounded-bl-md px-3.5 py-2.5 max-w-[220px]">
+                        <p className="text-[13px] text-[#1a1a1a] leading-relaxed">
+                          Done. Info sheet and pricing sent to Jessica. I blocked June 12 as tentative.
+                        </p>
+                      </div>
+                    </div>
+                    {/* Another prompt */}
+                    <div className="flex justify-start">
+                      <div className="bg-[#e5e5ea] rounded-2xl rounded-bl-md px-3.5 py-2.5 max-w-[220px]">
+                        <p className="text-[13px] text-[#1a1a1a] leading-relaxed">
+                          Solmaz sent 4 proposals to review. Want me to generate contracts with standard pricing?
+                        </p>
+                      </div>
+                    </div>
+                    {/* User reply */}
+                    <div className="flex justify-end">
+                      <div className="bg-[#007aff] rounded-2xl rounded-br-md px-3.5 py-2.5 max-w-[220px]">
+                        <p className="text-[13px] text-white leading-relaxed">
+                          Yes but add travel fee for Montage
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Input bar */}
+                  <div className="px-3 py-2 border-t border-[#d1d1d6] bg-[#f2f2f7] flex items-center gap-2">
+                    <div className="flex-1 bg-white border border-[#d1d1d6] rounded-full px-3 py-1.5 text-xs text-[#aaa]">
+                      iMessage
+                    </div>
+                    <div className="w-7 h-7 rounded-full bg-[#007aff] flex items-center justify-center">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-[#888] leading-relaxed text-center">
+              Same conversation. Same intelligence. The channel adapts. The coordination engine underneath is identical.
+            </p>
+          </div>
+
+          {/* How it's facilitated */}
+          <div className="space-y-5">
+            <h3 className="text-lg tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>
+              How it's facilitated.
+            </h3>
+            <div className="space-y-3">
+              <div className="bg-white border border-[#e8e2d9] rounded-lg p-4">
+                <p className="text-xs tracking-[0.1em] uppercase text-[#888] mb-1">Gmail / Desktop</p>
+                <p className="text-sm text-[#333] leading-relaxed">
+                  Chrome extension or Google Workspace Add-on. Briarwood appears as a side panel in Gmail. OAuth gives us read access to the inbox. The assistant parses incoming emails and queues prompts. You respond in the panel.
+                </p>
+              </div>
+              <div className="bg-white border border-[#e8e2d9] rounded-lg p-4">
+                <p className="text-xs tracking-[0.1em] uppercase text-[#888] mb-1">SMS / Mobile</p>
+                <p className="text-sm text-[#333] leading-relaxed">
+                  Twilio or similar. Briarwood sends you a text when it has a prompt. You reply in plain language. "Yes send it." "Add travel fee for Montage." The system parses your intent and executes.
+                </p>
+              </div>
+              <div className="bg-white border border-[#e8e2d9] rounded-lg p-4">
+                <p className="text-xs tracking-[0.1em] uppercase text-[#888] mb-1">Web Dashboard</p>
+                <p className="text-sm text-[#333] leading-relaxed">
+                  The existing Briarwood dashboard has the same conversational thread built in. All three channels sync to one conversation. What you said via text shows up in the panel. What you approved in Gmail shows on mobile.
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Summary */}
