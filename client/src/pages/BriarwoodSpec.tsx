@@ -43,7 +43,7 @@ export default function BriarwoodSpec() {
               For 20 years, Silicon Valley built "deterministic" software -- legacy CRMs, HoneyBook, Yelp. Deterministic software forces the human to do data entry so the computer can understand what happened.
             </p>
             <p className="text-[#555] leading-relaxed">
-              The quality layer of professionals who run the $20 trillion physical service economy -- event coordinators, estate managers, landscape architects, industrial designers -- rejected this. They don't have time to "tag" a 5 AM crisis recovery in a dashboard. Their excellence lives in their invisible labor: the texts, the organic email threads, the rapid calendar adjustments, and their private word-of-mouth referral networks.
+              The quality layer of professionals who run the $20 trillion physical service economy -- event coordinators, estate managers, landscape architects, high-end beauty services, industrial designers -- rejected this. They don't have time to "tag" a 5 AM crisis recovery in a dashboard. Their excellence lives in their invisible labor: the texts, the organic email threads, the rapid calendar adjustments, and their private word-of-mouth referral networks.
             </p>
             <div className="bg-[#3d1a22] text-[#f5f3ef] rounded-lg p-6">
               <p className="text-sm leading-relaxed font-medium">
