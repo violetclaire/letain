@@ -913,6 +913,42 @@ export default function BriarwoodSpec() {
             <p className="text-xs text-[#888] leading-relaxed text-center">Same state engine. Same approval logic. Channel adapts.</p>
           </div>
 
+          {/* ===== ENGINEERING NOTE: CDI as Learned Model ===== */}
+          <div className="space-y-6 pt-4">
+            <ThickDivider />
+            <SectionLabel>Engineering Note -- March 15, 2026</SectionLabel>
+            <H2>CDI should be designed to become a learned model, not stay as hand-weighted scores.</H2>
+            <Body>
+              Reference: Cheng Lou's work on replacing if-else heuristics with tiny neural nets trained on example traces, verified offline by traditional solvers.
+            </Body>
+            <Card className="space-y-4">
+              <div>
+                <CardLabel>The current spec (Section 15)</CardLabel>
+                <p className="text-sm text-[#333] leading-relaxed">CDI is defined as 6 structured signal families with explicit dimensions. Responsiveness = time_to_first_response * weight + consistency * weight. This is the correct starting architecture. But it should not stay as hand-weighted scores forever.</p>
+              </div>
+              <div className="border-t border-[#e8e2d9] pt-4">
+                <CardLabel>Where it should go</CardLabel>
+                <p className="text-sm text-[#333] leading-relaxed">The behavioral judgment events (Section 12) and outcome records (Section 13) are training data for a learned trust model. When Violet chooses Kim over Sarah for a 5 AM recovery, that is a labeled example of trust-under-pressure. When a referral leads to a completed event, that is a positive outcome trace.</p>
+              </div>
+              <div className="border-t border-[#e8e2d9] pt-4">
+                <CardLabel>The Cheng Lou insight</CardLabel>
+                <BulletList items={[
+                  "Traces from the learned model can be verified offline against actual outcomes (did the event succeed? did the referral complete?). This is Section 13's outcome capture doing double duty as a verification layer.",
+                  "The patterns the model finds may reveal trust signals you would never think to hard-code. Example: providers who reschedule within 20 minutes of a conflict may have 3x better recovery outcomes than those who wait an hour. That is not in any hand-coded heuristic.",
+                  "You do not need strict correctness for routing. You need a good enough solution. An optimization problem is at least as hard as a SAT problem. CDI is routing optimization, not theorem proving.",
+                  "Fallback strategy: do a fast pass with the learned model, then fall back to the structured signal families if data is sparse. Quicksort + heapsort pattern.",
+                ]} />
+              </div>
+            </Card>
+            <div className="bg-[#3d1a22] text-[#f5f3ef] rounded-lg p-5 space-y-3">
+              <p className="text-sm leading-relaxed font-medium">Architecture implication for Phase 1.5:</p>
+              <p className="text-sm leading-relaxed">The judgment events, outcome records, and behavioral signals in Sections 12-15 should be stored in a format that is directly usable as training data. Not just logged for dashboards. The schema should support: triggering context vector, selected action label, outcome label, confidence, timestamp, provider cluster tag. This is the dataset that eventually replaces the hand-coded weights.</p>
+            </div>
+            <div className="bg-[#f5f3ef] border border-[#e8e2d9] rounded-lg px-4 py-3">
+              <p className="text-sm text-[#333]"><span className="font-medium">Source:</span> Cheng Lou (@_chenglou), March 13 2026. "I believe in a future where we gradually replace much of our traditional app code with tiny neural nets that search through our ideas space, guided by our examples, and trained simply as a part of our compilation pipeline."</p>
+            </div>
+          </div>
+
           {/* Footer */}
           <div className="border-t border-[#e8e2d9] pt-8 mt-8">
             <p className="text-xs text-[#888]">Briarwood AI — Internal Product & System Behavior Spec (Draft)</p>
