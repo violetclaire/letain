@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "e0kphk1Fd7pIfz6ZYTi3U"
+uri = "file://attached_assets/CDI_Full_Spec.md"
+type = "text"
+title = "CDI Full Technical Spec -- For Cheng Lou"
