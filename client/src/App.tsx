@@ -59,6 +59,7 @@ import About from "@/pages/About";
 import DemoLandingPreview from "@/pages/DemoLandingPreview";
 import BriarwoodSpec from "@/pages/BriarwoodSpec";
 import Branding from "@/pages/Branding";
+import ContextGraph from "@/pages/ContextGraph";
 import ChatInvite from "@/pages/ChatInvite";
 import DirectChat from "@/pages/DirectChat";
 import ArtistQuickChat from "@/pages/ArtistQuickChat";
@@ -147,6 +148,7 @@ function Router() {
       <Route path="/demo-landing" component={DemoLandingPreview} />
       <Route path="/spec" component={BriarwoodSpec} />
       <Route path="/branding" component={Branding} />
+      <Route path="/context-graph" component={ContextGraph} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/import" component={AdminImport} />
       <Route path="/artist/import" component={VendorImport} />

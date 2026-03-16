@@ -17018,6 +17018,94 @@ Rules:
     }
   });
 
+  app.get("/api/context-graph/export", async (_req, res) => {
+    try {
+      const allInquiries = await db.select().from(inquiries).orderBy(inquiries.createdAt);
+
+      const contextTraces = allInquiries.map((inq: any) => {
+        const createdAt = inq.createdAt ? new Date(inq.createdAt) : null;
+        const firstResponse = inq.firstResponseAt ? new Date(inq.firstResponseAt) : null;
+        const responseLatencyMs = createdAt && firstResponse ? firstResponse.getTime() - createdAt.getTime() : null;
+        const responseLatencyMin = responseLatencyMs ? Math.round(responseLatencyMs / 60000) : null;
+
+        let decisionTrace: string[] = [];
+        decisionTrace.push(`inquiry_created: ${createdAt?.toISOString() || "unknown"}`);
+        if (inq.status === "auto_responded") decisionTrace.push("auto_response_sent");
+        if (firstResponse) decisionTrace.push(`first_response: ${firstResponse.toISOString()}`);
+        if (inq.infoSheetSentAt) decisionTrace.push(`info_sheet_sent: ${new Date(inq.infoSheetSentAt).toISOString()}`);
+        if (inq.chatInviteSentAt) decisionTrace.push(`chat_invite_sent: ${new Date(inq.chatInviteSentAt).toISOString()}`);
+        if (inq.holdPlacedAt) decisionTrace.push(`hold_placed: ${new Date(inq.holdPlacedAt).toISOString()}`);
+        if (inq.depositPaidAt) decisionTrace.push(`deposit_paid: ${new Date(inq.depositPaidAt).toISOString()}`);
+        decisionTrace.push(`current_status: ${inq.status}`);
+        if (inq.statusReason) decisionTrace.push(`status_reason: ${inq.statusReason}`);
+
+        return {
+          inquiryId: `INQ-${inq.id}`,
+          surrogateIdentity: {
+            clientName: inq.clientName || "Anonymous",
+            eventType: inq.eventType,
+            eventDate: inq.eventDate,
+            eventLocation: inq.eventLocation,
+            serviceType: inq.serviceType,
+            partySize: inq.partySize,
+          },
+          decisionTrace,
+          behavioralSignals: {
+            responseLatencyMinutes: responseLatencyMin,
+            sentiment: inq.sentiment,
+            sentimentScore: inq.sentimentScore,
+            sentimentAnalysis: inq.sentimentAnalysis,
+            nextAction: inq.nextAction,
+          },
+          groundTruth: {
+            finalStatus: inq.status,
+            depositPaid: !!inq.depositPaidAt,
+            holdPlaced: !!inq.holdPlacedAt,
+            declinedReason: inq.declinedReason || null,
+          },
+          timestamps: {
+            created: createdAt?.toISOString(),
+            firstResponse: firstResponse?.toISOString() || null,
+            lastAction: inq.lastActionAt ? new Date(inq.lastActionAt).toISOString() : null,
+            updated: inq.updatedAt ? new Date(inq.updatedAt).toISOString() : null,
+          },
+        };
+      });
+
+      const summary = {
+        totalInquiries: contextTraces.length,
+        statusBreakdown: contextTraces.reduce((acc: Record<string, number>, t: any) => {
+          const s = t.groundTruth.finalStatus;
+          acc[s] = (acc[s] || 0) + 1;
+          return acc;
+        }, {}),
+        avgResponseLatencyMin: Math.round(
+          contextTraces
+            .filter((t: any) => t.behavioralSignals.responseLatencyMinutes != null)
+            .reduce((sum: number, t: any, _: number, arr: any[]) => sum + t.behavioralSignals.responseLatencyMinutes / arr.length, 0)
+        ),
+        depositsCollected: contextTraces.filter((t: any) => t.groundTruth.depositPaid).length,
+        holdsPlaced: contextTraces.filter((t: any) => t.groundTruth.holdPlaced).length,
+        sentimentDistribution: contextTraces.reduce((acc: Record<string, number>, t: any) => {
+          const s = t.behavioralSignals.sentiment || "unscored";
+          acc[s] = (acc[s] || 0) + 1;
+          return acc;
+        }, {}),
+      };
+
+      res.json({
+        exportDate: new Date().toISOString(),
+        platform: "Briarwood / dateinquiry.com",
+        description: "CDI Context Graph Export - Decision Traces with Behavioral Signals",
+        summary,
+        traces: contextTraces,
+      });
+    } catch (error: any) {
+      console.error("Context graph export error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
