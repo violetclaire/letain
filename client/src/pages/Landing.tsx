@@ -558,59 +558,67 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* PAGE 2 -- THE SIGNAL */}
+      {/* PAGE 2 -- THE SIGNAL (copy left, graphic right) */}
       <section className="py-24 md:py-36">
-        <div className="max-w-[700px] mx-auto px-6 sm:px-10">
-          <motion.div className="space-y-8" {...sectionFade}>
-            <p className="text-xs tracking-[0.16em] uppercase text-[#888]">The Signal</p>
-            <h2
-              className="text-2xl sm:text-3xl leading-[1.15] tracking-tight max-w-[22ch]"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              The highest-value work in the physical world still depends on signals most systems cannot see.
-            </h2>
-            <div className="space-y-5 text-[#555] leading-relaxed">
-              <p>Follow-through. Timing. Discretion. Recovery under pressure. Referral trust.</p>
-              <p>These signals already determine who gets trusted, who gets called again, and who can carry outcomes forward under real conditions.</p>
-              <p>The problem is that they remain trapped in memory, relationships, private channels, and invisible labor.</p>
+        <div className="max-w-[1100px] mx-auto px-6 sm:px-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
+            <motion.div className="space-y-8" {...sectionFade}>
+              <p className="text-xs tracking-[0.16em] uppercase text-[#888]">The Signal</p>
+              <h2
+                className="text-2xl sm:text-3xl leading-[1.15] tracking-tight max-w-[22ch]"
+                style={{ fontFamily: "'Fraunces', serif" }}
+              >
+                The highest-value work in the physical world still depends on signals most systems cannot see.
+              </h2>
+              <div className="space-y-5 text-[#555] leading-relaxed">
+                <p>Follow-through. Timing. Discretion. Recovery under pressure. Referral trust.</p>
+                <p>These signals already determine who gets trusted, who gets called again, and who can carry outcomes forward under real conditions.</p>
+                <p>The problem is that they remain trapped in memory, relationships, private channels, and invisible labor.</p>
+              </div>
+              <div className="border-l-2 border-[#3d1a22] pl-5 py-1">
+                <p className="text-[#1a1a1a] text-base leading-relaxed font-medium" style={{ fontFamily: "'Fraunces', serif" }}>
+                  Briarwood turns that layer into infrastructure.
+                </p>
+              </div>
+            </motion.div>
+            <div className="min-h-[360px] flex items-center justify-center" data-testid="graphic-slot-signal">
             </div>
-            <div className="border-l-2 border-[#3d1a22] pl-5 py-1">
-              <p className="text-[#1a1a1a] text-base leading-relaxed font-medium" style={{ fontFamily: "'Fraunces', serif" }}>
-                Briarwood turns that layer into infrastructure.
-              </p>
-            </div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
-      {/* SECTION -- INFRASTRUCTURE */}
+      {/* SECTION -- INFRASTRUCTURE (graphic left, copy right) */}
       <section className="py-24 md:py-36 bg-[#f5f3ef]">
-        <div className="max-w-[700px] mx-auto px-6 sm:px-10">
-          <motion.div className="space-y-8" {...sectionFade}>
-            <p className="text-xs tracking-[0.16em] uppercase text-[#888]">Infrastructure</p>
-            <h2
-              className="text-2xl sm:text-3xl leading-[1.15] tracking-tight"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              Infrastructure begins where a system becomes legible.
-            </h2>
-            <div className="space-y-5 text-[#555] leading-relaxed">
-              <p>What was miscategorized as fragmented services was already operating as decentralized enterprise: dense networks of professionals coordinating through trust, standards, referrals, and repeated execution.</p>
-              <p>The economic system was already there. What never existed was the infrastructure to observe it, verify its behavioral signals, and let them compound.</p>
-              <p className="text-[#1a1a1a] font-medium">Briarwood makes that layer legible.</p>
-              <p>By structuring high-stakes coordination into CDI, Briarwood turns behavioral trust into a private, verifiable signal for real-world execution.</p>
+        <div className="max-w-[1100px] mx-auto px-6 sm:px-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
+            <div className="min-h-[360px] flex items-center justify-center order-2 md:order-1" data-testid="graphic-slot-infrastructure">
             </div>
-          </motion.div>
+            <motion.div className="space-y-8 order-1 md:order-2" {...sectionFade}>
+              <p className="text-xs tracking-[0.16em] uppercase text-[#888]">Infrastructure</p>
+              <h2
+                className="text-2xl sm:text-3xl leading-[1.15] tracking-tight"
+                style={{ fontFamily: "'Fraunces', serif" }}
+              >
+                Infrastructure begins where a system becomes legible.
+              </h2>
+              <div className="space-y-5 text-[#555] leading-relaxed">
+                <p>What was miscategorized as fragmented services was already operating as decentralized enterprise: dense networks of professionals coordinating through trust, standards, referrals, and repeated execution.</p>
+                <p>The economic system was already there. What never existed was the infrastructure to observe it, verify its behavioral signals, and let them compound.</p>
+                <p className="text-[#1a1a1a] font-medium">Briarwood makes that layer legible.</p>
+                <p>By structuring high-stakes coordination into CDI, Briarwood turns behavioral trust into a private, verifiable signal for real-world execution.</p>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </section>
 
-      {/* PAGE 3 -- HOW BRIARWOOD WORKS */}
+      {/* PAGE 3 -- HOW BRIARWOOD WORKS (centered) */}
       <section className="py-24 md:py-36">
-        <div className="max-w-[700px] mx-auto px-6 sm:px-10">
+        <div className="max-w-[700px] mx-auto px-6 sm:px-10 text-center">
           <motion.div className="space-y-8" {...sectionFade}>
             <p className="text-xs tracking-[0.16em] uppercase text-[#888]">How Briarwood Works</p>
             <h2
-              className="text-2xl sm:text-3xl leading-[1.15] tracking-tight max-w-[24ch]"
+              className="text-2xl sm:text-3xl leading-[1.15] tracking-tight mx-auto max-w-[24ch]"
               style={{ fontFamily: "'Fraunces', serif" }}
             >
               Briarwood works inside the flow of real coordination.
@@ -618,7 +626,7 @@ export default function Landing() {
             <div className="space-y-5 text-[#555] leading-relaxed">
               <p>It reads the behavioral patterns that emerge across live execution, structures them into CDI, and gives professionals, networks, and intelligent systems a private trust signal for who can actually perform in the physical world.</p>
             </div>
-            <div className="border-l-2 border-[#3d1a22] pl-5 py-1">
+            <div className="inline-block border-l-2 border-[#3d1a22] pl-5 py-1 text-left">
               <p className="text-[#1a1a1a] text-base leading-relaxed font-medium" style={{ fontFamily: "'Fraunces', serif" }}>
                 Briarwood transforms the intuition humans use to recognize trust into a digital signal agents can act on.
               </p>
@@ -627,7 +635,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* PAGE 4 -- AI TRUST GAP */}
+      {/* PAGE 4 -- AI TRUST GAP (copy left, graphic right) */}
       <section className="relative py-24 md:py-36 bg-[#3d1a22] text-[#f5f3ef] overflow-hidden">
         <div
           className="absolute inset-0 opacity-15"
@@ -637,35 +645,39 @@ export default function Landing() {
             backgroundSize: "400px",
           }}
         />
-        <div className="relative z-10 max-w-[700px] mx-auto px-6 sm:px-10">
-          <motion.div className="space-y-8" {...sectionFade}>
-            <h2
-              className="text-2xl sm:text-3xl leading-[1.15] tracking-tight max-w-[22ch]"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              AI does not know who to trust in the real world.
-            </h2>
-            <div className="space-y-5 text-[#f5f3ef]/60 leading-relaxed">
-              <p>As software, agents, and machines move into physical-world workflows, they need more than intelligence. They need a way to verify who can actually execute.</p>
-              <p className="text-[#f5f3ef]/80 font-medium">Briarwood provides that signal.</p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <button
-                onClick={() => setLocation("/secretary")}
-                className="bg-[#f5f3ef] text-[#1a1a1a] px-5 py-3 text-sm font-medium hover:bg-white transition-colors"
-                data-testid="button-demo-link"
+        <div className="relative z-10 max-w-[1100px] mx-auto px-6 sm:px-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
+            <motion.div className="space-y-8" {...sectionFade}>
+              <h2
+                className="text-2xl sm:text-3xl leading-[1.15] tracking-tight max-w-[22ch]"
+                style={{ fontFamily: "'Fraunces', serif" }}
               >
-                View Interactive Demo
-              </button>
-              <button
-                onClick={() => setLocation("/secretary")}
-                className="border border-[#f5f3ef]/30 text-[#f5f3ef] px-5 py-3 text-sm hover:border-[#f5f3ef]/60 transition-colors"
-                data-testid="button-contact-link"
-              >
-                Contact
-              </button>
+                AI does not know who to trust in the real world.
+              </h2>
+              <div className="space-y-5 text-[#f5f3ef]/60 leading-relaxed">
+                <p>As software, agents, and machines move into physical-world workflows, they need more than intelligence. They need a way to verify who can actually execute.</p>
+                <p className="text-[#f5f3ef]/80 font-medium">Briarwood provides that signal.</p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <button
+                  onClick={() => setLocation("/secretary")}
+                  className="bg-[#f5f3ef] text-[#1a1a1a] px-5 py-3 text-sm font-medium hover:bg-white transition-colors"
+                  data-testid="button-demo-link"
+                >
+                  View Interactive Demo
+                </button>
+                <button
+                  onClick={() => setLocation("/secretary")}
+                  className="border border-[#f5f3ef]/30 text-[#f5f3ef] px-5 py-3 text-sm hover:border-[#f5f3ef]/60 transition-colors"
+                  data-testid="button-contact-link"
+                >
+                  Contact
+                </button>
+              </div>
+            </motion.div>
+            <div className="min-h-[360px] flex items-center justify-center" data-testid="graphic-slot-trust-gap">
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
