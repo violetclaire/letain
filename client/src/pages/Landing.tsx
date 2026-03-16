@@ -585,32 +585,22 @@ export default function Landing() {
 
       {/* SECTION -- INFRASTRUCTURE */}
       <section className="py-24 md:py-36 bg-[#f5f3ef]">
-        <div className="max-w-[1100px] mx-auto px-6 sm:px-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
-            <motion.div className="space-y-6" {...sectionFade}>
-              <p className="text-xs tracking-[0.16em] uppercase text-[#888]">Infrastructure</p>
-              <h2
-                className="text-2xl sm:text-3xl leading-[1.15] tracking-tight"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
-                Infrastructure begins where a system becomes legible.
-              </h2>
-              <div className="space-y-4 text-[#555] leading-relaxed text-[15px]">
-                <p>What was miscategorized as fragmented services was already operating as decentralized enterprise: dense networks of professionals coordinating through trust, standards, referrals, and repeated execution.</p>
-                <p>The economic system was already there. What never existed was the infrastructure to observe it, verify its behavioral signals, and let them compound.</p>
-                <p className="text-[#1a1a1a] font-medium">Briarwood makes that layer legible.</p>
-                <p>By structuring high-stakes coordination into CDI, Briarwood turns behavioral trust into a private, verifiable signal for real-world execution.</p>
-              </div>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ duration: 0.6, delay: 0.2 }}
+        <div className="max-w-[700px] mx-auto px-6 sm:px-10">
+          <motion.div className="space-y-8" {...sectionFade}>
+            <p className="text-xs tracking-[0.16em] uppercase text-[#888]">Infrastructure</p>
+            <h2
+              className="text-2xl sm:text-3xl leading-[1.15] tracking-tight"
+              style={{ fontFamily: "'Fraunces', serif" }}
             >
-              <NetworkDiagram />
-            </motion.div>
-          </div>
+              Infrastructure begins where a system becomes legible.
+            </h2>
+            <div className="space-y-5 text-[#555] leading-relaxed">
+              <p>What was miscategorized as fragmented services was already operating as decentralized enterprise: dense networks of professionals coordinating through trust, standards, referrals, and repeated execution.</p>
+              <p>The economic system was already there. What never existed was the infrastructure to observe it, verify its behavioral signals, and let them compound.</p>
+              <p className="text-[#1a1a1a] font-medium">Briarwood makes that layer legible.</p>
+              <p>By structuring high-stakes coordination into CDI, Briarwood turns behavioral trust into a private, verifiable signal for real-world execution.</p>
+            </div>
+          </motion.div>
         </div>
       </section>
 
