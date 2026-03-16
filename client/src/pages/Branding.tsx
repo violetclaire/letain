@@ -122,19 +122,14 @@ function BannerImage() {
       }
       ctx.globalAlpha = 1;
 
-      drawDiamond(ctx, w / 2, h * 0.33, 70, "#f5f3ef");
+      drawDiamond(ctx, w / 2, h * 0.35, 80, "#f5f3ef");
 
-      ctx.font = "500 22px 'Inter', sans-serif";
-      ctx.letterSpacing = "8px";
+      ctx.font = "500 36px 'Inter', sans-serif";
+      ctx.letterSpacing = "12px";
       ctx.fillStyle = "rgba(245,243,239,0.85)";
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
-      ctx.fillText("BRIARWOOD", w / 2 + 4, h * 0.56);
-
-      ctx.font = "400 11px 'Inter', sans-serif";
-      ctx.letterSpacing = "4px";
-      ctx.fillStyle = "rgba(245,243,239,0.35)";
-      ctx.fillText("INTEGRAL OS & PRIVATE API FOR THE PHYSICAL ECONOMY", w / 2 + 2, h * 0.68);
+      ctx.fillText("BRIARWOOD", w / 2 + 6, h * 0.62);
     };
     img.src = "/pinstripe.jpeg";
   }, []);
