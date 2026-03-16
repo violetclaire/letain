@@ -160,29 +160,26 @@ function NetworkDiagram() {
 
     let animId: number;
     let startTime = Date.now();
+    const ox = "#3d1a22";
 
-    const labeled = [
-      { x: 0.50, y: 0.42, label: "CDI", r: 32, main: true },
-      { x: 0.22, y: 0.22, label: "Behavioral Trace", r: 6 },
-      { x: 0.78, y: 0.20, label: "Coordination Event", r: 6 },
-      { x: 0.15, y: 0.55, label: "Follow-through", r: 5 },
-      { x: 0.82, y: 0.50, label: "Recovery", r: 5 },
-      { x: 0.30, y: 0.78, label: "Referral Edge", r: 5 },
-      { x: 0.70, y: 0.75, label: "Timing Signal", r: 5 },
-      { x: 0.50, y: 0.88, label: "Trust Query", r: 5 },
-      { x: 0.38, y: 0.15, label: "Ingestion", r: 4 },
-      { x: 0.62, y: 0.15, label: "Verification", r: 4 },
+    const signals = [
+      { angle: 0, label: "Follow-through" },
+      { angle: Math.PI * 2 / 6, label: "Timing" },
+      { angle: (Math.PI * 2 / 6) * 2, label: "Recovery" },
+      { angle: (Math.PI * 2 / 6) * 3, label: "Referral Trust" },
+      { angle: (Math.PI * 2 / 6) * 4, label: "Discretion" },
+      { angle: (Math.PI * 2 / 6) * 5, label: "Coordination" },
     ];
 
-    const scatteredPositions = labeled.map(() => ({
-      sx: Math.random(),
-      sy: Math.random(),
-    }));
-
-    const edges: [number, number][] = [
-      [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0],
-      [8, 1], [9, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5, 7], [6, 7],
-    ];
+    const particles: { angle: number; dist: number; speed: number; phase: number }[] = [];
+    for (let i = 0; i < 24; i++) {
+      particles.push({
+        angle: Math.random() * Math.PI * 2,
+        dist: 0.6 + Math.random() * 0.4,
+        speed: 0.3 + Math.random() * 0.5,
+        phase: Math.random() * Math.PI * 2,
+      });
+    }
 
     const resize = () => {
       const rect = canvas.parentElement!.getBoundingClientRect();
@@ -197,80 +194,131 @@ function NetworkDiagram() {
 
     const draw = () => {
       const elapsed = (Date.now() - startTime) / 1000;
-      const progress = Math.min(1, elapsed / 2.5);
-      const ease = 1 - Math.pow(1 - progress, 3);
+      const intro = Math.min(1, elapsed / 2);
+      const ease = 1 - Math.pow(1 - intro, 4);
 
       const rect = canvas.parentElement!.getBoundingClientRect();
       const w = rect.width;
       const h = rect.height;
       ctx.clearRect(0, 0, w, h);
 
-      const positions = labeled.map((n, i) => ({
-        x: (scatteredPositions[i].sx + (n.x - scatteredPositions[i].sx) * ease) * w,
-        y: (scatteredPositions[i].sy + (n.y - scatteredPositions[i].sy) * ease) * h,
-      }));
+      const cx = w * 0.5;
+      const cy = h * 0.48;
+      const maxR = Math.min(w, h) * 0.38;
 
-      const edgeAlpha = Math.max(0, (ease - 0.2) / 0.8) * 0.2;
-      if (edgeAlpha > 0) {
-        edges.forEach(([a, b]) => {
-          ctx.beginPath();
-          ctx.strokeStyle = `rgba(61,26,34,${edgeAlpha})`;
-          ctx.lineWidth = 1;
-          ctx.moveTo(positions[a].x, positions[a].y);
-          ctx.lineTo(positions[b].x, positions[b].y);
-          ctx.stroke();
-        });
-      }
+      const rings = [0.35, 0.6, 0.85, 1.0];
+      rings.forEach((rFrac, i) => {
+        const r = maxR * rFrac * ease;
+        const ringAlpha = Math.max(0, (ease - 0.1 * i) / (1 - 0.1 * i));
+        if (ringAlpha <= 0) return;
 
-      const pulseEdge = Math.floor(elapsed * 1.2) % edges.length;
-      if (edgeAlpha > 0) {
-        const [pa, pb] = edges[pulseEdge];
-        const t = (elapsed * 1.2) % 1;
-        const px = positions[pa].x + (positions[pb].x - positions[pa].x) * t;
-        const py = positions[pa].y + (positions[pb].y - positions[pa].y) * t;
         ctx.beginPath();
-        ctx.arc(px, py, 2.5, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(61,26,34,${edgeAlpha * 2})`;
-        ctx.fill();
-      }
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(61,26,34,${ringAlpha * (0.06 + i * 0.02)})`;
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
 
-      labeled.forEach((n, i) => {
-        const { x, y } = positions[i];
-        const pulse = 1 + Math.sin(elapsed * 1.2 + i * 0.8) * 0.1;
-
-        if (n.main) {
+        if (i === rings.length - 1) {
+          const arcStart = elapsed * 0.15;
+          const arcLen = 0.4;
           ctx.beginPath();
-          ctx.arc(x, y, n.r * pulse, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(61,26,34,${0.08 + ease * 0.08})`;
-          ctx.fill();
-          ctx.strokeStyle = `rgba(61,26,34,${0.15 + ease * 0.25})`;
-          ctx.lineWidth = 1.5;
+          ctx.arc(cx, cy, r, arcStart, arcStart + arcLen);
+          ctx.strokeStyle = `rgba(61,26,34,${ringAlpha * 0.2})`;
+          ctx.lineWidth = 2;
           ctx.stroke();
-
-          const labelAlpha = Math.min(1, (ease - 0.4) / 0.6);
-          if (labelAlpha > 0) {
-            ctx.font = "700 14px 'Fraunces', serif";
-            ctx.fillStyle = `rgba(61,26,34,${labelAlpha * 0.85})`;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(n.label, x, y);
-          }
-        } else {
-          ctx.beginPath();
-          ctx.arc(x, y, n.r * pulse, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(61,26,34,${0.12 + ease * 0.25})`;
-          ctx.fill();
-
-          const labelAlpha = Math.min(1, (ease - 0.5) / 0.5);
-          if (labelAlpha > 0) {
-            ctx.font = "500 10px Inter, sans-serif";
-            ctx.fillStyle = `rgba(61,26,34,${labelAlpha * 0.55})`;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "top";
-            ctx.fillText(n.label, x, y + n.r + 6);
-          }
         }
       });
+
+      signals.forEach((s, i) => {
+        const fadeIn = Math.max(0, (ease - 0.3 - i * 0.05) / 0.5);
+        if (fadeIn <= 0) return;
+
+        const outerR = maxR * 1.0 * ease;
+        const innerR = maxR * 0.35 * ease;
+        const sx = cx + Math.cos(s.angle) * outerR;
+        const sy = cy + Math.sin(s.angle) * outerR;
+        const ix = cx + Math.cos(s.angle) * innerR;
+        const iy = cy + Math.sin(s.angle) * innerR;
+
+        ctx.beginPath();
+        ctx.setLineDash([3, 6]);
+        ctx.strokeStyle = `rgba(61,26,34,${fadeIn * 0.12})`;
+        ctx.lineWidth = 1;
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(ix, iy);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.beginPath();
+        ctx.arc(sx, sy, 4, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(61,26,34,${fadeIn * 0.3})`;
+        ctx.fill();
+
+        ctx.font = "500 11px Inter, sans-serif";
+        ctx.fillStyle = `rgba(61,26,34,${fadeIn * 0.5})`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = Math.sin(s.angle) > 0.3 ? "top" : Math.sin(s.angle) < -0.3 ? "bottom" : "middle";
+        const labelDist = outerR + 18;
+        const lx = cx + Math.cos(s.angle) * labelDist;
+        const ly = cy + Math.sin(s.angle) * labelDist;
+        ctx.fillText(s.label, lx, ly);
+
+        const pulseT = (elapsed * s.speed + i * 0.6) % 1;
+        const px = sx + (ix - sx) * pulseT;
+        const py = sy + (iy - sy) * pulseT;
+        const pulseAlpha = Math.sin(pulseT * Math.PI) * fadeIn * 0.5;
+        ctx.beginPath();
+        ctx.arc(px, py, 2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(61,26,34,${pulseAlpha})`;
+        ctx.fill();
+      });
+
+      particles.forEach((p) => {
+        const fadeIn = Math.max(0, (ease - 0.5) / 0.5);
+        if (fadeIn <= 0) return;
+        const t = (elapsed * p.speed + p.phase) % 1;
+        const r = maxR * (0.35 + (1 - t) * 0.65) * ease;
+        const drift = p.angle + elapsed * 0.05;
+        const px = cx + Math.cos(drift) * r;
+        const py = cy + Math.sin(drift) * r;
+        const alpha = Math.sin(t * Math.PI) * fadeIn * 0.15;
+        ctx.beginPath();
+        ctx.arc(px, py, 1.2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(61,26,34,${alpha})`;
+        ctx.fill();
+      });
+
+      const coreAlpha = Math.max(0, (ease - 0.2) / 0.8);
+      if (coreAlpha > 0) {
+        const corePulse = 1 + Math.sin(elapsed * 1.5) * 0.04;
+        const coreR = 36 * corePulse;
+
+        const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR * 1.8);
+        glow.addColorStop(0, `rgba(61,26,34,${coreAlpha * 0.06})`);
+        glow.addColorStop(1, "rgba(61,26,34,0)");
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(cx, cy, coreR * 1.8, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(61,26,34,${coreAlpha * 0.08})`;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(61,26,34,${coreAlpha * 0.3})`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.font = "700 16px 'Fraunces', serif";
+        ctx.fillStyle = `rgba(61,26,34,${coreAlpha * 0.8})`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("CDI", cx, cy - 4);
+
+        ctx.font = "400 8px Inter, sans-serif";
+        ctx.fillStyle = `rgba(61,26,34,${coreAlpha * 0.35})`;
+        ctx.fillText("trust score", cx, cy + 12);
+      }
 
       animId = requestAnimationFrame(draw);
     };
@@ -566,102 +614,68 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* PAGE 3 -- BRIARWOOD EXECUTING */}
+      {/* PAGE 3 -- HOW BRIARWOOD WORKS */}
       <section className="py-24 md:py-36">
-        <div className="max-w-[1100px] mx-auto px-6 sm:px-10">
-          <motion.div {...sectionFade}>
-            <p className="text-xs tracking-[0.16em] uppercase text-[#888] mb-8">Briarwood, Executing</p>
-            <ExecutionFeed />
+        <div className="max-w-[700px] mx-auto px-6 sm:px-10">
+          <motion.div className="space-y-8" {...sectionFade}>
+            <p className="text-xs tracking-[0.16em] uppercase text-[#888]">How Briarwood Works</p>
+            <h2
+              className="text-2xl sm:text-3xl leading-[1.15] tracking-tight max-w-[24ch]"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              Briarwood works inside the flow of real coordination.
+            </h2>
+            <div className="space-y-5 text-[#555] leading-relaxed">
+              <p>It reads the behavioral patterns that emerge across live execution, structures them into CDI, and gives professionals, networks, and intelligent systems a private trust signal for who can actually perform in the physical world.</p>
+            </div>
+            <div className="border-l-2 border-[#3d1a22] pl-5 py-1">
+              <p className="text-[#1a1a1a] text-base leading-relaxed font-medium" style={{ fontFamily: "'Fraunces', serif" }}>
+                Briarwood transforms the intuition humans use to recognize trust into a digital signal agents can act on.
+              </p>
+            </div>
           </motion.div>
         </div>
       </section>
 
-      {/* SECTION -- AGENT / API PANEL */}
-      <section id="api-panel" className="py-24 md:py-36 bg-[#f5f3ef]">
-        <div className="max-w-[1100px] mx-auto px-6 sm:px-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
-            <motion.div className="space-y-6" {...sectionFade}>
-              <p className="text-xs tracking-[0.16em] uppercase text-[#888]">Agent / API</p>
-              <h2
-                className="text-2xl sm:text-3xl leading-[1.15] tracking-tight"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
-                CDI makes trust machine-readable.
-              </h2>
-              <div className="space-y-4 text-[#555] leading-relaxed text-[15px]">
-                <p>Briarwood exposes behavioral trust as a private signal that agents and systems can use to identify who can actually execute under real conditions.</p>
-              </div>
-              <div className="flex items-center gap-6 pt-2 text-xs text-[#888]">
-                <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#3d1a22]/40" />
-                  Agent queries Briarwood
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#3d1a22]/60" />
-                  Receives trust signal
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#3d1a22]" />
-                  Acts on verified data
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div
-              className="space-y-4"
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ duration: 0.5, delay: 0.15 }}
+      {/* PAGE 4 -- AI TRUST GAP */}
+      <section className="relative py-24 md:py-36 bg-[#3d1a22] text-[#f5f3ef] overflow-hidden">
+        <div
+          className="absolute inset-0 opacity-15"
+          style={{
+            backgroundImage: "url(/pinstripe.jpeg)",
+            backgroundRepeat: "repeat",
+            backgroundSize: "400px",
+          }}
+        />
+        <div className="relative z-10 max-w-[700px] mx-auto px-6 sm:px-10">
+          <motion.div className="space-y-8" {...sectionFade}>
+            <h2
+              className="text-2xl sm:text-3xl leading-[1.15] tracking-tight max-w-[22ch]"
+              style={{ fontFamily: "'Fraunces', serif" }}
             >
-              <div className="bg-[#1a1a1a] text-[#f5f3ef] rounded-sm overflow-hidden">
-                <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/8">
-                  <span className="text-[10px] tracking-wider uppercase text-[#f5f3ef]/30 font-mono">Request</span>
-                  <span className="ml-auto text-[10px] font-mono text-[#f5f3ef]/20">POST /v1/trust/query</span>
-                </div>
-                <pre className="px-4 py-4 text-[12px] leading-[1.6] font-mono overflow-x-auto text-[#f5f3ef]/70">{`{
-  "coordination_class": "high_stakes",
-  "region": "US-West",
-  "execution_window": "2026-06-14",
-  "constraints": {
-    "multi_party": true,
-    "referral_continuity": true,
-    "min_cdi": 75
-  }
-}`}</pre>
-              </div>
-
-              <div className="bg-[#1a1a1a] text-[#f5f3ef] rounded-sm overflow-hidden">
-                <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/8">
-                  <span className="text-[10px] tracking-wider uppercase text-[#f5f3ef]/30 font-mono">Response</span>
-                  <span className="ml-auto text-[10px] font-mono text-emerald-400/50">200 OK</span>
-                </div>
-                <pre className="px-4 py-4 text-[12px] leading-[1.6] font-mono overflow-x-auto text-[#f5f3ef]/70">{`{
-  "matches": [
-    {
-      "provider_id": "bw_1842",
-      "cdi_score": 92,
-      "trust_signals": [
-        "follow_through: verified",
-        "recovery_behavior: strong",
-        "referral_continuity: trusted"
-      ],
-      "status": "confirmed"
-    },
-    {
-      "provider_id": "bw_2091",
-      "cdi_score": 88,
-      "trust_signals": [
-        "timing_precision: verified",
-        "coordination_depth: high"
-      ],
-      "status": "referral_only"
-    }
-  ]
-}`}</pre>
-              </div>
-            </motion.div>
-          </div>
+              AI does not know who to trust in the real world.
+            </h2>
+            <div className="space-y-5 text-[#f5f3ef]/60 leading-relaxed">
+              <p>As software, agents, and machines move into physical-world workflows, they need more than intelligence. They need a way to verify who can actually execute.</p>
+              <p className="text-[#f5f3ef]/80 font-medium">Briarwood provides that signal.</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <button
+                onClick={() => setLocation("/secretary")}
+                className="bg-[#f5f3ef] text-[#1a1a1a] px-5 py-3 text-sm font-medium hover:bg-white transition-colors"
+                data-testid="button-demo-link"
+              >
+                View Interactive Demo
+              </button>
+              <button
+                onClick={() => setLocation("/secretary")}
+                className="border border-[#f5f3ef]/30 text-[#f5f3ef] px-5 py-3 text-sm hover:border-[#f5f3ef]/60 transition-colors"
+                data-testid="button-contact-link"
+              >
+                Contact
+              </button>
+            </div>
+          </motion.div>
         </div>
       </section>
 
