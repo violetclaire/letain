@@ -266,6 +266,106 @@ function NetworkDiagram() {
   );
 }
 
+function ExecutionFeed() {
+  const [lines, setLines] = useState<{ id: number; text: string; type: string }[]>([]);
+  const counterRef = useRef(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setIsVisible(true); },
+      { threshold: 0.2 }
+    );
+    if (containerRef.current) observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const events = [
+      { text: "behavioral_trace ingested", type: "ingest" },
+      { text: "coordination_event registered", type: "ingest" },
+      { text: "follow_through signal confirmed", type: "signal" },
+      { text: "cdi_score recalculated  bw_1842  92", type: "score" },
+      { text: "referral_continuity verified  bw_2091 > bw_1842", type: "signal" },
+      { text: "timing_precision signal confirmed", type: "signal" },
+      { text: "recovery_behavior observed  window: 14min", type: "signal" },
+      { text: "cdi_score recalculated  bw_2091  88", type: "score" },
+      { text: "trust_query resolved  region: US-West  2 matches", type: "query" },
+      { text: "coordination_depth evaluated  bw_3104", type: "signal" },
+      { text: "behavioral_trace ingested", type: "ingest" },
+      { text: "multi_party_sync verified  3 providers", type: "signal" },
+      { text: "cdi_score recalculated  bw_3104  79", type: "score" },
+      { text: "autonomy_gate passed  bw_1842  level: full", type: "gate" },
+      { text: "referral_edge strengthened  bw_2091 > bw_3104", type: "signal" },
+      { text: "trust_query resolved  class: high_stakes  1 match", type: "query" },
+      { text: "behavioral_trace ingested", type: "ingest" },
+      { text: "cdi_score recalculated  bw_4217  71", type: "score" },
+      { text: "coordination_event registered", type: "ingest" },
+      { text: "follow_through signal confirmed", type: "signal" },
+    ];
+
+    let idx = 0;
+    const interval = setInterval(() => {
+      const event = events[idx % events.length];
+      counterRef.current++;
+      setLines(prev => {
+        const next = [{ id: counterRef.current, text: event.text, type: event.type }, ...prev];
+        return next.slice(0, 12);
+      });
+      idx++;
+    }, 1800);
+
+    return () => clearInterval(interval);
+  }, [isVisible]);
+
+  const typeColor: Record<string, string> = {
+    ingest: "text-[#888]",
+    signal: "text-[#3d1a22]/70",
+    score: "text-[#3d1a22]",
+    query: "text-[#3d1a22] font-medium",
+    gate: "text-[#3d1a22]/80",
+  };
+
+  return (
+    <div ref={containerRef} className="relative">
+      <div className="bg-[#1a1a1a] rounded-sm overflow-hidden">
+        <div className="flex items-center gap-3 px-5 py-3 border-b border-white/8">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/60 animate-pulse" />
+          <span className="text-[10px] tracking-wider uppercase text-[#f5f3ef]/30 font-mono">Live execution feed</span>
+          <span className="ml-auto text-[10px] font-mono text-[#f5f3ef]/15">briarwood / cdi-engine</span>
+        </div>
+        <div className="px-5 py-4 min-h-[320px] font-mono text-[12px] leading-[2] space-y-0">
+          {lines.length === 0 && isVisible && (
+            <span className="text-[#f5f3ef]/20 animate-pulse">initializing...</span>
+          )}
+          {lines.map((line, i) => (
+            <motion.div
+              key={line.id}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: i === 0 ? 1 : 0.4 + (1 - i / 12) * 0.4, x: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex items-center gap-3"
+            >
+              <span className="text-[#f5f3ef]/15 w-[3ch] text-right shrink-0">{String(line.id).padStart(3, "0")}</span>
+              <span className={`${typeColor[line.type] || "text-[#f5f3ef]/50"}`}>
+                {line.text.split("  ").map((part, j) => (
+                  <span key={j}>
+                    {j > 0 && <span className="text-[#f5f3ef]/15 mx-1.5">|</span>}
+                    {part}
+                  </span>
+                ))}
+              </span>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Landing() {
   const [, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -446,25 +546,12 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* PAGE 3 -- HOW IT WORKS */}
+      {/* PAGE 3 -- BRIARWOOD EXECUTING */}
       <section className="py-24 md:py-36">
-        <div className="max-w-[700px] mx-auto px-6 sm:px-10">
-          <motion.div className="space-y-8" {...sectionFade}>
-            <p className="text-xs tracking-[0.16em] uppercase text-[#888]">How Briarwood Works</p>
-            <h2
-              className="text-2xl sm:text-3xl leading-[1.15] tracking-tight max-w-[24ch]"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              Briarwood works inside the flow of real coordination.
-            </h2>
-            <div className="space-y-5 text-[#555] leading-relaxed">
-              <p>It reads the behavioral patterns that emerge across live execution, structures them into CDI, and gives professionals, networks, and intelligent systems a private trust signal for who can actually perform in the physical world.</p>
-            </div>
-            <div className="border-l-2 border-[#3d1a22] pl-5 py-1">
-              <p className="text-[#1a1a1a] text-base leading-relaxed font-medium" style={{ fontFamily: "'Fraunces', serif" }}>
-                Briarwood transforms the intuition humans use to recognize trust into a digital signal agents can act on.
-              </p>
-            </div>
+        <div className="max-w-[1100px] mx-auto px-6 sm:px-10">
+          <motion.div {...sectionFade}>
+            <p className="text-xs tracking-[0.16em] uppercase text-[#888] mb-8">Briarwood, Executing</p>
+            <ExecutionFeed />
           </motion.div>
         </div>
       </section>
@@ -513,13 +600,13 @@ export default function Landing() {
                   <span className="ml-auto text-[10px] font-mono text-[#f5f3ef]/20">POST /v1/trust/query</span>
                 </div>
                 <pre className="px-4 py-4 text-[12px] leading-[1.6] font-mono overflow-x-auto text-[#f5f3ef]/70">{`{
-  "service_type": "bridal_hair_makeup",
-  "location": "Napa Valley, CA",
-  "date": "2026-06-14",
+  "coordination_class": "high_stakes",
+  "region": "US-West",
+  "execution_window": "2026-06-14",
   "constraints": {
-    "party_size": 8,
-    "requires_referral_continuity": true,
-    "high_stakes_event": true
+    "multi_party": true,
+    "referral_continuity": true,
+    "min_cdi": 75
   }
 }`}</pre>
               </div>
@@ -534,21 +621,21 @@ export default function Landing() {
     {
       "provider_id": "bw_1842",
       "cdi_score": 92,
-      "trust_factors": [
-        "high follow-through",
-        "strong recovery behavior",
-        "trusted referral continuity"
+      "trust_signals": [
+        "follow_through: verified",
+        "recovery_behavior: strong",
+        "referral_continuity: trusted"
       ],
-      "availability": "confirmed"
+      "status": "confirmed"
     },
     {
       "provider_id": "bw_2091",
       "cdi_score": 88,
-      "trust_factors": [
-        "timing precision",
-        "multi-party coordination strength"
+      "trust_signals": [
+        "timing_precision: verified",
+        "coordination_depth: high"
       ],
-      "availability": "referral only"
+      "status": "referral_only"
     }
   ]
 }`}</pre>
