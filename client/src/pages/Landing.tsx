@@ -469,6 +469,95 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* SECTION -- AGENT / API PANEL */}
+      <section id="api-panel" className="py-24 md:py-36 bg-[#f5f3ef]">
+        <div className="max-w-[1100px] mx-auto px-6 sm:px-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
+            <motion.div className="space-y-6" {...sectionFade}>
+              <p className="text-xs tracking-[0.16em] uppercase text-[#888]">Agent / API</p>
+              <h2
+                className="text-2xl sm:text-3xl leading-[1.15] tracking-tight"
+                style={{ fontFamily: "'Fraunces', serif" }}
+              >
+                CDI makes trust machine-readable.
+              </h2>
+              <div className="space-y-4 text-[#555] leading-relaxed text-[15px]">
+                <p>Briarwood exposes behavioral trust as a private signal that agents and systems can use to identify who can actually execute under real conditions.</p>
+              </div>
+              <div className="flex items-center gap-6 pt-2 text-xs text-[#888]">
+                <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#3d1a22]/40" />
+                  Agent queries Briarwood
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#3d1a22]/60" />
+                  Receives trust signal
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#3d1a22]" />
+                  Acts on verified data
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              className="space-y-4"
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.5, delay: 0.15 }}
+            >
+              <div className="bg-[#1a1a1a] text-[#f5f3ef] rounded-sm overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/8">
+                  <span className="text-[10px] tracking-wider uppercase text-[#f5f3ef]/30 font-mono">Request</span>
+                  <span className="ml-auto text-[10px] font-mono text-[#f5f3ef]/20">POST /v1/trust/query</span>
+                </div>
+                <pre className="px-4 py-4 text-[12px] leading-[1.6] font-mono overflow-x-auto text-[#f5f3ef]/70">{`{
+  "service_type": "bridal_hair_makeup",
+  "location": "Napa Valley, CA",
+  "date": "2026-06-14",
+  "constraints": {
+    "party_size": 8,
+    "requires_referral_continuity": true,
+    "high_stakes_event": true
+  }
+}`}</pre>
+              </div>
+
+              <div className="bg-[#1a1a1a] text-[#f5f3ef] rounded-sm overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/8">
+                  <span className="text-[10px] tracking-wider uppercase text-[#f5f3ef]/30 font-mono">Response</span>
+                  <span className="ml-auto text-[10px] font-mono text-emerald-400/50">200 OK</span>
+                </div>
+                <pre className="px-4 py-4 text-[12px] leading-[1.6] font-mono overflow-x-auto text-[#f5f3ef]/70">{`{
+  "matches": [
+    {
+      "provider_id": "bw_1842",
+      "cdi_score": 92,
+      "trust_factors": [
+        "high follow-through",
+        "strong recovery behavior",
+        "trusted referral continuity"
+      ],
+      "availability": "confirmed"
+    },
+    {
+      "provider_id": "bw_2091",
+      "cdi_score": 88,
+      "trust_factors": [
+        "timing precision",
+        "multi-party coordination strength"
+      ],
+      "availability": "referral only"
+    }
+  ]
+}`}</pre>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* PAGE 4 -- AI TRUST GAP */}
       <section className="relative py-24 md:py-36 bg-[#3d1a22] text-[#f5f3ef] overflow-hidden">
         <div
@@ -494,11 +583,11 @@ export default function Landing() {
             </div>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <button
-                onClick={() => setLocation("/spec")}
+                onClick={() => document.getElementById("api-panel")?.scrollIntoView({ behavior: "smooth" })}
                 className="bg-[#f5f3ef] text-[#1a1a1a] px-5 py-3 text-sm font-medium hover:bg-white transition-colors"
                 data-testid="button-demo-link"
               >
-                View Interactive Demo
+                View API Demo
               </button>
               <button
                 onClick={() => setLocation("/secretary")}
