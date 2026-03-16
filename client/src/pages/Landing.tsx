@@ -660,14 +660,12 @@ export default function Landing() {
               </div>
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <button
-                  onClick={() => setLocation("/secretary")}
                   className="bg-[#f5f3ef] text-[#1a1a1a] px-5 py-3 text-sm font-medium hover:bg-white transition-colors"
                   data-testid="button-demo-link"
                 >
-                  View Interactive Demo
+                  Request a Demo
                 </button>
                 <button
-                  onClick={() => setLocation("/secretary")}
                   className="border border-[#f5f3ef]/30 text-[#f5f3ef] px-5 py-3 text-sm hover:border-[#f5f3ef]/60 transition-colors"
                   data-testid="button-contact-link"
                 >
