@@ -145,7 +145,7 @@ function NetworkDiagram() {
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) setIsVisible(true); },
-      { threshold: 0.3 }
+      { threshold: 0.2 }
     );
     if (containerRef.current) observer.observe(containerRef.current);
     return () => observer.disconnect();
@@ -161,25 +161,28 @@ function NetworkDiagram() {
     let animId: number;
     let startTime = Date.now();
 
-    const nodes = Array.from({ length: 18 }, (_, i) => ({
-      x: 0.1 + Math.random() * 0.8,
-      y: 0.1 + Math.random() * 0.8,
-      scatteredX: Math.random(),
-      scatteredY: Math.random(),
-      r: 2 + Math.random() * 2,
-      phase: Math.random() * Math.PI * 2,
+    const labeled = [
+      { x: 0.50, y: 0.42, label: "CDI", r: 32, main: true },
+      { x: 0.22, y: 0.22, label: "Behavioral Trace", r: 6 },
+      { x: 0.78, y: 0.20, label: "Coordination Event", r: 6 },
+      { x: 0.15, y: 0.55, label: "Follow-through", r: 5 },
+      { x: 0.82, y: 0.50, label: "Recovery", r: 5 },
+      { x: 0.30, y: 0.78, label: "Referral Edge", r: 5 },
+      { x: 0.70, y: 0.75, label: "Timing Signal", r: 5 },
+      { x: 0.50, y: 0.88, label: "Trust Query", r: 5 },
+      { x: 0.38, y: 0.15, label: "Ingestion", r: 4 },
+      { x: 0.62, y: 0.15, label: "Verification", r: 4 },
+    ];
+
+    const scatteredPositions = labeled.map(() => ({
+      sx: Math.random(),
+      sy: Math.random(),
     }));
 
-    const edges: [number, number][] = [];
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        const dx = nodes[i].x - nodes[j].x;
-        const dy = nodes[i].y - nodes[j].y;
-        if (Math.sqrt(dx * dx + dy * dy) < 0.35) {
-          edges.push([i, j]);
-        }
-      }
-    }
+    const edges: [number, number][] = [
+      [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0],
+      [8, 1], [9, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5, 7], [6, 7],
+    ];
 
     const resize = () => {
       const rect = canvas.parentElement!.getBoundingClientRect();
@@ -194,7 +197,7 @@ function NetworkDiagram() {
 
     const draw = () => {
       const elapsed = (Date.now() - startTime) / 1000;
-      const progress = Math.min(1, elapsed / 3);
+      const progress = Math.min(1, elapsed / 2.5);
       const ease = 1 - Math.pow(1 - progress, 3);
 
       const rect = canvas.parentElement!.getBoundingClientRect();
@@ -202,55 +205,72 @@ function NetworkDiagram() {
       const h = rect.height;
       ctx.clearRect(0, 0, w, h);
 
-      edges.forEach(([a, b]) => {
-        const na = nodes[a];
-        const nb = nodes[b];
-        const ax = (na.scatteredX + (na.x - na.scatteredX) * ease) * w;
-        const ay = (na.scatteredY + (na.y - na.scatteredY) * ease) * h;
-        const bx = (nb.scatteredX + (nb.x - nb.scatteredX) * ease) * w;
-        const by = (nb.scatteredY + (nb.y - nb.scatteredY) * ease) * h;
+      const positions = labeled.map((n, i) => ({
+        x: (scatteredPositions[i].sx + (n.x - scatteredPositions[i].sx) * ease) * w,
+        y: (scatteredPositions[i].sy + (n.y - scatteredPositions[i].sy) * ease) * h,
+      }));
 
-        const edgeAlpha = Math.max(0, (ease - 0.3) / 0.7) * 0.25;
-        if (edgeAlpha > 0) {
+      const edgeAlpha = Math.max(0, (ease - 0.2) / 0.8) * 0.2;
+      if (edgeAlpha > 0) {
+        edges.forEach(([a, b]) => {
           ctx.beginPath();
           ctx.strokeStyle = `rgba(61,26,34,${edgeAlpha})`;
-          ctx.lineWidth = 0.8;
-          ctx.moveTo(ax, ay);
-          ctx.lineTo(bx, by);
+          ctx.lineWidth = 1;
+          ctx.moveTo(positions[a].x, positions[a].y);
+          ctx.lineTo(positions[b].x, positions[b].y);
           ctx.stroke();
+        });
+      }
+
+      const pulseEdge = Math.floor(elapsed * 1.2) % edges.length;
+      if (edgeAlpha > 0) {
+        const [pa, pb] = edges[pulseEdge];
+        const t = (elapsed * 1.2) % 1;
+        const px = positions[pa].x + (positions[pb].x - positions[pa].x) * t;
+        const py = positions[pa].y + (positions[pb].y - positions[pa].y) * t;
+        ctx.beginPath();
+        ctx.arc(px, py, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(61,26,34,${edgeAlpha * 2})`;
+        ctx.fill();
+      }
+
+      labeled.forEach((n, i) => {
+        const { x, y } = positions[i];
+        const pulse = 1 + Math.sin(elapsed * 1.2 + i * 0.8) * 0.1;
+
+        if (n.main) {
+          ctx.beginPath();
+          ctx.arc(x, y, n.r * pulse, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(61,26,34,${0.08 + ease * 0.08})`;
+          ctx.fill();
+          ctx.strokeStyle = `rgba(61,26,34,${0.15 + ease * 0.25})`;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+
+          const labelAlpha = Math.min(1, (ease - 0.4) / 0.6);
+          if (labelAlpha > 0) {
+            ctx.font = "700 14px 'Fraunces', serif";
+            ctx.fillStyle = `rgba(61,26,34,${labelAlpha * 0.85})`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(n.label, x, y);
+          }
+        } else {
+          ctx.beginPath();
+          ctx.arc(x, y, n.r * pulse, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(61,26,34,${0.12 + ease * 0.25})`;
+          ctx.fill();
+
+          const labelAlpha = Math.min(1, (ease - 0.5) / 0.5);
+          if (labelAlpha > 0) {
+            ctx.font = "500 10px Inter, sans-serif";
+            ctx.fillStyle = `rgba(61,26,34,${labelAlpha * 0.55})`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "top";
+            ctx.fillText(n.label, x, y + n.r + 6);
+          }
         }
       });
-
-      nodes.forEach((n, i) => {
-        const x = (n.scatteredX + (n.x - n.scatteredX) * ease) * w;
-        const y = (n.scatteredY + (n.y - n.scatteredY) * ease) * h;
-        const pulse = 1 + Math.sin(elapsed * 1.5 + n.phase) * 0.15;
-
-        ctx.beginPath();
-        ctx.arc(x, y, n.r * pulse, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(61,26,34,${0.15 + ease * 0.35})`;
-        ctx.fill();
-      });
-
-      if (ease > 0.6) {
-        const labelAlpha = Math.min(1, (ease - 0.6) / 0.4) * 0.7;
-        const cx = w * 0.5;
-        const cy = h * 0.5;
-
-        ctx.beginPath();
-        ctx.arc(cx, cy, 28, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(61,26,34,${labelAlpha * 0.12})`;
-        ctx.fill();
-        ctx.strokeStyle = `rgba(61,26,34,${labelAlpha * 0.3})`;
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        ctx.font = "600 10px Inter, sans-serif";
-        ctx.fillStyle = `rgba(61,26,34,${labelAlpha})`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText("CDI", cx, cy);
-      }
 
       animId = requestAnimationFrame(draw);
     };
@@ -260,7 +280,7 @@ function NetworkDiagram() {
   }, [isVisible]);
 
   return (
-    <div ref={containerRef} className="relative w-full h-[360px] md:h-[420px]">
+    <div ref={containerRef} className="relative w-full h-[400px] md:h-[480px]">
       <canvas ref={canvasRef} className="w-full h-full" />
     </div>
   );
@@ -452,7 +472,7 @@ export default function Landing() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15, duration: 0.5, ease: "easeOut" }}
           >
-            Integral OS & Private API for the Physical Economy
+            Integral OS and Private API for the Physical Economy
           </motion.h1>
 
           <motion.p
@@ -642,49 +662,6 @@ export default function Landing() {
               </div>
             </motion.div>
           </div>
-        </div>
-      </section>
-
-      {/* PAGE 4 -- AI TRUST GAP */}
-      <section className="relative py-24 md:py-36 bg-[#3d1a22] text-[#f5f3ef] overflow-hidden">
-        <div
-          className="absolute inset-0 opacity-15"
-          style={{
-            backgroundImage: "url(/pinstripe.jpeg)",
-            backgroundRepeat: "repeat",
-            backgroundSize: "400px",
-          }}
-        />
-        <div className="relative z-10 max-w-[700px] mx-auto px-6 sm:px-10">
-          <motion.div className="space-y-8" {...sectionFade}>
-            <p className="text-xs tracking-[0.16em] uppercase text-[#f5f3ef]/35">The Trust Gap</p>
-            <h2
-              className="text-2xl sm:text-3xl leading-[1.15] tracking-tight max-w-[22ch]"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              AI does not know who to trust in the real world.
-            </h2>
-            <div className="space-y-5 text-[#f5f3ef]/60 leading-relaxed">
-              <p>As software, agents, and machines move into physical-world workflows, they need more than intelligence. They need a way to verify who can actually execute.</p>
-              <p className="text-[#f5f3ef]/80 font-medium">Briarwood provides that signal.</p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <button
-                onClick={() => document.getElementById("api-panel")?.scrollIntoView({ behavior: "smooth" })}
-                className="bg-[#f5f3ef] text-[#1a1a1a] px-5 py-3 text-sm font-medium hover:bg-white transition-colors"
-                data-testid="button-demo-link"
-              >
-                View API Demo
-              </button>
-              <button
-                onClick={() => setLocation("/secretary")}
-                className="border border-[#f5f3ef]/30 text-[#f5f3ef] px-5 py-3 text-sm hover:border-[#f5f3ef]/60 transition-colors"
-                data-testid="button-contact-link"
-              >
-                Contact
-              </button>
-            </div>
-          </motion.div>
         </div>
       </section>
 
