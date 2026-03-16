@@ -146,8 +146,8 @@ export default function ContextGraph() {
             <p className="text-[11px] text-[#888] mt-1">Total Inquiries</p>
           </div>
           <div className="bg-white border border-[#e8e2d9] p-4">
-            <p className="text-2xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{s.avgResponseLatencyMin || "--"}<span className="text-sm font-normal text-[#888]"> min</span></p>
-            <p className="text-[11px] text-[#888] mt-1">Avg Response Latency</p>
+            <p className="text-2xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{Object.keys(s.statusBreakdown).length}</p>
+            <p className="text-[11px] text-[#888] mt-1">State Transitions Tracked</p>
           </div>
           <div className="bg-white border border-[#e8e2d9] p-4">
             <p className="text-2xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{s.depositsCollected}</p>
