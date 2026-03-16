@@ -558,11 +558,13 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* PAGE 2 -- THE SIGNAL (copy left, graphic right) */}
+      {/* PAGE 2 -- THE SIGNAL (copy right, graphic left) */}
       <section className="py-24 md:py-36">
         <div className="max-w-[1100px] mx-auto px-6 sm:px-10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
-            <motion.div className="space-y-8" {...sectionFade}>
+            <div className="min-h-[360px] flex items-center justify-center order-2 md:order-1" data-testid="graphic-slot-signal">
+            </div>
+            <motion.div className="space-y-8 order-1 md:order-2" {...sectionFade}>
               <p className="text-xs tracking-[0.16em] uppercase text-[#888]">The Signal</p>
               <h2
                 className="text-2xl sm:text-3xl leading-[1.15] tracking-tight max-w-[22ch]"
@@ -581,8 +583,6 @@ export default function Landing() {
                 </p>
               </div>
             </motion.div>
-            <div className="min-h-[360px] flex items-center justify-center" data-testid="graphic-slot-signal">
-            </div>
           </div>
         </div>
       </section>
