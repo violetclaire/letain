@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 
-const BURG = "#6b1a2a";
 const SLIDES = 11;
 
 export default function Pitch() {
@@ -13,475 +12,519 @@ export default function Pitch() {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
-          if (e.isIntersecting) {
-            setCurrent(Number((e.target as HTMLElement).dataset.slide));
-          }
+          if (e.isIntersecting) setCurrent(Number((e.target as HTMLElement).dataset.slide));
         });
       },
-      { threshold: 0.5 }
+      { threshold: 0.55 }
     );
     el.querySelectorAll("[data-slide]").forEach((s) => observer.observe(s));
     return () => observer.disconnect();
   }, []);
 
   const go = (n: number) => {
-    const el = containerRef.current?.querySelector(`[data-slide="${n}"]`);
-    el?.scrollIntoView({ behavior: "smooth" });
+    containerRef.current?.querySelector(`[data-slide="${n}"]`)?.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { overflow-x: hidden; }
+        html { scroll-behavior: smooth; }
 
-        .deck { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
+        .deck {
+          font-family: 'Inter', sans-serif;
+          background: #070707;
+          color: #e8e8e8;
+        }
 
-        /* Top bar */
-        .topbar {
-          position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-          height: 52px;
+        /* ── TOP BAR ── */
+        .bar {
+          position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+          height: 48px;
           display: flex; align-items: center; justify-content: space-between;
-          padding: 0 40px;
-          background: rgba(255,255,255,0.92);
-          backdrop-filter: blur(12px);
-          border-bottom: 1px solid #f0f0f0;
+          padding: 0 36px;
+          background: rgba(7,7,7,0.85);
+          backdrop-filter: blur(16px);
+          border-bottom: 1px solid rgba(255,255,255,0.05);
         }
-        .topbar-logo {
-          font-size: 0.78rem; font-weight: 800; letter-spacing: 0.12em;
-          text-transform: uppercase; color: #0f0f0f;
+        .bar-logo {
+          font-size: 0.72rem; font-weight: 600;
+          letter-spacing: 0.18em; text-transform: uppercase;
+          color: rgba(255,255,255,0.9);
         }
-        .topbar-nav {
-          display: flex; align-items: center; gap: 6px;
+        .bar-right { display: flex; align-items: center; gap: 14px; }
+        .bar-dots { display: flex; gap: 5px; }
+        .bdot {
+          width: 5px; height: 5px; border-radius: 50%;
+          background: rgba(255,255,255,0.15); cursor: pointer;
+          border: none; padding: 0; transition: background 0.2s;
         }
-        .dot {
-          width: 6px; height: 6px; border-radius: 50%;
-          background: #e0e0e0; cursor: pointer; transition: background 0.2s;
-          border: none; padding: 0;
-        }
-        .dot.active { background: ${BURG}; }
-        .topbar-count {
-          font-size: 0.68rem; color: #bbb; margin-left: 12px;
-          font-variant-numeric: tabular-nums;
+        .bdot.on { background: #8b2035; }
+        .bar-num {
+          font-size: 0.62rem; color: rgba(255,255,255,0.2);
+          font-variant-numeric: tabular-nums; letter-spacing: 0.06em;
         }
 
-        /* Slides */
-        .slide {
+        /* ── SLIDE BASE ── */
+        .s {
           height: 100vh; width: 100%;
           display: flex; flex-direction: column;
           align-items: center; justify-content: center;
-          padding: 52px 10vw 40px;
+          padding: 80px 12vw 60px;
           position: relative; overflow: hidden;
         }
-        .slide-white  { background: #ffffff; }
-        .slide-near   { background: #fafafa; }
-        .slide-dark   { background: #0a0a0a; color: #fff; }
-        .slide-burg   { background: ${BURG}; color: #fff; }
 
-        /* Typography */
-        .kicker {
-          font-size: 0.65rem; font-weight: 600;
-          letter-spacing: 0.2em; text-transform: uppercase;
-          color: ${BURG}; margin-bottom: 20px;
-        }
-        .kicker-w {
-          font-size: 0.65rem; font-weight: 600;
-          letter-spacing: 0.2em; text-transform: uppercase;
-          color: rgba(255,255,255,0.4); margin-bottom: 20px;
+        /* subtle grid bg */
+        .s::before {
+          content: '';
+          position: absolute; inset: 0;
+          background-image:
+            linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+          background-size: 60px 60px;
+          pointer-events: none;
         }
 
-        .title {
-          font-size: clamp(3rem, 6vw, 6rem);
-          font-weight: 800; line-height: 1.0;
-          letter-spacing: -3px; text-align: center;
+        /* ── TYPOGRAPHY ── */
+        .eyebrow {
+          font-size: 0.6rem; font-weight: 600;
+          letter-spacing: 0.22em; text-transform: uppercase;
+          color: #8b2035; margin-bottom: 20px;
+          position: relative; z-index: 1;
+        }
+
+        .h1 {
+          font-size: clamp(2rem, 4vw, 3.6rem);
+          font-weight: 600; line-height: 1.1;
+          letter-spacing: -1px;
+          color: #f0f0f0; text-align: center;
+          max-width: 820px;
+          position: relative; z-index: 1;
+        }
+
+        .h-hero {
+          font-size: clamp(3rem, 6vw, 5.5rem);
+          font-weight: 700; line-height: 1;
+          letter-spacing: -2px;
+          color: #f0f0f0; text-align: center;
+          position: relative; z-index: 1;
+        }
+
+        .h-metric {
+          font-size: clamp(5rem, 13vw, 11rem);
+          font-weight: 700; line-height: 1;
+          letter-spacing: -4px;
+          color: #f0f0f0;
+          position: relative; z-index: 1;
+        }
+
+        .sub {
+          font-size: clamp(0.95rem, 1.4vw, 1.15rem);
+          font-weight: 300; color: rgba(255,255,255,0.4);
+          max-width: 520px; text-align: center;
+          line-height: 1.7; margin-top: 16px;
+          position: relative; z-index: 1;
+        }
+
+        .fn {
+          font-size: 0.65rem; color: rgba(255,255,255,0.18);
+          max-width: 440px; text-align: center;
+          line-height: 1.7; margin-top: 20px;
+          position: relative; z-index: 1;
+        }
+
+        .rule {
+          width: 1px; height: 40px;
+          background: rgba(255,255,255,0.1);
+          margin: 24px auto;
+          position: relative; z-index: 1;
+        }
+
+        /* ── PANEL GRIDS ── */
+        .grid {
+          display: grid; gap: 1px;
+          background: rgba(255,255,255,0.06);
+          max-width: 780px; width: 100%;
+          margin-top: 40px;
+          position: relative; z-index: 1;
+        }
+        .g2 { grid-template-columns: 1fr 1fr; }
+        .g3 { grid-template-columns: repeat(3, 1fr); }
+
+        .cell {
+          background: #0d0d0d; padding: 26px 28px; text-align: left;
+        }
+        .cell-k {
+          font-size: 0.58rem; font-weight: 600;
+          letter-spacing: 0.18em; text-transform: uppercase;
+          color: #8b2035; margin-bottom: 10px;
+        }
+        .cell-v {
+          font-size: 0.85rem; font-weight: 300;
+          line-height: 1.7; color: rgba(255,255,255,0.4);
+        }
+
+        /* ── FLOW ── */
+        .flow {
+          display: flex; align-items: center;
+          gap: 6px; flex-wrap: wrap;
+          justify-content: center; margin-top: 32px;
+          position: relative; z-index: 1;
           max-width: 900px;
         }
-        .title-xl {
-          font-size: clamp(5rem, 11vw, 10rem);
-          font-weight: 900; line-height: 1;
-          letter-spacing: -5px; text-align: center;
+        .chip {
+          padding: 7px 14px;
+          border: 1px solid rgba(255,255,255,0.08);
+          font-size: 0.78rem; font-weight: 400;
+          color: rgba(255,255,255,0.35);
+          border-radius: 4px;
+          white-space: nowrap;
         }
-        .title-metric {
-          font-size: clamp(10rem, 28vw, 22rem);
-          font-weight: 900; line-height: 1;
-          letter-spacing: -12px;
+        .chip-bad {
+          padding: 7px 14px;
+          border: 1px solid rgba(220,38,38,0.25);
+          background: rgba(220,38,38,0.05);
+          font-size: 0.78rem; font-weight: 400;
+          color: rgba(220,38,38,0.6);
+          border-radius: 4px; white-space: nowrap;
         }
+        .chip-go {
+          padding: 7px 16px;
+          border: 1px solid rgba(139,32,53,0.5);
+          background: rgba(139,32,53,0.12);
+          font-size: 0.78rem; font-weight: 600;
+          color: #c06070; border-radius: 4px; white-space: nowrap;
+        }
+        .arr { color: rgba(255,255,255,0.12); font-size: 0.9rem; }
+        .arr-r { color: rgba(220,38,38,0.25); font-size: 0.9rem; }
 
-        .desc {
-          font-size: clamp(1rem, 1.6vw, 1.25rem);
-          font-weight: 400; line-height: 1.6;
-          max-width: 520px; text-align: center;
-          color: #666; margin-top: 20px;
-        }
-        .desc-w {
-          font-size: clamp(1rem, 1.6vw, 1.25rem);
-          font-weight: 400; line-height: 1.6;
-          max-width: 520px; text-align: center;
-          color: rgba(255,255,255,0.5); margin-top: 20px;
-        }
-
-        .eyeline {
-          font-size: 0.68rem; color: #bbb; margin-top: 10px;
-          font-variant-numeric: tabular-nums;
-        }
-
-        /* Flow */
-        .flow {
-          display: flex; align-items: center; gap: 8px;
-          flex-wrap: wrap; justify-content: center; margin-top: 36px;
-        }
-        .chip-red {
-          padding: 9px 16px; border-radius: 6px;
-          font-size: 0.82rem; font-weight: 500;
-          background: #fff0f0; border: 1px solid #fcc; color: #c00;
-        }
-        .chip-muted {
-          padding: 9px 16px; border-radius: 6px;
-          font-size: 0.82rem; font-weight: 500;
-          background: #f5f5f5; border: 1px solid #e8e8e8; color: #555;
-        }
-        .chip-burg {
-          padding: 9px 16px; border-radius: 6px;
-          font-size: 0.82rem; font-weight: 700;
-          background: ${BURG}; color: #fff;
-        }
-        .arr { color: #d0d0d0; font-size: 1rem; }
-        .arr-r { color: #fcc; font-size: 1rem; }
-
-        /* Two-col */
-        .two-col {
+        /* ── MIRROR ── */
+        .mirror-grid {
           display: grid; grid-template-columns: 1fr 1fr;
-          gap: 1px; background: #f0f0f0;
-          max-width: 720px; width: 100%; margin-top: 40px;
+          gap: 1px; background: rgba(255,255,255,0.06);
+          max-width: 640px; width: 100%; margin-top: 36px;
+          position: relative; z-index: 1;
         }
-        .tc {
-          background: #fff; padding: 28px 32px; text-align: left;
+        .mc { background: #0d0d0d; padding: 24px 26px; }
+        .mc-bad { background: rgba(220,38,38,0.04); padding: 24px 26px; }
+        .mc-k {
+          font-size: 0.56rem; font-weight: 600;
+          letter-spacing: 0.18em; text-transform: uppercase;
+          margin-bottom: 8px;
         }
-        .tc-label {
-          font-size: 0.6rem; font-weight: 700;
-          letter-spacing: 0.16em; text-transform: uppercase;
-          color: ${BURG}; margin-bottom: 10px;
+        .mc-k-good { color: #8b2035; }
+        .mc-k-bad  { color: rgba(220,38,38,0.6); }
+        .mc-name {
+          font-size: 0.95rem; font-weight: 500;
+          color: #e8e8e8; margin-bottom: 6px;
         }
-        .tc-body {
-          font-size: 0.88rem; line-height: 1.7; color: #666;
-        }
-
-        /* Three-col */
-        .three-col {
-          display: grid; grid-template-columns: repeat(3,1fr);
-          gap: 1px; background: #f0f0f0;
-          max-width: 820px; width: 100%; margin-top: 40px;
-        }
-        .thc {
-          background: #fff; padding: 28px 24px; text-align: left;
-        }
-        .thc-label {
-          font-size: 0.6rem; font-weight: 700;
-          letter-spacing: 0.16em; text-transform: uppercase;
-          color: ${BURG}; margin-bottom: 10px;
-        }
-        .thc-body { font-size: 0.85rem; line-height: 1.7; color: #666; }
-
-        /* Mirror */
-        .mirror-box {
-          max-width: 680px; width: 100%;
-          margin-top: 36px; display: grid;
-          grid-template-columns: 1fr 1fr; gap: 1px;
-          background: #f0f0f0;
-        }
-        .mb-good { background: #fff; padding: 24px; }
-        .mb-bad  { background: #fff8f8; padding: 24px; }
-        .mb-label {
-          font-size: 0.58rem; font-weight: 700; letter-spacing: 0.16em;
-          text-transform: uppercase; margin-bottom: 8px;
-        }
-        .mb-good .mb-label { color: ${BURG}; }
-        .mb-bad  .mb-label { color: #dc2626; }
-        .mb-name { font-size: 1rem; font-weight: 700; margin-bottom: 4px; color: #0f0f0f; }
-        .mb-score { font-size: 0.75rem; color: ${BURG}; }
-        .mb-burn  { font-size: 0.75rem; color: #dc2626; }
-        .burn-banner {
-          grid-column: 1/-1; background: #fff0f0;
-          border-top: 1px solid #fcc; padding: 12px 24px;
-          font-size: 0.72rem; font-weight: 600;
-          color: #dc2626; text-align: center;
+        .mc-score { font-size: 0.72rem; color: #8b2035; font-weight: 400; }
+        .mc-burn  { font-size: 0.72rem; color: rgba(220,38,38,0.7); font-weight: 400; }
+        .burn-row {
+          grid-column: 1/-1;
+          background: rgba(220,38,38,0.06);
+          border-top: 1px solid rgba(220,38,38,0.15);
+          padding: 10px 26px;
+          font-size: 0.68rem; font-weight: 500;
+          color: rgba(220,38,38,0.6);
           letter-spacing: 0.08em; text-transform: uppercase;
+          text-align: center;
         }
 
-        /* CDI big */
-        .cdi-letter {
-          font-size: clamp(9rem, 24vw, 18rem);
-          font-weight: 900; line-height: 1; letter-spacing: -8px;
-          color: ${BURG}; margin-bottom: 0;
+        /* ── CDI SLIDE ── */
+        .cdi-hero {
+          font-size: clamp(4rem, 10vw, 9rem);
+          font-weight: 700; letter-spacing: -3px; line-height: 1;
+          background: linear-gradient(135deg, #e8e8e8 30%, #6b2535 100%);
+          -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+          background-clip: text;
+          position: relative; z-index: 1; margin-bottom: 6px;
+        }
+        .cdi-sub {
+          font-size: 0.78rem; font-weight: 400; letter-spacing: 0.1em;
+          color: rgba(255,255,255,0.25); margin-bottom: 6px;
+          position: relative; z-index: 1;
         }
 
-        /* Stamp */
+        /* stamp */
         .stamp {
-          position: absolute; top: 30px; right: -72px;
-          transform: rotate(45deg);
-          font-size: 0.56rem; letter-spacing: 0.18em;
-          text-transform: uppercase;
-          border: 1px solid #e8e8e8; padding: 4px 56px;
-          background: #fff; color: #ccc; white-space: nowrap; z-index: 2;
+          position: absolute; top: 28px; right: -68px;
+          transform: rotate(45deg); z-index: 2;
+          font-size: 0.54rem; letter-spacing: 0.14em;
+          border: 1px solid rgba(255,255,255,0.06);
+          padding: 4px 52px; white-space: nowrap;
+          color: rgba(255,255,255,0.1);
+          background: #070707;
         }
 
-        /* Quote */
-        .quote {
-          font-size: clamp(1.1rem, 2.2vw, 1.6rem);
-          font-weight: 500; font-style: italic;
-          color: rgba(255,255,255,0.7);
-          max-width: 580px; text-align: center;
-          line-height: 1.55; margin-top: 24px;
-        }
-
-        /* Closing */
-        .closing {
-          font-size: clamp(2.5rem, 6vw, 5.5rem);
-          font-weight: 800; line-height: 1.05;
-          letter-spacing: -3px; text-align: center;
-        }
-
-        /* CTA */
-        .ctas { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 44px; }
-        .cta-primary {
-          background: #0a0a0a; color: #fff;
-          padding: 14px 32px; font-size: 0.8rem; font-weight: 600;
-          text-decoration: none; letter-spacing: 0.04em;
-          border-radius: 6px;
-        }
-        .cta-ghost {
-          background: transparent; border: 1px solid #e0e0e0;
-          color: #888; padding: 14px 32px; font-size: 0.8rem;
-          text-decoration: none; letter-spacing: 0.04em; border-radius: 6px;
-        }
-
-        /* Patent pill */
-        .pat-pill {
+        /* ── PILL ── */
+        .pill {
           display: inline-flex; align-items: center; gap: 8px;
-          border: 1px solid #e8e8e8; border-radius: 100px;
-          padding: 4px 14px; font-size: 0.6rem; font-weight: 600;
+          border: 1px solid rgba(255,255,255,0.07);
+          border-radius: 100px; padding: 5px 14px;
+          font-size: 0.58rem; font-weight: 500;
           letter-spacing: 0.12em; text-transform: uppercase;
-          color: #bbb; margin-top: 12px; margin-bottom: 4px;
+          color: rgba(255,255,255,0.25);
+          margin-top: 14px;
+          position: relative; z-index: 1;
         }
-        .pat-dot { width: 5px; height: 5px; border-radius: 50%; background: ${BURG}; }
+        .pill-dot { width: 5px; height: 5px; border-radius: 50%; background: #8b2035; }
+
+        /* ── QUOTE ── */
+        .quote {
+          font-size: clamp(1rem, 1.8vw, 1.35rem);
+          font-weight: 300; font-style: italic;
+          color: rgba(255,255,255,0.45);
+          max-width: 560px; text-align: center;
+          line-height: 1.65; margin-top: 24px;
+          position: relative; z-index: 1;
+        }
+
+        /* ── CLOSING ── */
+        .closing {
+          font-size: clamp(2rem, 4.5vw, 4rem);
+          font-weight: 600; line-height: 1.15;
+          letter-spacing: -1.5px; text-align: center;
+          color: #f0f0f0;
+          position: relative; z-index: 1;
+        }
+
+        /* ── CTA ── */
+        .ctas {
+          display: flex; gap: 12px; flex-wrap: wrap;
+          justify-content: center; margin-top: 40px;
+          position: relative; z-index: 1;
+        }
+        .cta-p {
+          background: #f0f0f0; color: #070707;
+          padding: 12px 28px; font-size: 0.78rem; font-weight: 600;
+          text-decoration: none; letter-spacing: 0.04em;
+          border-radius: 5px;
+        }
+        .cta-g {
+          background: transparent;
+          border: 1px solid rgba(255,255,255,0.12);
+          color: rgba(255,255,255,0.4);
+          padding: 12px 28px; font-size: 0.78rem;
+          text-decoration: none; letter-spacing: 0.04em; border-radius: 5px;
+        }
+
+        /* glow accent on hero */
+        .glow {
+          position: absolute; width: 600px; height: 600px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(107,26,42,0.18) 0%, transparent 70%);
+          pointer-events: none; z-index: 0;
+        }
 
         @media (max-width: 640px) {
-          .topbar { padding: 0 20px; }
-          .slide { padding: 52px 6vw 32px; }
-          .two-col, .three-col, .mirror-box { grid-template-columns: 1fr; }
+          .s { padding: 64px 8vw 48px; }
+          .g2, .g3, .mirror-grid { grid-template-columns: 1fr; }
+          .burn-row { grid-column: 1; }
         }
       `}</style>
 
-      {/* Top bar */}
-      <div className="topbar">
-        <div className="topbar-logo">Briarwood</div>
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <div className="topbar-nav">
+      {/* top bar */}
+      <div className="bar">
+        <div className="bar-logo">Briarwood</div>
+        <div className="bar-right">
+          <div className="bar-dots">
             {Array.from({ length: SLIDES }, (_, i) => (
-              <button
-                key={i}
-                className={`dot${current === i + 1 ? " active" : ""}`}
-                onClick={() => go(i + 1)}
-                aria-label={`Slide ${i + 1}`}
-              />
+              <button key={i} className={`bdot${current === i + 1 ? " on" : ""}`} onClick={() => go(i + 1)} />
             ))}
           </div>
-          <div className="topbar-count">{String(current).padStart(2, "0")} / {String(SLIDES).padStart(2, "0")}</div>
+          <div className="bar-num">{String(current).padStart(2,"0")} / {String(SLIDES).padStart(2,"0")}</div>
         </div>
       </div>
 
       <div className="deck" ref={containerRef}>
 
         {/* 01 — Hero */}
-        <div className="slide slide-white" data-slide="1">
-          <div className="kicker">dateinquiry.com</div>
-          <div className="title-xl">BRIARWOOD</div>
-          <div className="desc">The Infrastructure of Integrity.</div>
-          <div className="pat-pill">
-            <div className="pat-dot" />
-            CDI: Choreography Depth Index™ — Patent Pending
+        <div className="s" data-slide="1">
+          <div className="glow" style={{ top: "50%", left: "50%", transform: "translate(-50%,-50%)" }} />
+          <div className="eyebrow">dateinquiry.com</div>
+          <div className="h-hero">BRIARWOOD</div>
+          <div className="sub">The Infrastructure of Integrity.</div>
+          <div className="pill">
+            <div className="pill-dot" />
+            CDI: Choreography Depth Index™ &nbsp;·&nbsp; Patent Pending
           </div>
         </div>
 
         {/* 02 — Trust Tax */}
-        <div className="slide slide-dark" data-slide="2">
-          <div className="kicker-w">The Trust Tax</div>
-          <div className="title-metric" style={{ color: "#fff" }}>64%</div>
-          <div style={{ fontSize: "clamp(1.1rem,2vw,1.5rem)", fontWeight: 700, color: "rgba(255,255,255,0.3)", marginTop: 8 }}>
-            Execution Capacity Lost
-          </div>
-          <div className="desc-w">
+        <div className="s" data-slide="2">
+          <div className="glow" style={{ bottom: "0", right: "0" }} />
+          <div className="eyebrow">The Trust Tax</div>
+          <div className="h-metric">64%</div>
+          <div className="sub">Execution Capacity Lost.</div>
+          <div className="rule" />
+          <div className="sub" style={{ marginTop: 0 }}>
             The measurable cost of uncomputable human variables in the $8 trillion physical economy.
           </div>
-          <div className="eyeline">* 28 years · 900+ high-stakes coordination events</div>
+          <div className="fn">Derived from 28 years and 900+ high-stakes coordination events.</div>
         </div>
 
         {/* 03 — Chaos Wall */}
-        <div className="slide slide-near" data-slide="3">
-          <div className="kicker">The Problem</div>
-          <div className="title">The Manual Friction Loop.</div>
+        <div className="s" data-slide="3">
+          <div className="eyebrow">The Problem</div>
+          <div className="h1">The Manual Friction Loop.</div>
           <div className="flow">
-            <div className="chip-red">Identify Node</div><span className="arr-r">→</span>
-            <div className="chip-red">Verify</div><span className="arr-r">→</span>
-            <div className="chip-red">Search</div><span className="arr-r">→</span>
-            <div className="chip-red">Handshake</div><span className="arr-r">→</span>
-            <div className="chip-red">Underwrite</div><span className="arr-r">→</span>
-            <div className="chip-red">Manage Chaos</div><span className="arr-r">→</span>
-            <div className="chip-burg">Execute</div>
+            {["Identify Node","Verify","Search","Handshake","Underwrite","Manage Chaos"].map((n) => (
+              <span key={n} style={{ display: "contents" }}>
+                <div className="chip-bad">{n}</div>
+                <span className="arr-r">→</span>
+              </span>
+            ))}
+            <div className="chip-go">Execute</div>
           </div>
-          <div className="desc">
+          <div className="sub" style={{ marginTop: 28 }}>
             Software runs on math. The physical world runs on variables. This is the Invisible Labor stalling every autonomous network.
           </div>
         </div>
 
         {/* 04 — Latency Gap */}
-        <div className="slide slide-white" data-slide="4">
-          <div className="kicker">The Latency Gap</div>
-          <div className="title">90 Days vs. Second Zero.</div>
-          <div className="two-col">
-            <div className="tc">
-              <div className="tc-label">The Flaw</div>
-              <div className="tc-body">30/60/90-day lag is a gift to bad actors. It creates an exploitation window for reputation laundering — reset by changing a name or filing a new LLC.</div>
+        <div className="s" data-slide="4">
+          <div className="eyebrow">The Latency Gap</div>
+          <div className="h1">90 Days vs. Second Zero.</div>
+          <div className="grid g2">
+            <div className="cell">
+              <div className="cell-k">The Flaw</div>
+              <div className="cell-v">30/60/90-day lag is a gift to bad actors. It creates an exploitation window for reputation laundering.</div>
             </div>
-            <div className="tc">
-              <div className="tc-label">The Shift</div>
-              <div className="tc-body">Trust must be an Instant Behavioral Primitive. Available at second zero — not retrieved from a trailing audit.</div>
+            <div className="cell">
+              <div className="cell-k">The Shift</div>
+              <div className="cell-v">Trust must be an Instant Behavioral Primitive — available at second zero, not retrieved from a trailing audit.</div>
             </div>
           </div>
         </div>
 
         {/* 05 — Identity Anchor */}
-        <div className="slide slide-near" data-slide="5">
-          <div className="kicker">The Identity Anchor</div>
-          <div className="title">The SSN for Execution.</div>
-          <div className="desc">You cannot reset integrity by changing a name or forming a new LLC.</div>
-          <div className="two-col" style={{ gridTemplateColumns: "1fr 1fr 1fr", maxWidth: 820 }}>
-            <div className="tc">
-              <div className="tc-label">Anchored</div>
-              <div className="tc-body">A CDI Identity follows every agent, operator, and entity across every coordination — permanently.</div>
-            </div>
-            <div className="tc">
-              <div className="tc-label">No Reset</div>
-              <div className="tc-body">If an identity has no history, the system sees Unverified Origin — not zero. This triggers the Mirror Protocol.</div>
-            </div>
-            <div className="tc">
-              <div className="tc-label">Immutable</div>
-              <div className="tc-body">There is no Delete Profile button for integrity. The anchor persists across all legal structures.</div>
-            </div>
+        <div className="s" data-slide="5">
+          <div className="eyebrow">The Identity Anchor</div>
+          <div className="h1">The SSN for Execution.</div>
+          <div className="sub">You cannot reset integrity by changing a name or forming a new LLC.</div>
+          <div className="grid g3">
+            {[
+              { k: "Anchored", v: "A CDI Identity follows every agent and entity across every coordination — permanently." },
+              { k: "No Reset", v: "No history reads as Unverified Origin, not zero — triggering the Mirror Protocol automatically." },
+              { k: "Immutable", v: "There is no Delete Profile button for integrity. The anchor persists across all legal structures." },
+            ].map((x) => (
+              <div key={x.k} className="cell">
+                <div className="cell-k">{x.k}</div>
+                <div className="cell-v">{x.v}</div>
+              </div>
+            ))}
           </div>
         </div>
 
         {/* 06 — CDI */}
-        <div className="slide slide-white" data-slide="6" style={{ position: "relative", overflow: "hidden" }}>
+        <div className="s" data-slide="6" style={{ position: "relative", overflow: "hidden" }}>
+          <div className="glow" style={{ top: "50%", left: "50%", transform: "translate(-50%,-50%)" }} />
           <div className="stamp">US PATENT PENDING // REF: 28-YR GROUND TRUTH</div>
-          <div className="kicker">The Patented Solution</div>
-          <div className="cdi-letter">CDI</div>
-          <div style={{ fontSize: "clamp(0.9rem,1.5vw,1.1rem)", fontWeight: 500, color: "#bbb", letterSpacing: "0.04em", marginBottom: 8 }}>
-            Choreography Depth Index™
+          <div className="eyebrow">The Patented Solution</div>
+          <div className="cdi-hero">CDI</div>
+          <div className="cdi-sub">Choreography Depth Index™</div>
+          <div className="pill" style={{ marginBottom: 28 }}>
+            <div className="pill-dot" />Patent Pending
           </div>
-          <div className="pat-pill" style={{ marginBottom: 24 }}>
-            <div className="pat-dot" />
-            Patent Pending
-          </div>
-          <div className="three-col">
+          <div className="grid g3">
             {[
               { k: "Choreography", v: "Precise sequence and timing of multi-node execution events." },
               { k: "Depth", v: "High-fidelity behavioral ground truth that pixels cannot reach." },
               { k: "Index", v: "Machine-readable standard for underwriting risk at execution time." },
             ].map((x, i) => (
-              <div key={x.k} className="thc" style={{ borderLeft: i > 0 ? "1px solid #f0f0f0" : "none" }}>
-                <div className="thc-label">{x.k}</div>
-                <div className="thc-body">{x.v}</div>
+              <div key={x.k} className="cell" style={{ borderLeft: i > 0 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
+                <div className="cell-k">{x.k}</div>
+                <div className="cell-v">{x.v}</div>
               </div>
             ))}
           </div>
         </div>
 
         {/* 07 — Mirror Protocol */}
-        <div className="slide slide-near" data-slide="7">
-          <div className="kicker">The Mirror Protocol</div>
-          <div className="title">Recursive Associative Trust.</div>
-          <div className="desc">Trust is a network effect. You are the company you keep.</div>
-          <div className="mirror-box">
-            <div className="mb-good">
-              <div className="mb-label">Master Agent</div>
-              <div className="mb-name">Principal Node</div>
-              <div className="mb-score">CDI 91 — vouches for sub-agent</div>
+        <div className="s" data-slide="7">
+          <div className="eyebrow">The Mirror Protocol</div>
+          <div className="h1">Recursive Associative Trust.</div>
+          <div className="sub">Trust is a network effect. You are the company you keep.</div>
+          <div className="mirror-grid">
+            <div className="mc">
+              <div className="mc-k mc-k-good">Master Agent</div>
+              <div className="mc-name">Principal Node</div>
+              <div className="mc-score">CDI 91 — vouches for sub-agent</div>
             </div>
-            <div className="mb-bad">
-              <div className="mb-label">Sub-Agent</div>
-              <div className="mb-name">Referred Node</div>
-              <div className="mb-burn">Breaks coordination → Burn reflects instantly</div>
+            <div className="mc-bad">
+              <div className="mc-k mc-k-bad">Sub-Agent</div>
+              <div className="mc-name">Referred Node</div>
+              <div className="mc-burn">Breaks coordination → Burn reflects instantly</div>
             </div>
-            <div className="burn-banner">
-              ⇄ Burn propagates back to Master Agent at second zero
-            </div>
+            <div className="burn-row">⇄ &nbsp; Burn propagates to Master Agent at second zero</div>
           </div>
-          <div className="desc" style={{ marginTop: 20 }}>
+          <div className="sub" style={{ marginTop: 20 }}>
             High-fidelity operators refuse to align with bad actors because the CDI Burn is too expensive. The system self-cleans.
           </div>
         </div>
 
         {/* 08 — Neutral Arbiter */}
-        <div className="slide slide-burg" data-slide="8">
-          <div className="kicker-w">The Moat</div>
-          <div className="title" style={{ color: "#fff" }}>Independence is the Moat.</div>
+        <div className="s" data-slide="8">
+          <div className="glow" style={{ top: "20%", left: "50%", transform: "translateX(-50%)", background: "radial-gradient(circle, rgba(139,32,53,0.15) 0%, transparent 70%)" }} />
+          <div className="eyebrow">The Moat</div>
+          <div className="h1">Independence is the Moat.</div>
           <div className="quote">
             "You don't let the student grade their own paper. You don't have the bank write its own credit report."
           </div>
-          <div className="desc-w" style={{ marginTop: 32 }}>
-            Agent companies cannot underwrite their own risk. Briarwood is the Independent Standard — and it cannot be replicated by any player with skin in the game.
+          <div className="sub" style={{ marginTop: 28 }}>
+            Agent companies cannot underwrite their own risk. Briarwood is the Independent Standard — and cannot be replicated by any player with skin in the game.
           </div>
         </div>
 
         {/* 09 — Why Now */}
-        <div className="slide slide-white" data-slide="9">
-          <div className="kicker">Why Now</div>
-          <div className="title">Computing the Uncomputable.</div>
-          <div className="two-col">
-            <div className="tc">
-              <div className="tc-label">The Screen Limit</div>
-              <div className="tc-body">AI agents have reached the boundary of what can be done in pixels. Entering the physical world requires an Action-Conditioned Ledger.</div>
+        <div className="s" data-slide="9">
+          <div className="eyebrow">Why Now</div>
+          <div className="h1">Computing the Uncomputable.</div>
+          <div className="grid g2">
+            <div className="cell">
+              <div className="cell-k">The Screen Limit</div>
+              <div className="cell-v">AI agents have reached the boundary of what can be done in pixels. The physical world requires an Action-Conditioned Ledger.</div>
             </div>
-            <div className="tc">
-              <div className="tc-label">The Bridge</div>
-              <div className="tc-body">We provide the Choreography — behavioral truth — that LLMs and Video Models cannot learn from pixels alone. It must be lived, captured, and indexed.</div>
+            <div className="cell">
+              <div className="cell-k">The Bridge</div>
+              <div className="cell-v">We provide the Choreography — behavioral truth — that LLMs and Video Models cannot learn from pixels alone. It must be lived, captured, and indexed.</div>
             </div>
           </div>
         </div>
 
         {/* 10 — Execution Integrity */}
-        <div className="slide slide-near" data-slide="10">
-          <div className="kicker">With Briarwood</div>
-          <div className="title">Execution Integrity.</div>
-          <div className="flow" style={{ marginTop: 36 }}>
-            <div className="chip-muted">Identify Node</div>
+        <div className="s" data-slide="10">
+          <div className="eyebrow">With Briarwood</div>
+          <div className="h1">Execution Integrity.</div>
+          <div className="flow" style={{ marginTop: 32 }}>
+            <div className="chip">Identify Node</div>
             <span className="arr">→</span>
-            <div className="chip-burg">Execute</div>
+            <div className="chip-go">Execute</div>
           </div>
-          <div className="desc">
+          <div className="sub" style={{ marginTop: 24 }}>
             We remove the Trust Tax. By digitizing the handshake, physical networks move at the speed of software.
           </div>
           <div className="ctas">
-            <a href="mailto:violet@briarwood.ai" className="cta-primary">Request a Demo</a>
-            <a href="/demo-landing" className="cta-ghost">Full Overview →</a>
+            <a href="mailto:violet@briarwood.ai" className="cta-p">Request a Demo</a>
+            <a href="/demo-landing" className="cta-g">Full Overview →</a>
           </div>
         </div>
 
         {/* 11 — Philosophy */}
-        <div className="slide slide-dark" data-slide="11">
-          <div className="kicker-w">The Philosophy</div>
-          <div className="closing" style={{ color: "#fff" }}>
+        <div className="s" data-slide="11">
+          <div className="glow" style={{ bottom: "-100px", left: "50%", transform: "translateX(-50%)" }} />
+          <div className="eyebrow">The Philosophy</div>
+          <div className="closing">
             Privacy Stays.<br />
-            <span style={{ color: BURG }}>Reputation Runs.</span><br />
+            <span style={{ color: "#8b2035" }}>Reputation Runs.</span><br />
             Trust Wins.
           </div>
-          <div className="desc-w" style={{ marginTop: 28 }}>
-            The Human Defense Layer for the High-Stakes Economy.
-          </div>
-          <div style={{ marginTop: 56, fontSize: "0.6rem", letterSpacing: "0.18em", opacity: 0.2, color: "#fff", textTransform: "uppercase" }}>
-            Briarwood · Founder Led · CDI™ Patent Pending · 2026
+          <div className="rule" />
+          <div className="sub">The Human Defense Layer for the High-Stakes Economy.</div>
+          <div style={{ marginTop: 52, fontSize: "0.58rem", letterSpacing: "0.18em", color: "rgba(255,255,255,0.12)", textTransform: "uppercase", position: "relative", zIndex: 1 }}>
+            Briarwood &nbsp;·&nbsp; Founder Led &nbsp;·&nbsp; CDI™ Patent Pending &nbsp;·&nbsp; 2026
           </div>
         </div>
 
