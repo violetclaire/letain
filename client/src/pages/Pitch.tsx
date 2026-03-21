@@ -1,592 +1,730 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, useInView, animate } from "framer-motion";
 
-const R = "#8b2035";
+const INK = "#1c1814";
+const RED = "#6b1a2a";
+const CREAM = "#f0ead8";
+const SURFACE = "#e8e0cc";
+const FAINT = "rgba(28,24,20,0.08)";
 const SLIDES = 11;
 
-function useSlideInView(once = true) {
+/* ── helpers ── */
+function useSlideView() {
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once, amount: 0.4 });
+  const inView = useInView(ref, { once: true, amount: 0.35 });
   return { ref, inView };
 }
 
 function Counter({ to, duration = 1.8 }: { to: number; duration?: number }) {
   const [val, setVal] = useState(0);
-  const { ref, inView } = useSlideInView();
+  const { ref, inView } = useSlideView();
   useEffect(() => {
     if (!inView) return;
-    const ctrl = animate(0, to, {
-      duration,
-      ease: "easeOut",
-      onUpdate: (v) => setVal(Math.round(v)),
-    });
-    return () => ctrl.stop();
+    const c = animate(0, to, { duration, ease: "easeOut", onUpdate: (v) => setVal(Math.round(v)) });
+    return () => c.stop();
   }, [inView, to, duration]);
   return <span ref={ref}>{val}</span>;
 }
 
-function GaugeChart({ pct }: { pct: number }) {
-  const { ref, inView } = useSlideInView();
-  const r = 110, cx = 140, cy = 140;
-  const circumference = Math.PI * r;
-  const dash = (pct / 100) * circumference;
-
+/* Architectural title block — bottom right of every slide */
+function TitleBlock({ sheet, title }: { sheet: string; title: string }) {
   return (
-    <div ref={ref} style={{ position: "relative", width: 280, height: 160, margin: "0 auto" }}>
-      <svg width={280} height={160} viewBox="0 0 280 160">
-        <path
-          d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
-          fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={14}
-          strokeLinecap="round"
-        />
-        <motion.path
-          d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
-          fill="none" stroke={R} strokeWidth={14}
-          strokeLinecap="round"
-          strokeDasharray={`${circumference}`}
-          initial={{ strokeDashoffset: circumference }}
-          animate={inView ? { strokeDashoffset: circumference - dash } : {}}
-          transition={{ duration: 1.8, ease: "easeOut", delay: 0.3 }}
-        />
-        <circle cx={cx - r} cy={cy} r={5} fill="rgba(255,255,255,0.15)" />
-        <circle cx={cx + r} cy={cy} r={5} fill={R} />
+    <div style={{
+      position: "absolute", bottom: 0, right: 0,
+      border: `1px solid ${INK}`, borderTop: `2px solid ${INK}`, borderLeft: `2px solid ${INK}`,
+      display: "grid", gridTemplateColumns: "1fr 1fr", gridTemplateRows: "auto auto",
+      fontFamily: "'Courier New', monospace", fontSize: "0.54rem",
+      letterSpacing: "0.1em", textTransform: "uppercase",
+      background: CREAM, color: INK, minWidth: 220,
+    }}>
+      <div style={{ gridColumn: "1/-1", padding: "4px 8px", borderBottom: `1px solid ${INK}`, fontWeight: 700, color: RED }}>
+        BRIARWOOD // CDI ARCHITECTURE
+      </div>
+      <div style={{ padding: "4px 8px", borderRight: `1px solid ${INK}`, opacity: 0.5 }}>{title}</div>
+      <div style={{ padding: "4px 8px", color: RED, fontWeight: 700 }}>SHEET {sheet}</div>
+      <div style={{ padding: "4px 8px", borderRight: `1px solid ${INK}`, opacity: 0.5 }}>DATE: MAR 2026</div>
+      <div style={{ padding: "4px 8px", opacity: 0.5 }}>PATENT PENDING</div>
+    </div>
+  );
+}
+
+/* Corner registration marks */
+function RegMarks() {
+  const mk = (style: React.CSSProperties) => (
+    <div style={{ position: "absolute", width: 16, height: 16, ...style }}>
+      <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: 1, background: INK, opacity: 0.35 }} />
+      <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: INK, opacity: 0.35 }} />
+    </div>
+  );
+  return <>
+    {mk({ top: 12, left: 12 })}
+    {mk({ top: 12, right: 12 })}
+    {mk({ bottom: 44, left: 12 })}
+    {mk({ bottom: 44, right: 12 })}
+  </>;
+}
+
+/* Double-line frame */
+function Frame() {
+  return (
+    <>
+      <div style={{ position: "absolute", inset: 8, border: `1px solid ${INK}`, opacity: 0.18, pointerEvents: "none" }} />
+      <div style={{ position: "absolute", inset: 12, border: `0.5px solid ${INK}`, opacity: 0.1, pointerEvents: "none" }} />
+    </>
+  );
+}
+
+/* Drafting grid */
+function Grid() {
+  return (
+    <div style={{
+      position: "absolute", inset: 0, pointerEvents: "none",
+      backgroundImage: `linear-gradient(${FAINT} 1px, transparent 1px), linear-gradient(90deg, ${FAINT} 1px, transparent 1px)`,
+      backgroundSize: "48px 48px",
+    }} />
+  );
+}
+
+/* Annotation label */
+function Ann({ children, right }: { children: React.ReactNode; right?: boolean }) {
+  return (
+    <div style={{
+      fontFamily: "'Courier New', monospace", fontSize: "0.56rem",
+      letterSpacing: "0.16em", textTransform: "uppercase", color: RED,
+      display: "flex", alignItems: "center", gap: 6,
+      justifyContent: right ? "flex-end" : "flex-start",
+    }}>
+      <span style={{ display: "inline-block", width: 16, height: 1, background: RED, opacity: 0.5 }} />
+      {children}
+    </div>
+  );
+}
+
+/* Gauge arc */
+function Gauge({ pct }: { pct: number }) {
+  const { ref, inView } = useSlideView();
+  const r = 90, cx = 120, cy = 110;
+  const arc = Math.PI * r;
+  return (
+    <div ref={ref} style={{ position: "relative", width: 240, height: 130 }}>
+      <svg width={240} height={130} viewBox="0 0 240 130">
+        <path d={`M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}`}
+          fill="none" stroke={`${INK}18`} strokeWidth={10} strokeLinecap="round" />
+        <motion.path d={`M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}`}
+          fill="none" stroke={RED} strokeWidth={10} strokeLinecap="round"
+          strokeDasharray={arc}
+          initial={{ strokeDashoffset: arc }}
+          animate={inView ? { strokeDashoffset: arc - (pct/100)*arc } : {}}
+          transition={{ duration: 1.8, ease: "easeOut", delay: 0.4 }} />
+        <circle cx={cx-r} cy={cy} r={4} fill={`${INK}40`} />
+        <motion.circle cx={cx+r} cy={cy} r={4} fill={RED}
+          initial={{ opacity: 0 }} animate={inView ? { opacity: 1 } : {}} transition={{ delay: 1.6 }} />
+        <text x={cx} y={cy-8} textAnchor="middle" fill={INK} fontSize={11}
+          fontFamily="'Courier New', monospace" opacity={0.35}>CAPACITY LOST</text>
       </svg>
-      <div style={{
-        position: "absolute", bottom: 0, left: "50%", transform: "translateX(-50%)",
-        textAlign: "center",
-      }}>
-        <div style={{ fontSize: "0.6rem", letterSpacing: "0.16em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase", marginBottom: 4 }}>
-          execution capacity lost
+    </div>
+  );
+}
+
+/* Score ring */
+function Ring({ score, label, delay=0 }: { score:number; label:string; delay?:number }) {
+  const { ref, inView } = useSlideView();
+  const r=34, c=2*Math.PI*r;
+  return (
+    <div ref={ref} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:8 }}>
+      <div style={{ position:"relative", width:80, height:80 }}>
+        <svg width={80} height={80} viewBox="0 0 80 80">
+          <circle cx={40} cy={40} r={r} fill="none" stroke={`${INK}12`} strokeWidth={6} />
+          <motion.circle cx={40} cy={40} r={r} fill="none" stroke={RED} strokeWidth={6}
+            strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c}
+            animate={inView ? { strokeDashoffset: c-(score/100)*c } : {}}
+            transition={{ duration:1.4, delay, ease:"easeOut" }}
+            transform="rotate(-90 40 40)" />
+        </svg>
+        <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center",
+          fontFamily:"'Courier New', monospace", fontSize:"0.9rem", fontWeight:700, color:INK }}>
+          {score}
         </div>
-        <div style={{ display: "flex", gap: 8, justifyContent: "center", fontSize: "0.72rem" }}>
-          <span style={{ color: "rgba(255,255,255,0.2)" }}>0%</span>
-          <span style={{ color: R }}>▪ Lost</span>
-          <span style={{ color: "rgba(255,255,255,0.2)" }}>100%</span>
-        </div>
+      </div>
+      <div style={{ fontFamily:"'Courier New', monospace", fontSize:"0.54rem", letterSpacing:"0.12em",
+        textTransform:"uppercase", color:INK, opacity:0.5, textAlign:"center", maxWidth:72 }}>
+        {label}
       </div>
     </div>
   );
 }
 
-function FlowDiagram() {
-  const { ref, inView } = useSlideInView();
-  const steps = ["Identify Node", "Verify", "Search", "Handshake", "Underwrite", "Manage Chaos"];
+/* Mirror SVG network */
+function MirrorNet() {
+  const { ref, inView } = useSlideView();
+  const nodes = [
+    { x:340, y:70, label:"MASTER", score:"CDI 91", bad:false },
+    { x:160, y:195, label:"NODE A", score:"CDI 88", bad:false },
+    { x:270, y:195, label:"NODE B", score:"CDI 74", bad:false },
+    { x:410, y:195, label:"NODE C", score:"BURN ↯", bad:true },
+    { x:520, y:195, label:"NODE D", score:"CDI 91", bad:false },
+  ];
   return (
-    <div ref={ref} style={{ position: "relative", zIndex: 1 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "center", margin: "32px 0 16px" }}>
-        {steps.map((s, i) => (
-          <motion.span key={s} style={{ display: "contents" }}>
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ delay: i * 0.18, duration: 0.4 }}
+    <div ref={ref} style={{ position:"relative", zIndex:1, width:"100%", maxWidth:680 }}>
+      <svg width="100%" viewBox="0 0 680 280" style={{ overflow:"visible" }}>
+        {nodes.slice(1).map((n,i) => (
+          <motion.line key={i} x1={340} y1={70} x2={n.x} y2={n.y}
+            stroke={n.bad ? RED : `${INK}25`}
+            strokeWidth={n.bad ? 1 : 0.8}
+            strokeDasharray={n.bad ? "3 3" : "4 4"}
+            initial={{ pathLength:0, opacity:0 }}
+            animate={inView ? { pathLength:1, opacity:1 } : {}}
+            transition={{ duration:0.8, delay:0.3+i*0.15 }} />
+        ))}
+        {nodes.map((n,i) => (
+          <motion.g key={n.label}
+            initial={{ opacity:0, scale:0 }} animate={inView ? { opacity:1, scale:1 } : {}}
+            transition={{ duration:0.4, delay:i*0.12 }}>
+            <rect x={n.x-30} y={n.y-22} width={60} height={44}
+              fill={CREAM} stroke={n.bad ? RED : INK}
+              strokeWidth={n.bad ? 1.5 : 0.8} rx={1} />
+            <text x={n.x} y={n.y-6} textAnchor="middle"
+              fill={n.bad ? RED : INK} fontSize={7.5}
+              fontFamily="'Courier New', monospace" fontWeight={700}>
+              {n.label}
+            </text>
+            <text x={n.x} y={n.y+8} textAnchor="middle"
+              fill={n.bad ? RED : `${INK}60`} fontSize={6.5}
+              fontFamily="'Courier New', monospace">
+              {n.score}
+            </text>
+          </motion.g>
+        ))}
+        {inView && <>
+          <motion.rect x={380} y={48} width={60} height={44} rx={1}
+            fill="none" stroke={RED} strokeWidth={0.8}
+            initial={{ opacity:0.6, scale:1 }} animate={{ opacity:0, scale:1.6 }}
+            style={{ transformOrigin:"410px 195px" }}
+            transition={{ duration:1.6, delay:1.2, repeat:Infinity, repeatDelay:2 }} />
+        </>}
+      </svg>
+      <div style={{ display:"flex", justifyContent:"center", gap:24, marginTop:4 }}>
+        {[["▪ Standard node",false],["▪ Burn propagating",true]].map(([l,bad]) => (
+          <span key={String(l)} style={{ fontFamily:"'Courier New', monospace", fontSize:"0.52rem",
+            letterSpacing:"0.1em", color:bad ? RED : `${INK}60`, textTransform:"uppercase" }}>
+            {l as string}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* Friction flow */
+function FrictionFlow() {
+  const { ref, inView } = useSlideView();
+  const steps = ["Identify Node","Verify","Search","Handshake","Underwrite","Manage Chaos"];
+  return (
+    <div ref={ref} style={{ position:"relative", zIndex:1, width:"100%", maxWidth:860 }}>
+      <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap", justifyContent:"center", margin:"28px 0 12px" }}>
+        {steps.map((s,i) => (
+          <span key={s} style={{ display:"contents" }}>
+            <motion.div initial={{ opacity:0, y:8 }}
+              animate={inView ? { opacity:1, y:0 } : {}}
+              transition={{ delay:i*0.15, duration:0.35 }}
               style={{
-                padding: "9px 14px", borderRadius: 6,
-                border: "1px solid rgba(220,38,38,0.3)",
-                background: "rgba(220,38,38,0.06)",
-                color: "rgba(255,120,120,0.8)",
-                fontSize: "0.8rem", whiteSpace: "nowrap",
-              }}
-            >
+                padding:"8px 14px", border:`1px solid ${RED}60`,
+                background:`${RED}08`, color:`${RED}cc`,
+                fontFamily:"'Courier New', monospace", fontSize:"0.72rem",
+                letterSpacing:"0.06em", whiteSpace:"nowrap",
+              }}>
               {s}
             </motion.div>
-            <motion.span
-              initial={{ opacity: 0 }}
-              animate={inView ? { opacity: 1 } : {}}
-              transition={{ delay: i * 0.18 + 0.1 }}
-              style={{ color: "rgba(220,38,38,0.25)", fontSize: "0.85rem" }}
-            >→</motion.span>
-          </motion.span>
+            <motion.span initial={{ opacity:0 }} animate={inView ? { opacity:1 } : {}}
+              transition={{ delay:i*0.15+0.1 }}
+              style={{ color:`${RED}40`, fontSize:"0.8rem" }}>→</motion.span>
+          </span>
         ))}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.85 }}
-          animate={inView ? { opacity: 1, scale: 1 } : {}}
-          transition={{ delay: steps.length * 0.18 + 0.1, duration: 0.5, type: "spring" }}
+        <motion.div initial={{ opacity:0, scale:0.9 }}
+          animate={inView ? { opacity:1, scale:1 } : {}}
+          transition={{ delay:steps.length*0.15+0.1, type:"spring" }}
           style={{
-            padding: "9px 18px", borderRadius: 6,
-            background: R, color: "#fff",
-            fontSize: "0.82rem", fontWeight: 600,
-          }}
-        >
-          Execute
+            padding:"8px 16px", border:`1px solid ${INK}`, background:INK, color:CREAM,
+            fontFamily:"'Courier New', monospace", fontSize:"0.72rem",
+            letterSpacing:"0.06em", fontWeight:700,
+          }}>
+          EXECUTE
         </motion.div>
       </div>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={inView ? { opacity: 1 } : {}}
-        transition={{ delay: 1.5 }}
-        style={{
-          display: "flex", alignItems: "center", justifyContent: "center",
-          gap: 8, marginTop: 8,
-        }}
-      >
-        <div style={{ height: 1, width: 40, background: "rgba(220,38,38,0.2)" }} />
-        <span style={{ fontSize: "0.62rem", color: "rgba(220,38,38,0.5)", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+      <motion.div initial={{ opacity:0 }} animate={inView ? { opacity:1 } : {}} transition={{ delay:1.4 }}
+        style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
+        <div style={{ height:1, width:32, background:`${RED}40` }} />
+        <span style={{ fontFamily:"'Courier New', monospace", fontSize:"0.52rem",
+          color:`${RED}80`, letterSpacing:"0.12em", textTransform:"uppercase" }}>
           6 steps of invisible labor before a single task begins
         </span>
-        <div style={{ height: 1, width: 40, background: "rgba(220,38,38,0.2)" }} />
+        <div style={{ height:1, width:32, background:`${RED}40` }} />
       </motion.div>
     </div>
   );
 }
 
+/* Timeline bars */
 function TimelineBars() {
-  const { ref, inView } = useSlideInView();
+  const { ref, inView } = useSlideView();
   return (
-    <div ref={ref} style={{ maxWidth: 620, width: "100%", marginTop: 40, position: "relative", zIndex: 1 }}>
+    <div ref={ref} style={{ maxWidth:580, width:"100%", marginTop:36, position:"relative", zIndex:1 }}>
       {[
-        { label: "Traditional (FICO / Background Check)", days: "30–90 day lag", pct: 100, color: "rgba(220,38,38,0.5)", bad: true },
-        { label: "Briarwood CDI — Instant Behavioral Primitive", days: "Second Zero", pct: 2, color: R, bad: false },
-      ].map((row, i) => (
-        <div key={row.label} style={{ marginBottom: 28 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, alignItems: "baseline" }}>
-            <span style={{ fontSize: "0.78rem", color: row.bad ? "rgba(255,255,255,0.3)" : "#e8e8e8", fontWeight: row.bad ? 400 : 600 }}>{row.label}</span>
-            <span style={{ fontSize: "0.7rem", color: row.bad ? "rgba(220,38,38,0.6)" : R, fontWeight: 600 }}>{row.days}</span>
+        { label:"Traditional (FICO / Background)", note:"30–90 DAY LAG", pct:100, bad:true },
+        { label:"Briarwood CDI", note:"SECOND ZERO", pct:2, bad:false },
+      ].map((row,i) => (
+        <div key={row.label} style={{ marginBottom:28 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8, alignItems:"baseline" }}>
+            <span style={{ fontFamily:"'Courier New', monospace", fontSize:"0.68rem",
+              color:row.bad ? `${INK}50` : INK, letterSpacing:"0.08em", textTransform:"uppercase" }}>
+              {row.label}
+            </span>
+            <span style={{ fontFamily:"'Courier New', monospace", fontSize:"0.65rem",
+              color:row.bad ? RED : RED, fontWeight:700, letterSpacing:"0.06em" }}>
+              {row.note}
+            </span>
           </div>
-          <div style={{ height: 6, background: "rgba(255,255,255,0.05)", borderRadius: 3, overflow: "hidden" }}>
-            <motion.div
-              initial={{ width: 0 }}
-              animate={inView ? { width: `${row.pct}%` } : {}}
-              transition={{ duration: 1.2, delay: i * 0.3 + 0.3, ease: "easeOut" }}
-              style={{ height: "100%", background: row.color, borderRadius: 3 }}
-            />
+          <div style={{ height:5, background:`${INK}10`, position:"relative" }}>
+            <motion.div initial={{ width:0 }}
+              animate={inView ? { width:`${row.pct}%` } : {}}
+              transition={{ duration:1.2, delay:i*0.3+0.3, ease:"easeOut" }}
+              style={{ height:"100%", background:row.bad ? `${RED}60` : INK }} />
           </div>
         </div>
       ))}
-      <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 20, marginTop: 8 }}>
-        <p style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.3)", lineHeight: 1.7 }}>
-          Latency is a gift to bad actors. Every day of lag is a window for reputation laundering — reset by changing a name or forming a new LLC.
-        </p>
-      </div>
     </div>
   );
 }
 
-function ScoreRing({ score, label, delay = 0 }: { score: number; label: string; delay?: number }) {
-  const { ref, inView } = useSlideInView();
-  const r = 38, c = 2 * Math.PI * r;
-  const dash = (score / 100) * c;
+/* ── SLIDE WRAPPER ── */
+function Slide({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
   return (
-    <div ref={ref} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-      <div style={{ position: "relative", width: 96, height: 96 }}>
-        <svg width={96} height={96} viewBox="0 0 96 96">
-          <circle cx={48} cy={48} r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={8} />
-          <motion.circle
-            cx={48} cy={48} r={r}
-            fill="none" stroke={R} strokeWidth={8}
-            strokeLinecap="round"
-            strokeDasharray={c}
-            strokeDashoffset={c}
-            animate={inView ? { strokeDashoffset: c - dash } : {}}
-            transition={{ duration: 1.4, delay, ease: "easeOut" }}
-            transform="rotate(-90 48 48)"
-          />
-        </svg>
-        <div style={{
-          position: "absolute", inset: 0, display: "flex", flexDirection: "column",
-          alignItems: "center", justifyContent: "center",
-        }}>
-          <span style={{ fontSize: "1.1rem", fontWeight: 700, color: "#f0f0f0" }}>{score}</span>
-        </div>
-      </div>
-      <span style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.4)", textAlign: "center", maxWidth: 80 }}>{label}</span>
+    <div data-slide={n} style={{
+      height:"100vh", minHeight:600, width:"100%",
+      background:CREAM, color:INK,
+      position:"relative", overflow:"hidden",
+      display:"flex", flexDirection:"column",
+      alignItems:"center", justifyContent:"center",
+      padding:"80px 10vw 60px",
+      borderBottom:`1px solid ${INK}18`,
+    }}>
+      <Grid />
+      <Frame />
+      <RegMarks />
+      {children}
+      <TitleBlock sheet={String(n).padStart(2,"0")} title={title} />
     </div>
   );
 }
 
-function MirrorNetwork() {
-  const { ref, inView } = useSlideInView();
-  return (
-    <div ref={ref} style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: 700 }}>
-      <svg width="100%" viewBox="0 0 700 260" style={{ overflow: "visible" }}>
-        {/* Connection lines */}
-        {[[350,80],[180,200],[280,200],[420,200],[520,200]].slice(1).map(([x,y], i) => (
-          <motion.line
-            key={i} x1={350} y1={80} x2={x} y2={y}
-            stroke={i === 2 ? "rgba(220,38,38,0.4)" : "rgba(255,255,255,0.1)"}
-            strokeWidth={i === 2 ? 1.5 : 1}
-            strokeDasharray="4 3"
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={inView ? { pathLength: 1, opacity: 1 } : {}}
-            transition={{ duration: 0.8, delay: 0.3 + i * 0.15 }}
-          />
-        ))}
-
-        {/* Master node */}
-        <motion.g initial={{ scale: 0, opacity: 0 }} animate={inView ? { scale: 1, opacity: 1 } : {}} transition={{ duration: 0.5 }}>
-          <circle cx={350} cy={80} r={28} fill="#0d0d0d" stroke={R} strokeWidth={1.5} />
-          <text x={350} y={75} textAnchor="middle" fill="#e8e8e8" fontSize={9} fontFamily="Inter" fontWeight={600}>MASTER</text>
-          <text x={350} y={87} textAnchor="middle" fill={R} fontSize={8} fontFamily="Inter">CDI 91</text>
-        </motion.g>
-
-        {/* Sub-nodes */}
-        {[
-          { x: 180, y: 200, label: "Node A", score: "CDI 88", bad: false, delay: 0.5 },
-          { x: 280, y: 200, label: "Node B", score: "CDI 74", bad: false, delay: 0.65 },
-          { x: 420, y: 200, label: "Node C", score: "BURN", bad: true, delay: 0.8 },
-          { x: 520, y: 200, label: "Node D", score: "CDI 91", bad: false, delay: 0.95 },
-        ].map((n) => (
-          <motion.g key={n.label}
-            initial={{ scale: 0, opacity: 0 }}
-            animate={inView ? { scale: 1, opacity: 1 } : {}}
-            transition={{ duration: 0.4, delay: n.delay }}
-          >
-            <circle cx={n.x} cy={n.y} r={24}
-              fill={n.bad ? "rgba(220,38,38,0.08)" : "#0d0d0d"}
-              stroke={n.bad ? "rgba(220,38,38,0.5)" : "rgba(255,255,255,0.1)"}
-              strokeWidth={n.bad ? 1.5 : 1}
-            />
-            <text x={n.x} y={n.y - 5} textAnchor="middle" fill={n.bad ? "rgba(220,38,38,0.7)" : "rgba(255,255,255,0.5)"} fontSize={8} fontFamily="Inter" fontWeight={500}>{n.label}</text>
-            <text x={n.x} y={n.y + 7} textAnchor="middle" fill={n.bad ? "rgba(220,38,38,0.9)" : R} fontSize={7} fontFamily="Inter" fontWeight={600}>{n.score}</text>
-          </motion.g>
-        ))}
-
-        {/* Burn ripple */}
-        {inView && (
-          <>
-            <motion.circle cx={420} cy={200} r={24}
-              fill="none" stroke="rgba(220,38,38,0.4)" strokeWidth={1}
-              initial={{ r: 24, opacity: 0.6 }}
-              animate={{ r: 50, opacity: 0 }}
-              transition={{ duration: 1.5, delay: 1.2, repeat: Infinity, repeatDelay: 2 }}
-            />
-            <motion.circle cx={350} cy={80} r={28}
-              fill="none" stroke="rgba(220,38,38,0.3)" strokeWidth={1}
-              initial={{ r: 28, opacity: 0 }}
-              animate={{ r: 52, opacity: 0 }}
-              transition={{ duration: 1.5, delay: 2, repeat: Infinity, repeatDelay: 2 }}
-            />
-          </>
-        )}
-      </svg>
-      <div style={{ display: "flex", justifyContent: "center", gap: 24, marginTop: 8 }}>
-        <span style={{ fontSize: "0.62rem", color: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ width: 8, height: 8, borderRadius: "50%", background: R, display: "inline-block" }} />Node in good standing
-        </span>
-        <span style={{ fontSize: "0.62rem", color: "rgba(220,38,38,0.5)", display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "rgba(220,38,38,0.5)", display: "inline-block" }} />Burn propagating to master
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function MetricCard({ value, label, sub, delay = 0 }: { value: string; label: string; sub: string; delay?: number }) {
-  const { ref, inView } = useSlideInView();
-  return (
-    <motion.div ref={ref}
-      initial={{ opacity: 0, y: 20 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.5, delay }}
-      style={{
-        background: "#0d0d0d", border: "1px solid rgba(255,255,255,0.06)",
-        padding: "24px 28px", borderRadius: 8, textAlign: "left",
-      }}
-    >
-      <div style={{ fontSize: "2rem", fontWeight: 700, color: "#f0f0f0", letterSpacing: "-1px", marginBottom: 4 }}>{value}</div>
-      <div style={{ fontSize: "0.78rem", fontWeight: 600, color: R, marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.3)", lineHeight: 1.5 }}>{sub}</div>
-    </motion.div>
-  );
-}
-
+/* ── TOP BAR ── */
 export default function Pitch() {
   const [current, setCurrent] = useState(1);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
+    const el = ref.current; if (!el) return;
     const obs = new IntersectionObserver(
-      (entries) => entries.forEach((e) => {
-        if (e.isIntersecting) setCurrent(Number((e.target as HTMLElement).dataset.slide));
-      }),
-      { threshold: 0.5 }
+      (es) => es.forEach(e => { if (e.isIntersecting) setCurrent(Number((e.target as HTMLElement).dataset.slide)); }),
+      { threshold:0.5 }
     );
-    el.querySelectorAll("[data-slide]").forEach((s) => obs.observe(s));
+    el.querySelectorAll("[data-slide]").forEach(s => obs.observe(s));
     return () => obs.disconnect();
   }, []);
 
-  const go = (n: number) =>
-    containerRef.current?.querySelector(`[data-slide="${n}"]`)?.scrollIntoView({ behavior: "smooth" });
+  const go = (n:number) => ref.current?.querySelector(`[data-slide="${n}"]`)?.scrollIntoView({ behavior:"smooth" });
 
-  const fade = { initial: { opacity: 0, y: 24 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, amount: 0.4 } };
+  const fade = {
+    initial:{ opacity:0, y:20 },
+    whileInView:{ opacity:1, y:0 },
+    viewport:{ once:true, amount:0.3 },
+    transition:{ duration:0.55 },
+  };
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html { scroll-behavior: smooth; }
-        .deck { font-family: 'Inter', sans-serif; background: #050505; color: #e8e8e8; }
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;700&family=Inter:wght@300;400;500&display=swap');
+        *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+        html { scroll-behavior:smooth; }
+
         .bar {
-          position: fixed; top: 0; left: 0; right: 0; z-index: 300;
-          height: 48px; display: flex; align-items: center; justify-content: space-between;
-          padding: 0 36px;
-          background: rgba(5,5,5,0.88); backdrop-filter: blur(20px);
-          border-bottom: 1px solid rgba(255,255,255,0.04);
+          position:fixed; top:0; left:0; right:0; z-index:400;
+          height:44px; display:flex; align-items:center; justify-content:space-between;
+          padding:0 32px;
+          background:${CREAM}ee; backdrop-filter:blur(12px);
+          border-bottom:1px solid ${INK}30;
         }
-        .bar-logo { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; }
-        .bar-r { display: flex; align-items: center; gap: 14px; }
-        .bdots { display: flex; gap: 5px; }
+        .bar-logo {
+          font-family:'Courier New', monospace; font-size:0.7rem;
+          font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:${INK};
+        }
+        .bar-r { display:flex; align-items:center; gap:12px; }
+        .bdots { display:flex; gap:5px; }
         .bd {
-          width: 5px; height: 5px; border-radius: 50%;
-          background: rgba(255,255,255,0.12); cursor: pointer; border: none; padding: 0;
-          transition: background 0.2s;
+          width:6px; height:6px; border-radius:50%;
+          background:${INK}20; cursor:pointer; border:none; padding:0;
+          transition:background 0.2s;
         }
-        .bd.on { background: ${R}; }
-        .bnum { font-size: 0.6rem; color: rgba(255,255,255,0.18); font-variant-numeric: tabular-nums; letter-spacing: 0.06em; }
-        .sl {
-          min-height: 100vh; width: 100%;
-          display: flex; flex-direction: column; align-items: center; justify-content: center;
-          padding: 80px 10vw 60px; position: relative; overflow: hidden;
+        .bd.on { background:${RED}; }
+        .bnum {
+          font-family:'Courier New', monospace; font-size:0.58rem;
+          color:${INK}40; font-variant-numeric:tabular-nums; letter-spacing:0.08em;
         }
-        .grid-bg::before {
-          content: '';
-          position: absolute; inset: 0; pointer-events: none;
-          background-image:
-            linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
-          background-size: 56px 56px;
-        }
-        .eyebrow { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: ${R}; margin-bottom: 18px; position: relative; z-index: 1; }
-        .h1 { font-size: clamp(2.2rem, 4.5vw, 4rem); font-weight: 700; line-height: 1.05; letter-spacing: -1.5px; text-align: center; max-width: 840px; color: #f2f2f2; position: relative; z-index: 1; }
-        .h-hero { font-size: clamp(3.5rem, 7vw, 6.5rem); font-weight: 800; line-height: 1; letter-spacing: -3px; text-align: center; color: #f2f2f2; position: relative; z-index: 1; }
-        .sub { font-size: clamp(0.92rem, 1.4vw, 1.1rem); font-weight: 300; color: rgba(255,255,255,0.38); max-width: 500px; text-align: center; line-height: 1.7; margin-top: 14px; position: relative; z-index: 1; }
-        .fn { font-size: 0.64rem; color: rgba(255,255,255,0.16); max-width: 420px; text-align: center; line-height: 1.7; margin-top: 16px; position: relative; z-index: 1; }
-        .rule { width: 1px; height: 32px; background: rgba(255,255,255,0.08); margin: 20px auto; position: relative; z-index: 1; }
-        .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: rgba(255,255,255,0.05); max-width: 760px; width: 100%; margin-top: 36px; position: relative; z-index: 1; border-radius: 10px; overflow: hidden; }
-        .g3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 1px; background: rgba(255,255,255,0.05); max-width: 820px; width: 100%; margin-top: 36px; position: relative; z-index: 1; border-radius: 10px; overflow: hidden; }
-        .gc { background: #0c0c0c; padding: 26px 26px; }
-        .gc-k { font-size: 0.58rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: ${R}; margin-bottom: 10px; }
-        .gc-v { font-size: 0.84rem; font-weight: 300; line-height: 1.7; color: rgba(255,255,255,0.38); }
-        .pill { display: inline-flex; align-items: center; gap: 8px; border: 1px solid rgba(255,255,255,0.07); border-radius: 100px; padding: 5px 14px; font-size: 0.58rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.22); margin-top: 12px; position: relative; z-index: 1; }
-        .pdot { width: 5px; height: 5px; border-radius: 50%; background: ${R}; }
-        .glow { position: absolute; border-radius: 50%; pointer-events: none; z-index: 0; }
-        .cdi-big { font-size: clamp(5rem,13vw,11rem); font-weight: 800; letter-spacing: -4px; line-height: 1; background: linear-gradient(135deg, #f0f0f0 20%, #6b2535 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; position: relative; z-index: 1; }
-        .cdi-sub { font-size: 0.8rem; font-weight: 400; letter-spacing: 0.08em; color: rgba(255,255,255,0.22); margin-top: 2px; margin-bottom: 6px; position: relative; z-index: 1; }
-        .stamp { position: absolute; top: 26px; right: -72px; transform: rotate(45deg); z-index: 2; font-size: 0.54rem; letter-spacing: 0.14em; border: 1px solid rgba(255,255,255,0.05); padding: 4px 56px; white-space: nowrap; color: rgba(255,255,255,0.08); background: #050505; }
-        .quote { font-size: clamp(1rem, 1.7vw, 1.3rem); font-weight: 300; font-style: italic; color: rgba(255,255,255,0.38); max-width: 540px; text-align: center; line-height: 1.7; margin-top: 24px; position: relative; z-index: 1; }
-        .closing { font-size: clamp(2rem, 4.5vw, 4rem); font-weight: 700; line-height: 1.15; letter-spacing: -1.5px; text-align: center; color: #f0f0f0; position: relative; z-index: 1; }
-        .ctas { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 40px; position: relative; z-index: 1; }
-        .cta-p { background: #f0f0f0; color: #050505; padding: 12px 28px; font-size: 0.78rem; font-weight: 600; text-decoration: none; border-radius: 6px; letter-spacing: 0.02em; }
-        .cta-g { background: transparent; border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.35); padding: 12px 28px; font-size: 0.78rem; text-decoration: none; border-radius: 6px; letter-spacing: 0.02em; }
-        @media (max-width: 640px) { .sl { padding: 64px 7vw 48px; } .g2, .g3 { grid-template-columns: 1fr; } }
       `}</style>
 
-      {/* Bar */}
+      {/* nav bar */}
       <div className="bar">
-        <div className="bar-logo">Briarwood</div>
+        <div className="bar-logo">Briarwood — CDI Deck</div>
         <div className="bar-r">
           <div className="bdots">
-            {Array.from({ length: SLIDES }, (_, i) => (
-              <button key={i} className={`bd${current === i + 1 ? " on" : ""}`} onClick={() => go(i + 1)} />
+            {Array.from({length:SLIDES},(_,i) => (
+              <button key={i} className={`bd${current===i+1?" on":""}`} onClick={()=>go(i+1)} />
             ))}
           </div>
-          <div className="bnum">{String(current).padStart(2,"0")} / {String(SLIDES).padStart(2,"0")}</div>
+          <div className="bnum">{String(current).padStart(2,"0")}/{String(SLIDES).padStart(2,"0")}</div>
         </div>
       </div>
 
-      <div className="deck" ref={containerRef}>
+      <div ref={ref}>
 
-        {/* 01 — Hero */}
-        <div className="sl grid-bg" data-slide="1">
-          <div className="glow" style={{ width: 700, height: 700, top: "50%", left: "50%", transform: "translate(-50%,-50%)", background: "radial-gradient(circle, rgba(139,32,53,0.14) 0%, transparent 65%)" }} />
-          <motion.div {...fade} transition={{ duration: 0.6 }}>
-            <div className="eyebrow" style={{ textAlign: "center" }}>dateinquiry.com</div>
-            <div className="h-hero">BRIARWOOD</div>
-            <div className="sub" style={{ margin: "14px auto 0" }}>The Infrastructure of Integrity.</div>
-            <div style={{ display: "flex", justifyContent: "center" }}>
-              <div className="pill">
-                <div className="pdot" />
-                CDI: Choreography Depth Index™ &nbsp;·&nbsp; Patent Pending
+        {/* 01 — HERO */}
+        <Slide n={1} title="HERO">
+          <motion.div {...fade} style={{ display:"flex", flexDirection:"column", alignItems:"center", position:"relative", zIndex:1 }}>
+            <Ann>Project Overview</Ann>
+            <div style={{ marginTop:16, marginBottom:16 }}>
+              <div style={{ fontFamily:"'Fraunces', serif", fontSize:"clamp(3rem,7vw,6.5rem)",
+                fontWeight:700, letterSpacing:"-3px", lineHeight:1, color:INK, textAlign:"center" }}>
+                BRIARWOOD
               </div>
             </div>
-          </motion.div>
-        </div>
-
-        {/* 02 — Trust Tax */}
-        <div className="sl grid-bg" data-slide="2">
-          <div className="glow" style={{ width: 500, height: 500, bottom: "-100px", right: "-100px", background: "radial-gradient(circle, rgba(139,32,53,0.12) 0%, transparent 65%)" }} />
-          <motion.div {...fade} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, position: "relative", zIndex: 1 }}>
-            <div className="eyebrow">The Trust Tax</div>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 8, lineHeight: 1 }}>
-              <span style={{ fontSize: "clamp(6rem,16vw,13rem)", fontWeight: 800, letterSpacing: "-6px", color: "#f2f2f2" }}>
-                <Counter to={64} duration={1.8} />
-              </span>
-              <span style={{ fontSize: "clamp(3rem,8vw,7rem)", fontWeight: 800, letterSpacing: "-3px", color: R, marginBottom: "0.1em" }}>%</span>
+            <div style={{ fontFamily:"'Courier New', monospace", fontSize:"clamp(0.8rem,1.4vw,1rem)",
+              color:`${INK}60`, letterSpacing:"0.1em", textAlign:"center", textTransform:"uppercase", maxWidth:440, lineHeight:1.7 }}>
+              The Infrastructure of Integrity.
             </div>
-            <div style={{ fontSize: "clamp(0.9rem,1.5vw,1.1rem)", color: "rgba(255,255,255,0.3)", letterSpacing: "0.06em", marginBottom: 20 }}>
+            <div style={{ margin:"24px 0 8px", display:"flex", gap:24, alignItems:"center", opacity:0.4 }}>
+              <div style={{ height:1, width:40, background:INK }} />
+              <span style={{ fontFamily:"'Courier New', monospace", fontSize:"0.56rem",
+                letterSpacing:"0.2em", textTransform:"uppercase", color:INK }}>
+                CDI: Choreography Depth Index™ · Patent Pending
+              </span>
+              <div style={{ height:1, width:40, background:INK }} />
+            </div>
+          </motion.div>
+        </Slide>
+
+        {/* 02 — TRUST TAX */}
+        <Slide n={2} title="THE TRUST TAX">
+          <motion.div {...fade} style={{ display:"flex", flexDirection:"column", alignItems:"center", position:"relative", zIndex:1, gap:4 }}>
+            <Ann>Primary Metric</Ann>
+            <div style={{ display:"flex", alignItems:"flex-end", gap:4, lineHeight:1, marginTop:8 }}>
+              <span style={{ fontFamily:"'Fraunces', serif", fontSize:"clamp(5rem,14vw,11rem)",
+                fontWeight:700, letterSpacing:"-5px", color:INK }}>
+                <Counter to={64} />
+              </span>
+              <span style={{ fontFamily:"'Fraunces', serif", fontSize:"clamp(2.5rem,7vw,5.5rem)",
+                fontWeight:700, letterSpacing:"-2px", color:RED, marginBottom:"0.1em" }}>%</span>
+            </div>
+            <div style={{ fontFamily:"'Courier New', monospace", fontSize:"0.72rem",
+              letterSpacing:"0.14em", textTransform:"uppercase", color:`${INK}50`, marginBottom:24 }}>
               Execution Capacity Lost
             </div>
           </motion.div>
-          <GaugeChart pct={64} />
-          <div className="fn" style={{ marginTop: 24 }}>Derived from 28 years and 900+ high-stakes coordination events.</div>
-        </div>
-
-        {/* 03 — Chaos Wall */}
-        <div className="sl grid-bg" data-slide="3">
-          <motion.div {...fade} style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "relative", zIndex: 1 }}>
-            <div className="eyebrow">The Problem</div>
-            <div className="h1">The Manual Friction Loop.</div>
+          <Gauge pct={64} />
+          <motion.div {...fade} transition={{ delay:0.4 }}
+            style={{ marginTop:20, fontFamily:"'Courier New', monospace", fontSize:"0.58rem",
+              color:`${INK}35`, letterSpacing:"0.1em", textAlign:"center", lineHeight:1.8, maxWidth:400,
+              position:"relative", zIndex:1 }}>
+            DERIVED FROM 28 YEARS AND 900+ HIGH-STAKES COORDINATION EVENTS.<br/>
+            INCLUDES IDENTITY VERIFICATION, HISTORY SEARCH, AND COORDINATION OVERHEAD.
           </motion.div>
-          <FlowDiagram />
-          <motion.div {...fade} transition={{ delay: 0.4 }}>
-            <div className="sub" style={{ marginTop: 24 }}>
-              Software runs on math. The physical world runs on variables. This is the Invisible Labor stalling every autonomous network.
+        </Slide>
+
+        {/* 03 — CHAOS WALL */}
+        <Slide n={3} title="THE CHAOS WALL">
+          <motion.div {...fade} style={{ display:"flex", flexDirection:"column", alignItems:"center", position:"relative", zIndex:1 }}>
+            <Ann>Problem Statement</Ann>
+            <div style={{ fontFamily:"'Fraunces', serif", fontSize:"clamp(2rem,4.5vw,3.8rem)",
+              fontWeight:700, letterSpacing:"-1.5px", color:INK, textAlign:"center", marginTop:12, maxWidth:700, lineHeight:1.1 }}>
+              The Manual Friction Loop.
             </div>
           </motion.div>
-        </div>
+          <FrictionFlow />
+          <motion.div {...fade} transition={{ delay:0.5 }}
+            style={{ marginTop:20, fontFamily:"'Courier New', monospace", fontSize:"0.64rem",
+              color:`${INK}50`, letterSpacing:"0.08em", textAlign:"center", lineHeight:1.8,
+              maxWidth:480, position:"relative", zIndex:1, textTransform:"uppercase" }}>
+            Software runs on math. The physical world runs on variables.<br/>
+            This is the invisible labor stalling every autonomous network.
+          </motion.div>
+        </Slide>
 
-        {/* 04 — Latency Gap */}
-        <div className="sl grid-bg" data-slide="4">
-          <motion.div {...fade} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <div className="eyebrow">The Latency Gap</div>
-            <div className="h1">90 Days vs. Second Zero.</div>
-            <div className="sub">Traditional trust models rely on a 30/60/90-day lag. In high-stakes execution, that latency is a structural failure.</div>
+        {/* 04 — LATENCY GAP */}
+        <Slide n={4} title="THE LATENCY GAP">
+          <motion.div {...fade} style={{ display:"flex", flexDirection:"column", alignItems:"center", position:"relative", zIndex:1 }}>
+            <Ann>System Failure Analysis</Ann>
+            <div style={{ fontFamily:"'Fraunces', serif", fontSize:"clamp(2rem,4.5vw,3.8rem)",
+              fontWeight:700, letterSpacing:"-1.5px", color:INK, textAlign:"center", marginTop:12, lineHeight:1.1 }}>
+              90 Days vs. Second Zero.
+            </div>
+            <div style={{ fontFamily:"'Courier New', monospace", fontSize:"0.68rem",
+              color:`${INK}50`, letterSpacing:"0.08em", textAlign:"center", marginTop:12, maxWidth:460,
+              lineHeight:1.8, textTransform:"uppercase" }}>
+              Traditional trust models rely on a 30/60/90-day lag.<br/>In high-stakes execution, latency is a structural failure.
+            </div>
           </motion.div>
           <TimelineBars />
-        </div>
+        </Slide>
 
-        {/* 05 — Identity Anchor */}
-        <div className="sl grid-bg" data-slide="5">
-          <motion.div {...fade} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <div className="eyebrow">The Identity Anchor</div>
-            <div className="h1">The SSN for Execution.</div>
-            <div className="sub">You cannot reset integrity by changing a name or forming a new LLC.</div>
+        {/* 05 — IDENTITY ANCHOR */}
+        <Slide n={5} title="THE IDENTITY ANCHOR">
+          <motion.div {...fade} style={{ display:"flex", flexDirection:"column", alignItems:"center", position:"relative", zIndex:1 }}>
+            <Ann>Security Layer</Ann>
+            <div style={{ fontFamily:"'Fraunces', serif", fontSize:"clamp(2rem,4.5vw,3.8rem)",
+              fontWeight:700, letterSpacing:"-1.5px", color:INK, textAlign:"center", marginTop:12, lineHeight:1.1 }}>
+              The SSN for Execution.
+            </div>
+            <div style={{ fontFamily:"'Courier New', monospace", fontSize:"0.68rem",
+              color:`${INK}50`, letterSpacing:"0.08em", textAlign:"center", marginTop:10,
+              textTransform:"uppercase", lineHeight:1.8 }}>
+              You cannot reset integrity by changing a name or forming a new LLC.
+            </div>
           </motion.div>
-          <div className="g3">
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:1,
+            background:`${INK}15`, maxWidth:720, width:"100%", marginTop:36,
+            position:"relative", zIndex:1 }}>
             {[
-              { k: "Anchored", v: "A CDI Identity follows every agent across every coordination event — permanently, across all legal structures." },
-              { k: "No Reset", v: "An identity with no history reads as Unverified Origin — not zero — and triggers the Mirror Protocol automatically." },
-              { k: "Immutable", v: "There is no Delete Profile button for integrity. The anchor is permanent and immutable." },
-            ].map((x, i) => (
-              <motion.div key={x.k} className="gc" {...fade} transition={{ delay: i * 0.15 }}>
-                <div className="gc-k">{x.k}</div>
-                <div className="gc-v">{x.v}</div>
+              { k:"Anchored", v:"A CDI Identity follows every agent across every coordination event — permanently, across all legal structures." },
+              { k:"No Reset", v:"No history reads as Unverified Origin, not zero — triggering the Mirror Protocol automatically." },
+              { k:"Immutable", v:"There is no Delete Profile button for integrity. The anchor persists across all legal structures." },
+            ].map((x,i) => (
+              <motion.div key={x.k} {...fade} transition={{ delay:i*0.15 }}
+                style={{ background:CREAM, padding:"24px 22px" }}>
+                <div style={{ fontFamily:"'Courier New', monospace", fontSize:"0.56rem",
+                  letterSpacing:"0.2em", textTransform:"uppercase", color:RED, marginBottom:10, fontWeight:700 }}>
+                  {x.k}
+                </div>
+                <div style={{ fontFamily:"'Courier New', monospace", fontSize:"0.74rem",
+                  lineHeight:1.75, color:`${INK}55`, letterSpacing:"0.02em" }}>
+                  {x.v}
+                </div>
               </motion.div>
             ))}
           </div>
-        </div>
+        </Slide>
 
         {/* 06 — CDI */}
-        <div className="sl grid-bg" data-slide="6" style={{ position: "relative", overflow: "hidden" }}>
-          <div className="glow" style={{ width: 800, height: 800, top: "50%", left: "50%", transform: "translate(-50%,-50%)", background: "radial-gradient(circle, rgba(139,32,53,0.18) 0%, transparent 60%)" }} />
-          <div className="stamp">US PATENT PENDING // REF: 28-YR GROUND TRUTH</div>
-          <motion.div {...fade} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <div className="eyebrow">The Patented Solution</div>
-            <div className="cdi-big">CDI</div>
-            <div className="cdi-sub">Choreography Depth Index™</div>
-            <div className="pill" style={{ marginBottom: 28 }}><div className="pdot" />Patent Pending</div>
-          </motion.div>
-          <div style={{ display: "flex", gap: 40, justifyContent: "center", flexWrap: "wrap", margin: "8px 0 32px", position: "relative", zIndex: 1 }}>
-            <ScoreRing score={91} label="Master Agent" delay={0.3} />
-            <ScoreRing score={74} label="Sub-Agent" delay={0.5} />
-            <ScoreRing score={23} label="Unverified Origin" delay={0.7} />
+        <Slide n={6} title="CDI SPECIFICATION">
+          <div style={{ position:"absolute", top:24, right:-68, transform:"rotate(45deg)", zIndex:2,
+            fontFamily:"'Courier New', monospace", fontSize:"0.5rem", letterSpacing:"0.14em",
+            border:`1px solid ${INK}30`, padding:"4px 56px",
+            background:CREAM, color:`${INK}35`, whiteSpace:"nowrap" }}>
+            US PATENT PENDING // REF: 28-YR GROUND TRUTH
           </div>
-          <div className="g3" style={{ maxWidth: 720 }}>
+          <motion.div {...fade} style={{ display:"flex", flexDirection:"column", alignItems:"center", position:"relative", zIndex:1 }}>
+            <Ann>Patented Solution</Ann>
+            <div style={{ fontFamily:"'Fraunces', serif", fontSize:"clamp(4rem,10vw,9rem)",
+              fontWeight:700, letterSpacing:"-4px", lineHeight:1, color:INK, marginTop:8 }}>
+              CDI
+            </div>
+            <div style={{ fontFamily:"'Courier New', monospace", fontSize:"0.74rem",
+              letterSpacing:"0.12em", color:`${INK}45`, marginBottom:20, textTransform:"uppercase" }}>
+              Choreography Depth Index™ · Patent Pending
+            </div>
+          </motion.div>
+          <div style={{ display:"flex", gap:32, justifyContent:"center", flexWrap:"wrap",
+            margin:"0 0 28px", position:"relative", zIndex:1 }}>
+            <Ring score={91} label="Master Agent" delay={0.3} />
+            <Ring score={74} label="Sub-Agent" delay={0.5} />
+            <Ring score={23} label="Unverified Origin" delay={0.7} />
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:1,
+            background:`${INK}15`, maxWidth:660, width:"100%", position:"relative", zIndex:1 }}>
             {[
-              { k: "Choreography", v: "Precise sequence and timing of multi-node execution events." },
-              { k: "Depth", v: "High-fidelity behavioral ground truth that pixels cannot reach." },
-              { k: "Index", v: "Machine-readable standard for underwriting risk at execution time." },
-            ].map((x, i) => (
-              <motion.div key={x.k} className="gc" {...fade} transition={{ delay: 0.2 + i * 0.12 }}
-                style={{ borderLeft: i > 0 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
-                <div className="gc-k">{x.k}</div>
-                <div className="gc-v">{x.v}</div>
+              { k:"Choreography", v:"Precise sequence and timing of multi-node execution events." },
+              { k:"Depth", v:"High-fidelity behavioral ground truth that pixels cannot reach." },
+              { k:"Index", v:"Machine-readable standard for underwriting risk at execution time." },
+            ].map((x,i) => (
+              <motion.div key={x.k} {...fade} transition={{ delay:0.2+i*0.12 }}
+                style={{ background:CREAM, padding:"20px 20px" }}>
+                <div style={{ fontFamily:"'Courier New', monospace", fontSize:"0.54rem",
+                  letterSpacing:"0.18em", textTransform:"uppercase", color:RED, marginBottom:8, fontWeight:700 }}>
+                  {x.k}
+                </div>
+                <div style={{ fontFamily:"'Courier New', monospace", fontSize:"0.72rem",
+                  lineHeight:1.7, color:`${INK}50` }}>{x.v}</div>
               </motion.div>
             ))}
           </div>
-        </div>
+        </Slide>
 
-        {/* 07 — Mirror Protocol */}
-        <div className="sl grid-bg" data-slide="7">
-          <motion.div {...fade} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <div className="eyebrow">The Mirror Protocol</div>
-            <div className="h1">Recursive Associative Trust.</div>
-            <div className="sub">Trust is a network effect. You are the company you keep.</div>
-          </motion.div>
-          <MirrorNetwork />
-          <motion.div {...fade} transition={{ delay: 0.5 }}>
-            <div className="sub" style={{ marginTop: 16 }}>
-              High-fidelity operators refuse to align with bad actors because the CDI Burn is too expensive. The system self-cleans.
+        {/* 07 — MIRROR PROTOCOL */}
+        <Slide n={7} title="MIRROR PROTOCOL">
+          <motion.div {...fade} style={{ display:"flex", flexDirection:"column", alignItems:"center", position:"relative", zIndex:1 }}>
+            <Ann>Network Security Layer</Ann>
+            <div style={{ fontFamily:"'Fraunces', serif", fontSize:"clamp(2rem,4.5vw,3.8rem)",
+              fontWeight:700, letterSpacing:"-1.5px", color:INK, textAlign:"center", marginTop:12, lineHeight:1.1 }}>
+              Recursive Associative Trust.
+            </div>
+            <div style={{ fontFamily:"'Courier New', monospace", fontSize:"0.66rem",
+              color:`${INK}50`, letterSpacing:"0.08em", marginTop:10, textTransform:"uppercase" }}>
+              Trust is a network effect. You are the company you keep.
             </div>
           </motion.div>
-        </div>
+          <MirrorNet />
+          <motion.div {...fade} transition={{ delay:0.6 }}
+            style={{ marginTop:16, fontFamily:"'Courier New', monospace", fontSize:"0.62rem",
+              color:`${INK}45`, letterSpacing:"0.08em", textAlign:"center", lineHeight:1.8,
+              maxWidth:500, position:"relative", zIndex:1, textTransform:"uppercase" }}>
+            High-fidelity operators refuse to align with bad actors.<br/>
+            The CDI burn is too expensive. The system self-cleans.
+          </motion.div>
+        </Slide>
 
-        {/* 08 — Neutral Arbiter */}
-        <div className="sl grid-bg" data-slide="8">
-          <div className="glow" style={{ width: 600, height: 600, top: "30%", left: "50%", transform: "translateX(-50%)", background: "radial-gradient(circle, rgba(139,32,53,0.14) 0%, transparent 65%)" }} />
-          <motion.div {...fade} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <div className="eyebrow">The Moat</div>
-            <div className="h1">Independence is the Moat.</div>
-            <div className="quote">
-              "You don't let the student grade their own paper.<br />You don't have the bank write its own credit report."
+        {/* 08 — NEUTRAL ARBITER */}
+        <Slide n={8} title="THE NEUTRAL ARBITER">
+          <motion.div {...fade} style={{ display:"flex", flexDirection:"column", alignItems:"center", position:"relative", zIndex:1, maxWidth:680 }}>
+            <Ann>Competitive Moat</Ann>
+            <div style={{ fontFamily:"'Fraunces', serif", fontSize:"clamp(2rem,4.5vw,3.8rem)",
+              fontWeight:700, letterSpacing:"-1.5px", color:INK, textAlign:"center", marginTop:12, lineHeight:1.1 }}>
+              Independence is the Moat.
             </div>
-            <div className="sub" style={{ marginTop: 28 }}>
-              Agent companies cannot underwrite their own risk. Briarwood is the Independent Standard — it cannot be replicated by any player with skin in the game.
+            <div style={{ margin:"28px 0 24px", padding:"24px 32px",
+              border:`1px solid ${INK}25`, borderLeft:`3px solid ${RED}`,
+              background:`${INK}04`, maxWidth:520 }}>
+              <div style={{ fontFamily:"'Fraunces', serif", fontSize:"clamp(0.9rem,1.6vw,1.2rem)",
+                fontStyle:"italic", color:`${INK}70`, lineHeight:1.65, textAlign:"center" }}>
+                "You don't let the student grade their own paper.<br/>
+                You don't have the bank write its own credit report."
+              </div>
+            </div>
+            <div style={{ fontFamily:"'Courier New', monospace", fontSize:"0.66rem",
+              color:`${INK}50`, letterSpacing:"0.08em", textAlign:"center", lineHeight:1.8, textTransform:"uppercase" }}>
+              Agent companies cannot underwrite their own risk.<br/>
+              Briarwood is the independent standard — and cannot be replicated<br/>
+              by any player with skin in the game.
             </div>
           </motion.div>
-        </div>
+        </Slide>
 
-        {/* 09 — Why Now */}
-        <div className="sl grid-bg" data-slide="9">
-          <motion.div {...fade} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <div className="eyebrow">Why Now</div>
-            <div className="h1">Computing the Uncomputable.</div>
-            <div className="sub">AI has hit the Screen Limit. Entering the physical world requires an Action-Conditioned Ledger.</div>
+        {/* 09 — WHY NOW */}
+        <Slide n={9} title="MARKET TIMING">
+          <motion.div {...fade} style={{ display:"flex", flexDirection:"column", alignItems:"center", position:"relative", zIndex:1 }}>
+            <Ann>Why Now</Ann>
+            <div style={{ fontFamily:"'Fraunces', serif", fontSize:"clamp(2rem,4.5vw,3.8rem)",
+              fontWeight:700, letterSpacing:"-1.5px", color:INK, textAlign:"center", marginTop:12, lineHeight:1.1 }}>
+              Computing the Uncomputable.
+            </div>
+            <div style={{ fontFamily:"'Courier New', monospace", fontSize:"0.66rem",
+              color:`${INK}50`, letterSpacing:"0.08em", textAlign:"center", marginTop:10,
+              textTransform:"uppercase", lineHeight:1.8 }}>
+              AI has hit the screen limit. The physical world requires an action-conditioned ledger.
+            </div>
           </motion.div>
-          <div className="g2" style={{ maxWidth: 680 }}>
-            <motion.div className="gc" {...fade} transition={{ delay: 0.2 }}>
-              <div className="gc-k">The Screen Limit</div>
-              <div className="gc-v">AI agents have reached the boundary of what can be done in pixels. Every major model company is trying to enter the physical world — and hitting the same wall.</div>
-            </motion.div>
-            <motion.div className="gc" {...fade} transition={{ delay: 0.35 }}>
-              <div className="gc-k">The Bridge</div>
-              <div className="gc-v">We provide the Choreography — behavioral truth — that LLMs and Video Models cannot learn from pixels alone. It must be lived, captured, and indexed.</div>
-            </motion.div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:1,
+            background:`${INK}15`, maxWidth:660, width:"100%", marginTop:36,
+            position:"relative", zIndex:1 }}>
+            {[
+              { k:"The Screen Limit", v:"Every major model company is trying to enter the physical world — and hitting the same wall. Pixels alone cannot underwrite execution." },
+              { k:"The Bridge", v:"We provide the Choreography — behavioral truth — that LLMs and Video Models cannot learn from pixels alone. It must be lived, captured, and indexed." },
+            ].map((x,i) => (
+              <motion.div key={x.k} {...fade} transition={{ delay:i*0.2 }}
+                style={{ background:CREAM, padding:"26px 24px" }}>
+                <div style={{ fontFamily:"'Courier New', monospace", fontSize:"0.56rem",
+                  letterSpacing:"0.18em", textTransform:"uppercase", color:RED, marginBottom:10, fontWeight:700 }}>
+                  {x.k}
+                </div>
+                <div style={{ fontFamily:"'Courier New', monospace", fontSize:"0.74rem",
+                  lineHeight:1.75, color:`${INK}55` }}>{x.v}</div>
+              </motion.div>
+            ))}
           </div>
-        </div>
+        </Slide>
 
-        {/* 10 — Execution Integrity */}
-        <div className="sl grid-bg" data-slide="10">
-          <motion.div {...fade} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <div className="eyebrow">With Briarwood</div>
-            <div className="h1">Execution Integrity.</div>
+        {/* 10 — EXECUTION INTEGRITY */}
+        <Slide n={10} title="EXECUTION INTEGRITY">
+          <motion.div {...fade} style={{ display:"flex", flexDirection:"column", alignItems:"center", position:"relative", zIndex:1 }}>
+            <Ann>Live Metrics — Production</Ann>
+            <div style={{ fontFamily:"'Fraunces', serif", fontSize:"clamp(2rem,4.5vw,3.8rem)",
+              fontWeight:700, letterSpacing:"-1.5px", color:INK, textAlign:"center", marginTop:12, lineHeight:1.1 }}>
+              With Briarwood.
+            </div>
           </motion.div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, maxWidth: 720, width: "100%", marginTop: 36, position: "relative", zIndex: 1 }}>
-            <MetricCard value="169" label="Inquiries Processed" sub="Real bookings routed through the CDI layer" delay={0.1} />
-            <MetricCard value="37" label="Referrals Routed" sub="Network choreography working in production" delay={0.25} />
-            <MetricCard value="15" label="Deposits Collected" sub="Square payments with 1.5% platform fee" delay={0.4} />
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:1,
+            background:`${INK}15`, maxWidth:680, width:"100%", marginTop:32,
+            position:"relative", zIndex:1 }}>
+            {[
+              { n:"169", l:"Inquiries Processed", s:"Real bookings routed through the CDI layer" },
+              { n:"37", l:"Referrals Routed", s:"Network choreography working in production" },
+              { n:"15", l:"Deposits Collected", s:"Square payments with 1.5% platform fee" },
+            ].map((m,i) => (
+              <motion.div key={m.l} {...fade} transition={{ delay:i*0.15 }}
+                style={{ background:CREAM, padding:"22px 20px" }}>
+                <div style={{ fontFamily:"'Fraunces', serif", fontSize:"2.2rem",
+                  fontWeight:700, letterSpacing:"-1px", color:INK, marginBottom:4 }}>{m.n}</div>
+                <div style={{ fontFamily:"'Courier New', monospace", fontSize:"0.56rem",
+                  letterSpacing:"0.14em", textTransform:"uppercase", color:RED, marginBottom:6 }}>{m.l}</div>
+                <div style={{ fontFamily:"'Courier New', monospace", fontSize:"0.66rem",
+                  color:`${INK}45`, lineHeight:1.6 }}>{m.s}</div>
+              </motion.div>
+            ))}
           </div>
-          <motion.div {...fade} transition={{ delay: 0.5 }} style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 32, position: "relative", zIndex: 1 }}>
-            <div style={{ padding: "9px 16px", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 6, fontSize: "0.82rem", color: "rgba(255,255,255,0.3)" }}>Identify Node</div>
-            <span style={{ color: R, fontSize: "1.2rem" }}>→</span>
-            <div style={{ padding: "9px 18px", borderRadius: 6, background: R, color: "#fff", fontSize: "0.82rem", fontWeight: 600 }}>Execute</div>
+          <motion.div {...fade} transition={{ delay:0.5 }}
+            style={{ display:"flex", alignItems:"center", gap:12, marginTop:28,
+              position:"relative", zIndex:1 }}>
+            <div style={{ padding:"9px 16px", border:`1px solid ${INK}30`,
+              fontFamily:"'Courier New', monospace", fontSize:"0.72rem",
+              color:`${INK}50`, letterSpacing:"0.06em", textTransform:"uppercase" }}>
+              Identify Node
+            </div>
+            <span style={{ color:RED, fontSize:"1.2rem" }}>→</span>
+            <div style={{ padding:"9px 18px", background:INK, color:CREAM,
+              fontFamily:"'Courier New', monospace", fontSize:"0.72rem",
+              letterSpacing:"0.08em", textTransform:"uppercase", fontWeight:700 }}>
+              Execute
+            </div>
           </motion.div>
-          <div className="ctas">
-            <a href="mailto:violet@briarwood.ai" className="cta-p">Request a Demo</a>
-            <a href="/demo-landing" className="cta-g">Full Overview →</a>
-          </div>
-        </div>
+          <motion.div {...fade} transition={{ delay:0.7 }}
+            style={{ display:"flex", gap:12, flexWrap:"wrap", justifyContent:"center",
+              marginTop:28, position:"relative", zIndex:1 }}>
+            <a href="mailto:violet@briarwood.ai" style={{
+              background:INK, color:CREAM, padding:"11px 28px",
+              fontFamily:"'Courier New', monospace", fontSize:"0.68rem", fontWeight:700,
+              textDecoration:"none", letterSpacing:"0.1em", textTransform:"uppercase" }}>
+              Request a Demo
+            </a>
+            <a href="/demo-landing" style={{
+              background:"transparent", border:`1px solid ${INK}40`, color:`${INK}60`,
+              padding:"11px 28px", fontFamily:"'Courier New', monospace", fontSize:"0.68rem",
+              textDecoration:"none", letterSpacing:"0.1em", textTransform:"uppercase" }}>
+              Full Overview →
+            </a>
+          </motion.div>
+        </Slide>
 
-        {/* 11 — Philosophy */}
-        <div className="sl grid-bg" data-slide="11">
-          <div className="glow" style={{ width: 700, height: 700, bottom: "-200px", left: "50%", transform: "translateX(-50%)", background: "radial-gradient(circle, rgba(139,32,53,0.15) 0%, transparent 65%)" }} />
-          <motion.div {...fade} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <div className="eyebrow">The Philosophy</div>
-            <div className="closing">
+        {/* 11 — PHILOSOPHY */}
+        <Slide n={11} title="FOUNDING PHILOSOPHY">
+          <motion.div {...fade} style={{ display:"flex", flexDirection:"column", alignItems:"center",
+            position:"relative", zIndex:1, textAlign:"center" }}>
+            <Ann>The Philosophy</Ann>
+            <div style={{ fontFamily:"'Fraunces', serif",
+              fontSize:"clamp(2rem,5vw,4.5rem)",
+              fontWeight:700, letterSpacing:"-2px", lineHeight:1.1, marginTop:16, color:INK }}>
               Privacy Stays.<br />
-              <span style={{ color: R }}>Reputation Runs.</span><br />
+              <span style={{ color:RED }}>Reputation Runs.</span><br />
               Trust Wins.
             </div>
-            <div className="rule" />
-            <div className="sub">The Human Defense Layer for the High-Stakes Economy.</div>
-            <div style={{ marginTop: 52, fontSize: "0.58rem", letterSpacing: "0.18em", color: "rgba(255,255,255,0.1)", textTransform: "uppercase", position: "relative", zIndex: 1 }}>
-              Briarwood &nbsp;·&nbsp; Founder Led &nbsp;·&nbsp; CDI™ Patent Pending &nbsp;·&nbsp; 2026
+            <div style={{ margin:"28px 0", height:1, width:48, background:`${INK}25` }} />
+            <div style={{ fontFamily:"'Courier New', monospace", fontSize:"0.7rem",
+              color:`${INK}50`, letterSpacing:"0.1em", textTransform:"uppercase", lineHeight:1.8 }}>
+              The Human Defense Layer for the High-Stakes Economy.
+            </div>
+            <div style={{ marginTop:48, fontFamily:"'Courier New', monospace", fontSize:"0.54rem",
+              letterSpacing:"0.18em", color:`${INK}25`, textTransform:"uppercase" }}>
+              Briarwood · Founder Led · CDI™ Patent Pending · 2026
             </div>
           </motion.div>
-        </div>
+        </Slide>
 
       </div>
     </>
