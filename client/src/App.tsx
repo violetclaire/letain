@@ -61,6 +61,7 @@ import BriarwoodSpec from "@/pages/BriarwoodSpec";
 import Branding from "@/pages/Branding";
 import ContextGraph from "@/pages/ContextGraph";
 import Pitch from "@/pages/Pitch";
+import CDIArchitecture from "@/pages/CDIArchitecture";
 import ChatInvite from "@/pages/ChatInvite";
 import DirectChat from "@/pages/DirectChat";
 import ArtistQuickChat from "@/pages/ArtistQuickChat";
@@ -151,6 +152,7 @@ function Router() {
       <Route path="/branding" component={Branding} />
       <Route path="/context-graph" component={ContextGraph} />
       <Route path="/pitch" component={Pitch} />
+      <Route path="/cdi-architecture" component={CDIArchitecture} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/import" component={AdminImport} />
       <Route path="/artist/import" component={VendorImport} />
