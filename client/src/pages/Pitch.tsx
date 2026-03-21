@@ -64,11 +64,18 @@ export default function Pitch() {
           font-size: clamp(0.85rem, 1.5vw, 1.1rem);
           white-space: nowrap;
         }
+        .flow-box.friction {
+          border-color: #7f1d1d;
+          color: #ef4444;
+          background: rgba(239, 68, 68, 0.06);
+        }
         .flow-box.active {
           border-color: #00ff41;
           color: #fff;
           background: rgba(0, 255, 65, 0.08);
         }
+        .arrow.red { color: #7f1d1d; }
+        .arrow.green { color: #14532d; }
         .arrow {
           color: #333;
           font-size: 1.4rem;
@@ -138,6 +145,9 @@ export default function Pitch() {
         <div className="sub-hero" style={{ marginTop: 24 }}>
           The time and resources spent manually underwriting human variables before a single task can be started.
         </div>
+        <div style={{ marginTop: 32, fontSize: "0.72rem", color: "#2a2a2a", maxWidth: 540, lineHeight: 1.6 }}>
+          Derived from operational baseline across 28 years and 900+ high-stakes physical economy events. Includes manual identity verification, history search, liability management, and coordination overhead per execution node.
+        </div>
       </div>
 
       <div className="slide">
@@ -148,18 +158,18 @@ export default function Pitch() {
       <div className="slide">
         <div className="label-sm">The reality</div>
         <div className="flow-container">
-          <div className="flow-box">Identify Node</div>
-          <div className="arrow">→</div>
-          <div className="flow-box">Verify Identity</div>
-          <div className="arrow">→</div>
-          <div className="flow-box">Search History</div>
-          <div className="arrow">→</div>
-          <div className="flow-box">Manual Handshake</div>
-          <div className="arrow">→</div>
-          <div className="flow-box">Underwrite Liability</div>
-          <div className="arrow">→</div>
-          <div className="flow-box">Manage Chaos</div>
-          <div className="arrow">→</div>
+          <div className="flow-box friction">Identify Node</div>
+          <div className="arrow red">→</div>
+          <div className="flow-box friction">Verify Identity</div>
+          <div className="arrow red">→</div>
+          <div className="flow-box friction">Search History</div>
+          <div className="arrow red">→</div>
+          <div className="flow-box friction">Manual Handshake</div>
+          <div className="arrow red">→</div>
+          <div className="flow-box friction">Underwrite Liability</div>
+          <div className="arrow red">→</div>
+          <div className="flow-box friction">Manage Chaos</div>
+          <div className="arrow red">→</div>
           <div className="flow-box active">Start executing</div>
         </div>
         <div style={{ marginTop: 36, fontSize: "0.8rem", color: "#444", maxWidth: 600, lineHeight: 1.6 }}>
@@ -214,7 +224,7 @@ export default function Pitch() {
         <div style={{ display: "flex", gap: 32, flexWrap: "wrap", justifyContent: "center", marginTop: 16 }}>
           {[
             ["Coordination Capture", "Informal workflows become measurable"],
-            ["Behavioral Trust Data", "Private execution history, not public reviews"],
+            ["Behavioral Trust Data", "Private execution history, not public reviews. Reputation is queryable. The data stays private."],
             ["CDI Score", "Coordination reliability, legible and queryable"],
           ].map(([title, desc]) => (
             <div key={title} style={{ borderTop: "1px solid #222", paddingTop: 20, width: 200, textAlign: "left" }}>
