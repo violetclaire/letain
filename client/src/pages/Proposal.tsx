@@ -73,7 +73,7 @@ export default function Proposal() {
           font-size: 0.58rem;
           letter-spacing: 0.26em;
           text-transform: uppercase;
-          color: #8a8078;
+          color: #4a4540;
           margin-bottom: 18px;
         }
 
@@ -105,7 +105,7 @@ export default function Proposal() {
           font-size: 0.56rem;
           letter-spacing: 0.14em;
           text-transform: uppercase;
-          color: #8a8078;
+          color: #3a3530;
           min-width: 80px;
           padding-top: 2px;
         }
@@ -140,7 +140,7 @@ export default function Proposal() {
           font-size: 0.54rem;
           letter-spacing: 0.18em;
           text-transform: uppercase;
-          color: #8a8078;
+          color: #3a3530;
         }
 
         .line-item {
@@ -165,16 +165,16 @@ export default function Proposal() {
 
         .item-note {
           font-family: 'Courier New', monospace;
-          font-size: 0.58rem;
-          color: #8a8078;
+          font-size: 0.62rem;
+          color: #3a3530;
           margin-top: 3px;
           line-height: 1.5;
         }
 
         .item-num {
           font-family: 'Courier New', monospace;
-          font-size: 0.78rem;
-          color: #4a4540;
+          font-size: 0.82rem;
+          color: #1a1814;
           text-align: right;
           padding-top: 2px;
         }
@@ -185,11 +185,11 @@ export default function Proposal() {
           gap: 12px;
           padding: 0 0 6px;
           font-family: 'Courier New', monospace;
-          font-size: 0.52rem;
+          font-size: 0.56rem;
           letter-spacing: 0.16em;
           text-transform: uppercase;
-          color: #8a8078;
-          border-bottom: 1px solid #d8d2c8;
+          color: #3a3530;
+          border-bottom: 1px solid #b8b2a8;
           margin-bottom: 0;
         }
 
@@ -210,16 +210,16 @@ export default function Proposal() {
 
         .total-label {
           font-family: 'Courier New', monospace;
-          font-size: 0.62rem;
+          font-size: 0.66rem;
           letter-spacing: 0.12em;
           text-transform: uppercase;
-          color: #8a8078;
+          color: #2a2520;
         }
 
         .total-val {
           font-family: 'Courier New', monospace;
-          font-size: 0.84rem;
-          color: #4a4540;
+          font-size: 0.88rem;
+          color: #1a1814;
         }
 
         .grand-row {
@@ -254,8 +254,8 @@ export default function Proposal() {
 
         .footer-note {
           font-family: 'Courier New', monospace;
-          font-size: 0.62rem;
-          color: #8a8078;
+          font-size: 0.66rem;
+          color: #2a2520;
           line-height: 1.9;
           letter-spacing: 0.02em;
         }
@@ -274,10 +274,10 @@ export default function Proposal() {
 
         .sig-label {
           font-family: 'Courier New', monospace;
-          font-size: 0.54rem;
+          font-size: 0.58rem;
           letter-spacing: 0.14em;
           text-transform: uppercase;
-          color: #8a8078;
+          color: #2a2520;
         }
 
         @media print {
