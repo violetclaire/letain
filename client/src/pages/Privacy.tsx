@@ -1,85 +1,197 @@
-import { motion } from "framer-motion";
 import { useLocation } from "wouter";
-import { ArrowLeft } from "lucide-react";
+
+const SECTIONS = [
+  {
+    title: "Opt-in from day one",
+    body: "Providers choose to be scored. Every data capture is consent-based. No scraping. No surveillance. No behavioral data is collected without the provider knowing and agreeing.",
+  },
+  {
+    title: "Your data stays yours",
+    body: "Behavioral signals are captured from existing workflows — Gmail, SMS, phone — but providers control what enters the trust graph. Nothing is harvested. Nothing is sold. Your coordination data is never used to train anyone else's model.",
+  },
+  {
+    title: "Privacy by design",
+    body: "Briarwood does not store raw communications. We extract behavioral signals — response speed, follow-through, coordination quality — and discard the content. The score reflects patterns, not conversations.",
+  },
+  {
+    title: "Compliant from day one",
+    body: "Built to meet GDPR, CCPA, and SOC 2 standards. Role-based access management, encryption at rest and in transit, full audit logging, and incident response. CDI was designed with compliance as a foundation, not an afterthought.",
+  },
+  {
+    title: "The trust graph is earned, not extracted",
+    body: "Every edge in the trust graph represents a real relationship between real professionals. Referrals are verified. Scores are built from actual coordination events. The graph grows through earned trust — the same way reputation has always worked. Except now it's infrastructure that compounds.",
+  },
+];
 
 export default function Privacy() {
   const [, setLocation] = useLocation();
 
   return (
-    <div className="min-h-screen bg-bg text-ink">
-      <div className="estate-pinstripe" />
-      <div className="max-w-[680px] mx-auto px-6 py-16 md:py-24">
-        <button
-          onClick={() => setLocation("/")}
-          className="flex items-center gap-2 text-faintink hover:text-ink mb-12 transition-colors text-sm"
-          data-testid="button-back-home"
-        >
-          <ArrowLeft size={14} />
-          Back
-        </button>
+    <div style={{ background: "#06070d", color: "#c8d4e8", minHeight: "100vh", fontFamily: "'Inter', sans-serif" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Inter:wght@400;500;600&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-        >
-          <p className="text-xs tracking-[0.16em] uppercase text-faintink mb-8">Privacy</p>
+        .bw-back {
+          display: inline-block;
+          font-size: 0.76rem;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: #3a5068;
+          cursor: pointer;
+          padding: 40px 40px 0;
+          transition: color 0.2s;
+          background: none;
+          border: none;
+        }
+        .bw-back:hover { color: #8898b0; }
 
-          <div className="space-y-6 text-mutedink leading-relaxed">
-            <h2 className="font-serif text-2xl sm:text-3xl tracking-tight text-ink leading-snug">
-              What you have built over decades belongs to you.
-            </h2>
+        .bw-article {
+          max-width: 680px;
+          margin: 0 auto;
+          padding: 64px 40px 120px;
+        }
 
-            <p>
-              The way you handle a difficult client. The judgment call that kept a job from falling apart. The recovery behavior that nobody saw but you. The referral you made because you knew exactly who to trust.
-            </p>
+        .bw-eyebrow {
+          font-size: 0.68rem;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: #3a5068;
+          margin-bottom: 32px;
+        }
 
-            <p>
-              That is not operational data. That is not metadata. That is behavioral truth — inseparable from the specific professional who generated it. It took years to build. It cannot be replicated. It cannot be transferred.
-            </p>
+        .bw-headline {
+          font-family: 'Fraunces', serif;
+          font-size: clamp(1.8rem, 4vw, 2.6rem);
+          font-weight: 400;
+          line-height: 1.2;
+          color: #e8eef8;
+          margin-bottom: 32px;
+        }
 
-            <p className="font-serif text-xl text-ink tracking-tight">
-              It is yours.
-            </p>
+        .bw-lede {
+          font-size: 0.95rem;
+          line-height: 1.85;
+          color: #5a7490;
+          margin-bottom: 56px;
+          padding-bottom: 56px;
+          border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .bw-section {
+          padding: 40px 0;
+          border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .bw-section-title {
+          font-family: 'Fraunces', serif;
+          font-size: 1.05rem;
+          font-weight: 400;
+          color: #c8d4e8;
+          margin-bottom: 12px;
+        }
+
+        .bw-section-body {
+          font-size: 0.92rem;
+          line-height: 1.82;
+          color: #5a7490;
+        }
+
+        .bw-cta-wrap {
+          margin-top: 64px;
+          padding-top: 48px;
+        }
+
+        .bw-cta {
+          display: inline-block;
+          background: #e8eef8;
+          color: #06070d;
+          padding: 13px 28px;
+          font-size: 0.84rem;
+          font-weight: 600;
+          letter-spacing: 0.04em;
+          cursor: pointer;
+          border: none;
+          transition: background 0.2s;
+        }
+        .bw-cta:hover { background: #ffffff; }
+
+        .bw-footer {
+          border-top: 1px solid rgba(255,255,255,0.06);
+          padding: 40px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 16px;
+        }
+
+        .bw-footer-brand {
+          font-family: 'Fraunces', serif;
+          font-size: 0.82rem;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: #3a5068;
+        }
+
+        .bw-footer-meta {
+          font-size: 0.74rem;
+          color: #3a5068;
+        }
+
+        .bw-footer-meta a {
+          color: #4a6480;
+          text-decoration: none;
+        }
+        .bw-footer-meta a:hover { color: #8898b0; }
+
+        @media (max-width: 600px) {
+          .bw-back { padding: 24px 20px 0; }
+          .bw-article { padding: 48px 20px 80px; }
+          .bw-footer { padding: 32px 20px; flex-direction: column; align-items: flex-start; }
+        }
+      `}</style>
+
+      <button className="bw-back" onClick={() => setLocation("/")}>← Back</button>
+
+      <article className="bw-article">
+
+        <p className="bw-eyebrow">Privacy · Trust Architecture</p>
+
+        <h1 className="bw-headline">Built for an economy that runs on trust</h1>
+
+        <p className="bw-lede">
+          Before Briarwood, our founders spent decades inside the physical service economy and building production AI systems for the most demanding environments. We know what trust requires because we've had to earn it — repeatedly. In the field and in the infrastructure.
+          <br /><br />
+          CDI captures the most sensitive behavioral data in the physical service economy — how people coordinate, communicate, and deliver. That's only possible because privacy and consent are built into our architecture.
+        </p>
+
+        {SECTIONS.map((s) => (
+          <div className="bw-section" key={s.title}>
+            <div className="bw-section-title">{s.title}</div>
+            <div className="bw-section-body">{s.body}</div>
           </div>
+        ))}
 
-          <div className="border-t border-hairline mt-12 pt-12 space-y-6 text-mutedink leading-relaxed">
-            <h2 className="font-serif text-xl sm:text-2xl tracking-tight text-ink leading-snug">
-              Briarwood exists to make that truth legible — not to own it.
-            </h2>
+        <div className="bw-cta-wrap">
+          <p style={{ fontSize: "1.05rem", fontFamily: "'Fraunces', serif", fontStyle: "italic", color: "#8898b0", marginBottom: "28px" }}>
+            The first API for a world that doesn't have one.
+          </p>
+          <button className="bw-cta" onClick={() => setLocation("/waitlist")}>
+            Request Early Access
+          </button>
+        </div>
 
-            <p>
-              We capture behavioral excellence so it can work for the professional who built it. We do not sell it. We do not share it. We do not use it to train anyone else's model. We do not contact your clients. We do not put our name where yours belongs.
-            </p>
+      </article>
 
-            <p className="text-ink">
-              Your coordination history. Your referral network. Your client relationships. Your standards.
-            </p>
-
-            <p className="font-serif text-xl text-ink tracking-tight">
-              Yours. Always.
-            </p>
-          </div>
-
-          <div className="border-t border-hairline mt-12 pt-12 space-y-6 text-mutedink leading-relaxed">
-            <h2 className="font-serif text-xl sm:text-2xl tracking-tight text-ink leading-snug">
-              Why this matters.
-            </h2>
-
-            <p>
-              The behavioral data generated inside a word of mouth business is the most valuable and most unprotected data in the professional world. It has never had infrastructure built to hold it — which means it has always been vulnerable to being lost, stolen, or simply forgotten.
-            </p>
-
-            <p className="font-serif text-lg text-ink tracking-tight">
-              Briarwood is the first infrastructure built to protect it as seriously as it deserves.
-            </p>
-          </div>
-
-          <div className="border-t border-hairline mt-16 pt-8">
-            <p className="text-sm text-faintink">&copy; 2026 Briarwood AI</p>
-          </div>
-        </motion.div>
-      </div>
+      <footer className="bw-footer">
+        <div className="bw-footer-brand">Briarwood AI</div>
+        <div className="bw-footer-meta">
+          San Francisco · 2026 · CDI™ Patent Pending ·{" "}
+          <a href="mailto:violet@briarwood.ai">violet@briarwood.ai</a> ·{" "}
+          <a href="/about" onClick={(e) => { e.preventDefault(); setLocation("/about"); }}>About</a>
+        </div>
+      </footer>
     </div>
   );
 }
