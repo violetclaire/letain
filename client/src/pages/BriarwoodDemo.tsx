@@ -398,9 +398,36 @@ function CDIGraphStep({ onBack }: { onBack: () => void }) {
   return (
     <div style={{ animation: "fadeUp 0.3s ease" }}>
       <button onClick={onBack} style={BACKBTN}>← Back</button>
-      <div style={{ fontSize: "0.68rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#8a8078", marginBottom: 12 }}>Step 4 · CDI Agent Graph</div>
-      <h1 style={H1}>When an agent asks, CDI answers.</h1>
-      <p style={SUB}>Any LLM or AI agent can query the Briarwood API. Type a natural language request below and watch the trust graph route it in real time.</p>
+      <div style={{ fontSize: "0.68rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#8a8078", marginBottom: 12 }}>Step 4 · CDI — The Missing Primitive</div>
+      <h1 style={H1}>The physical world has no API for trust. Until now.</h1>
+      <p style={{ fontSize: "0.9rem", color: "#5a5550", lineHeight: 1.8, marginBottom: 28 }}>
+        The digital economy is fully indexed. You can call a credit score, a safety rating, a driver score in milliseconds. The physical service economy — contractors, vendors, independent operators — has no equivalent. That endpoint does not exist. CDI is the missing primitive.
+      </p>
+
+      {/* 404 visual */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, marginBottom: 32, background: "#d8d2c8" }}>
+        <div style={{ background: "#edf5e8", padding: "20px 22px" }}>
+          <div style={{ fontSize: "0.66rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#5c7a3e", marginBottom: 12 }}>Digital Economy</div>
+          <div style={{ fontFamily: "'Courier Prime',monospace", fontSize: "0.72rem", color: "#1a3a1a", lineHeight: 2 }}>
+            GET /user/credit-score/u_4821<br />
+            GET /merchant/risk-rating/m_993<br />
+            GET /driver/safety-score/d_112<br />
+            <span style={{ color: "#5c7a3e", fontWeight: 600 }}>200 OK {"{"} score: 742 {"}"}</span>
+          </div>
+        </div>
+        <div style={{ background: "#f9eded", padding: "20px 22px" }}>
+          <div style={{ fontSize: "0.66rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#8b3a3a", marginBottom: 12 }}>Physical Economy — Until Briarwood</div>
+          <div style={{ fontFamily: "'Courier Prime',monospace", fontSize: "0.72rem", color: "#3a1a1a", lineHeight: 2 }}>
+            GET /contractor/trust/c_7741<br />
+            GET /vendor/reliability/v_204<br />
+            GET /agent/behavioral-score/a_88<br />
+            <span style={{ color: "#8b3a3a", fontWeight: 600 }}>404 {"{"} error: "endpoint does not exist" {"}"}</span>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ fontSize: "0.68rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#8a8078", marginBottom: 12 }}>Live Demo · Agent Query</div>
+      <p style={{ fontSize: "0.88rem", color: "#5a5550", lineHeight: 1.7, marginBottom: 20 }}>Type a natural language request below. Watch the CDI trust graph route it in real time.</p>
 
       {/* Query input */}
       <div style={{ display: "flex", gap: 10, marginBottom: 28 }}>
@@ -524,6 +551,49 @@ function CDIGraphStep({ onBack }: { onBack: () => void }) {
           GET /api/agent/availability/:slug<br />
           GET /api/agent/referrals/:slug
         </div>
+      </div>
+
+      {/* Flywheel */}
+      <div style={{ marginTop: 36, borderTop: "1px solid #d8d2c8", paddingTop: 36 }}>
+        <div style={{ fontSize: "0.68rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#8a8078", marginBottom: 16 }}>The Flywheel</div>
+        <div style={{ fontFamily: "'Fraunces',serif", fontSize: "1.4rem", fontWeight: 400, color: "#1a1814", lineHeight: 1.4, marginBottom: 24 }}>
+          Trust compounds the same way in every layer.
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1, marginBottom: 12, background: "#d8d2c8" }}>
+          {[
+            {
+              label: "Humans",
+              icon: "◎",
+              color: "#5c7a3e",
+              head: "1 brings 3 to 5.",
+              body: "Organic, earned, sovereign. That is how the network grows — the same way trust has always worked."
+            },
+            {
+              label: "Agents",
+              icon: "⬡",
+              color: "#b8963e",
+              head: "Machine word of mouth.",
+              body: "Once an agent finds a provider through CDI that delivers, it keeps selecting them. One execution becomes training data for the next model."
+            },
+            {
+              label: "Onchain",
+              icon: "⬢",
+              color: "#1a1814",
+              head: "Every score is sovereign.",
+              body: "The provider owns their score. The agent verifies it trustlessly. No platform in the middle deciding who is visible."
+            },
+          ].map(({ label, icon, color, head, body }) => (
+            <div key={label} style={{ background: "#f4f1eb", padding: "22px 20px" }}>
+              <div style={{ fontSize: "1.2rem", color, marginBottom: 10 }}>{icon}</div>
+              <div style={{ fontSize: "0.66rem", letterSpacing: "0.14em", textTransform: "uppercase", color, marginBottom: 8 }}>{label}</div>
+              <div style={{ fontSize: "0.82rem", fontWeight: 600, color: "#1a1814", marginBottom: 6, lineHeight: 1.4 }}>{head}</div>
+              <div style={{ fontSize: "0.78rem", color: "#5a5550", lineHeight: 1.65 }}>{body}</div>
+            </div>
+          ))}
+        </div>
+        <p style={{ fontSize: "0.82rem", color: "#8a8078", lineHeight: 1.7 }}>
+          The trust graph is the network. It runs on math, not middlemen.
+        </p>
       </div>
 
       {/* The Oracle section */}
