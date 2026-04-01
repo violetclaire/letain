@@ -1,576 +1,441 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
-const NETWORKS = ["Hair", "Makeup", "Photography", "Florals", "Catering", "Event Planning", "DJ / Music", "Videography"];
-const SERVICE_TYPES = ["Wedding", "Corporate Events", "Private Parties", "Editorial", "Fashion", "Commercial"];
+const STEPS = ["Inquiry", "Text", "Email", "Thread", "Payment"];
 
-const INQUIRIES = [
-  { client: "Sarah M.", event: "Wedding — June 14", service: "Bridal Hair + Makeup", budget: "$2,400", location: "San Francisco, CA" },
-  { client: "Maya K.", event: "Corporate Retreat — May 3", service: "Group Hair Styling (12 guests)", budget: "$1,800", location: "Napa, CA" },
-  { client: "Priya R.", event: "Engagement Shoot — April 22", service: "Makeup Artistry", budget: "$450", location: "Oakland, CA" },
-];
+const FIRM = "Meridian Landscape Architecture";
+const CLIENT = "Hargrove Development Group";
+const PROJECT = "Riverfront Mixed-Use Development — Phase II";
+const AMOUNT = 125000;
+const FEE = Math.round(AMOUNT * 0.015);
+const PAYOUT = AMOUNT - FEE;
 
-const CDI_EVENTS = [
-  { label: "Profile created", delta: +8, time: "just now", icon: "○" },
-  { label: "Inquiry received", delta: +3, time: "0s ago", icon: "◎" },
-  { label: "Response sent in 4 min", delta: +14, time: "4 min ago", icon: "●" },
-  { label: "Quote delivered on time", delta: +11, time: "18 min ago", icon: "●" },
-  { label: "Referral confirmed — BreezyLee", delta: +9, time: "2 days ago", icon: "◈" },
-  { label: "Deposit collected", delta: +16, time: "3 days ago", icon: "●" },
-  { label: "Contract signed", delta: +7, time: "3 days ago", icon: "●" },
-];
+function StepDots({ step }: { step: number }) {
+  return (
+    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+      {STEPS.map((label, i) => (
+        <div key={label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+          <div style={{
+            width: 10, height: 10, borderRadius: "50%",
+            background: step > i ? "#1a1814" : step === i ? "#b8963e" : "transparent",
+            border: step > i ? "1px solid #1a1814" : step === i ? "1px solid #b8963e" : "1px solid #d8d2c8",
+            transition: "all 0.3s"
+          }} />
+          <span style={{ fontSize: "0.58rem", letterSpacing: "0.1em", textTransform: "uppercase", color: step === i ? "#b8963e" : "#b8b2a8" }}>{label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
-const AGENT_STEPS = [
-  { role: "agent", text: "GET /api/agent/cdi/violet-herod", delay: 0 },
-  { role: "system", text: `{\n  "provider": "violet-herod",\n  "cdi_score": 74,\n  "tier": "CONDITIONAL",\n  "trust_verified": true,\n  "capabilities": [\n    "submit_inquiry",\n    "place_hold",\n    "read_schedule"\n  ],\n  "signals": {\n    "responsiveness": 0.91,\n    "follow_through": 0.87,\n    "handoff_quality": 0.82\n  },\n  "patent_pending": "CDI™"\n}`, delay: 900 },
-  { role: "agent", text: "POST /api/agent/inquiries", delay: 1800 },
-  { role: "system", text: `{\n  "inquiry_id": "inq_9fk2m",\n  "status": "submitted",\n  "hold_placed": true,\n  "hold_expires": "48h",\n  "cdi_at_submission": 74\n}`, delay: 2700 },
-  { role: "agent", text: "Agent decision: APPROVE BOOKING (CDI ≥ 50)", delay: 3600 },
-];
+// ── Mock phone SMS ──
+function PhoneMockup({ visible }: { visible: boolean }) {
+  const [msgs, setMsgs] = useState<number>(0);
 
-function CDIMeter({ score, prev }: { score: number; prev: number }) {
-  const angle = (score / 100) * 180 - 90;
-  const color = score >= 80 ? "#5c7a3e" : score >= 50 ? "#b8963e" : "#8b3a3a";
-  const label = score >= 80 ? "FULL ACCESS" : score >= 50 ? "CONDITIONAL" : "RESTRICTED";
-  const labelColor = score >= 80 ? "#5c7a3e" : score >= 50 ? "#b8963e" : "#8b3a3a";
+  useEffect(() => {
+    if (!visible) return;
+    setMsgs(0);
+    const timers = [
+      setTimeout(() => setMsgs(1), 400),
+      setTimeout(() => setMsgs(2), 1800),
+      setTimeout(() => setMsgs(3), 3200),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, [visible]);
+
+  const messages = [
+    { from: "Briarwood", text: `New inquiry from ${CLIENT}.\n\nProject: ${PROJECT}\nBudget: $125,000\nTimeline: Q3 2026`, time: "9:14 AM", out: false },
+    { from: "Briarwood", text: "Your CDI score has been verified (74 — Conditional). The client has been notified you've been matched.", time: "9:14 AM", out: false },
+    { from: "Briarwood", text: "Reply via your private thread: briarwood.ai/t/mrdn-7f2k\n\nLink expires in 48h.", time: "9:15 AM", out: false },
+  ];
 
   return (
-    <div style={{ textAlign: "center" }}>
-      <div style={{ position: "relative", width: 220, height: 120, margin: "0 auto" }}>
-        <svg width="220" height="120" viewBox="0 0 220 120">
-          <path d="M 20 110 A 90 90 0 0 1 200 110" fill="none" stroke="#d8d2c8" strokeWidth="12" strokeLinecap="round" />
-          <path
-            d="M 20 110 A 90 90 0 0 1 200 110"
-            fill="none"
-            stroke={color}
-            strokeWidth="12"
-            strokeLinecap="round"
-            strokeDasharray={`${(score / 100) * 283} 283`}
-            style={{ transition: "stroke-dasharray 1s ease, stroke 0.5s" }}
-          />
-          <g transform={`translate(110,110) rotate(${angle})`} style={{ transition: "transform 1s ease" }}>
-            <line x1="0" y1="0" x2="0" y2="-70" stroke={color} strokeWidth="2.5" strokeLinecap="round" style={{ transition: "stroke 0.5s" }} />
-            <circle cx="0" cy="0" r="5" fill={color} style={{ transition: "fill 0.5s" }} />
-          </g>
-        </svg>
-        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, textAlign: "center" }}>
-          <div style={{ fontFamily: "'Fraunces', serif", fontSize: "2.8rem", fontWeight: 600, color: "#1a1814", lineHeight: 1, transition: "all 0.5s" }}>
-            {score}
-          </div>
-          {prev !== score && (
-            <div style={{ fontSize: "0.72rem", color: score > prev ? "#5c7a3e" : "#8b3a3a", letterSpacing: "0.1em" }}>
-              {score > prev ? `+${score - prev}` : score - prev}
-            </div>
-          )}
+    <div style={{ display: "flex", justifyContent: "center", padding: "20px 0" }}>
+      <div style={{
+        width: 300, background: "#1a1814", borderRadius: 36, padding: "10px 6px",
+        boxShadow: "0 32px 80px rgba(0,0,0,0.28), 0 0 0 1px #3a3530"
+      }}>
+        {/* Notch */}
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+          <div style={{ width: 100, height: 24, background: "#0e0e0e", borderRadius: 12 }} />
         </div>
-      </div>
-      <div style={{ marginTop: 12, display: "inline-block", padding: "4px 12px", border: `1px solid ${labelColor}`, borderRadius: 2, fontSize: "0.68rem", letterSpacing: "0.18em", textTransform: "uppercase", color: labelColor, fontWeight: 600 }}>
-        {label}
+        {/* Screen */}
+        <div style={{ background: "#f4f1eb", borderRadius: 28, padding: "12px 0", minHeight: 440, overflow: "hidden" }}>
+          {/* Status bar */}
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "0 16px 8px", fontSize: "0.65rem", color: "#5a5550" }}>
+            <span>9:14 AM</span>
+            <span>●●●</span>
+          </div>
+          {/* Header */}
+          <div style={{ background: "#edeae3", padding: "10px 16px", borderBottom: "1px solid #d8d2c8", display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#1a1814", display: "flex", alignItems: "center", justifyContent: "center", color: "#f4f1eb", fontSize: "0.78rem", fontWeight: 700 }}>B</div>
+            <div>
+              <div style={{ fontSize: "0.78rem", fontWeight: 600, color: "#1a1814" }}>Briarwood AI</div>
+              <div style={{ fontSize: "0.62rem", color: "#8a8078" }}>Trust Infrastructure</div>
+            </div>
+          </div>
+          {/* Messages */}
+          <div style={{ padding: "12px 10px", display: "flex", flexDirection: "column", gap: 10 }}>
+            {messages.slice(0, msgs).map((m, i) => (
+              <div key={i} style={{ animation: "fadeUp 0.35s ease" }}>
+                <div style={{
+                  background: "#1a1814", color: "#f4f1eb",
+                  borderRadius: "14px 14px 14px 4px",
+                  padding: "10px 12px", fontSize: "0.72rem", lineHeight: 1.55,
+                  maxWidth: "88%", whiteSpace: "pre-wrap"
+                }}>
+                  {m.text}
+                </div>
+                <div style={{ fontSize: "0.58rem", color: "#b8b2a8", marginTop: 3, paddingLeft: 4 }}>{m.time}</div>
+              </div>
+            ))}
+            {msgs === 0 && (
+              <div style={{ textAlign: "center", color: "#b8b2a8", fontSize: "0.72rem", marginTop: 40 }}>
+                Incoming message...
+              </div>
+            )}
+          </div>
+        </div>
+        {/* Home bar */}
+        <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
+          <div style={{ width: 80, height: 4, background: "#3a3530", borderRadius: 2 }} />
+        </div>
       </div>
     </div>
   );
 }
 
-function TypedText({ text, delay = 0 }: { text: string; delay?: number }) {
-  const [shown, setShown] = useState("");
-  const [started, setStarted] = useState(false);
-
+// ── Mock email ──
+function EmailMockup({ visible }: { visible: boolean }) {
+  const [show, setShow] = useState(false);
   useEffect(() => {
-    const t = setTimeout(() => setStarted(true), delay);
+    if (!visible) return;
+    const t = setTimeout(() => setShow(true), 300);
     return () => clearTimeout(t);
-  }, [delay]);
+  }, [visible]);
 
-  useEffect(() => {
-    if (!started) return;
-    let i = 0;
-    const iv = setInterval(() => {
-      setShown(text.slice(0, i + 1));
-      i++;
-      if (i >= text.length) clearInterval(iv);
-    }, 12);
-    return () => clearInterval(iv);
-  }, [started, text]);
+  return (
+    <div style={{ border: "1px solid #d8d2c8", background: "#fff", borderRadius: 2, overflow: "hidden", maxWidth: 580, margin: "0 auto", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
+      {/* Email chrome */}
+      <div style={{ background: "#edeae3", padding: "10px 16px", borderBottom: "1px solid #d8d2c8", display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ display: "flex", gap: 6 }}>
+          {["#ff5f57","#febc2e","#28c840"].map(c => <div key={c} style={{ width: 10, height: 10, borderRadius: "50%", background: c }} />)}
+        </div>
+        <div style={{ flex: 1, background: "#f4f1eb", border: "1px solid #d8d2c8", borderRadius: 4, padding: "3px 10px", fontSize: "0.72rem", color: "#8a8078" }}>
+          mail.briarwood.ai
+        </div>
+      </div>
+      {/* Email list sidebar + main */}
+      <div style={{ display: "flex", minHeight: 360 }}>
+        {/* Sidebar */}
+        <div style={{ width: 180, borderRight: "1px solid #d8d2c8", padding: "12px 0" }}>
+          {["Inbox (1)", "Sent", "Archive", "Spam"].map((f, i) => (
+            <div key={f} style={{ padding: "7px 16px", fontSize: "0.76rem", color: i === 0 ? "#1a1814" : "#8a8078", fontWeight: i === 0 ? 600 : 400, background: i === 0 ? "#edeae3" : "transparent", cursor: "pointer" }}>
+              {f}
+            </div>
+          ))}
+        </div>
+        {/* Email body */}
+        <div style={{ flex: 1, padding: "20px 24px", opacity: show ? 1 : 0, transition: "opacity 0.5s ease" }}>
+          <div style={{ fontSize: "0.62rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#8a8078", marginBottom: 8 }}>From: noreply@briarwood.ai</div>
+          <div style={{ fontFamily: "'Fraunces', serif", fontSize: "1.1rem", color: "#1a1814", marginBottom: 4, fontWeight: 600 }}>
+            New Inquiry — {CLIENT}
+          </div>
+          <div style={{ fontSize: "0.72rem", color: "#8a8078", marginBottom: 20, paddingBottom: 16, borderBottom: "1px solid #d8d2c8" }}>
+            To: james@meridian-la.com · Today at 9:14 AM
+          </div>
+          <div style={{ fontSize: "0.84rem", lineHeight: 1.8, color: "#3a3530" }}>
+            <p style={{ marginBottom: 12 }}>Hi James,</p>
+            <p style={{ marginBottom: 12 }}>A new project inquiry has arrived through Briarwood.</p>
+            <div style={{ background: "#f4f1eb", border: "1px solid #d8d2c8", padding: "14px 18px", marginBottom: 16, fontSize: "0.8rem" }}>
+              <div style={{ marginBottom: 6 }}><strong>Client:</strong> {CLIENT}</div>
+              <div style={{ marginBottom: 6 }}><strong>Project:</strong> {PROJECT}</div>
+              <div style={{ marginBottom: 6 }}><strong>Budget:</strong> $125,000</div>
+              <div><strong>Timeline:</strong> Q3 2026</div>
+            </div>
+            <p style={{ marginBottom: 16 }}>
+              Your CDI score of <strong>74</strong> has been verified. You are authorized to submit a proposal and place a hold.
+            </p>
+            <div style={{ textAlign: "center", marginBottom: 16 }}>
+              <div style={{ display: "inline-block", background: "#1a1814", color: "#f4f1eb", padding: "11px 24px", fontSize: "0.82rem", fontWeight: 600, letterSpacing: "0.04em", cursor: "pointer" }}>
+                Open Private Thread →
+              </div>
+            </div>
+            <p style={{ fontSize: "0.72rem", color: "#8a8078" }}>
+              briarwood.ai/t/mrdn-7f2k · Link expires in 48 hours · CDI™ Patent Pending
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-  return <span>{shown}</span>;
+// ── Mock thread view ──
+function ThreadMockup() {
+  return (
+    <div style={{ border: "1px solid #d8d2c8", background: "#f4f1eb", maxWidth: 580, margin: "0 auto" }}>
+      {/* Thread header */}
+      <div style={{ background: "#1a1814", color: "#f4f1eb", padding: "16px 20px" }}>
+        <div style={{ fontSize: "0.62rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#8a8078", marginBottom: 4 }}>Private Thread · briarwood.ai/t/mrdn-7f2k</div>
+        <div style={{ fontFamily: "'Fraunces', serif", fontSize: "1.1rem", marginBottom: 2 }}>{CLIENT}</div>
+        <div style={{ fontSize: "0.78rem", color: "#8a8078" }}>{PROJECT}</div>
+      </div>
+
+      {/* CDI badge */}
+      <div style={{ background: "#edeae3", borderBottom: "1px solid #d8d2c8", padding: "10px 20px", display: "flex", gap: 24, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ fontSize: "0.68rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#8a8078" }}>
+          CDI Verified
+        </div>
+        <div style={{ display: "flex", gap: 16 }}>
+          {[["Score", "74"], ["Tier", "Conditional"], ["Responsiveness", "91%"], ["Follow-through", "87%"]].map(([k, v]) => (
+            <div key={k} style={{ textAlign: "center" }}>
+              <div style={{ fontSize: "0.68rem", color: "#8a8078", letterSpacing: "0.08em" }}>{k}</div>
+              <div style={{ fontSize: "0.84rem", fontWeight: 600, color: "#1a1814" }}>{v}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Thread messages */}
+      <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: 14 }}>
+        {[
+          { from: CLIENT, text: "We're finalizing the master plan for the Riverfront project. Looking for a full landscape architecture scope including grading, irrigation, planting, and hardscape. Budget is firm at $125K.", time: "9:08 AM", role: "client" },
+          { from: "Briarwood AI", text: "Inquiry received and routed to Meridian Landscape Architecture. CDI verification complete. Response expected within 4 hours.", time: "9:09 AM", role: "system" },
+          { from: "Meridian LA", text: "Thank you — we've worked on three comparable Riverfront projects. Happy to schedule a site walk and send a formal proposal within 48 hours.", time: "9:22 AM", role: "provider" },
+        ].map((m, i) => (
+          <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: m.role === "provider" ? "flex-end" : "flex-start" }}>
+            <div style={{ fontSize: "0.66rem", color: "#8a8078", marginBottom: 3, paddingLeft: m.role === "provider" ? 0 : 4, paddingRight: m.role === "provider" ? 4 : 0 }}>{m.from} · {m.time}</div>
+            <div style={{
+              background: m.role === "provider" ? "#1a1814" : m.role === "system" ? "#edeae3" : "#ffffff",
+              color: m.role === "provider" ? "#f4f1eb" : "#1a1814",
+              border: m.role === "system" ? "1px solid #d8d2c8" : "none",
+              padding: "10px 14px",
+              maxWidth: "82%",
+              fontSize: "0.82rem",
+              lineHeight: 1.65,
+              borderRadius: m.role === "provider" ? "12px 12px 4px 12px" : m.role === "system" ? "2px" : "12px 12px 12px 4px",
+              fontStyle: m.role === "system" ? "italic" : "normal",
+              color: m.role === "system" ? "#8a8078" : m.role === "provider" ? "#f4f1eb" : "#1a1814",
+            }}>
+              {m.text}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Reply bar */}
+      <div style={{ borderTop: "1px solid #d8d2c8", padding: "12px 16px", background: "#edeae3", display: "flex", gap: 10, alignItems: "center" }}>
+        <div style={{ flex: 1, background: "#f4f1eb", border: "1px solid #d8d2c8", padding: "9px 12px", fontSize: "0.8rem", color: "#8a8078", borderRadius: 2 }}>
+          Reply to thread...
+        </div>
+        <div style={{ background: "#1a1814", color: "#f4f1eb", padding: "9px 16px", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer" }}>Send</div>
+      </div>
+    </div>
+  );
 }
 
 export default function BriarwoodDemo() {
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", network: [] as string[], service: "" });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [cdiScore, setCdiScore] = useState(50);
-  const [prevScore, setPrevScore] = useState(50);
-  const [eventLog, setEventLog] = useState<typeof CDI_EVENTS>([]);
-  const [selectedInquiry, setSelectedInquiry] = useState<number | null>(null);
-  const [responded, setResponded] = useState(false);
-  const [agentVisible, setAgentVisible] = useState(0);
   const [paymentDone, setPaymentDone] = useState(false);
-  const logRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (step === 2) {
-      let i = 0;
-      const iv = setInterval(() => {
-        if (i >= CDI_EVENTS.length) { clearInterval(iv); return; }
-        const ev = CDI_EVENTS[i];
-        setEventLog(prev => [ev, ...prev]);
-        setPrevScore(s => s);
-        setCdiScore(s => Math.min(100, s + ev.delta));
-        i++;
-      }, 700);
-      return () => clearInterval(iv);
-    }
-  }, [step]);
+  const [form, setForm] = useState({
+    company: "", contact: "", email: "", phone: "", project: "", budget: "$125,000", timeline: ""
+  });
 
-  useEffect(() => {
-    if (step === 3 && agentVisible < AGENT_STEPS.length) {
-      AGENT_STEPS.forEach((s, idx) => {
-        setTimeout(() => setAgentVisible(idx + 1), s.delay);
-      });
-    }
-  }, [step]);
-
-  function validate() {
-    const e: Record<string, string> = {};
-    if (!form.name.trim()) e.name = "Required";
-    if (!form.email.trim() || !form.email.includes("@")) e.email = "Valid email required";
-    if (!form.phone.trim()) e.phone = "Required";
-    if (form.network.length === 0) e.network = "Select at least one";
-    if (!form.service) e.service = "Required";
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  }
-
-  function handleNetwork(n: string) {
-    setForm(f => ({
-      ...f,
-      network: f.network.includes(n) ? f.network.filter(x => x !== n) : [...f.network, n],
-    }));
-  }
-
-  function handleRespond() {
-    setResponded(true);
-    setPrevScore(cdiScore);
-    setCdiScore(s => Math.min(100, s + 14));
-    setEventLog(prev => [{ label: "Inquiry responded in < 5 min", delta: 14, time: "just now", icon: "●" }, ...prev]);
-    setTimeout(() => setStep(3), 1800);
-  }
-
-  const bookingAmount = 1000;
-  const platformFee = Math.round(bookingAmount * 0.015);
-  const providerReceives = bookingAmount - platformFee;
+  function next() { setStep(s => Math.min(s + 1, 4)); }
 
   return (
     <div style={{ background: "#f4f1eb", minHeight: "100vh", fontFamily: "'Inter', sans-serif", color: "#1a1814" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@400;500;600&family=Courier+Prime:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@400;500;600&family=Courier+Prime&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        .demo-nav {
-          display: flex; align-items: center; justify-content: space-between;
-          padding: 20px 40px; border-bottom: 1px solid #d8d2c8;
-          background: rgba(244,241,235,0.95); backdrop-filter: blur(10px);
-          position: sticky; top: 0; z-index: 40;
+        @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+        input, select, textarea {
+          background: #edeae3; border: 1px solid #d8d2c8;
+          padding: 11px 14px; font-size: 0.88rem; color: #1a1814;
+          font-family: 'Inter', sans-serif; outline: none;
+          transition: border-color 0.2s; width: 100%; border-radius: 0;
+          -webkit-appearance: none;
         }
-        .demo-logo { font-family:'Fraunces',serif; font-size:0.9rem; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; }
-        .demo-steps { display:flex; gap:8px; align-items:center; }
-        .demo-step-dot {
-          width:8px; height:8px; border-radius:50%; border:1px solid #d8d2c8;
-          background: #edeae3; transition: all 0.3s;
-        }
-        .demo-step-dot.done { background:#1a1814; border-color:#1a1814; }
-        .demo-step-dot.active { background:#b8963e; border-color:#b8963e; }
-
-        .demo-body { max-width:720px; margin:0 auto; padding:64px 40px 80px; }
-        .demo-eyebrow { font-size:0.68rem; letter-spacing:0.2em; text-transform:uppercase; color:#8a8078; margin-bottom:16px; }
-        .demo-h1 { font-family:'Fraunces',serif; font-size:2rem; font-weight:400; line-height:1.25; color:#1a1814; margin-bottom:10px; }
-        .demo-sub { font-size:0.92rem; line-height:1.75; color:#5a5550; margin-bottom:40px; }
-
-        .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
-        .form-group { display:flex; flex-direction:column; gap:6px; }
-        .form-group.full { grid-column:1/-1; }
-        label { font-size:0.72rem; letter-spacing:0.14em; text-transform:uppercase; color:#5a5550; }
-        input, select {
-          background:#edeae3; border:1px solid #d8d2c8; padding:12px 14px;
-          font-size:0.9rem; color:#1a1814; font-family:'Inter',sans-serif;
-          outline:none; transition:border-color 0.2s; border-radius:0;
-          -webkit-appearance:none;
-        }
-        input:focus, select:focus { border-color:#1a1814; }
-        .error-msg { font-size:0.72rem; color:#8b3a3a; }
-
-        .network-grid { display:flex; flex-wrap:wrap; gap:8px; }
-        .network-pill {
-          padding:7px 14px; border:1px solid #d8d2c8; background:#edeae3;
-          font-size:0.8rem; cursor:pointer; transition:all 0.2s; user-select:none;
-        }
-        .network-pill.selected { background:#1a1814; color:#f4f1eb; border-color:#1a1814; }
-
-        .btn {
-          display:inline-block; padding:13px 28px; font-size:0.84rem; font-weight:600;
-          letter-spacing:0.04em; cursor:pointer; border:none; transition:opacity 0.2s; font-family:'Inter',sans-serif;
-        }
-        .btn-ink { background:#1a1814; color:#f4f1eb; }
-        .btn-ink:hover { opacity:0.82; }
-        .btn-ghost { background:transparent; border:1px solid #d8d2c8; color:#3a3530; }
-        .btn-ghost:hover { border-color:#1a1814; }
-        .btn-brass { background:#b8963e; color:#fff; }
-        .btn-brass:hover { opacity:0.88; }
-        .btn-green { background:#5c7a3e; color:#fff; }
-        .btn-green:hover { opacity:0.88; }
-
-        .hairline { border:none; border-top:1px solid #d8d2c8; margin:40px 0; }
-
-        /* CDI panel */
-        .cdi-panel {
-          border:1px solid #d8d2c8; background:#edeae3; padding:32px;
-          display:flex; gap:48px; align-items:flex-start; flex-wrap:wrap;
-        }
-        .event-log { flex:1; min-width:220px; }
-        .event-item {
-          display:flex; justify-content:space-between; align-items:flex-start;
-          padding:10px 0; border-bottom:1px solid #d8d2c8; gap:12px;
-          animation: fadeIn 0.4s ease;
-        }
-        @keyframes fadeIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
-        .event-label { font-size:0.82rem; color:#3a3530; flex:1; }
-        .event-delta { font-size:0.78rem; font-weight:600; color:#5c7a3e; white-space:nowrap; }
-        .event-time { font-size:0.68rem; color:#8a8078; white-space:nowrap; }
-
-        /* Inquiry cards */
-        .inquiry-card {
-          border:1px solid #d8d2c8; padding:24px; background:#edeae3; cursor:pointer;
-          transition:border-color 0.2s, background 0.2s; margin-bottom:12px;
-        }
-        .inquiry-card:hover { border-color:#b8963e; background:#e8e4db; }
-        .inquiry-card.selected { border-color:#1a1814; background:#e2dfd6; }
-        .inquiry-name { font-family:'Fraunces',serif; font-size:1rem; color:#1a1814; margin-bottom:4px; }
-        .inquiry-detail { font-size:0.82rem; color:#5a5550; line-height:1.6; }
-        .inquiry-budget { font-weight:600; color:#1a1814; font-size:0.9rem; }
-
-        /* Agent terminal */
-        .terminal {
-          background:#1a1814; border-radius:0; padding:24px; font-family:'Courier Prime',monospace;
-          font-size:0.8rem; line-height:1.7; color:#c8d4c0; min-height:300px;
-        }
-        .terminal-line { animation:fadeIn 0.3s ease; }
-        .terminal-agent { color:#b8963e; }
-        .terminal-system { color:#8fbf8f; white-space:pre; }
-        .terminal-decision { color:#f4f1eb; font-weight:700; margin-top:8px; border-top:1px solid #3a4030; padding-top:8px; }
-
-        /* Payment */
-        .payment-row {
-          display:flex; justify-content:space-between; align-items:center;
-          padding:14px 0; border-bottom:1px solid #d8d2c8; font-size:0.9rem;
-        }
-        .payment-label { color:#5a5550; }
-        .payment-val { font-weight:600; color:#1a1814; }
-        .payment-fee { color:#b8963e; font-size:0.82rem; }
-        .payment-total { font-family:'Fraunces',serif; font-size:1.3rem; color:#1a1814; font-weight:400; }
-
-        .success-badge {
-          display:inline-flex; align-items:center; gap:8px;
-          padding:8px 16px; background:#edf5e8; border:1px solid #c4dbb4;
-          color:#5c7a3e; font-size:0.8rem; letter-spacing:0.1em; text-transform:uppercase;
-        }
-
-        @media(max-width:600px) {
-          .demo-nav { padding:14px 20px; }
-          .demo-body { padding:48px 20px 64px; }
-          .form-grid { grid-template-columns:1fr; }
-          .cdi-panel { gap:24px; }
+        input:focus, select:focus, textarea:focus { border-color: #1a1814; }
+        label { font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: #5a5550; display: block; margin-bottom: 5px; }
+        .fg { display: flex; flex-direction: column; margin-bottom: 16px; }
+        .fg-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .btn { display: inline-block; padding: 12px 26px; font-size: 0.84rem; font-weight: 600; letter-spacing: 0.04em; cursor: pointer; border: none; font-family: 'Inter', sans-serif; transition: opacity 0.2s; }
+        .btn-ink { background: #1a1814; color: #f4f1eb; }
+        .btn-ink:hover { opacity: 0.82; }
+        .btn-ghost { background: transparent; border: 1px solid #d8d2c8; color: #3a3530; }
+        .btn-ghost:hover { border-color: #1a1814; }
+        @media (max-width:600px) {
+          .fg-row { grid-template-columns: 1fr; }
+          .demo-body { padding: 40px 20px 60px !important; }
         }
       `}</style>
 
       {/* Nav */}
-      <nav className="demo-nav">
-        <div className="demo-logo">Briarwood AI · Live Demo</div>
-        <div className="demo-steps">
-          {["Onboard", "CDI", "Inquiry", "Agent", "Payment"].map((label, i) => (
-            <div
-              key={label}
-              className={`demo-step-dot ${step > i ? "done" : step === i ? "active" : ""}`}
-              title={label}
-            />
-          ))}
+      <div style={{
+        position: "sticky", top: 0, zIndex: 40,
+        background: "rgba(244,241,235,0.95)", backdropFilter: "blur(10px)",
+        borderBottom: "1px solid #d8d2c8", padding: "16px 40px",
+        display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12
+      }}>
+        <div style={{ fontFamily: "'Fraunces', serif", fontSize: "0.9rem", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+          Briarwood AI · Live Demo
         </div>
-        <div style={{ fontSize: "0.76rem", color: "#8a8078", letterSpacing: "0.08em" }}>
-          CDI™ Patent Pending
-        </div>
-      </nav>
+        <StepDots step={step} />
+        <div style={{ fontSize: "0.7rem", color: "#8a8078", letterSpacing: "0.08em" }}>CDI™ Patent Pending</div>
+      </div>
 
-      <div className="demo-body">
+      <div className="demo-body" style={{ maxWidth: 680, margin: "0 auto", padding: "60px 40px 80px" }}>
 
-        {/* ── STEP 0: Provider Onboarding ── */}
+        {/* ── STEP 0: Inquiry Form ── */}
         {step === 0 && (
-          <>
-            <p className="demo-eyebrow">Step 1 of 5 · Provider Onboarding</p>
-            <h1 className="demo-h1">Join the behavioral trust network.</h1>
-            <p className="demo-sub">Your coordination data is already valuable. Briarwood makes it machine-readable.</p>
+          <div style={{ animation: "fadeUp 0.35s ease" }}>
+            <div style={{ fontSize: "0.68rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#8a8078", marginBottom: 12 }}>Step 1 · Client Inquiry</div>
+            <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: "2rem", fontWeight: 400, color: "#1a1814", marginBottom: 8, lineHeight: 1.2 }}>
+              Submit a project inquiry.
+            </h1>
+            <p style={{ fontSize: "0.9rem", color: "#5a5550", lineHeight: 1.75, marginBottom: 36 }}>
+              This is what a client sees when they reach out to a Briarwood-verified provider. CDI begins scoring the moment the inquiry is submitted.
+            </p>
 
-            <div className="form-grid">
-              <div className="form-group">
-                <label>Full Name</label>
-                <input
-                  type="text"
-                  placeholder="Violet Herod"
-                  value={form.name}
-                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                />
-                {errors.name && <span className="error-msg">{errors.name}</span>}
+            <div style={{ background: "#edeae3", border: "1px solid #d8d2c8", padding: "28px 28px 20px" }}>
+              <div style={{ fontSize: "0.7rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#8a8078", marginBottom: 20 }}>
+                Meridian Landscape Architecture · Inquiry Form
               </div>
-              <div className="form-group">
-                <label>Email</label>
-                <input
-                  type="email"
-                  placeholder="violet@studio.com"
-                  value={form.email}
-                  onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                />
-                {errors.email && <span className="error-msg">{errors.email}</span>}
-              </div>
-              <div className="form-group">
-                <label>Phone</label>
-                <input
-                  type="tel"
-                  placeholder="+1 (415) 000-0000"
-                  value={form.phone}
-                  onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-                />
-                {errors.phone && <span className="error-msg">{errors.phone}</span>}
-              </div>
-              <div className="form-group">
-                <label>Primary Service Type</label>
-                <select value={form.service} onChange={e => setForm(f => ({ ...f, service: e.target.value }))}>
-                  <option value="">Select...</option>
-                  {SERVICE_TYPES.map(s => <option key={s}>{s}</option>)}
-                </select>
-                {errors.service && <span className="error-msg">{errors.service}</span>}
-              </div>
-              <div className="form-group full">
-                <label>Preferred Network (select all that apply)</label>
-                <div className="network-grid" style={{ marginTop: 4 }}>
-                  {NETWORKS.map(n => (
-                    <div
-                      key={n}
-                      className={`network-pill ${form.network.includes(n) ? "selected" : ""}`}
-                      onClick={() => handleNetwork(n)}
-                    >
-                      {n}
-                    </div>
-                  ))}
+
+              <div className="fg-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+                <div className="fg">
+                  <label>Company Name</label>
+                  <input placeholder="Hargrove Development Group" value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} />
                 </div>
-                {errors.network && <span className="error-msg" style={{ marginTop: 4, display: "block" }}>{errors.network}</span>}
+                <div className="fg">
+                  <label>Primary Contact</label>
+                  <input placeholder="Daniel Hargrove" value={form.contact} onChange={e => setForm(f => ({ ...f, contact: e.target.value }))} />
+                </div>
+                <div className="fg">
+                  <label>Email</label>
+                  <input placeholder="d.hargrove@hargrovedev.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+                </div>
+                <div className="fg">
+                  <label>Phone</label>
+                  <input placeholder="+1 (628) 000-0000" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
+                </div>
               </div>
-            </div>
-
-            <div style={{ marginTop: 32, display: "flex", gap: 12 }}>
-              <button className="btn btn-ink" onClick={() => { if (validate()) setStep(1); }}>
-                Activate CDI Score →
+              <div className="fg">
+                <label>Project Description</label>
+                <textarea rows={3} placeholder="Riverfront Mixed-Use Development — Phase II. Full landscape architecture scope including grading, irrigation, planting plan, and hardscape." value={form.project} onChange={e => setForm(f => ({ ...f, project: e.target.value }))} style={{ resize: "vertical" }} />
+              </div>
+              <div className="fg-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div className="fg">
+                  <label>Budget</label>
+                  <input value={form.budget} onChange={e => setForm(f => ({ ...f, budget: e.target.value }))} />
+                </div>
+                <div className="fg">
+                  <label>Desired Timeline</label>
+                  <input placeholder="Q3 2026" value={form.timeline} onChange={e => setForm(f => ({ ...f, timeline: e.target.value }))} />
+                </div>
+              </div>
+              <button className="btn btn-ink" onClick={next} style={{ width: "100%", marginTop: 8 }}>
+                Submit Inquiry →
               </button>
             </div>
-          </>
+          </div>
         )}
 
-        {/* ── STEP 1: CDI Activation ── */}
+        {/* ── STEP 1: Text message ── */}
         {step === 1 && (
-          <>
-            <p className="demo-eyebrow">Step 2 of 5 · CDI Initialization</p>
-            <h1 className="demo-h1">Your behavioral trust score is live.</h1>
-            <p className="demo-sub">Every action you take — responding to inquiries, delivering on quotes, coordinating handoffs — updates your score in real time.</p>
-
-            <div style={{ display: "flex", gap: 12, marginBottom: 32, padding: "16px 20px", background: "#edeae3", border: "1px solid #d8d2c8", alignItems: "center", flexWrap: "wrap" }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#8a8078", marginBottom: 4 }}>Provider</div>
-                <div style={{ fontFamily: "'Fraunces', serif", fontSize: "1rem", color: "#1a1814" }}>{form.name || "Violet Herod"}</div>
-                <div style={{ fontSize: "0.8rem", color: "#5a5550" }}>{form.email || "violet@studio.com"}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#8a8078", marginBottom: 4 }}>Network</div>
-                <div style={{ fontSize: "0.82rem", color: "#3a3530" }}>{form.network.length > 0 ? form.network.join(", ") : "Hair, Makeup"}</div>
-              </div>
+          <div style={{ animation: "fadeUp 0.35s ease" }}>
+            <div style={{ fontSize: "0.68rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#8a8078", marginBottom: 12 }}>Step 2 · Provider Notification</div>
+            <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: "2rem", fontWeight: 400, color: "#1a1814", marginBottom: 8, lineHeight: 1.2 }}>
+              The provider gets a text.
+            </h1>
+            <p style={{ fontSize: "0.9rem", color: "#5a5550", lineHeight: 1.75, marginBottom: 32 }}>
+              The moment an inquiry is submitted, Briarwood sends an SMS to the provider. No app to open. No dashboard to check. It arrives in their existing messages — exactly where they already work.
+            </p>
+            <PhoneMockup visible={step === 1} />
+            <div style={{ marginTop: 28, textAlign: "center" }}>
+              <button className="btn btn-ink" onClick={next}>See the email →</button>
             </div>
-
-            <CDIMeter score={50} prev={50} />
-
-            <hr className="hairline" />
-
-            <div style={{ background: "#edeae3", border: "1px solid #d8d2c8", padding: "24px 28px" }}>
-              <div style={{ fontSize: "0.72rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#8a8078", marginBottom: 16 }}>CDI Formula · Patent Pending</div>
-              <div style={{ fontFamily: "'Courier Prime', monospace", fontSize: "1rem", color: "#1a1814", letterSpacing: "0.04em", marginBottom: 12 }}>
-                CDI = (α·R<sub>v</sub> + β·A<sub>m</sub> + γ·H<sub>f</sub>) × (1 − S<sub>p</sub>)
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px 24px", marginTop: 12 }}>
-                {[["α = 0.35", "Responsiveness (R_v)"], ["β = 0.40", "Follow-Through (A_m)"], ["γ = 0.25", "Handoff Quality (H_f)"], ["S_p", "Slash Penalty (non-delivery)"]].map(([k, v]) => (
-                  <div key={k} style={{ fontSize: "0.8rem", color: "#5a5550" }}>
-                    <span style={{ fontFamily: "'Courier Prime', monospace", color: "#1a1814", fontWeight: 700 }}>{k}</span> — {v}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ marginTop: 32 }}>
-              <button className="btn btn-ink" onClick={() => setStep(2)}>See CDI in Action →</button>
-            </div>
-          </>
+          </div>
         )}
 
-        {/* ── STEP 2: Live Inquiry + CDI Learning ── */}
+        {/* ── STEP 2: Email ── */}
         {step === 2 && (
-          <>
-            <p className="demo-eyebrow">Step 3 of 5 · Live Inquiry + CDI Learning</p>
-            <h1 className="demo-h1">An inquiry arrives. CDI is watching.</h1>
-            <p className="demo-sub">Every coordination event — responding, quoting, confirming — updates your score. Select an inquiry and respond.</p>
-
-            <div className="cdi-panel">
-              <div style={{ minWidth: 220 }}>
-                <CDIMeter score={cdiScore} prev={prevScore} />
-                <div style={{ marginTop: 20, fontSize: "0.72rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "#8a8078", marginBottom: 10 }}>Signal log</div>
-                <div ref={logRef}>
-                  {eventLog.map((ev, i) => (
-                    <div className="event-item" key={i}>
-                      <div>
-                        <div className="event-label">{ev.label}</div>
-                        <div className="event-time">{ev.time}</div>
-                      </div>
-                      <div className="event-delta">+{ev.delta}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div style={{ flex: 1, minWidth: 220 }}>
-                <div style={{ fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#8a8078", marginBottom: 12 }}>
-                  Incoming inquiries
-                </div>
-                {INQUIRIES.map((inq, i) => (
-                  <div
-                    key={i}
-                    className={`inquiry-card ${selectedInquiry === i ? "selected" : ""}`}
-                    onClick={() => !responded && setSelectedInquiry(i)}
-                  >
-                    <div className="inquiry-name">{inq.client}</div>
-                    <div className="inquiry-detail">{inq.event}<br />{inq.service}<br />{inq.location}</div>
-                    <div className="inquiry-budget" style={{ marginTop: 8 }}>{inq.budget}</div>
-                  </div>
-                ))}
-                {selectedInquiry !== null && !responded && (
-                  <button className="btn btn-brass" onClick={handleRespond} style={{ marginTop: 8, width: "100%" }}>
-                    Respond Now (within SLA window) →
-                  </button>
-                )}
-                {responded && (
-                  <div style={{ marginTop: 12 }}>
-                    <div className="success-badge">
-                      <span>✓</span> Response sent · CDI +14 · Routing to agent verification
-                    </div>
-                  </div>
-                )}
-              </div>
+          <div style={{ animation: "fadeUp 0.35s ease" }}>
+            <div style={{ fontSize: "0.68rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#8a8078", marginBottom: 12 }}>Step 3 · Email Notification</div>
+            <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: "2rem", fontWeight: 400, color: "#1a1814", marginBottom: 8, lineHeight: 1.2 }}>
+              And an email — with context.
+            </h1>
+            <p style={{ fontSize: "0.9rem", color: "#5a5550", lineHeight: 1.75, marginBottom: 32 }}>
+              The email delivers the full inquiry with CDI verification status, project details, and a private magic link. No login. One click.
+            </p>
+            <EmailMockup visible={step === 2} />
+            <div style={{ marginTop: 28, textAlign: "center" }}>
+              <button className="btn btn-ink" onClick={next}>Open the private thread →</button>
             </div>
-
-            {responded && (
-              <div style={{ marginTop: 28 }}>
-                <button className="btn btn-ink" onClick={() => setStep(3)}>View Agent Verification →</button>
-              </div>
-            )}
-          </>
+          </div>
         )}
 
-        {/* ── STEP 3: Agent Verification ── */}
+        {/* ── STEP 3: Thread ── */}
         {step === 3 && (
-          <>
-            <p className="demo-eyebrow">Step 4 of 5 · Agent Verification</p>
-            <h1 className="demo-h1">The agent queries CDI before it acts.</h1>
-            <p className="demo-sub">Any AI agent — scheduling software, booking platform, autonomous coordinator — calls the CDI API to verify trust before making a decision. This is what they see.</p>
-
-            <div style={{ marginBottom: 20 }}>
-              <CDIMeter score={cdiScore} prev={prevScore} />
+          <div style={{ animation: "fadeUp 0.35s ease" }}>
+            <div style={{ fontSize: "0.68rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#8a8078", marginBottom: 12 }}>Step 4 · Private Thread</div>
+            <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: "2rem", fontWeight: 400, color: "#1a1814", marginBottom: 8, lineHeight: 1.2 }}>
+              The private thread — with CDI live.
+            </h1>
+            <p style={{ fontSize: "0.9rem", color: "#5a5550", lineHeight: 1.75, marginBottom: 32 }}>
+              Both parties communicate through a magic-link thread. No accounts. No passwords. CDI scores every interaction — response speed, follow-through, coordination quality — in real time.
+            </p>
+            <ThreadMockup />
+            <div style={{ marginTop: 28, textAlign: "center" }}>
+              <button className="btn btn-ink" onClick={next}>See the payment layer →</button>
             </div>
-
-            <div className="terminal">
-              {AGENT_STEPS.slice(0, agentVisible).map((s, i) => (
-                <div key={i} className="terminal-line">
-                  {s.role === "agent" && (
-                    <div className="terminal-agent">
-                      <span style={{ color: "#5a7490" }}>agent@briarwood $</span>{" "}
-                      <TypedText text={s.text} />
-                    </div>
-                  )}
-                  {s.role === "system" && (
-                    <div className="terminal-system" style={{ marginLeft: 16, color: "#8fbf8f", marginBottom: 8 }}>
-                      {s.text}
-                    </div>
-                  )}
-                  {s.role === "agent" && s.text.startsWith("Agent") && (
-                    <div className="terminal-decision">
-                      <TypedText text={s.text} />
-                    </div>
-                  )}
-                </div>
-              ))}
-              {agentVisible === 0 && <span style={{ color: "#5a7490" }}>Initializing agent session...</span>}
-            </div>
-
-            <hr className="hairline" />
-
-            <div style={{ background: "#edeae3", border: "1px solid #d8d2c8", padding: "24px 28px" }}>
-              <div style={{ fontSize: "0.72rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#8a8078", marginBottom: 14 }}>CDI Trust Tiers</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
-                {[
-                  { tier: "Restricted", range: "0–49", color: "#8b3a3a", cap: "Read-only access" },
-                  { tier: "Conditional", range: "50–79", color: "#b8963e", cap: "Submit inquiries, place holds" },
-                  { tier: "Full Access", range: "80–100", color: "#5c7a3e", cap: "Contracts, invoices, automation" },
-                ].map(t => (
-                  <div key={t.tier} style={{ padding: "16px", border: `1px solid ${t.color}22`, background: `${t.color}08` }}>
-                    <div style={{ fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", color: t.color, marginBottom: 4, fontWeight: 600 }}>{t.tier}</div>
-                    <div style={{ fontFamily: "'Fraunces', serif", fontSize: "1rem", color: "#1a1814", marginBottom: 6 }}>{t.range}</div>
-                    <div style={{ fontSize: "0.78rem", color: "#5a5550", lineHeight: 1.5 }}>{t.cap}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {agentVisible >= AGENT_STEPS.length && (
-              <div style={{ marginTop: 28 }}>
-                <button className="btn btn-ink" onClick={() => setStep(4)}>View Payment Layer →</button>
-              </div>
-            )}
-          </>
+          </div>
         )}
 
         {/* ── STEP 4: Payment ── */}
         {step === 4 && (
-          <>
-            <p className="demo-eyebrow">Step 5 of 5 · Payment Infrastructure</p>
-            <h1 className="demo-h1">1.5% on every transaction through the layer.</h1>
-            <p className="demo-sub">Briarwood processes payments as the infrastructure layer. The provider keeps the relationship. We take 1.5% for verification, coordination, and trust scoring.</p>
+          <div style={{ animation: "fadeUp 0.35s ease" }}>
+            <div style={{ fontSize: "0.68rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#8a8078", marginBottom: 12 }}>Step 5 · Payment Infrastructure</div>
+            <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: "2rem", fontWeight: 400, color: "#1a1814", marginBottom: 8, lineHeight: 1.2 }}>
+              1.5% on every transaction through the layer.
+            </h1>
+            <p style={{ fontSize: "0.9rem", color: "#5a5550", lineHeight: 1.75, marginBottom: 36 }}>
+              Briarwood processes the payment as the infrastructure layer. The provider keeps the client relationship. The platform takes 1.5% for CDI verification, coordination proof, and escrow.
+            </p>
 
-            <div style={{ border: "1px solid #d8d2c8", background: "#edeae3", padding: "32px" }}>
-              <div style={{ fontSize: "0.72rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#8a8078", marginBottom: 24 }}>
-                Booking: {INQUIRIES[selectedInquiry ?? 0]?.client ?? "Sarah M."} · {INQUIRIES[selectedInquiry ?? 0]?.service ?? "Bridal Hair + Makeup"}
+            <div style={{ border: "1px solid #d8d2c8", background: "#edeae3", padding: "28px 32px", marginBottom: 16 }}>
+              <div style={{ fontSize: "0.68rem", letterSpacing: "0.16em", textTransform: "uppercase", color: "#8a8078", marginBottom: 20 }}>
+                {FIRM} · {CLIENT}
               </div>
-
-              <div className="payment-row">
-                <span className="payment-label">Booking total</span>
-                <span className="payment-val">${bookingAmount.toLocaleString()}.00</span>
-              </div>
-              <div className="payment-row">
-                <span className="payment-label">
+              {[
+                ["Project", PROJECT],
+                ["Contract value", `$${AMOUNT.toLocaleString()}.00`],
+              ].map(([k, v]) => (
+                <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #d8d2c8", fontSize: "0.88rem" }}>
+                  <span style={{ color: "#5a5550" }}>{k}</span>
+                  <span style={{ color: "#1a1814", fontWeight: 500 }}>{v}</span>
+                </div>
+              ))}
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #d8d2c8", fontSize: "0.88rem" }}>
+                <span style={{ color: "#5a5550" }}>
                   Briarwood platform fee{" "}
-                  <span className="payment-fee">(1.5% · coordination + CDI + verification)</span>
+                  <span style={{ fontSize: "0.76rem", color: "#b8963e" }}>(1.5% — CDI + coordination + escrow)</span>
                 </span>
-                <span className="payment-val" style={{ color: "#b8963e" }}>−${platformFee}.00</span>
+                <span style={{ color: "#b8963e", fontWeight: 600 }}>−${FEE.toLocaleString()}.00</span>
               </div>
-              <div className="payment-row" style={{ borderBottom: "none", paddingTop: 20 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "18px 0 4px", alignItems: "baseline" }}>
                 <span style={{ fontFamily: "'Fraunces', serif", fontSize: "1rem", color: "#1a1814" }}>Provider receives</span>
-                <span className="payment-total">${providerReceives.toLocaleString()}.00</span>
+                <span style={{ fontFamily: "'Fraunces', serif", fontSize: "1.6rem", color: "#1a1814", letterSpacing: "-0.5px" }}>${PAYOUT.toLocaleString()}.00</span>
               </div>
             </div>
 
-            <div style={{ marginTop: 20, padding: "20px 24px", border: "1px solid #d8d2c8", background: "#f0ede6" }}>
-              <div style={{ fontSize: "0.72rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#8a8078", marginBottom: 10 }}>What 1.5% pays for</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 24px" }}>
-                {["Real-time CDI scoring", "Agent verification layer", "Coordination proof escrow", "Trust graph indexing", "SLA monitoring", "Fraud & slash protection"].map(f => (
-                  <div key={f} style={{ fontSize: "0.82rem", color: "#3a3530", display: "flex", gap: 8 }}>
+            <div style={{ border: "1px solid #d8d2c8", background: "#f0ede6", padding: "18px 24px", marginBottom: 28 }}>
+              <div style={{ fontSize: "0.68rem", letterSpacing: "0.16em", textTransform: "uppercase", color: "#8a8078", marginBottom: 10 }}>What 1.5% covers</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 24px" }}>
+                {["Real-time CDI scoring", "Agent verification layer", "Coordination proof escrow", "Trust graph indexing", "SLA monitoring", "Proof-of-service hash"].map(f => (
+                  <div key={f} style={{ fontSize: "0.8rem", color: "#3a3530", display: "flex", gap: 8 }}>
                     <span style={{ color: "#5c7a3e" }}>✓</span> {f}
                   </div>
                 ))}
@@ -578,39 +443,29 @@ export default function BriarwoodDemo() {
             </div>
 
             {!paymentDone ? (
-              <div style={{ marginTop: 28 }}>
-                <button className="btn btn-green" onClick={() => setPaymentDone(true)}>
-                  Process Payment via Square →
-                </button>
-              </div>
+              <button className="btn btn-ink" style={{ width: "100%" }} onClick={() => setPaymentDone(true)}>
+                Process via Square →
+              </button>
             ) : (
               <>
-                <div style={{ marginTop: 28, padding: "24px 28px", border: "1px solid #c4dbb4", background: "#edf5e8" }}>
-                  <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: "0.72rem", letterSpacing: "0.16em", textTransform: "uppercase", color: "#5c7a3e", marginBottom: 8 }}>Payment complete</div>
-                      <div style={{ fontFamily: "'Fraunces', serif", fontSize: "1.1rem", color: "#1a1814", marginBottom: 4 }}>
-                        ${providerReceives.toLocaleString()}.00 routed to {form.name || "Violet Herod"}
-                      </div>
-                      <div style={{ fontSize: "0.82rem", color: "#5a7a50" }}>CDI score updated · Proof-of-service hash generated · Escrow released</div>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontFamily: "'Courier Prime', monospace", fontSize: "0.72rem", color: "#8a8078" }}>
-                        txn_{Math.random().toString(36).slice(2, 10).toUpperCase()}<br />
-                        via Square · Briarwood layer
-                      </div>
-                    </div>
+                <div style={{ border: "1px solid #c4dbb4", background: "#edf5e8", padding: "20px 24px", marginBottom: 32 }}>
+                  <div style={{ fontSize: "0.68rem", letterSpacing: "0.16em", textTransform: "uppercase", color: "#5c7a3e", marginBottom: 6 }}>Payment complete</div>
+                  <div style={{ fontFamily: "'Fraunces', serif", fontSize: "1.1rem", color: "#1a1814", marginBottom: 4 }}>
+                    ${PAYOUT.toLocaleString()}.00 routed to {FIRM}
+                  </div>
+                  <div style={{ fontSize: "0.8rem", color: "#5a7a50" }}>
+                    CDI updated · Proof-of-service hash generated · Escrow released · Trust graph deepened
                   </div>
                 </div>
 
-                <hr className="hairline" />
+                <hr style={{ border: "none", borderTop: "1px solid #d8d2c8", margin: "0 0 32px" }} />
 
                 <div style={{ textAlign: "center" }}>
-                  <div style={{ fontFamily: "'Fraunces', serif", fontSize: "1.4rem", fontStyle: "italic", color: "#5a5550", marginBottom: 24, lineHeight: 1.4 }}>
+                  <div style={{ fontFamily: "'Fraunces', serif", fontSize: "1.3rem", fontStyle: "italic", color: "#5a5550", marginBottom: 24, lineHeight: 1.5 }}>
                     Behavior becomes score.<br />Score becomes search.<br />Search makes action safer.
                   </div>
                   <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-                    <button className="btn btn-ink" onClick={() => { setStep(0); setForm({ name: "", email: "", phone: "", network: [], service: "" }); setCdiScore(50); setPrevScore(50); setEventLog([]); setSelectedInquiry(null); setResponded(false); setAgentVisible(0); setPaymentDone(false); }}>
+                    <button className="btn btn-ink" onClick={() => { setStep(0); setPaymentDone(false); }}>
                       Restart Demo
                     </button>
                     <a className="btn btn-ghost" href="mailto:violet@briarwood.ai" style={{ textDecoration: "none" }}>
@@ -620,16 +475,16 @@ export default function BriarwoodDemo() {
                 </div>
               </>
             )}
-          </>
+          </div>
         )}
 
       </div>
 
-      {/* Footer */}
       <div style={{ borderTop: "1px solid #d8d2c8", padding: "24px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <div style={{ fontFamily: "'Fraunces', serif", fontSize: "0.8rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#8a8078" }}>Briarwood AI</div>
         <div style={{ fontSize: "0.72rem", color: "#8a8078" }}>
-          CDI™ Patent Pending · San Francisco · 2026 · <a href="mailto:violet@briarwood.ai" style={{ color: "#5a5550" }}>violet@briarwood.ai</a>
+          CDI™ Patent Pending · San Francisco · 2026 ·{" "}
+          <a href="mailto:violet@briarwood.ai" style={{ color: "#5a5550" }}>violet@briarwood.ai</a>
         </div>
       </div>
     </div>
