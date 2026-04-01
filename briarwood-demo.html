@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Briarwood AI — Live Demo</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@400;500;600&family=Courier+Prime&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #f4f1eb; font-family: 'Inter', sans-serif; color: #1a1814; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  input, textarea { font-family: 'Inter', sans-serif; }
+  input:focus, textarea:focus { outline: none; border-color: #1a1814 !important; }
+  @media (max-width: 600px) {
+    .demo-grid-2 { grid-template-columns: 1fr !important; }
+    .demo-grid-3 { grid-template-columns: 1fr !important; }
+    .demo-body { padding: 40px 20px 60px !important; }
+    .demo-nav { padding: 14px 20px !important; flex-wrap: wrap; gap: 10px; }
+    .demo-footer { padding: 16px 20px !important; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const STEPS = ["Onboard", "Email", "Text", "CDI"];
+const NETWORKS = ["Landscape Architecture","Civil Engineering","General Contracting","Interior Designer","Architecture","MEP Engineering","Project Management","Urban Planning","Event Producer","Stylist"];
+
+const PROVIDER_SETS = {
+  medical: [
+    { name: "Dr. Okafor — Derm", score: 88, tier: "Full Access" },
+    { name: "SkinPath Associates", score: 76, tier: "Conditional" },
+    { name: "Halcyon Dermatology", score: 61, tier: "Conditional" },
+    { name: "QuickSkin Clinic", score: 43, tier: "Restricted" },
+  ],
+  legal: [
+    { name: "Vance & Holt LLP", score: 91, tier: "Full Access" },
+    { name: "Navarro Legal Group", score: 78, tier: "Conditional" },
+    { name: "Summit Counsel", score: 55, tier: "Conditional" },
+    { name: "FastLaw Partners", score: 37, tier: "Restricted" },
+  ],
+  events: [
+    { name: "Calloway Events", score: 85, tier: "Full Access" },
+    { name: "Luminary Productions", score: 72, tier: "Conditional" },
+    { name: "Onyx Event Co.", score: 58, tier: "Conditional" },
+    { name: "QuickBook Events", score: 41, tier: "Restricted" },
+  ],
+  style: [
+    { name: "Reina Styling Studio", score: 83, tier: "Full Access" },
+    { name: "The Atelier Group", score: 69, tier: "Conditional" },
+    { name: "Linen & Thread Co.", score: 54, tier: "Conditional" },
+    { name: "FastStyle LA", score: 38, tier: "Restricted" },
+  ],
+  landscape: [
+    { name: "Castellan Design", score: 81, tier: "Full Access" },
+    { name: "Meridian LA", score: 74, tier: "Conditional" },
+    { name: "Summit Civil", score: 62, tier: "Conditional" },
+    { name: "Harlow Interiors", score: 48, tier: "Restricted" },
+  ],
+  default: [
+    { name: "Verified Provider A", score: 87, tier: "Full Access" },
+    { name: "Verified Provider B", score: 73, tier: "Conditional" },
+    { name: "Verified Provider C", score: 59, tier: "Conditional" },
+    { name: "Unverified Provider", score: 44, tier: "Restricted" },
+  ],
+};
+
+function detectCategory(q) {
+  const t = q.toLowerCase();
+  if (/derm|doctor|physician|medical|clinic|skin|health|nurse|therapist|psych/.test(t)) return "medical";
+  if (/lawyer|attorney|legal|counsel|law firm/.test(t)) return "legal";
+  if (/event|wedding|conference|gala|producer|planner|ceremony/.test(t)) return "events";
+  if (/stylist|styling|wardrobe|fashion|hair|makeup|beauty/.test(t)) return "style";
+  if (/landscape|architect|civil|contractor|construction|engineer|interior|design/.test(t)) return "landscape";
+  return "default";
+}
+
+const S = {
+  h1: { fontFamily:"'Fraunces',serif", fontSize:"2rem", fontWeight:400, color:"#1a1814", marginBottom:8, lineHeight:1.2 },
+  sub: { fontSize:"0.9rem", color:"#5a5550", lineHeight:1.75, marginBottom:32 },
+  inp: { background:"#edeae3", border:"1px solid #d8d2c8", padding:"11px 14px", fontSize:"0.88rem", color:"#1a1814", borderRadius:0, width:"100%" },
+  lbl: { fontSize:"0.68rem", letterSpacing:"0.14em", textTransform:"uppercase", color:"#5a5550", display:"block", marginBottom:5 },
+  btn: { background:"#1a1814", color:"#f4f1eb", padding:"12px 24px", fontSize:"0.84rem", fontWeight:600, letterSpacing:"0.04em", cursor:"pointer", border:"none", fontFamily:"'Inter',sans-serif", display:"inline-block", textDecoration:"none" },
+  back: { background:"none", border:"none", color:"#8a8078", fontSize:"0.76rem", letterSpacing:"0.06em", cursor:"pointer", fontFamily:"'Inter',sans-serif", padding:"0 0 20px", display:"block" },
+  fg: { display:"flex", flexDirection:"column", marginBottom:16 },
+  cap: { fontSize:"0.68rem", letterSpacing:"0.2em", textTransform:"uppercase", color:"#8a8078", marginBottom:12 },
+  tierColor: (t) => t === "Full Access" ? "#5c7a3e" : t === "Conditional" ? "#b8963e" : "#8b3a3a",
+};
+
+function StepDots({ step }) {
+  return (
+    <div style={{ display:"flex", gap:16, alignItems:"center", flexWrap:"wrap" }}>
+      {STEPS.map((label, i) => (
+        <div key={label} style={{ display:"flex", alignItems:"center", gap:5 }}>
+          <div style={{
+            width:8, height:8, borderRadius:"50%", flexShrink:0,
+            background: step > i ? "#1a1814" : step === i ? "#b8963e" : "transparent",
+            border: `1px solid ${step > i ? "#1a1814" : step === i ? "#b8963e" : "#d8d2c8"}`,
+            transition:"all 0.3s",
+          }} />
+          <span style={{ fontSize:"0.6rem", letterSpacing:"0.1em", textTransform:"uppercase", color: step === i ? "#b8963e" : "#b8b2a8" }}>{label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function OnboardStep({ onNext }) {
+  const [tab, setTab] = useState("profile");
+  const [form, setForm] = useState({ name:"", phone:"", email:"", network:[], routing:"", account:"", bank:"" });
+  const [profileDone, setProfileDone] = useState(false);
+  const [networkDone, setNetworkDone] = useState(false);
+  const toggleNet = (n) => setForm(f => ({ ...f, network: f.network.includes(n) ? f.network.filter(x => x !== n) : [...f.network, n] }));
+  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  return (
+    <div style={{ animation:"fadeUp 0.3s ease" }}>
+      <div style={S.cap}>Step 1 · Provider Onboarding</div>
+      <h1 style={S.h1}>Join the Briarwood trust network.</h1>
+      <p style={S.sub}>Your coordination reputation is your edge. We make it machine-readable.</p>
+
+      <div style={{ display:"flex", borderBottom:"1px solid #d8d2c8", marginBottom:28 }}>
+        {[["profile","01 · Profile"], ["network","02 · Network"], ["bank","03 · Banking"]].map(([t, label], i) => {
+          const done = (t === "network" && profileDone) || (t === "bank" && networkDone);
+          const locked = (t === "network" && !profileDone) || (t === "bank" && !networkDone);
+          return (
+            <button key={t} onClick={() => !locked && setTab(t)} style={{
+              padding:"10px 18px", background:"none", border:"none",
+              borderBottom: tab === t ? "2px solid #1a1814" : "2px solid transparent",
+              color: tab === t ? "#1a1814" : locked ? "#c8c2b8" : "#5a5550",
+              fontSize:"0.72rem", letterSpacing:"0.1em", textTransform:"uppercase",
+              cursor: locked ? "not-allowed" : "pointer", fontFamily:"'Inter',sans-serif", marginBottom:-1,
+            }}>
+              {label} {done && !locked ? "✓" : ""}
+            </button>
+          );
+        })}
+      </div>
+
+      {tab === "profile" && (
+        <div>
+          <div className="demo-grid-2" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:0 }}>
+            <div style={S.fg}><label style={S.lbl}>Full Name</label><input style={S.inp} placeholder="James Meridian" value={form.name} onChange={set("name")} /></div>
+            <div style={S.fg}><label style={S.lbl}>Phone</label><input style={S.inp} placeholder="+1 (628) 000-0000" value={form.phone} onChange={set("phone")} /></div>
+          </div>
+          <div style={{ marginBottom:20 }}><label style={S.lbl}>Work Email</label><input style={S.inp} placeholder="james@meridian-la.com" value={form.email} onChange={set("email")} /></div>
+          <button style={S.btn} onClick={() => { setProfileDone(true); setTab("network"); }}>Continue to Network →</button>
+        </div>
+      )}
+
+      {tab === "network" && (
+        <div>
+          <p style={{ fontSize:"0.84rem", color:"#5a5550", lineHeight:1.7, marginBottom:20 }}>
+            Select professional categories in your trusted referral network. Briarwood routes inquiries you can't take to providers you've verified.
+          </p>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:10, marginBottom:28 }}>
+            {NETWORKS.map(n => (
+              <div key={n} onClick={() => toggleNet(n)} style={{
+                padding:"8px 16px", cursor:"pointer", fontSize:"0.8rem", transition:"all 0.18s",
+                border: `1px solid ${form.network.includes(n) ? "#1a1814" : "#d8d2c8"}`,
+                background: form.network.includes(n) ? "#1a1814" : "#edeae3",
+                color: form.network.includes(n) ? "#f4f1eb" : "#3a3530",
+              }}>{n}</div>
+            ))}
+          </div>
+          <button style={S.btn} onClick={() => { setNetworkDone(true); setTab("bank"); }}>Continue to Banking →</button>
+        </div>
+      )}
+
+      {tab === "bank" && (
+        <div>
+          <p style={{ fontSize:"0.84rem", color:"#5a5550", lineHeight:1.7, marginBottom:20 }}>
+            Briarwood routes payments directly to your bank via Square. 1.5% platform fee deducted at time of transaction.
+          </p>
+          <div className="demo-grid-2" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+            <div style={S.fg}><label style={S.lbl}>Bank Name</label><input style={S.inp} placeholder="First Republic Bank" value={form.bank} onChange={set("bank")} /></div>
+            <div style={S.fg}><label style={S.lbl}>Routing Number</label><input style={S.inp} placeholder="••••••••••" value={form.routing} onChange={set("routing")} /></div>
+          </div>
+          <div style={{ marginBottom:24 }}><label style={S.lbl}>Account Number</label><input style={S.inp} placeholder="••••••••••••" value={form.account} onChange={set("account")} /></div>
+          <div style={{ background:"#edeae3", border:"1px solid #d8d2c8", padding:"14px 18px", marginBottom:24, fontSize:"0.8rem", color:"#5a5550", display:"flex", gap:10 }}>
+            <span>🔒</span>
+            <span>Bank data encrypted via Square Connect. Briarwood does not store account numbers. Transactions are CDI-audited.</span>
+          </div>
+          <button style={S.btn} onClick={() => onNext({ name: form.name || "James Meridian", phone: form.phone || "+1 (628) 555-0142", email: form.email || "james@meridian-la.com" })}>
+            Activate CDI Score →
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EmailStep({ name, email, onNext, onBack }) {
+  const [open, setOpen] = useState(null);
+  const [choice, setChoice] = useState(null);
+  const [ready, setReady] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setReady(true), 500); return () => clearTimeout(t); }, []);
+  const firstName = (name || "James").split(" ")[0];
+
+  const emails = [
+    { id:"inquiry", subject:"New Inquiry — Hargrove Development Group", preview:"Riverfront Mixed-Use Phase II · $125,000 · Q3 2026", time:"9:14 AM", unread:true },
+    { id:"conflict", subject:"⚠ Conflict Detected — June 15", preview:"You have a project on this date. How do you want to proceed?", time:"9:15 AM", unread:true },
+    { subject:"Payment Received — Westfield Civic Center", preview:"$47,500 deposited. Proof-of-service hash generated.", time:"Mar 28", unread:false },
+    { subject:"Referral Completed — Castellan Design Group", preview:"Your referral was accepted. Coordination credit logged.", time:"Mar 24", unread:false },
+  ];
+
+  return (
+    <div style={{ animation:"fadeUp 0.3s ease" }}>
+      <button onClick={onBack} style={S.back}>← Back</button>
+      <div style={S.cap}>Step 2 · Email Notifications</div>
+      <h1 style={S.h1}>It arrives in your inbox.</h1>
+      <p style={S.sub}>No dashboard to log into. No app to open. Briarwood sends everything to your existing email — inquiry details and smart prompts when something needs a decision.</p>
+
+      <div style={{ border:"1px solid #d8d2c8", background:"#fff", boxShadow:"0 4px 24px rgba(0,0,0,0.07)", overflow:"hidden" }}>
+        <div style={{ background:"#edeae3", padding:"10px 14px", borderBottom:"1px solid #d8d2c8", display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ display:"flex", gap:5 }}>
+            {["#ff5f57","#febc2e","#28c840"].map(c => <div key={c} style={{ width:10, height:10, borderRadius:"50%", background:c }} />)}
+          </div>
+          <div style={{ flex:1, background:"#f4f1eb", border:"1px solid #d8d2c8", borderRadius:4, padding:"3px 10px", fontSize:"0.72rem", color:"#8a8078" }}>{email || "james@meridian-la.com"}</div>
+        </div>
+
+        <div style={{ display:"flex", minHeight:400 }}>
+          <div style={{ width:150, borderRight:"1px solid #d8d2c8", padding:"10px 0", flexShrink:0 }}>
+            {["Inbox (2)","Sent","Archive","Briarwood"].map((f, i) => (
+              <div key={f} style={{ padding:"8px 14px", fontSize:"0.74rem", color: i===0 ? "#1a1814" : "#8a8078", fontWeight: i===0 ? 600 : 400, background: i===0 ? "#edeae3" : "transparent" }}>{f}</div>
+            ))}
+          </div>
+
+          {!open ? (
+            <div style={{ flex:1, opacity: ready ? 1 : 0, transition:"opacity 0.4s" }}>
+              {emails.map((em, i) => (
+                <div key={i} onClick={() => em.id && setOpen(em.id)} style={{
+                  padding:"11px 14px", borderBottom:"1px solid #f0ede6",
+                  background: em.unread ? "#fffdf8" : "#fff",
+                  cursor: em.id ? "pointer" : "default",
+                  display:"flex", gap:10, alignItems:"flex-start",
+                }}>
+                  <div style={{ width:6, height:6, borderRadius:"50%", marginTop:6, flexShrink:0, background: em.unread ? "#b8963e" : "transparent", border: em.unread ? "none" : "1px solid #d8d2c8" }} />
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:2 }}>
+                      <div style={{ fontSize:"0.76rem", fontWeight: em.unread ? 600 : 400, color:"#1a1814", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", maxWidth:200 }}>{em.subject}</div>
+                      <div style={{ fontSize:"0.66rem", color:"#8a8078", flexShrink:0 }}>{em.time}</div>
+                    </div>
+                    <div style={{ fontSize:"0.7rem", color:"#8a8078", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{em.preview}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : open === "inquiry" ? (
+            <div style={{ flex:1, padding:"18px 20px", overflowY:"auto" }}>
+              <button onClick={() => setOpen(null)} style={{ ...S.back, padding:"0 0 12px" }}>← Inbox</button>
+              <div style={{ fontSize:"0.6rem", letterSpacing:"0.14em", textTransform:"uppercase", color:"#8a8078", marginBottom:6 }}>From: noreply@briarwood.ai · Today 9:14 AM</div>
+              <div style={{ fontFamily:"'Fraunces',serif", fontSize:"1rem", color:"#1a1814", marginBottom:14, fontWeight:600 }}>New Inquiry — Hargrove Development Group</div>
+              <div style={{ fontSize:"0.82rem", lineHeight:1.8, color:"#3a3530" }}>
+                <p style={{ marginBottom:10 }}>Hi {firstName},</p>
+                <p style={{ marginBottom:12 }}>A new project inquiry has arrived through Briarwood.</p>
+                <div style={{ background:"#f4f1eb", border:"1px solid #d8d2c8", padding:"12px 16px", marginBottom:14, fontSize:"0.78rem" }}>
+                  {[["Client","Hargrove Development Group"],["Project","Riverfront Mixed-Use — Phase II"],["Budget","$125,000"],["Timeline","Q3 2026"]].map(([k,v]) => (
+                    <div key={k} style={{ marginBottom:5 }}><strong>{k}:</strong> {v}</div>
+                  ))}
+                </div>
+                <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                  <div style={{ ...S.btn, fontSize:"0.78rem", padding:"9px 18px" }}>Open Private Thread →</div>
+                  <div style={{ border:"1px solid #d8d2c8", color:"#3a3530", padding:"9px 18px", fontSize:"0.78rem", cursor:"pointer" }}>Decline</div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ flex:1, padding:"18px 20px", overflowY:"auto" }}>
+              <button onClick={() => { setOpen(null); setChoice(null); }} style={{ ...S.back, padding:"0 0 12px" }}>← Inbox</button>
+              <div style={{ fontSize:"0.6rem", letterSpacing:"0.14em", textTransform:"uppercase", color:"#8a8078", marginBottom:6 }}>From: noreply@briarwood.ai · Today 9:15 AM</div>
+              <div style={{ fontFamily:"'Fraunces',serif", fontSize:"1rem", color:"#1a1814", marginBottom:14, fontWeight:600 }}>⚠ Conflict Detected — June 15</div>
+              <div style={{ fontSize:"0.82rem", lineHeight:1.8, color:"#3a3530" }}>
+                <p style={{ marginBottom:12 }}>Hi {firstName}, you have a project on <strong>June 15, 2026</strong> (Westfield Civic Center — Phase I).</p>
+                <p style={{ marginBottom:14 }}>Hargrove Development Group requested that date. <strong>How do you want to proceed?</strong></p>
+                {!choice ? (
+                  <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                    <button onClick={() => setChoice("refer")} style={{ ...S.btn, width:"100%", textAlign:"left", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                      <span>Refer to my trusted network</span>
+                      <span style={{ fontSize:"0.7rem", opacity:0.7 }}>Briarwood routes to a verified provider</span>
+                    </button>
+                    <button onClick={() => setChoice("waitlist")} style={{ background:"transparent", border:"1px solid #d8d2c8", color:"#3a3530", padding:"11px 16px", width:"100%", textAlign:"left", cursor:"pointer", fontFamily:"'Inter',sans-serif", fontSize:"0.82rem", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                      <span>Offer an alternate date</span>
+                      <span style={{ fontSize:"0.7rem", opacity:0.7 }}>Briarwood contacts client automatically</span>
+                    </button>
+                  </div>
+                ) : choice === "refer" ? (
+                  <div style={{ background:"#edf5e8", border:"1px solid #c4dbb4", padding:"12px 16px" }}>
+                    <div style={{ fontSize:"0.7rem", letterSpacing:"0.12em", textTransform:"uppercase", color:"#5c7a3e", marginBottom:5 }}>Referral sent</div>
+                    <div style={{ fontSize:"0.82rem", color:"#1a1814" }}>Routed to <strong>Castellan Design Group</strong> (CDI 81 — your top network match). They've been notified.</div>
+                  </div>
+                ) : (
+                  <div style={{ background:"#edf5e8", border:"1px solid #c4dbb4", padding:"12px 16px" }}>
+                    <div style={{ fontSize:"0.7rem", letterSpacing:"0.12em", textTransform:"uppercase", color:"#5c7a3e", marginBottom:5 }}>Client notified</div>
+                    <div style={{ fontSize:"0.82rem", color:"#1a1814" }}>Briarwood messaged Hargrove with your available dates (June 22, July 8). Awaiting response.</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div style={{ marginTop:20, fontSize:"0.78rem", color:"#8a8078" }}>Click the unread emails to explore, then continue.</div>
+      <div style={{ marginTop:16 }}><button style={S.btn} onClick={onNext}>See the text message →</button></div>
+    </div>
+  );
+}
+
+function PhoneStep({ phone, onNext, onBack }) {
+  const [msgs, setMsgs] = useState(0);
+  const [replied, setReplied] = useState(null);
+  useEffect(() => {
+    setMsgs(0); setReplied(null);
+    const t1 = setTimeout(() => setMsgs(1), 500);
+    const t2 = setTimeout(() => setMsgs(2), 2200);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []);
+
+  return (
+    <div style={{ animation:"fadeUp 0.3s ease" }}>
+      <button onClick={onBack} style={S.back}>← Back</button>
+      <div style={S.cap}>Step 3 · SMS Prompt</div>
+      <h1 style={S.h1}>A text asks one question.</h1>
+      <p style={S.sub}>When a clear action is needed, Briarwood sends a single text. One reply and it handles the rest. No app, no login, no dashboard.</p>
+
+      <div style={{ display:"flex", justifyContent:"center", padding:"8px 0 32px" }}>
+        <div style={{ width:280, background:"#1a1814", borderRadius:36, padding:"10px 5px", boxShadow:"0 24px 64px rgba(0,0,0,0.25), 0 0 0 1px #2a2520" }}>
+          <div style={{ display:"flex", justifyContent:"center", marginBottom:8 }}>
+            <div style={{ width:90, height:22, background:"#0e0e0e", borderRadius:11 }} />
+          </div>
+          <div style={{ background:"#f4f1eb", borderRadius:28, overflow:"hidden" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", padding:"8px 14px 4px", fontSize:"0.6rem", color:"#5a5550" }}>
+              <span>9:15 AM</span><span>●●●</span>
+            </div>
+            <div style={{ background:"#edeae3", padding:"8px 14px", borderBottom:"1px solid #d8d2c8", display:"flex", alignItems:"center", gap:8 }}>
+              <div style={{ width:28, height:28, borderRadius:"50%", background:"#1a1814", display:"flex", alignItems:"center", justifyContent:"center", color:"#f4f1eb", fontSize:"0.7rem", fontWeight:700 }}>B</div>
+              <div>
+                <div style={{ fontSize:"0.7rem", fontWeight:600, color:"#1a1814" }}>Briarwood AI</div>
+                <div style={{ fontSize:"0.56rem", color:"#8a8078" }}>{phone || "+1 (628) 555-0142"}</div>
+              </div>
+            </div>
+            <div style={{ padding:"12px 10px", minHeight:260, display:"flex", flexDirection:"column", gap:10 }}>
+              {msgs >= 1 && (
+                <div style={{ animation:"fadeUp 0.35s ease" }}>
+                  <div style={{ background:"#1a1814", color:"#f4f1eb", borderRadius:"12px 12px 12px 3px", padding:"9px 11px", fontSize:"0.69rem", lineHeight:1.55, maxWidth:"90%" }}>
+                    Briarwood: New availability window — June 22, 2026. Hargrove Development Group ($125K). Are you available and ready to send pricing?
+                  </div>
+                  <div style={{ fontSize:"0.54rem", color:"#b8b2a8", marginTop:3, paddingLeft:3 }}>9:15 AM</div>
+                </div>
+              )}
+              {msgs >= 2 && !replied && (
+                <div style={{ display:"flex", gap:8, justifyContent:"flex-end", animation:"fadeUp 0.3s ease" }}>
+                  <button onClick={() => setReplied("no")} style={{ background:"#edeae3", border:"1px solid #d8d2c8", color:"#3a3530", padding:"7px 14px", fontSize:"0.7rem", cursor:"pointer", borderRadius:14, fontFamily:"'Inter',sans-serif" }}>No</button>
+                  <button onClick={() => setReplied("yes")} style={{ background:"#1a1814", color:"#f4f1eb", border:"none", padding:"7px 14px", fontSize:"0.7rem", cursor:"pointer", borderRadius:14, fontFamily:"'Inter',sans-serif", fontWeight:600 }}>Yes →</button>
+                </div>
+              )}
+              {replied && (
+                <>
+                  <div style={{ display:"flex", justifyContent:"flex-end", animation:"fadeUp 0.3s ease" }}>
+                    <div style={{ background:"#4a7c59", color:"#fff", borderRadius:"12px 12px 3px 12px", padding:"8px 12px", fontSize:"0.69rem" }}>
+                      {replied === "yes" ? "YES" : "NO"}
+                    </div>
+                  </div>
+                  <div style={{ animation:"fadeUp 0.35s ease" }}>
+                    <div style={{ background:"#1a1814", color:"#f4f1eb", borderRadius:"12px 12px 12px 3px", padding:"9px 11px", fontSize:"0.69rem", lineHeight:1.55, maxWidth:"90%" }}>
+                      {replied === "yes"
+                        ? "Pricing sent to Hargrove. Thread open at briarwood.ai/t/mrdn-7f2k"
+                        : "Got it. Routing to Castellan Design Group. Referral credit logged."}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+            <div style={{ borderTop:"1px solid #d8d2c8", padding:"8px 10px", background:"#edeae3", display:"flex", gap:6, alignItems:"center" }}>
+              <div style={{ flex:1, background:"#f4f1eb", border:"1px solid #d8d2c8", borderRadius:14, padding:"6px 10px", fontSize:"0.66rem", color:"#b8b2a8" }}>Message...</div>
+              <div style={{ width:24, height:24, borderRadius:"50%", background:"#1a1814", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                <span style={{ color:"#f4f1eb", fontSize:"0.65rem" }}>↑</span>
+              </div>
+            </div>
+          </div>
+          <div style={{ display:"flex", justifyContent:"center", marginTop:8 }}>
+            <div style={{ width:70, height:4, background:"#3a3530", borderRadius:2 }} />
+          </div>
+        </div>
+      </div>
+      <button style={S.btn} onClick={onNext}>See CDI in action →</button>
+    </div>
+  );
+}
+
+function CDIStep({ onBack }) {
+  const [query, setQuery] = useState("");
+  const [active, setActive] = useState(null);
+  const [log, setLog] = useState([]);
+  const [running, setRunning] = useState(false);
+  const [providers, setProviders] = useState(PROVIDER_SETS.landscape);
+  const yPos = [80, 180, 280, 380];
+
+  function runQuery() {
+    if (running || !query.trim()) return;
+    const cat = detectCategory(query);
+    const matched = PROVIDER_SETS[cat];
+    setProviders(matched);
+    setRunning(true); setActive(null); setLog([]);
+    const top = matched[0], excluded = matched[3];
+    const steps = [
+      `> Agent: "${query}"`,
+      `> Agent resolves intent — service type, location, budget, urgency`,
+      `> Agent calls Briarwood: GET /api/agent/cdi?category=${cat}`,
+      `> CDI engine scanning behavioral trust graph...`,
+      `> ${matched.length} verified providers found`,
+      `> Filtering: CDI ≥ 50 required`,
+      `> Ranked: ${matched[0].name} (${matched[0].score}) → ${matched[1].name} (${matched[1].score}) → ${matched[2].name} (${matched[2].score})`,
+      `> ${excluded.name} (${excluded.score}) excluded — below trust threshold`,
+      `> Returning: ${top.name} — CDI ${top.score} · ${top.tier}`,
+      `> Agent authorized to submit inquiry on behalf of user`,
+    ];
+    steps.forEach((s, i) => {
+      setTimeout(() => {
+        setLog(prev => [...prev, s]);
+        if (i === 2) setActive(-1);
+        if (i === 4) { setActive(0); setTimeout(()=>setActive(1),300); setTimeout(()=>setActive(2),600); setTimeout(()=>setActive(3),900); }
+        if (i === steps.length - 1) setRunning(false);
+      }, i * 450);
+    });
+  }
+
+  return (
+    <div style={{ animation:"fadeUp 0.3s ease" }}>
+      <button onClick={onBack} style={S.back}>← Back</button>
+      <div style={S.cap}>Step 4 · CDI — The Missing Primitive</div>
+      <h1 style={S.h1}>The physical world has no API for trust. Until now.</h1>
+      <p style={{ fontSize:"0.9rem", color:"#5a5550", lineHeight:1.8, marginBottom:28 }}>
+        The digital economy is fully indexed. Credit scores, safety ratings, driver scores — callable in milliseconds. The physical service economy has no equivalent. That endpoint does not exist. CDI is the missing primitive.
+      </p>
+
+      <div className="demo-grid-2" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:1, marginBottom:32, background:"#d8d2c8" }}>
+        <div style={{ background:"#edf5e8", padding:"18px 20px" }}>
+          <div style={{ fontSize:"0.64rem", letterSpacing:"0.14em", textTransform:"uppercase", color:"#5c7a3e", marginBottom:10 }}>Digital Economy</div>
+          <div style={{ fontFamily:"'Courier Prime',monospace", fontSize:"0.7rem", color:"#1a3a1a", lineHeight:2 }}>
+            GET /user/credit-score/u_4821<br/>
+            GET /merchant/risk-rating/m_993<br/>
+            GET /driver/safety-score/d_112<br/>
+            <span style={{ color:"#5c7a3e", fontWeight:600 }}>200 OK {'{'}score: 742{'}'}</span>
+          </div>
+        </div>
+        <div style={{ background:"#f9eded", padding:"18px 20px" }}>
+          <div style={{ fontSize:"0.64rem", letterSpacing:"0.14em", textTransform:"uppercase", color:"#8b3a3a", marginBottom:10 }}>Physical Economy — Until Briarwood</div>
+          <div style={{ fontFamily:"'Courier Prime',monospace", fontSize:"0.7rem", color:"#3a1a1a", lineHeight:2 }}>
+            GET /contractor/trust/c_7741<br/>
+            GET /vendor/reliability/v_204<br/>
+            GET /agent/behavioral-score/a_88<br/>
+            <span style={{ color:"#8b3a3a", fontWeight:600 }}>404 {'{'}error: "endpoint does not exist"{'}'}</span>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ fontSize:"0.66rem", letterSpacing:"0.2em", textTransform:"uppercase", color:"#8a8078", marginBottom:10 }}>Live Demo · How the Trust Layer Works</div>
+      <div style={{ background:"#edeae3", border:"1px solid #d8d2c8", padding:"14px 18px", marginBottom:16, fontSize:"0.82rem", color:"#3a3530", lineHeight:1.75 }}>
+        <strong style={{ color:"#1a1814" }}>Briarwood is not a search engine.</strong> The agent — Claude, GPT, Gemini — understands the request, resolves intent, and determines what provider is needed. It then calls Briarwood's CDI API to answer the one thing it cannot answer from training data: <em>who in the physical world can actually be trusted?</em>
+      </div>
+      <p style={{ fontSize:"0.8rem", color:"#8a8078", marginBottom:16 }}>Type any request — a derm doctor, an event producer, a lawyer. Watch the trust graph respond.</p>
+
+      <div style={{ display:"flex", gap:10, marginBottom:24 }}>
+        <input style={{ ...S.inp, flex:1 }} placeholder="Find me a derm doctor in San Francisco taking new patients"
+          value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === "Enter" && runQuery()} />
+        <button style={{ ...S.btn, whiteSpace:"nowrap" }} onClick={runQuery}>{running ? "Routing..." : "Run →"}</button>
+      </div>
+
+      <div style={{ border:"1px solid #d8d2c8", background:"#edeae3", overflow:"hidden" }}>
+        <svg width="100%" viewBox="0 0 700 480" style={{ display:"block" }}>
+          <g>
+            <rect x="20" y="195" width="120" height="90" rx="4" fill="#1a1814" />
+            <text x="80" y="225" textAnchor="middle" fill="#f4f1eb" fontSize="9" letterSpacing="1" fontFamily="Inter,sans-serif">LLM AGENT</text>
+            <text x="80" y="242" textAnchor="middle" fill="#8a8078" fontSize="8" fontFamily="Inter,sans-serif">Claude / GPT / Gemini</text>
+            <text x="80" y="258" textAnchor="middle" fill="#b8963e" fontSize="8" fontFamily="Courier Prime,monospace">GET /api/agent/cdi</text>
+          </g>
+          <line x1="140" y1="240" x2="266" y2="240" stroke={running ? "#b8963e" : "#d8d2c8"} strokeWidth="1.5" />
+          <polygon points="266,235 276,240 266,245" fill={running ? "#b8963e" : "#d8d2c8"} />
+          <g>
+            <circle cx="330" cy="240" r="58" fill="#f4f1eb" stroke={active === -1 ? "#b8963e" : "#d8d2c8"} strokeWidth={active === -1 ? 2 : 1} />
+            <text x="330" y="228" textAnchor="middle" fill="#1a1814" fontSize="9" letterSpacing="1.5" fontFamily="Inter,sans-serif" fontWeight="600">BRIARWOOD</text>
+            <text x="330" y="244" textAnchor="middle" fill="#b8963e" fontSize="9" letterSpacing="1" fontFamily="Inter,sans-serif">CDI ENGINE</text>
+            <text x="330" y="260" textAnchor="middle" fill="#8a8078" fontSize="7" fontFamily="Courier Prime,monospace">Patent Pending</text>
+          </g>
+          {providers.map((p, i) => {
+            const isActive = active !== null && active >= 0 && i <= active;
+            const color = S.tierColor(p.tier);
+            const py = yPos[i];
+            return (
+              <g key={i}>
+                <line x1="390" y1="240" x2="478" y2={py + 28} stroke={isActive ? color : "#d8d2c8"} strokeWidth={isActive ? 1.5 : 1} strokeDasharray={isActive ? "none" : "4 3"} />
+                <rect x="478" y={py} width="160" height="70" rx="3" fill={isActive ? "#fff" : "#f4f1eb"} stroke={isActive ? color : "#d8d2c8"} strokeWidth={isActive ? 1.5 : 1} />
+                <text x="558" y={py + 20} textAnchor="middle" fill="#1a1814" fontSize="9" fontFamily="Inter,sans-serif" fontWeight="600">{p.name}</text>
+                <text x="558" y={py + 36} textAnchor="middle" fill={color} fontSize="14" fontFamily="Inter,sans-serif" fontWeight="700">{p.score}</text>
+                <text x="558" y={py + 51} textAnchor="middle" fill={color} fontSize="7" letterSpacing="1" fontFamily="Inter,sans-serif">{p.tier.toUpperCase()}</text>
+                {isActive && p.tier === "Full Access" && <text x="558" y={py + 64} textAnchor="middle" fill="#5c7a3e" fontSize="7" fontFamily="Inter,sans-serif">✓ TOP MATCH</text>}
+                {isActive && p.tier === "Restricted" && <text x="558" y={py + 64} textAnchor="middle" fill="#8b3a3a" fontSize="7" fontFamily="Inter,sans-serif">✕ EXCLUDED</text>}
+              </g>
+            );
+          })}
+          {[["Full Access","#5c7a3e",80],["Conditional","#b8963e",50],["Restricted","#8b3a3a",0]].map(([label,color,min],i) => (
+            <g key={label} transform={`translate(30,${420 + i * 16})`}>
+              <circle cx="6" cy="5" r="5" fill={color} />
+              <text x="16" y="9" fill="#5a5550" fontSize="8" fontFamily="Inter,sans-serif">{label} (CDI {min}+)</text>
+            </g>
+          ))}
+        </svg>
+      </div>
+
+      {log.length > 0 && (
+        <div style={{ marginTop:12, background:"#1a1814", padding:"14px 18px", fontFamily:"'Courier Prime',monospace", fontSize:"0.75rem", lineHeight:1.7, color:"#c8d4c0" }}>
+          {log.map((line, i) => (
+            <div key={i} style={{ color: line.startsWith("> Agent:") ? "#b8963e" : line.startsWith("> Returning") || line.includes("authorized") ? "#8fbf8f" : line.includes("excluded") ? "#d47070" : "#c8d4c0" }}>
+              {line}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ marginTop:32, borderTop:"1px solid #d8d2c8", paddingTop:32 }}>
+        <div style={{ fontSize:"0.66rem", letterSpacing:"0.2em", textTransform:"uppercase", color:"#8a8078", marginBottom:14 }}>The Flywheel</div>
+        <div style={{ fontFamily:"'Fraunces',serif", fontSize:"1.3rem", fontWeight:400, color:"#1a1814", lineHeight:1.4, marginBottom:22 }}>
+          Trust compounds the same way in every layer.
+        </div>
+        <div className="demo-grid-3" style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:1, marginBottom:10, background:"#d8d2c8" }}>
+          {[
+            { label:"Humans", icon:"◎", color:"#5c7a3e", head:"1 brings 3 to 5.", body:"Organic, earned, sovereign. The same way trust has always worked." },
+            { label:"Agents", icon:"⬡", color:"#b8963e", head:"Machine word of mouth.", body:"One successful execution becomes training data. The next model defaults to the same providers." },
+            { label:"Onchain", icon:"⬢", color:"#1a1814", head:"Every score is sovereign.", body:"The provider owns their score. The agent verifies it trustlessly. No platform in the middle." },
+          ].map(({ label, icon, color, head, body }) => (
+            <div key={label} style={{ background:"#f4f1eb", padding:"20px 18px" }}>
+              <div style={{ fontSize:"1.1rem", color, marginBottom:8 }}>{icon}</div>
+              <div style={{ fontSize:"0.64rem", letterSpacing:"0.14em", textTransform:"uppercase", color, marginBottom:7 }}>{label}</div>
+              <div style={{ fontSize:"0.8rem", fontWeight:600, color:"#1a1814", marginBottom:5, lineHeight:1.4 }}>{head}</div>
+              <div style={{ fontSize:"0.76rem", color:"#5a5550", lineHeight:1.65 }}>{body}</div>
+            </div>
+          ))}
+        </div>
+        <p style={{ fontSize:"0.8rem", color:"#8a8078", marginBottom:32 }}>The trust graph is the network. It runs on math, not middlemen.</p>
+
+        <div style={{ fontSize:"0.66rem", letterSpacing:"0.2em", textTransform:"uppercase", color:"#8a8078", marginBottom:14 }}>Why Briarwood is the Oracle</div>
+        <div style={{ fontFamily:"'Fraunces',serif", fontSize:"1.4rem", fontWeight:400, color:"#1a1814", lineHeight:1.35, marginBottom:20 }}>
+          Every AI agent needs one answer before it can act:<br/>
+          <span style={{ fontStyle:"italic" }}>who in the physical world can actually be trusted?</span>
+        </div>
+        <p style={{ fontSize:"0.88rem", color:"#5a5550", lineHeight:1.85, marginBottom:20 }}>
+          No model can answer that from training data. Trust in the real world is not written down. It lives in patterns — who responded, who followed through, who referred whom, who got paid and delivered. That data has never been captured at scale. Until now.
+        </p>
+
+        <div className="demo-grid-2" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:1, marginBottom:24, background:"#d8d2c8" }}>
+          {[
+            ["Every inquiry routed","We see who responds and how fast."],
+            ["Every referral made","We know who trusts whom, and why."],
+            ["Every project completed","We have proof. Hashed, time-stamped."],
+            ["Every payment processed","We verify delivery against coordination record."],
+          ].map(([title, desc]) => (
+            <div key={title} style={{ background:"#f4f1eb", padding:"18px 20px" }}>
+              <div style={{ fontSize:"0.76rem", fontWeight:600, color:"#1a1814", marginBottom:5 }}>{title}</div>
+              <div style={{ fontSize:"0.78rem", color:"#5a5550", lineHeight:1.6 }}>{desc}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ background:"#1a1814", color:"#f4f1eb", padding:"24px 28px", marginBottom:28 }}>
+          <div style={{ fontFamily:"'Fraunces',serif", fontSize:"1.05rem", fontStyle:"italic", lineHeight:1.6, marginBottom:14 }}>
+            "Briarwood is the FICO score for the real world — except FICO only reads financial history. We read coordination history. That is a larger and more valuable signal."
+          </div>
+          <div style={{ fontSize:"0.7rem", letterSpacing:"0.1em", textTransform:"uppercase", color:"#8a8078" }}>
+            Dundy Pasupuleti · Co-founder, Briarwood AI
+          </div>
+        </div>
+
+        <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
+          <a href="mailto:violet@briarwood.ai" style={{ ...S.btn, textDecoration:"none" }}>Request Early Access</a>
+          <a href="mailto:dundysm@briarwood.ai" style={{ background:"transparent", border:"1px solid #d8d2c8", color:"#3a3530", padding:"12px 24px", fontSize:"0.84rem", cursor:"pointer", fontFamily:"'Inter',sans-serif", textDecoration:"none", display:"inline-block" }}>Contact Dundy</a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [step, setStep] = useState(0);
+  const [provider, setProvider] = useState({ name:"James Meridian", phone:"+1 (628) 555-0142", email:"james@meridian-la.com" });
+
+  return (
+    <div>
+      <div className="demo-nav" style={{ position:"sticky", top:0, zIndex:40, background:"rgba(244,241,235,0.96)", backdropFilter:"blur(10px)", borderBottom:"1px solid #d8d2c8", padding:"14px 40px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+        <div style={{ fontFamily:"'Fraunces',serif", fontSize:"0.88rem", fontWeight:600, letterSpacing:"0.12em", textTransform:"uppercase" }}>Briarwood AI · Live Demo</div>
+        <StepDots step={step} />
+        <div style={{ fontSize:"0.66rem", color:"#8a8078", letterSpacing:"0.08em" }}>CDI™ Patent Pending</div>
+      </div>
+
+      <div className="demo-body" style={{ maxWidth:660, margin:"0 auto", padding:"56px 40px 80px" }}>
+        {step === 0 && <OnboardStep onNext={(d) => { setProvider(d); setStep(1); }} />}
+        {step === 1 && <EmailStep name={provider.name} email={provider.email} onNext={() => setStep(2)} onBack={() => setStep(0)} />}
+        {step === 2 && <PhoneStep phone={provider.phone} onNext={() => setStep(3)} onBack={() => setStep(1)} />}
+        {step === 3 && <CDIStep onBack={() => setStep(2)} />}
+      </div>
+
+      <div className="demo-footer" style={{ borderTop:"1px solid #d8d2c8", padding:"20px 40px", display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:12 }}>
+        <div style={{ fontFamily:"'Fraunces',serif", fontSize:"0.76rem", letterSpacing:"0.1em", textTransform:"uppercase", color:"#8a8078" }}>Briarwood AI</div>
+        <div style={{ fontSize:"0.7rem", color:"#8a8078" }}>
+          CDI™ Patent Pending · San Francisco · 2026 · <a href="mailto:violet@briarwood.ai" style={{ color:"#5a5550" }}>violet@briarwood.ai</a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
