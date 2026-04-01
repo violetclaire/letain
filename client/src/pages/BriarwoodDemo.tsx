@@ -135,8 +135,8 @@ function EmailStep({ name, email, onNext, onBack }: { name: string; email: strin
   const emails = [
     { id: "inquiry", from: "Briarwood AI", subject: "New Inquiry — Hargrove Development Group", preview: "Riverfront Mixed-Use Phase II · $125,000 · Q3 2026", time: "9:14 AM", unread: true },
     { id: "conflict", from: "Briarwood AI", subject: "⚠ Conflict Detected — June 15", preview: "You have a project on this date. How do you want to proceed?", time: "9:15 AM", unread: true },
-    { from: "Briarwood AI", subject: "Weekly CDI Report — Score: 74", preview: "Your trust score increased +8 this week. Here's what drove it.", time: "Mon", unread: false },
-    { from: "Briarwood AI", subject: "Payment Received — Westfield Civic Center", preview: "$47,500 deposited. CDI updated. Proof-of-service hash generated.", time: "Mar 28", unread: false },
+    { from: "Briarwood AI", subject: "Payment Received — Westfield Civic Center", preview: "$47,500 deposited. Proof-of-service hash generated.", time: "Mar 28", unread: false },
+    { from: "Briarwood AI", subject: "Referral Completed — Castellan Design Group", preview: "Your referral was accepted. Coordination credit logged.", time: "Mar 24", unread: false },
   ];
 
   return (
