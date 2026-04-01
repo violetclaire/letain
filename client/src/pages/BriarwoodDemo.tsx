@@ -353,43 +353,99 @@ function PhoneStep({ phone, onNext, onBack }: { phone: string; onNext: () => voi
 
 // ── STEP 3: CDI Agent Graph ───────────────────────────────────────────────────
 
+const PROVIDER_SETS: Record<string, { name: string; score: number; tier: string }[]> = {
+  medical: [
+    { name: "Dr. Okafor — Derm", score: 88, tier: "Full Access" },
+    { name: "SkinPath Associates", score: 76, tier: "Conditional" },
+    { name: "Halcyon Dermatology", score: 61, tier: "Conditional" },
+    { name: "QuickSkin Clinic", score: 43, tier: "Restricted" },
+  ],
+  legal: [
+    { name: "Vance & Holt LLP", score: 91, tier: "Full Access" },
+    { name: "Navarro Legal Group", score: 78, tier: "Conditional" },
+    { name: "Summit Counsel", score: 55, tier: "Conditional" },
+    { name: "FastLaw Partners", score: 37, tier: "Restricted" },
+  ],
+  events: [
+    { name: "Calloway Events", score: 85, tier: "Full Access" },
+    { name: "Luminary Productions", score: 72, tier: "Conditional" },
+    { name: "Onyx Event Co.", score: 58, tier: "Conditional" },
+    { name: "QuickBook Events", score: 41, tier: "Restricted" },
+  ],
+  style: [
+    { name: "Reina Styling Studio", score: 83, tier: "Full Access" },
+    { name: "The Atelier Group", score: 69, tier: "Conditional" },
+    { name: "Linen & Thread Co.", score: 54, tier: "Conditional" },
+    { name: "FastStyle LA", score: 38, tier: "Restricted" },
+  ],
+  landscape: [
+    { name: "Castellan Design", score: 81, tier: "Full Access" },
+    { name: "Meridian LA", score: 74, tier: "Conditional" },
+    { name: "Summit Civil", score: 62, tier: "Conditional" },
+    { name: "Harlow Interiors", score: 48, tier: "Restricted" },
+  ],
+  default: [
+    { name: "Verified Provider A", score: 87, tier: "Full Access" },
+    { name: "Verified Provider B", score: 73, tier: "Conditional" },
+    { name: "Verified Provider C", score: 59, tier: "Conditional" },
+    { name: "Unverified Provider", score: 44, tier: "Restricted" },
+  ],
+};
+
+function detectCategory(q: string): string {
+  const t = q.toLowerCase();
+  if (/derm|doctor|physician|medical|clinic|skin|health|nurse|therapist|psych/.test(t)) return "medical";
+  if (/lawyer|attorney|legal|counsel|law firm/.test(t)) return "legal";
+  if (/event|wedding|conference|gala|producer|planner|ceremony/.test(t)) return "events";
+  if (/stylist|styling|wardrobe|fashion|hair|makeup|beauty/.test(t)) return "style";
+  if (/landscape|architect|civil|contractor|construction|engineer|interior|design/.test(t)) return "landscape";
+  return "default";
+}
+
 function CDIGraphStep({ onBack }: { onBack: () => void }) {
-  const [tick, setTick] = useState(0);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState<null | number>(null);
   const [log, setLog] = useState<string[]>([]);
   const [running, setRunning] = useState(false);
+  const [currentProviders, setCurrentProviders] = useState(PROVIDER_SETS.landscape);
 
-  const providers = [
-    { name: "Meridian LA", score: 74, tier: "Conditional", x: 560, y: 80 },
-    { name: "Castellan Design", score: 81, tier: "Full Access", x: 560, y: 180 },
-    { name: "Summit Civil", score: 62, tier: "Conditional", x: 560, y: 280 },
-    { name: "Harlow Interiors", score: 48, tier: "Restricted", x: 560, y: 380 },
-  ];
+  const yPositions = [80, 180, 280, 380];
+  const providers = currentProviders.map((p, i) => ({ ...p, x: 560, y: yPositions[i] }));
 
   function runQuery() {
     if (running || !query.trim()) return;
+    const category = detectCategory(query);
+    const matched = PROVIDER_SETS[category];
+    setCurrentProviders(matched);
     setRunning(true);
     setActive(null);
     setLog([]);
+    const top = matched[0];
+    const excluded = matched[3];
     const steps = [
       `> Agent: "${query}"`,
-      `> Briarwood API: parsing intent...`,
-      `> CDI lookup: scanning trust graph...`,
-      `> Matched 4 verified providers`,
-      `> Filtering by CDI ≥ 50 (Conditional tier)`,
-      `> Ranked by score: Castellan (81) → Meridian (74) → Summit (62)`,
-      `> Harlow Interiors (48) excluded — CDI below threshold`,
-      `> Returning top match: Castellan Design Group`,
-      `> Agent authorized to submit inquiry`,
+      `> Agent resolves intent — service type, location, budget, urgency`,
+      `> Agent calls Briarwood: GET /api/agent/cdi?category=${category}`,
+      `> CDI engine scanning behavioral trust graph...`,
+      `> ${matched.length} verified providers found`,
+      `> Filtering: CDI ≥ 50 (Conditional access required)`,
+      `> Ranked by behavioral score: ${matched[0].name} (${matched[0].score}) → ${matched[1].name} (${matched[1].score}) → ${matched[2].name} (${matched[2].score})`,
+      `> ${excluded.name} (${excluded.score}) excluded — below trust threshold`,
+      `> Returning: ${top.name} — CDI ${top.score} · ${top.tier}`,
+      `> Agent authorized to submit inquiry on behalf of user`,
     ];
     steps.forEach((s, i) => {
       setTimeout(() => {
         setLog(prev => [...prev, s]);
-        if (i === 2) setActive(-1); // pulse CDI node
-        if (i === 3) { setActive(0); setTimeout(() => setActive(1), 300); setTimeout(() => setActive(2), 600); setTimeout(() => setActive(3), 900); }
+        if (i === 2) setActive(-1);
+        if (i === 4) {
+          setActive(0);
+          setTimeout(() => setActive(1), 300);
+          setTimeout(() => setActive(2), 600);
+          setTimeout(() => setActive(3), 900);
+        }
         if (i === steps.length - 1) setRunning(false);
-      }, i * 420);
+      }, i * 450);
     });
   }
 
@@ -426,14 +482,17 @@ function CDIGraphStep({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      <div style={{ fontSize: "0.68rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#8a8078", marginBottom: 12 }}>Live Demo · Agent Query</div>
-      <p style={{ fontSize: "0.88rem", color: "#5a5550", lineHeight: 1.7, marginBottom: 20 }}>Type a natural language request below. Watch the CDI trust graph route it in real time.</p>
+      <div style={{ fontSize: "0.68rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#8a8078", marginBottom: 12 }}>Live Demo · How the Trust Layer Works</div>
+      <div style={{ background: "#edeae3", border: "1px solid #d8d2c8", padding: "16px 20px", marginBottom: 20, fontSize: "0.82rem", color: "#3a3530", lineHeight: 1.75 }}>
+        <strong style={{ color: "#1a1814" }}>Briarwood is not a search engine.</strong> The agent — Claude, GPT, Gemini, or any LLM — understands the user's request, resolves intent, and determines what kind of provider is needed. It then calls Briarwood's CDI API to answer one question the agent cannot answer on its own: <em>who in the physical world can actually be trusted for this?</em> Briarwood returns verified behavioral scores. The agent decides what to do with them.
+      </div>
+      <p style={{ fontSize: "0.82rem", color: "#8a8078", lineHeight: 1.6, marginBottom: 20 }}>Type any request below — a derm doctor, an event producer, a lawyer. The graph shows what happens when the agent calls Briarwood to verify trust.</p>
 
       {/* Query input */}
       <div style={{ display: "flex", gap: 10, marginBottom: 28 }}>
         <input
           style={{ ...INPUT, flex: 1 }}
-          placeholder="Find me a landscape architect in San Francisco for a $125K project"
+          placeholder="Find me a derm doctor in San Francisco taking new patients"
           value={query}
           onChange={e => setQuery(e.target.value)}
           onKeyDown={e => e.key === "Enter" && runQuery()}
