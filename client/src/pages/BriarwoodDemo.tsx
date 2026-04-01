@@ -134,7 +134,7 @@ function EmailStep({ name, email, onNext }: { name: string; email: string; onNex
 
   const emails = [
     { id: "inquiry", from: "Briarwood AI", subject: "New Inquiry — Hargrove Development Group", preview: "Riverfront Mixed-Use Phase II · $125,000 · Q3 2026", time: "9:14 AM", unread: true },
-    { id: "conflict", from: "Briarwood AI", subject: "⚠ Conflict Detected — June 15", preview: "You have an existing booking on this date. How do you want to proceed?", time: "9:15 AM", unread: true },
+    { id: "conflict", from: "Briarwood AI", subject: "⚠ Conflict Detected — June 15", preview: "You have a project on this date. How do you want to proceed?", time: "9:15 AM", unread: true },
     { from: "Briarwood AI", subject: "Weekly CDI Report — Score: 74", preview: "Your trust score increased +8 this week. Here's what drove it.", time: "Mon", unread: false },
     { from: "Briarwood AI", subject: "Payment Received — Westfield Civic Center", preview: "$47,500 deposited. CDI updated. Proof-of-service hash generated.", time: "Mar 28", unread: false },
   ];
@@ -215,7 +215,7 @@ function EmailStep({ name, email, onNext }: { name: string; email: string; onNex
               <div style={{ fontSize: "0.62rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#8a8078", marginBottom: 6 }}>From: noreply@briarwood.ai · Today 9:15 AM</div>
               <div style={{ fontFamily: "'Fraunces',serif", fontSize: "1.1rem", color: "#1a1814", marginBottom: 16, fontWeight: 600 }}>⚠ Conflict Detected — June 15</div>
               <div style={{ fontSize: "0.84rem", lineHeight: 1.8, color: "#3a3530" }}>
-                <p style={{ marginBottom: 14 }}>Hi {name.split(" ")[0] || "James"}, you're already booked on <strong>June 15, 2026</strong> (Westfield Civic Center — Phase I).</p>
+                <p style={{ marginBottom: 14 }}>Hi {name.split(" ")[0] || "James"}, you have a project on <strong>June 15, 2026</strong> (Westfield Civic Center — Phase I).</p>
                 <p style={{ marginBottom: 16 }}>Hargrove Development Group requested that date. <strong>How do you want to proceed?</strong></p>
                 {!choice ? (
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
