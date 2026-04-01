@@ -23,7 +23,7 @@ function StepDots({ step }: { step: number }) {
   );
 }
 
-const NETWORKS = ["Landscape Architecture", "Civil Engineering", "General Contracting", "Interior Design", "Architecture", "MEP Engineering", "Project Management", "Urban Planning"];
+const NETWORKS = ["Landscape Architecture", "Civil Engineering", "General Contracting", "Interior Designer", "Architecture", "MEP Engineering", "Project Management", "Urban Planning", "Event Producer", "Stylist"];
 
 // ── STEP 0: Onboarding ───────────────────────────────────────────────────────
 
@@ -122,7 +122,7 @@ function OnboardStep({ onNext }: { onNext: (data: { name: string; phone: string;
 
 // ── STEP 1: Email inbox ───────────────────────────────────────────────────────
 
-function EmailStep({ name, email, onNext }: { name: string; email: string; onNext: () => void }) {
+function EmailStep({ name, email, onNext, onBack }: { name: string; email: string; onNext: () => void; onBack: () => void }) {
   const [open, setOpen] = useState<null | "inquiry" | "conflict">(null);
   const [choice, setChoice] = useState<null | "refer" | "waitlist">(null);
   const [emailsReady, setEmailsReady] = useState(false);
@@ -141,6 +141,7 @@ function EmailStep({ name, email, onNext }: { name: string; email: string; onNex
 
   return (
     <div style={{ animation: "fadeUp 0.3s ease" }}>
+      <button onClick={onBack} style={BACKBTN}>← Back</button>
       <div style={{ fontSize: "0.68rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#8a8078", marginBottom: 12 }}>Step 2 · Email Notifications</div>
       <h1 style={H1}>It arrives in your inbox.</h1>
       <p style={SUB}>No dashboard to log into. No app to open. Briarwood sends everything to your existing email — inquiry details, CDI alerts, and smart prompts when something needs a decision.</p>
@@ -257,7 +258,7 @@ function EmailStep({ name, email, onNext }: { name: string; email: string; onNex
 
 // ── STEP 2: Phone text ────────────────────────────────────────────────────────
 
-function PhoneStep({ phone, onNext }: { phone: string; onNext: () => void }) {
+function PhoneStep({ phone, onNext, onBack }: { phone: string; onNext: () => void; onBack: () => void }) {
   const [msgs, setMsgs] = useState(0);
   const [replied, setReplied] = useState<null | "yes" | "no">(null);
 
@@ -275,6 +276,7 @@ function PhoneStep({ phone, onNext }: { phone: string; onNext: () => void }) {
 
   return (
     <div style={{ animation: "fadeUp 0.3s ease" }}>
+      <button onClick={onBack} style={BACKBTN}>← Back</button>
       <div style={{ fontSize: "0.68rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#8a8078", marginBottom: 12 }}>Step 3 · SMS Prompt</div>
       <h1 style={H1}>A text asks one question.</h1>
       <p style={SUB}>When a clear action is needed, Briarwood sends a single text. One reply — and it handles the rest. No app, no login, no dashboard.</p>
@@ -351,7 +353,7 @@ function PhoneStep({ phone, onNext }: { phone: string; onNext: () => void }) {
 
 // ── STEP 3: CDI Agent Graph ───────────────────────────────────────────────────
 
-function CDIGraphStep() {
+function CDIGraphStep({ onBack }: { onBack: () => void }) {
   const [tick, setTick] = useState(0);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState<null | number>(null);
@@ -395,6 +397,7 @@ function CDIGraphStep() {
 
   return (
     <div style={{ animation: "fadeUp 0.3s ease" }}>
+      <button onClick={onBack} style={BACKBTN}>← Back</button>
       <div style={{ fontSize: "0.68rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#8a8078", marginBottom: 12 }}>Step 4 · CDI Agent Graph</div>
       <h1 style={H1}>When an agent asks, CDI answers.</h1>
       <p style={SUB}>Any LLM or AI agent can query the Briarwood API. Type a natural language request below and watch the trust graph route it in real time.</p>
@@ -535,6 +538,7 @@ function CDIGraphStep() {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
+const BACKBTN: React.CSSProperties = { background: "none", border: "none", color: "#8a8078", fontSize: "0.76rem", letterSpacing: "0.06em", cursor: "pointer", fontFamily: "'Inter',sans-serif", padding: "0 0 20px", display: "block" };
 const H1: React.CSSProperties = { fontFamily: "'Fraunces',serif", fontSize: "2rem", fontWeight: 400, color: "#1a1814", marginBottom: 8, lineHeight: 1.2 };
 const SUB: React.CSSProperties = { fontSize: "0.9rem", color: "#5a5550", lineHeight: 1.75, marginBottom: 32 };
 const INPUT: React.CSSProperties = { background: "#edeae3", border: "1px solid #d8d2c8", padding: "11px 14px", fontSize: "0.88rem", color: "#1a1814", fontFamily: "'Inter',sans-serif", outline: "none", borderRadius: 0, WebkitAppearance: "none" as any };
@@ -568,9 +572,9 @@ export default function BriarwoodDemo() {
 
       <div style={{ maxWidth: 660, margin: "0 auto", padding: "56px 40px 80px" }}>
         {step === 0 && <OnboardStep onNext={(d) => { setProviderData(d); setStep(1); }} />}
-        {step === 1 && <EmailStep name={providerData.name} email={providerData.email} onNext={() => setStep(2)} />}
-        {step === 2 && <PhoneStep phone={providerData.phone} onNext={() => setStep(3)} />}
-        {step === 3 && <CDIGraphStep />}
+        {step === 1 && <EmailStep name={providerData.name} email={providerData.email} onNext={() => setStep(2)} onBack={() => setStep(0)} />}
+        {step === 2 && <PhoneStep phone={providerData.phone} onNext={() => setStep(3)} onBack={() => setStep(1)} />}
+        {step === 3 && <CDIGraphStep onBack={() => setStep(2)} />}
       </div>
 
       <div style={{ borderTop: "1px solid #d8d2c8", padding: "20px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
