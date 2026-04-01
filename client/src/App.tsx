@@ -92,6 +92,7 @@ import PublicQuote from "@/pages/PublicQuote";
 import Revenue from "@/pages/Revenue";
 import ToileInbound from "@/pages/ToileInbound";
 import ToileOnboarding from "@/pages/ToileOnboarding";
+import BriarwoodDemo from "@/pages/BriarwoodDemo";
 
 // Domain-aware login - shows "Find Your Thread" on dateinquiry.com, full login on beauvette.app
 function DomainAwareLogin() {
@@ -192,6 +193,9 @@ function Router() {
       {/* Toile Routes */}
       <Route path="/toile" component={ToileOnboarding} />
       <Route path="/toile/inbound" component={ToileInbound} />
+
+      {/* Briarwood Demo */}
+      <Route path="/demo/briarwood" component={BriarwoodDemo} />
       
       {/* Demo Mode Routes */}
       <Route path="/demo" component={DemoLanding} />
