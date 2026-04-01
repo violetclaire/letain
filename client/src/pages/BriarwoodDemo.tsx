@@ -526,11 +526,50 @@ function CDIGraphStep({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      <div style={{ marginTop: 28, textAlign: "center" }}>
-        <div style={{ fontFamily: "'Fraunces', serif", fontSize: "1.3rem", fontStyle: "italic", color: "#5a5550", marginBottom: 20, lineHeight: 1.5 }}>
-          Behavior becomes score.<br />Score becomes search.<br />Search makes action safer.
+      {/* The Oracle section */}
+      <div style={{ marginTop: 36, borderTop: "1px solid #d8d2c8", paddingTop: 36 }}>
+        <div style={{ fontSize: "0.68rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#8a8078", marginBottom: 16 }}>Why Briarwood is the Oracle</div>
+
+        <div style={{ fontFamily: "'Fraunces',serif", fontSize: "1.6rem", fontWeight: 400, color: "#1a1814", lineHeight: 1.35, marginBottom: 24 }}>
+          Every AI agent needs one answer before it can act:<br />
+          <span style={{ fontStyle: "italic" }}>who in the physical world can actually be trusted?</span>
         </div>
-        <a href="mailto:violet@briarwood.ai" style={{ ...BTNINK, textDecoration: "none" }}>Request Early Access</a>
+
+        <p style={{ fontSize: "0.9rem", color: "#5a5550", lineHeight: 1.85, marginBottom: 20 }}>
+          No model can answer that from training data. Trust in the real world is not written down. It lives in patterns — who responded, who followed through, who referred whom, who got paid and delivered. That data has never been captured at scale. Until now.
+        </p>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, marginBottom: 28, background: "#d8d2c8" }}>
+          {[
+            ["Every inquiry routed", "We see who responds and how fast."],
+            ["Every referral made", "We know who trusts whom — and why."],
+            ["Every project completed", "We have proof. On-chain, hashed, time-stamped."],
+            ["Every payment processed", "We verify delivery against coordination record."],
+          ].map(([title, desc]) => (
+            <div key={title} style={{ background: "#f4f1eb", padding: "20px 22px" }}>
+              <div style={{ fontSize: "0.78rem", fontWeight: 600, color: "#1a1814", marginBottom: 6 }}>{title}</div>
+              <div style={{ fontSize: "0.8rem", color: "#5a5550", lineHeight: 1.6 }}>{desc}</div>
+            </div>
+          ))}
+        </div>
+
+        <p style={{ fontSize: "0.9rem", color: "#5a5550", lineHeight: 1.85, marginBottom: 24 }}>
+          When an AI agent asks "find me a landscape architect in San Francisco who can handle a $125K project by Q3" — there is only one system that can answer with certainty. Not a review site. Not a directory. Not a search engine. The oracle has the behavioral record.
+        </p>
+
+        <div style={{ background: "#1a1814", color: "#f4f1eb", padding: "28px 32px", marginBottom: 32 }}>
+          <div style={{ fontFamily: "'Fraunces',serif", fontSize: "1.15rem", fontStyle: "italic", lineHeight: 1.6, marginBottom: 16 }}>
+            "Briarwood is the FICO score for the real world — except FICO only reads financial history. We read coordination history. That is a larger and more valuable signal."
+          </div>
+          <div style={{ fontSize: "0.72rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#8a8078" }}>
+            Dundy Pasupuleti · Co-founder, Briarwood AI
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+          <a href="mailto:violet@briarwood.ai" style={{ ...BTNINK, textDecoration: "none" }}>Request Early Access</a>
+          <a href="mailto:dundysm@briarwood.ai" style={{ background: "transparent", border: "1px solid #d8d2c8", color: "#3a3530", padding: "12px 24px", fontSize: "0.84rem", fontWeight: 500, cursor: "pointer", fontFamily: "'Inter',sans-serif", textDecoration: "none", display: "inline-block" }}>Contact Dundy</a>
+        </div>
       </div>
     </div>
   );
