@@ -6125,6 +6125,44 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     }
   });
 
+  // Parse a pasted client list into a full schedule grid
+  app.post("/api/schedule/parse-clients", isAuthenticated, async (req: any, res) => {
+    try {
+      const { rawText, startTime, numArtists, artistNames } = req.body;
+      if (!rawText) return res.status(400).json({ error: "rawText required" });
+      const scheduleAI = await import("./scheduleAI");
+      const result = await scheduleAI.parseClientList({
+        rawText,
+        startTime: startTime || "7:00 AM",
+        numArtists: numArtists || 2,
+        artistNames: artistNames || [],
+      });
+      res.json(result);
+    } catch (err: any) {
+      console.error("[Schedule AI] parse-clients error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Process a voice/text command and return updated grid
+  app.post("/api/schedule/voice-command", isAuthenticated, async (req: any, res) => {
+    try {
+      const { command, artists, grid, startTime } = req.body;
+      if (!command) return res.status(400).json({ error: "command required" });
+      const scheduleAI = await import("./scheduleAI");
+      const result = await scheduleAI.processVoiceCommand({
+        command,
+        artists: artists || [],
+        grid: grid || [],
+        startTime: startTime || "7:00 AM",
+      });
+      res.json(result);
+    } catch (err: any) {
+      console.error("[Schedule AI] voice-command error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // Send schedule via email
   app.post("/api/event-schedules/send-email", isAuthenticated, async (req: any, res) => {
     try {
