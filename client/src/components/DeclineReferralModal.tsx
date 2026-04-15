@@ -22,27 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Send, UserPlus, AlertCircle, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-interface NetworkContact {
-  id: string;
-  name: string;
-  businessName?: string;
-  email: string;
-  specialty: string;
-  profileImageUrl?: string;
-  isOnPlatform: boolean;
-  _fitScore: number;
-  acceptedUserId?: string;
-}
-
-interface Inquiry {
-  id: string;
-  clientName: string;
-  clientEmail: string;
-  eventDate: string;
-  eventType?: string;
-  serviceType: string;
-}
+import type { InquiryUI as Inquiry, NetworkContactUI as NetworkContact } from "@shared/types";
 
 interface DeclineReferralModalProps {
   open: boolean;

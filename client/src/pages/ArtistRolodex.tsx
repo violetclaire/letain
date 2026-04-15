@@ -4,22 +4,7 @@ import { Link } from "wouter";
 import { ArrowLeft, Users, Plus, Search, Heart, Star, Mail, Phone, Instagram, ExternalLink, UserPlus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-
-interface NetworkContact {
-  id: string;
-  name: string;
-  businessName?: string;
-  email: string;
-  phone?: string;
-  instagram?: string;
-  specialty: string;
-  isFavorite: boolean;
-  timesWorkedTogether: number;
-  lastWorkedDate?: string;
-  notes?: string;
-  profileImageUrl?: string;
-  isOnPlatform: boolean;
-}
+import type { NetworkContactUI as NetworkContact } from "@shared/types";
 
 export default function ArtistRolodex() {
   const { toast } = useToast();

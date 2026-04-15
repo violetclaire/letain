@@ -8,6 +8,9 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useVoice } from "@/hooks/useVoice";
+import { generateTimeOptions } from "@/lib/dateUtils";
+import type { ArtistColumn, GridCell } from "@shared/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -19,35 +22,7 @@ type SetupData = {
   numArtists: number;
 };
 
-type ArtistColumn = {
-  name: string;
-  type: string;
-  duration: number;
-  slots: string[];
-  isLead?: boolean;
-};
-
-type GridCell = {
-  timeRange: string;
-  clientName: string;
-  service?: string;
-  photoUrl?: string;
-};
-
 // ─── Time helpers ──────────────────────────────────────────────────────────────
-
-function generateTimeOptions(): string[] {
-  const times: string[] = [];
-  for (let h = 4; h <= 23; h++) {
-    for (let m = 0; m < 60; m += 15) {
-      const hour = h % 12 || 12;
-      const ampm = h >= 12 ? "PM" : "AM";
-      const mins = m.toString().padStart(2, "0");
-      times.push(`${hour}:${mins} ${ampm}`);
-    }
-  }
-  return times;
-}
 
 const TIME_OPTIONS = generateTimeOptions();
 
@@ -89,10 +64,15 @@ export default function ScheduleBuilder() {
   const [aiMessage, setAiMessage] = useState("");
 
   // Voice command
-  const [voiceCommand, setVoiceCommand] = useState("");
-  const [isListening, setIsListening] = useState(false);
+  const { 
+    isListening, 
+    transcript: voiceCommand, 
+    setTranscript: setVoiceCommand, 
+    startListening, 
+    stopListening 
+  } = useVoice({ interimResults: true });
+  
   const [commanding, setCommanding] = useState(false);
-  const recognitionRef = useRef<any>(null);
 
   // ── Initialise empty grid ──────────────────────────────────────────────────
 
@@ -183,37 +163,6 @@ export default function ScheduleBuilder() {
     }
   };
 
-  // ── Voice command ─────────────────────────────────────────────────────────
-
-  const startListening = useCallback(() => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      toast({ title: "Voice not supported in this browser", variant: "destructive" });
-      return;
-    }
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.lang = "en-US";
-
-    recognition.onstart = () => setIsListening(true);
-    recognition.onend = () => setIsListening(false);
-    recognition.onerror = () => setIsListening(false);
-    recognition.onresult = (e: any) => {
-      const transcript = Array.from(e.results)
-        .map((r: any) => r[0].transcript)
-        .join("");
-      setVoiceCommand(transcript);
-    };
-    recognition.start();
-    recognitionRef.current = recognition;
-  }, [toast]);
-
-  const stopListening = useCallback(() => {
-    recognitionRef.current?.stop();
-    setIsListening(false);
-  }, []);
-
   const sendVoiceCommand = async (cmd: string) => {
     if (!cmd.trim()) return;
     setCommanding(true);
@@ -275,8 +224,14 @@ export default function ScheduleBuilder() {
         return;
       }
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to save");
+        let errorMsg = "Failed to save";
+        try {
+          const err = await res.json();
+          errorMsg = err.error || errorMsg;
+        } catch (e) {
+          console.error("Failed to parse save error response:", e);
+        }
+        throw new Error(errorMsg);
       }
       const data = await res.json();
       setShareToken(data.shareToken);

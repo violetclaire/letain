@@ -4,25 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Loader2, Send, MessageSquare, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-
-interface DirectChatMessage {
-  id: string;
-  directChatId: string;
-  senderType: string;
-  senderName: string;
-  content: string;
-  createdAt: string;
-}
-
-interface DirectChat {
-  id: string;
-  artistId: string;
-  participantName: string;
-  participantEmail: string;
-  participantRole: string;
-  subject?: string;
-  createdAt: string;
-}
+import type { DirectChatUI as DirectChat, DirectChatMessageUI as DirectChatMessage } from "@shared/types";
 
 interface ChatData {
   chat: DirectChat;

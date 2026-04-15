@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Calendar, MapPin, DollarSign, MessageSquare, X, Send, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import type { InquiryFormDetailedUI as InquiryForm } from "@shared/types";
 
 interface Vendor {
   id: string;
@@ -12,19 +13,7 @@ interface Vendor {
   location: string;
   reviewCount: number;
   available: boolean;
-  isDemo?: boolean;
-}
-
-interface InquiryForm {
-  clientName: string;
-  clientEmail: string;
-  clientPhone: string;
-  eventDate: string;
-  eventType: string;
-  serviceType: string;
-  partySize: string;
-  message: string;
-  budget: string;
+  isDemo: boolean;
 }
 
 const demoVendors: Vendor[] = [

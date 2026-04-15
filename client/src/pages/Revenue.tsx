@@ -4,30 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, DollarSign, Clock, CheckCircle, AlertCircle, ExternalLink, FileText, CreditCard, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
-interface Invoice {
-  id: string;
-  invoiceNumber?: string;
-  title: string;
-  status: string;
-  createdAt: string;
-  dueDate?: string;
-  publicUrl?: string;
-  clientEmail?: string;
-  amount: number;
-}
-
-interface Payment {
-  id: string;
-  status: string;
-  createdAt: string;
-  receiptUrl?: string;
-  cardBrand?: string;
-  last4?: string;
-  amount: number;
-  tip: number;
-  processingFee: number;
-}
+import type { InvoiceUI as Invoice, PaymentUI as Payment } from "@shared/types";
 
 interface RevenueSummary {
   totalInvoiced: number;

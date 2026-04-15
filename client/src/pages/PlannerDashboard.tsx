@@ -1,30 +1,14 @@
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { useState, useEffect } from "react";
 import { DollarSign, Search, Send, CreditCard, Users, Palette, Grid3X3, Image, ExternalLink, Upload, ChevronDown, ChevronRight, Plus, Check, Heart, Instagram, Facebook, Globe, MessageCircle, UserPlus, Phone, LogOut, FileUp, Settings, Wallet, Link as LinkIcon, ArrowUpRight, Loader2, Sparkles, Download, Copy } from "lucide-react";
 import VoiceDictation from "../components/VoiceDictation";
 import AvailabilityCalendar from "../components/AvailabilityCalendar";
 import AIChatPanel from "../components/AIChatPanel";
 import BusinessChatPanel from "../components/BusinessChatPanel";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
-
-interface TodoItem {
-  id: string;
-  text: string;
-  completed: boolean;
-}
-
-interface RolodexVendor {
-  id: string;
-  name: string;
-  type: string;
-  approved: boolean;
-}
+import { useDashboard } from "@/hooks/useDashboard";
 
 export default function PlannerDashboard() {
-  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
-  const { toast } = useToast();
-  const [, setLocation] = useLocation();
+  const { user, authLoading, isAuthenticated, toast, setLocation } = useDashboard("planner");
   
   const [messages, setMessages] = useState([
     { from: "other", text: "Select a client to start chatting." }
@@ -70,32 +54,10 @@ export default function PlannerDashboard() {
   const [generatedMockup, setGeneratedMockup] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      toast({
-        title: "Access Required",
-        description: "Please log in to access your dashboard.",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/login";
-      }, 1000);
-      return;
-    }
-    
-    if (user && user.role !== 'planner') {
-      toast({
-        title: "Access Denied",
-        description: "This dashboard is for planners.",
-        variant: "destructive",
-      });
-      setLocation("/");
-      return;
-    }
-    
-    if (user) {
+    if (user && user.role === 'planner') {
       fetchPlannerData();
     }
-  }, [authLoading, isAuthenticated, user]);
+  }, [user]);
   
   const fetchPlannerData = async () => {
     if (!user) return;
@@ -211,13 +173,7 @@ export default function PlannerDashboard() {
     setInputText(prev => prev + " " + transcript);
   };
 
-  const vendors = [
-    { name: "Coquette Beauty Co.", service: "Hair & Makeup" },
-    { name: "Haus of Glow", service: "Skincare" },
-    { name: "Valley Hair Team", service: "Hair Styling" },
-    { name: "Bloom Florals", service: "Flowers" },
-    { name: "Sweet Moments Bakery", service: "Cake" },
-  ];
+  const vendors = rolodex.map(v => ({ name: v.name, service: v.type }));
 
   const contacts: any[] = [];
 
@@ -386,11 +342,15 @@ export default function PlannerDashboard() {
                 <h2 className="font-header text-lg ink-main mb-2">
                   Event calendar
                 </h2>
-                <ul className="text-xs ink-soft space-y-1">
-                  <li>Sat · Oct 12 – Carneros Resort – Beauty locked · 7:30 AM call time</li>
-                  <li>Sun · Oct 20 – City rooftop ceremony – Beauty awaiting artist confirmation</li>
-                  <li>Sat · Nov 02 – Sonoma barn wedding – Two beauty teams, staggered arrivals</li>
-                </ul>
+                {clients.length > 0 ? (
+                  <ul className="text-xs ink-soft space-y-1">
+                    {clients.map((client, i) => (
+                      <li key={i}>{client.date} – {client.location} – {client.name}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-xs ink-soft italic">No upcoming events found.</p>
+                )}
               </div>
 
               {/* 2. AI Mockup Generator */}
@@ -847,7 +807,11 @@ export default function PlannerDashboard() {
                 Cancel
               </button>
               <button 
-                onClick={() => { alert(`Invite sent to ${inviteEmail}`); setInviteEmail(""); setShowInviteModal(false); }}
+                onClick={() => { 
+                  toast({ title: "Invite Sent", description: `Invite sent to ${inviteEmail}` });
+                  setInviteEmail(""); 
+                  setShowInviteModal(false); 
+                }}
                 className="px-4 py-2 text-xs rounded bg-black text-white hover:bg-gray-800"
               >
                 Send Invite Link

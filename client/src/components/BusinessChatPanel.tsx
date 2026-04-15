@@ -1,43 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Users, Plus, X, MessageSquare, Loader2, Zap, Clock, Shield, TrendingUp, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-interface Message {
-  id: string;
-  senderId: string;
-  content: string;
-  messageType: string;
-  createdAt: string;
-  senderName?: string;
-}
-
-interface MessageInsight {
-  id: string;
-  messageId: string;
-  pivotType: string | null;
-  pivotSeverity: number | null;
-  urgencyLevel: number;
-  clientImpact: string | null;
-  taskType: string | null;
-  estimatedLaborMinutes: number | null;
-  sentiment: string;
-  aiSummary: string | null;
-}
-
-interface TeamMember {
-  id: string;
-  memberName: string;
-  memberEmail: string;
-  role: string;
-  status: string;
-}
-
-interface Conversation {
-  id: string;
-  title: string;
-  channelType: string;
-  createdAt: string;
-}
+import type { BusinessChatMessageUI as Message, ContactUI as TeamMember } from "@shared/types";
+import type { Conversation, BusinessChatInsight as MessageInsight } from "@shared/schema";
 
 interface LaborStats {
   totalPivots: number;

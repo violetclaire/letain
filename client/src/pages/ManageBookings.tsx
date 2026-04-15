@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import type { BookingUI as Booking } from "@shared/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,22 +10,6 @@ import { Label } from "@/components/ui/label";
 import GooglePlacesInput from "@/components/GooglePlacesInput";
 import DayOfReadiness from "@/components/DayOfReadiness";
 import { ArrowLeft, Edit2, Trash2, Loader2 } from "lucide-react";
-
-interface Booking {
-  id: string;
-  clientId: string;
-  clientName?: string;
-  clientEmail?: string;
-  artistId: string;
-  plannerId?: string;
-  status: string;
-  eventDate: string;
-  location: string;
-  serviceType: string;
-  notes?: string;
-  amount?: number;
-  paymentStatus?: string;
-}
 
 export default function ManageBookings() {
   const { user, isLoading: authLoading } = useAuth();

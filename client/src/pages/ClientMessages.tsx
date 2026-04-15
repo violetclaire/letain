@@ -4,26 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import type { ClientChatUI as ClientChat, ChatMessageUI as ChatMessage } from "@shared/types";
 import { MessageSquare, Send, ArrowLeft, User, Calendar, Loader2 } from "lucide-react";
-import { format } from "date-fns";
-
-interface ClientChat {
-  id: string;
-  inviteeEmail: string;
-  clientName: string;
-  status: string;
-  eventDate: string | null;
-  createdAt: string;
-}
-
-interface ChatMessage {
-  id: string;
-  chatInviteId: string;
-  senderType: string;
-  senderName: string;
-  content: string;
-  createdAt: string;
-}
 
 export default function ClientMessages() {
   const [selectedChat, setSelectedChat] = useState<ClientChat | null>(null);

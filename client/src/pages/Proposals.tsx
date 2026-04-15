@@ -120,8 +120,14 @@ export default function Proposals() {
     queryFn: async () => {
       const res = await fetch("/api/proposals", { credentials: "include" });
       if (!res.ok) {
-        const error = await res.json().catch(() => ({}));
-        throw new Error(error.error || "Failed to fetch proposals");
+        let errorMsg = "Failed to fetch proposals";
+        try {
+          const error = await res.json();
+          errorMsg = error.error || errorMsg;
+        } catch (e) {
+          console.error("Failed to parse proposals fetch error:", e);
+        }
+        throw new Error(errorMsg);
       }
       return res.json();
     },
@@ -139,8 +145,14 @@ export default function Proposals() {
         body: JSON.stringify(data)
       });
       if (!res.ok) {
-        const error = await res.json().catch(() => ({ error: "Failed to create proposal" }));
-        throw new Error(error.error || "Failed to create proposal");
+        let errorMsg = "Failed to create proposal";
+        try {
+          const error = await res.json();
+          errorMsg = error.error || errorMsg;
+        } catch (e) {
+          console.error("Failed to parse proposal create error:", e);
+        }
+        throw new Error(errorMsg);
       }
       return res.json();
     },

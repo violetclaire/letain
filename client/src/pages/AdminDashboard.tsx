@@ -1,88 +1,8 @@
-import { useEffect, useState } from "react";
-import { Link, useLocation } from "wouter";
+import { useEffect, useState, useCallback } from "react";
+import { Link } from "wouter";
 import { AlertTriangle, TrendingUp, Activity, Users, FileText, CreditCard, HeadphonesIcon, RefreshCw, LogOut, Brain, Sparkles, MessageSquare, Shield, CheckCircle, XCircle, AlertCircle, Upload, ShieldAlert, Settings, Zap, BarChart3, Clock, Target, CheckCheck } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
-
-interface CdiScore {
-  id: string;
-  userId: string;
-  score: number;
-  riskLevel: string;
-  factors: {
-    messageSentiment: number;
-    paymentIssues: number;
-    supportCases: number;
-    cancellations: number;
-    responseDelays: number;
-  } | null;
-  calculatedAt: string;
-}
-
-interface User {
-  id: string;
-  email: string | null;
-  firstName: string | null;
-  lastName: string | null;
-  role: string | null;
-  createdAt: string;
-}
-
-interface SupportCase {
-  id: string;
-  userId: string;
-  subject: string;
-  priority: string;
-  status: string;
-  createdAt: string;
-}
-
-interface Booking {
-  id: string;
-  clientId: string;
-  status: string;
-  eventDate: string;
-  location: string;
-  serviceType: string;
-}
-
-interface AiInsight {
-  id: string;
-  userId: string;
-  sentiment: 'positive' | 'neutral' | 'negative' | 'distressed';
-  confidenceScore: number;
-  hacoDecision: 'intuition_aligned' | 'complementarity_activated' | 'observation_only';
-  distressSignals: Array<{
-    type: string;
-    severity: number;
-    evidence: string;
-  }> | null;
-  rawMetrics: {
-    anxietyLevel: number;
-    frustrationLevel: number;
-    confusionLevel: number;
-    satisfactionLevel: number;
-    urgencyLevel: number;
-  } | null;
-  suggestedAction: string | null;
-  aiRationale: string | null;
-  createdAt: string;
-}
-
-interface CdiCompositeScore {
-  id: string;
-  userId: string;
-  compositeScore: number;
-  trustLevel: 'exceptional' | 'high' | 'moderate' | 'low' | 'at_risk';
-  emotionalFidelityScore: number;
-  choreographyAwarenessScore: number;
-  roleSpecificRecallScore: number;
-  hacoOverallDecision: string;
-  predictedSuccess: number | null;
-  interventionRecommended: boolean;
-  interventionReason: string | null;
-  calculatedAt: string;
-}
+import { useDashboard } from "@/hooks/useDashboard";
+import type { User, Booking, SupportCase, CdiScore, CdiAiInsight as AiInsight, CdiCompositeScore, ProfileReport, IqsPattern, IqsLearningRun } from "@shared/schema";
 
 interface PendingVendor {
   id: string;
@@ -99,19 +19,6 @@ interface PendingVendor {
     websiteUrl: string | null;
     verificationStatus: string | null;
   };
-}
-
-interface ProfileReport {
-  id: string;
-  reportedUserId: string;
-  reporterId: string;
-  reason: string;
-  description: string | null;
-  status: string | null;
-  reviewedBy: string | null;
-  reviewedAt: string | null;
-  actionTaken: string | null;
-  createdAt: string | null;
 }
 
 interface InvisibleLaborPivot {
@@ -132,38 +39,6 @@ interface InvisibleLaborPivot {
   createdAt: string;
 }
 
-interface IqsPattern {
-  id: string;
-  patternType: string;
-  name: string;
-  description: string | null;
-  baseSeverity: number;
-  weight: number;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string | null;
-}
-
-interface IqsLearningRun {
-  id: string;
-  startedAt: string;
-  completedAt: string | null;
-  status: string;
-  feedbackProcessed: number | null;
-  patternsUpdated: number | null;
-  newPatternsDiscovered: number | null;
-  results: {
-    patternAdjustments: Array<{
-      patternId: string;
-      oldWeight: number;
-      newWeight: number;
-      reason: string;
-    }>;
-    newPatterns: Array<{ name: string; description: string }>;
-    summary: string;
-  } | null;
-}
-
 interface VendorMetrics {
   vendorId: string;
   vendorName: string;
@@ -176,9 +51,12 @@ interface VendorMetrics {
 }
 
 export default function AdminDashboard() {
-  const { user, isLoading, isAuthenticated } = useAuth();
-  const { toast } = useToast();
-  const [, setLocation] = useLocation();
+  const isAuthorized = useCallback((u: any) => {
+    const authorizedAdmins = ['49899480', '50616407']; // Violet's accounts
+    return u.role === 'admin' || authorizedAdmins.includes(u.id);
+  }, []);
+
+  const { user, authLoading: isLoading, toast, setLocation } = useDashboard("admin", isAuthorized);
   
   const [cdiScores, setCdiScores] = useState<CdiScore[]>([]);
   const [compositeScores, setCompositeScores] = useState<CdiCompositeScore[]>([]);
@@ -204,35 +82,11 @@ export default function AdminDashboard() {
   const [vendorMetrics, setVendorMetrics] = useState<VendorMetrics[]>([]);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      toast({
-        title: "Access Required",
-        description: "Please log in to access the admin dashboard.",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/login";
-      }, 1000);
-      return;
-    }
-    
-    // Allow admin role OR specific authorized user IDs (platform owners)
-    const authorizedAdmins = ['49899480', '50616407']; // Violet's accounts
-    if (user && user.role !== 'admin' && !authorizedAdmins.includes(user.id)) {
-      toast({
-        title: "Access Denied",
-        description: "You need admin privileges to access this dashboard.",
-        variant: "destructive",
-      });
-      setLocation("/");
-      return;
-    }
-    
     const authorizedAdminIds = ['49899480', '50616407'];
-    if (isAuthenticated && (user?.role === 'admin' || authorizedAdminIds.includes(user?.id || ''))) {
+    if (user && (user?.role === 'admin' || authorizedAdminIds.includes(user?.id || ''))) {
       fetchAdminData();
     }
-  }, [isAuthenticated, isLoading, user]);
+  }, [user]);
 
   const fetchAdminData = async () => {
     setLoadingData(true);

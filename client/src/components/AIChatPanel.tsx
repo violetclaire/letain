@@ -1,30 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Mic, MicOff, Paperclip, X, Image as ImageIcon, Bot, User, Loader2, UserPlus, Calendar, FileText, Eye, Check, DollarSign, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import type { AIChatMessageUI as Message, PendingProposalUI as PendingProposal } from "@shared/types";
 import { format } from "date-fns";
 import VoiceDictation from "./VoiceDictation";
 import ChatCalendar from "./ChatCalendar";
-
-interface Message {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  attachments?: { type: string; url: string; name: string }[];
-  timestamp: Date;
-  showCalendar?: boolean;
-  calendarPrompt?: string;
-}
-
-interface PendingProposal {
-  clientName: string;
-  clientEmail?: string | null;
-  packageDetails: string;
-  totalAmount: number;
-  depositAmount?: number;
-  bookingId?: string | null;
-  eventDate?: string | null;
-  location?: string | null;
-}
 
 interface AIChatPanelProps {
   userId: string;

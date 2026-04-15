@@ -1,10 +1,12 @@
 import { useState, useMemo } from "react";
-import { useRoute, useLocation, Link } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Calendar, Instagram, Globe, MessageCircle, Clock, Award, Send, ArrowLeft, User, Mail, CalendarDays, MessageSquare, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-import { format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isPast, isToday } from "date-fns";
+import { Calendar, Instagram, Globe, MessageCircle, Award, Send, ArrowLeft, User, Mail, CalendarDays, MessageSquare, Loader2 } from "lucide-react";
+import { format, isSameDay, addMonths, subMonths, isPast, isToday } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { getMonthDays, getEmptyDays, parseDateAtNoon } from "@/lib/dateUtils";
+import type { InquiryFormUI as InquiryForm } from "@shared/types";
 
 interface ArtistPublicProfile {
   id: string;
@@ -29,13 +31,6 @@ interface ArtistPublicProfile {
 interface BlockedDateEntry {
   date: string;
   reason: 'Pending' | 'Booked';
-}
-
-interface InquiryForm {
-  clientName: string;
-  clientEmail: string;
-  eventDate: Date | null;
-  message: string;
 }
 
 type DateStatus = 'available' | 'pending' | 'booked';
@@ -140,19 +135,13 @@ export default function PublicArtistCalendar() {
 
   // Parse date strings as local dates to avoid timezone issues
   // Dates come as YYYY-MM-DD strings, parse them at noon to prevent timezone shift
-  const bookedDates = artist?.bookedDates?.map(d => {
-    const [year, month, day] = d.split('-').map(Number);
-    return new Date(year, month - 1, day, 12, 0, 0);
-  }) || [];
+  const bookedDates = artist?.bookedDates?.map(d => parseDateAtNoon(d)) || [];
   
   const pendingDates = useMemo(() => {
     if (!isAdminMode || !blockedDatesData) return [];
     return blockedDatesData.dates
       .filter(d => d.reason === 'Pending')
-      .map(d => {
-        const [year, month, day] = d.date.split('-').map(Number);
-        return new Date(year, month - 1, day, 12, 0, 0);
-      });
+      .map(d => parseDateAtNoon(d.date));
   }, [blockedDatesData, isAdminMode]);
 
   const getDateStatus = (date: Date): DateStatus => {
@@ -191,14 +180,8 @@ export default function PublicArtistCalendar() {
     );
   };
 
-  const days = (() => {
-    const start = startOfMonth(currentMonth);
-    const end = endOfMonth(currentMonth);
-    return eachDayOfInterval({ start, end });
-  })();
-
-  const startDay = startOfMonth(currentMonth).getDay();
-  const emptyDays = Array(startDay).fill(null);
+  const days = useMemo(() => getMonthDays(currentMonth), [currentMonth]);
+  const emptyDays = useMemo(() => getEmptyDays(currentMonth), [currentMonth]);
 
   const handleDateClick = (date: Date) => {
     if (isDateBooked(date)) {

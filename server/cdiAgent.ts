@@ -37,7 +37,7 @@ export interface DistressSignal {
   type: 'message_negative' | 'payment_concern' | 'cancellation_hint' | 'escalation_request' | 'response_delay' | 'trust_erosion';
   severity: number;  // 1-10
   evidence: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface CollaborativePredictionSet {

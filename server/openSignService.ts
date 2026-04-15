@@ -32,7 +32,6 @@ export async function createSigningDocument(
   expiryDays: number = 30
 ): Promise<CreateDocumentResponse> {
   if (!OPENSIGN_API_TOKEN) {
-    console.warn("[OpenSign] API token not configured - using mock mode");
     const mockDocId = `mock_${contractId}_${Date.now()}`;
     const mockSigningUrl = `https://app.opensignlabs.com/sign/${mockDocId}`;
     
@@ -100,7 +99,6 @@ export async function createSigningDocument(
 
 export async function getDocumentStatus(documentId: string): Promise<GetDocumentResponse> {
   if (!OPENSIGN_API_TOKEN) {
-    console.warn("[OpenSign] API token not configured - returning mock status");
     return {
       success: true,
       status: "pending",
@@ -135,7 +133,6 @@ export async function getDocumentStatus(documentId: string): Promise<GetDocument
 
 export async function resendSigningEmail(documentId: string, recipientEmail: string): Promise<{ success: boolean; error?: string }> {
   if (!OPENSIGN_API_TOKEN) {
-    console.warn("[OpenSign] API token not configured - mock resend");
     return { success: true };
   }
 

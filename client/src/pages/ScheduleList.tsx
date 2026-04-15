@@ -176,8 +176,14 @@ export default function ScheduleList() {
         });
         
         if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.error || `Failed to create day ${i + 1}`);
+          let errorMsg = `Failed to create day ${i + 1}`;
+          try {
+            const errData = await res.json();
+            errorMsg = errData.error || errorMsg;
+          } catch (e) {
+            console.error(`Failed to parse schedule create error for day ${i + 1}:`, e);
+          }
+          throw new Error(errorMsg);
         }
         
         const newSchedule = await res.json();

@@ -4,28 +4,11 @@ import { format } from "date-fns";
 import { useState, useRef } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { Loader2, Send, Image, X } from "lucide-react";
-
-interface Inquiry {
-  id: string;
-  clientName: string;
-  clientEmail: string;
-  eventDate: string;
-  eventType?: string;
-  eventLocation?: string;
-  status: string;
-}
+import { useToast } from "@/hooks/use-toast";
+import type { InquiryUI as Inquiry, ThreadMessageUI as ThreadMessage } from "@shared/types";
 
 interface ArtistProfile {
   businessName: string;
-}
-
-interface ThreadMessage {
-  id: string;
-  type: string;
-  content: string;
-  sentAt: string;
-  sentBy: string;
-  attachments?: string[];
 }
 
 // Helper to convert URLs in text to clickable links

@@ -2,47 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import type { ThreadMessage } from "@shared/schema";
+import type { InquiryUI as Inquiry, DirectChatUI as DirectChat, DirectChatMessageUI as DirectChatMessage } from "@shared/types";
 import { Loader2, Send, MessageSquare, ChevronDown, ChevronUp, Search, User, Calendar, Phone } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-
-interface Inquiry {
-  id: string;
-  clientName: string;
-  clientEmail: string;
-  clientPhone?: string;
-  eventDate: string;
-  serviceType: string;
-  message?: string;
-  status: string;
-  createdAt: string;
-  threadToken?: string;
-}
-
-interface DirectChat {
-  id: string;
-  artistId: string;
-  participantName: string;
-  participantEmail: string;
-  threadToken: string;
-  createdAt: string;
-}
-
-interface DirectChatMessage {
-  id: string;
-  directChatId: string;
-  senderType: string;
-  senderName: string;
-  content: string;
-  createdAt: string;
-}
-
-interface ThreadMessage {
-  id: string;
-  threadId: string;
-  actorType: string;
-  body: string;
-  createdAt: string;
-}
 
 type ClientItem = {
   type: 'inquiry' | 'chat';

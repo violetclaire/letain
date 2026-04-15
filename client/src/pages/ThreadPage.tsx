@@ -2,27 +2,7 @@ import { useState } from "react";
 import { useRoute } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Send, CheckCircle, XCircle, Users } from "lucide-react";
-
-interface Thread {
-  id: string;
-  threadPublicToken: string;
-  clientName: string;
-  clientEmail: string;
-  clientPhone?: string;
-  eventDate?: string;
-  eventType?: string;
-  serviceType?: string;
-  message?: string;
-  status: string;
-  createdAt: string;
-}
-
-interface ThreadMessage {
-  id: string;
-  actorType: string;
-  body: string;
-  createdAt: string;
-}
+import type { Thread, ThreadMessage } from "@shared/schema";
 
 interface ArtistBrand {
   businessName: string;

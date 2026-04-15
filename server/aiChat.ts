@@ -530,14 +530,13 @@ ${workingMemory.locations.length > 0 ? `- Locations: ${workingMemory.locations.j
       }
     }
 
-    // Ensure the last turn in history is a model turn so the current user message is always fresh
-    // If history ended with a user message (e.g., assistant failed to respond), add a placeholder model turn
+    // Ensure strictly alternating user/model turns for Gemini
     const lastHistoryTurn = conversationTurns[conversationTurns.length - 1];
     if (lastHistoryTurn && lastHistoryTurn.role === 'user') {
       conversationTurns.push({ role: "model", parts: [{ text: '{"response": "Got it, continue."}' }] });
     }
 
-    // Add the current user message as a fresh turn (never merged into history)
+    // Add current user message and any attachments
     const currentParts: any[] = [{ text: message }];
     for (const att of attachments) {
       currentParts.push({
@@ -545,9 +544,6 @@ ${workingMemory.locations.length > 0 ? `- Locations: ${workingMemory.locations.j
           mimeType: att.mimeType,
           data: att.data,
         },
-      });
-      currentParts.push({
-        text: "\n(User attached an image - comment on it or add to portfolio if asked)",
       });
     }
     conversationTurns.push({ role: "user", parts: currentParts });

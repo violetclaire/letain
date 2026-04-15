@@ -1,46 +1,12 @@
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { useState, useEffect } from "react";
 import { Upload, X, UserPlus, MessageCircle, Send, Phone, Heart, Star, AlertTriangle, Calendar, Clock, LogOut, Settings } from "lucide-react";
 import VoiceDictation from "../components/VoiceDictation";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
-
-interface Booking {
-  id: string;
-  artistId: string | null;
-  plannerId: string | null;
-  status: string;
-  eventDate: string;
-  location: string;
-  serviceType: string;
-  notes: string | null;
-  createdAt: string;
-}
-
-interface Contact {
-  id: string;
-  fullName: string;
-  email: string;
-  role: string;
-}
-
-interface ChatMessage {
-  from: string;
-  text: string;
-  senderName?: string;
-}
-
-interface ViewedVendor {
-  id: string;
-  name: string;
-  service: string;
-  rating: number;
-}
+import { useDashboard } from "@/hooks/useDashboard";
+import type { BookingUI as Booking, ClientDashboardChatMessage as ChatMessage, ContactUI as Contact, ViewedVendor } from "@shared/types";
 
 export default function ClientDashboard() {
-  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
-  const { toast } = useToast();
-  const [, setLocation] = useLocation();
+  const { user, authLoading, isAuthenticated, toast, setLocation } = useDashboard("client");
   
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -81,37 +47,10 @@ export default function ClientDashboard() {
   }, []);
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      toast({
-        title: "Access Required",
-        description: "Please log in to access your dashboard.",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/login";
-      }, 1000);
-      return;
-    }
-    
-    if (user && user.role !== 'client') {
-      // If user has no role yet, redirect to registration to pick a role
-      if (!user.role) {
-        setLocation("/register");
-        return;
-      }
-      toast({
-        title: "Access Denied",
-        description: "This dashboard is for clients.",
-        variant: "destructive",
-      });
-      setLocation("/");
-      return;
-    }
-    
-    if (user) {
+    if (user && user.role === 'client') {
       fetchClientData();
     }
-  }, [authLoading, isAuthenticated, user]);
+  }, [user]);
   
   const fetchClientData = async () => {
     if (!user) return;

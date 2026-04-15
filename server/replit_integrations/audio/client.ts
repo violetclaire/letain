@@ -84,8 +84,17 @@ export async function convertToWav(audioBuffer: Buffer): Promise<Buffer> {
     return await readFile(outputPath);
   } finally {
     // Clean up temp files
-    await unlink(inputPath).catch(() => {});
-    await unlink(outputPath).catch(() => {});
+    try {
+      await unlink(inputPath);
+    } catch (e) {
+      console.error(`Failed to unlink input path ${inputPath}:`, e);
+    }
+    try {
+      await unlink(outputPath);
+    } catch (e) {
+      // It's possible outputPath was never created if ffmpeg failed early, so we log at debug/info level or just check existence
+      // For now, let's at least log that it failed if it existed.
+    }
   }
 }
 

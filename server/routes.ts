@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { randomUUID, randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
@@ -51,7 +51,8 @@ const ai = new GoogleGenAI({
     baseUrl: process.env.AI_INTEGRATIONS_GEMINI_BASE_URL || "",
   },
 });
-import {
+import { 
+  User, ArtistProfile, Inquiry, Booking, Contract, ClientContact, BookingChecklist, Proposal, type FormConfig, artistProfiles, inquiries, users, blockedDates, availability, trustedCircle,
   insertArtistProfileSchema,
   insertBookingSchema,
   insertMessageSchema,
@@ -67,14 +68,7 @@ import {
   insertCdiEventSchema,
   insertCdiThresholdSchema,
   insertCdiAdminOverrideSchema,
-  insertInquirySchema,
-  trustedCircle,
-  blockedDates,
-  inquiries,
-  availability,
-  artistProfiles,
-  users,
-  type FormConfig,
+  insertInquirySchema
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
@@ -98,11 +92,42 @@ function getDefaultFormConfig(): FormConfig {
 }
 
 // Dynamic CDI imports to avoid bundling issues
-let cdiAgent: any = null;
-let cdiEngine: any = null;
-let cdiRealtime: any = null;
-let aiChat: any = null;
-let businessChatAgent: any = null;
+interface CdiAgentModule {
+  analyzeMessage: (message: string, context?: any) => Promise<any>;
+  applyAdaptiveLearning: (feedback: any) => Promise<void>;
+}
+
+interface CdiEngineModule {
+  recordBehavioralEvent: (event: any) => Promise<void>;
+  getDynamicWeights: () => Promise<{ emotionalFidelity: number; choreographyAwareness: number; roleSpecificRecall: number }>;
+  analyzeForCDI: (userId: string, bookingId?: string) => Promise<any>;
+  storeCdiCompositeScore: (userId: string, score: number, riskLevel: string, factors: any) => Promise<void>;
+}
+
+interface CdiRealtimeModule {
+  computeCDIRealtime: (data: any) => any;
+}
+
+interface AiChatModule {
+  processAIChatMessage: (userId: string, message: string, conversationId?: string) => Promise<{ response: string }>;
+  updateAvailabilityFromAI: (userId: string, availabilityData: any) => Promise<void>;
+  createBookingFromAI: (data: any) => Promise<{ success: boolean; error?: string }>;
+  createContractFromAI: (data: any) => Promise<{ success: boolean; error?: string }>;
+  sendThankYouEmailFromAI: (data: any) => Promise<{ success: boolean; error?: string }>;
+  generateImageFromAI: (data: any) => Promise<{ success: boolean; error?: string }>;
+  searchFromAI: (data: any) => Promise<{ success: boolean; error?: string }>;
+  forwardCommunicationToArtist: (data: any) => Promise<{ success: boolean; error?: string }>;
+}
+
+interface BusinessChatAgentModule {
+  analyzeBusinessChatMessage: (message: string, context: any) => Promise<any>;
+}
+
+let cdiAgent: CdiAgentModule | null = null;
+let cdiEngine: CdiEngineModule | null = null;
+let cdiRealtime: CdiRealtimeModule | null = null;
+let aiChat: AiChatModule | null = null;
+let businessChatAgent: BusinessChatAgentModule | null = null;
 
 async function loadCDI() {
   if (!cdiAgent) {
@@ -157,7 +182,7 @@ async function loadCDI() {
 }
 
 // Helper to get authenticated user ID from either email/password session or Replit OAuth
-export function getAuthUserId(req: any): string | null {
+export function getAuthUserId(req: Request): string | null {
   // Check email/password session first
   if (req.session?.userId) {
     return req.session.userId;
@@ -191,7 +216,7 @@ function parseLocalDate(dateStr: string): Date {
 }
 
 // Helper to generate contract HTML for the signing page
-function generateContractHtml(contract: any, client: any, artistName: string): string {
+function generateContractHtml(contract: Contract, client: User | null, artistName: string): string {
   const formatCurrency = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
   const clientName = contract.clientName || client?.firstName || 'Client';
   const clientLastName = client?.lastName || '';
@@ -213,7 +238,7 @@ function generateContractHtml(contract: any, client: any, artistName: string): s
           </tr>
         </thead>
         <tbody>
-          ${contract.serviceItems.map((item: any) => `
+          ${(contract.serviceItems as any[]).map((item: any) => `
             <tr>
               <td style="padding: 8px; border: 1px solid #ddd;">${item.clientType || ''}</td>
               <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${item.qty || 1}</td>
@@ -309,46 +334,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await loadCDI();
 
   // Register Square payment routes
-  registerSquareRoutes(app, isAuthenticated);
-
-  // ========== DIAGNOSTIC ENDPOINT (TEMPORARY) ==========
-  app.get('/api/debug/db-info', async (req: any, res) => {
-    try {
-      const neonDbUrl = process.env.NEON_DATABASE_URL || 'NOT SET';
-      const dbUrl = process.env.DATABASE_URL || 'NOT SET';
-      let neonHost = 'unknown';
-      let dbHost = 'unknown';
-      try {
-        if (neonDbUrl !== 'NOT SET') neonHost = new URL(neonDbUrl).host;
-        if (dbUrl !== 'NOT SET') dbHost = new URL(dbUrl).host;
-      } catch (e) {}
-      
-      // Test if we can find the user
-      const user = await storage.getUserByEmail('info@themakeupdolls.com');
-      
-      // Check session info
-      const sessionUserId = req.session?.userId || null;
-      const hasSessionCookie = !!req.headers.cookie?.includes('connect.sid');
-      
-      res.json({
-        neon_database_url_host: neonHost,
-        database_url_host: dbHost,
-        using_neon: neonDbUrl !== 'NOT SET',
-        node_env: process.env.NODE_ENV,
-        user_found: !!user,
-        user_has_password: user ? !!user.password : false,
-        session_user_id: sessionUserId,
-        has_session_cookie: hasSessionCookie,
-      });
-    } catch (error: any) {
-      res.json({ error: error.message });
-    }
-  });
+  registerSquareRoutes(app, isAuthenticated, getAuthUserId);
 
   // ========== AUTH ROUTES ==========
   // This endpoint returns null if not authenticated (doesn't require isAuthenticated)
   // so the client can gracefully detect logged-out state without 401 loops
-  app.get('/api/auth/user', async (req: any, res) => {
+  app.get('/api/auth/user', async (req: Request, res: Response) => {
     try {
       let user = null;
       const hasCookie = !!req.headers.cookie?.includes('connect.sid');
@@ -414,7 +405,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Set session
-      (req.session as any).userId = user.id;
+      req.session.userId = user.id;
 
       res.json({ 
         message: "Account created successfully", 
@@ -429,45 +420,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Email/Password Login (with rate limiting and Zod validation)
   app.post('/api/auth/login', authLimiter, async (req, res) => {
     try {
-      console.log("[Login] Attempt for email:", req.body?.email);
-      
       // Validate input with Zod
       const parseResult = loginSchema.safeParse(req.body);
       if (!parseResult.success) {
-        const firstError = parseResult.error.errors[0];
-        console.log("[Login] Validation failed:", firstError.message);
-        return res.status(400).json({ message: firstError.message });
+        return res.status(400).json({ message: parseResult.error.errors[0].message });
       }
 
       const { email, password } = parseResult.data;
 
       // Find user by email
-      console.log("[Login] Looking up user...");
       const user = await storage.getUserByEmail(email);
       if (!user) {
-        console.log("[Login] User not found");
         return res.status(401).json({ message: "Invalid email or password" });
       }
-      console.log("[Login] User found, id:", user.id, "role:", user.role);
 
       // Check if user has a password set
       if (!user.password) {
-        console.log("[Login] User has no password set");
         return res.status(401).json({ message: "No password set for this account. Click 'Get a login link instead' below." });
       }
 
       // Verify password
-      console.log("[Login] Verifying password...");
       const isValidPassword = await bcrypt.compare(password, user.password);
       if (!isValidPassword) {
-        console.log("[Login] Invalid password");
         return res.status(401).json({ message: "Invalid email or password" });
       }
-      console.log("[Login] Password valid");
 
       // Set session
-      console.log("[Login] Setting session...");
-      (req.session as any).userId = user.id;
+      req.session.userId = user.id;
 
       // Try to get artist profile for redirect (check for ALL users, not just role='artist')
       let artistSlug: string | null = null;
@@ -476,11 +455,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("[Login] Checking for artist profile, userId:", user.id, "role:", user.role);
       let artistProfile = await storage.getArtistProfile(user.id);
       
-      // AUTO-FIX: If no profile found by userId, search ALL profiles and link the first matching one
+      // If no profile found by userId, search ALL profiles and link the first matching one
       if (!artistProfile) {
-        console.log("[Login] No profile by userId, searching all profiles...");
         const allProfiles = await db.select().from(artistProfiles);
-        console.log("[Login] Found", allProfiles.length, "total profiles");
         
         // Find any profile that might belong to this user
         const emailPrefix = email.split('@')[0].toLowerCase();
@@ -493,12 +470,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // If no match by email, just take the first available profile (for single-user setups)
         if (!matchedProfile && allProfiles.length > 0) {
           matchedProfile = allProfiles[0];
-          console.log("[Login] Using first available profile:", matchedProfile.artistSlug);
         }
         
         if (matchedProfile) {
-          console.log("[Login] AUTO-FIX: Linking profile", matchedProfile.artistSlug, "to user", user.id);
-          // Fix the profile: set userId and approve it
+          // Link the profile to the user and approve it
           await db.update(artistProfiles)
             .set({ 
               userId: user.id,
@@ -514,15 +489,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           artistProfile = matchedProfile;
           artistSlug = matchedProfile.artistSlug || null;
-          console.log("[Login] AUTO-FIX complete, slug:", artistSlug);
         }
       } else {
         artistSlug = artistProfile.artistSlug || null;
-        console.log("[Login] Artist profile found, slug:", artistSlug);
         
         // Also auto-approve if pending
         if ((artistProfile as any).verificationStatus === 'pending') {
-          console.log("[Login] AUTO-FIX: Approving pending profile");
           await db.update(artistProfiles)
             .set({ verificationStatus: 'approved' })
             .where(eq(artistProfiles.id, artistProfile.id));
@@ -568,7 +540,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ========== DEMO ACCESS (Magic Link - No Login Required) ==========
-  app.get('/api/demo/access/:token', async (req: any, res) => {
+  app.get('/api/demo/access/:token', async (req: Request, res: Response) => {
     try {
       const { token } = req.params;
       
@@ -587,7 +559,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Set up session for the demo user
-      (req.session as any).userId = user.id;
+      req.session.userId = user.id;
       
       // Save session
       await new Promise<void>((resolve, reject) => {
@@ -607,8 +579,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ========== SECURE PASSWORD RESET ==========
-  // Step 1: Request password reset - sends email with secure token
+  // Password reset flow
   app.post('/api/auth/request-password-reset', authLimiter, async (req, res) => {
     try {
       const { email } = req.body;
@@ -665,10 +636,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             </div>
           `
         });
-        
-        console.log("[PasswordReset] Email sent to:", normalizedEmail);
-      } else {
-        console.log("[PasswordReset] No matching profile for:", normalizedEmail);
       }
       
       // Always return success to prevent email enumeration
@@ -679,7 +646,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Step 2: Complete password reset with token
   app.post('/api/auth/complete-password-reset', authLimiter, async (req, res) => {
     try {
       const { token, password } = req.body;
@@ -735,25 +701,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .set({ loginCode: null, loginCodeExpiresAt: null })
         .where(eq(artistProfiles.id, profile.id));
       
-      console.log("[PasswordReset] Token cleared for profile:", profile.id);
-      
       // Log them in - set session
-      (req.session as any).userId = user.id;
+      req.session.userId = user.id;
       
       // Save session and wait for it to complete
       await new Promise<void>((resolve, reject) => {
         req.session.save((err) => {
           if (err) {
-            console.error("[PasswordReset] Session save error:", err);
             reject(err);
           } else {
-            console.log("[PasswordReset] Session saved successfully");
             resolve();
           }
         });
       });
-      
-      console.log("[PasswordReset] Completed for user:", user.id, "profile:", profile.artistSlug);
       
       res.json({ 
         message: "Password set successfully",
@@ -765,8 +725,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ========== PASSWORD RESET ==========
-  // Request password reset - sends email with reset link
+  // Password reset - traditional flow
   app.post('/api/auth/forgot-password', authLimiter, async (req, res) => {
     try {
       const { email } = req.body;
@@ -778,7 +737,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const normalizedEmail = email.toLowerCase().trim();
       let user = await storage.getUserByEmail(normalizedEmail);
       
-      // AUTO-CREATE: If user doesn't exist but there's a matching artist profile, create the user
+      // If user doesn't exist but there's a matching artist profile, create the user
       if (!user) {
         const allProfiles = await db.select().from(artistProfiles);
         const emailPrefix = normalizedEmail.split('@')[0].toLowerCase();
@@ -789,7 +748,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         
         if (matchedProfile) {
-          console.log("[ForgotPassword] Auto-creating user for artist:", matchedProfile.artistSlug);
           user = await storage.createUser({
             email: normalizedEmail,
             password: '', // Will be set via reset flow
@@ -924,12 +882,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const isAvailable = await storage.isUsernameAvailable(username);
       res.json({ available: isAvailable });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: errorMessage });
     }
   });
 
-  app.patch("/api/users/:id/username", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/users/:id/username", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const requesterId = getAuthUserId(req);
       const targetId = req.params.id;
@@ -974,13 +933,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
       res.json(user);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // ========== ACTIVITY TRACKING ==========
-  app.get("/api/activity/recent", isAuthenticated, async (req: any, res) => {
+  app.get("/api/activity/recent", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (!userId) {
@@ -989,12 +949,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limit = parseInt(req.query.limit as string) || 20;
       const activity = await getRecentActivity(userId, limit);
       res.json(activity);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
-  app.get("/api/activity/today", isAuthenticated, async (req: any, res) => {
+  app.get("/api/activity/today", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (!userId) {
@@ -1002,13 +963,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const activity = await getTodayActivity(userId);
       res.json(activity);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // ========== USER ROLE UPDATE ==========
-  app.patch("/api/users/:id/role", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/users/:id/role", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { role } = req.body;
       if (!['client', 'artist', 'planner', 'admin'].includes(role)) {
@@ -1019,8 +981,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
       res.json(user);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -1031,13 +994,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
       res.json(user);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Update user profile (email, name, phone)
-  app.patch("/api/users/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/users/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const requesterId = getAuthUserId(req);
       const targetId = req.params.id;
@@ -1053,7 +1017,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const { email, firstName, lastName, phone, profileImageUrl, notificationPreferences } = req.body;
-      const updateData: any = {};
+      const updateData: Partial<User> = {};
       if (email !== undefined) updateData.email = email;
       if (firstName !== undefined) updateData.firstName = firstName;
       if (lastName !== undefined) updateData.lastName = lastName;
@@ -1066,13 +1030,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
       res.json(user);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Delete user account
-  app.delete("/api/users/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/users/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const requesterId = getAuthUserId(req);
       const targetId = req.params.id;
@@ -1122,7 +1087,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // CDI Consent Management
-  app.post("/api/users/:id/cdi-consent", isAuthenticated, async (req: any, res) => {
+  app.post("/api/users/:id/cdi-consent", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const requesterId = getAuthUserId(req);
       const targetId = req.params.id;
@@ -1167,8 +1132,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       res.json({ success: true, cdiOptOut: user.cdiOptOut, cdiConsentGiven: user.cdiConsentGiven });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -1328,7 +1294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ========== INTAKE FORMS ==========
-  app.post("/api/intakes/client", isAuthenticated, async (req: any, res) => {
+  app.post("/api/intakes/client", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const { cdiConsent, ...intakeData } = req.body;
@@ -1352,8 +1318,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.json(intake);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -1364,12 +1331,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Intake not found" });
       }
       res.json(intake);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
-  app.post("/api/intakes/artist", isAuthenticated, async (req: any, res) => {
+  app.post("/api/intakes/artist", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (!userId) {
@@ -1415,8 +1383,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.json({ ...intake, artistSlug: profile?.slug || artistSlug });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -1427,12 +1396,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Intake not found" });
       }
       res.json(intake);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
-  app.post("/api/intakes/planner", isAuthenticated, async (req: any, res) => {
+  app.post("/api/intakes/planner", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (!userId) {
@@ -1459,8 +1429,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.json(intake);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -1471,8 +1442,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Intake not found" });
       }
       res.json(intake);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -1526,8 +1498,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           category: s.category,
         })),
       });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -1582,19 +1555,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           category: s.category,
         })),
       });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // ========== ARTIST PROFILES ==========
-  app.post("/api/artist-profiles", isAuthenticated, async (req: any, res) => {
+  app.post("/api/artist-profiles", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const data = insertArtistProfileSchema.parse(req.body);
       const profile = await storage.createArtistProfile(data);
       res.json(profile);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -1605,12 +1580,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Profile not found" });
       }
       res.json(profile);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
-  app.patch("/api/artist-profiles/:userId", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/artist-profiles/:userId", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.params.userId;
       const requesterId = getAuthUserId(req);
@@ -1641,13 +1617,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: "Failed to save profile" });
       }
       res.json(profile);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Direct portfolio photo upload
-  app.post("/api/artist-profiles/:userId/portfolio", isAuthenticated, async (req: any, res) => {
+  app.post("/api/artist-profiles/:userId/portfolio", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (!userId) {
@@ -1691,7 +1668,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete portfolio photo
-  app.delete("/api/artist-profiles/:userId/portfolio", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/artist-profiles/:userId/portfolio", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (!userId) {
@@ -1726,7 +1703,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Reorder portfolio photos
-  app.patch("/api/artist-profiles/:userId/portfolio/order", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/artist-profiles/:userId/portfolio/order", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (req.params.userId !== userId) {
@@ -1799,7 +1776,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Update artist form configuration (supports both auth and magic link token)
-  app.put("/api/artist-form-config/:artistId", async (req: any, res) => {
+  app.put("/api/artist-form-config/:artistId", async (req: Request, res: Response) => {
     try {
       const { artistId } = req.params;
       const token = req.query.token as string;
@@ -1871,7 +1848,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ========== VENDOR ONBOARDING ==========
   
   // Get onboarding status and preferences
-  app.get("/api/vendor/onboarding", isAuthenticated, async (req: any, res) => {
+  app.get("/api/vendor/onboarding", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const profile = await storage.getArtistProfile(userId);
@@ -1909,14 +1886,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Update onboarding preferences
-  app.patch("/api/vendor/onboarding", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/vendor/onboarding", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const { defaultHoldHours, slaTargets, onboardingPreferences, calendarConnected, googleCalendarId } = req.body;
       
       let profile = await storage.getArtistProfile(userId);
       
-      const updateData: any = {};
+      const updateData: Partial<ArtistProfile> = {};
       if (defaultHoldHours !== undefined) updateData.defaultHoldHours = defaultHoldHours;
       if (slaTargets !== undefined) updateData.slaTargets = slaTargets;
       if (onboardingPreferences !== undefined) updateData.onboardingPreferences = onboardingPreferences;
@@ -1941,7 +1918,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Complete onboarding
-  app.post("/api/vendor/onboarding/complete", isAuthenticated, async (req: any, res) => {
+  app.post("/api/vendor/onboarding/complete", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       
@@ -1966,7 +1943,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Seed test inquiries for new vendors
-  app.post("/api/vendor/onboarding/seed-test-inquiries", isAuthenticated, async (req: any, res) => {
+  app.post("/api/vendor/onboarding/seed-test-inquiries", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
@@ -2044,7 +2021,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ========== COACHING NUDGES (Private CDI-powered tips) ==========
   
   // Get coaching nudges for the vendor - plain language tips based on their behavior
-  app.get("/api/vendor/coaching-nudges", isAuthenticated, async (req: any, res) => {
+  app.get("/api/vendor/coaching-nudges", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const nudges: Array<{
@@ -2166,7 +2143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get vendor's earned trust badges
   // BADGE SAFEGUARDS: Badges require sustained regression (60+ days below threshold) before removal
   // This prevents penalizing vendors publicly for temporary dips
-  app.get("/api/vendor/badges", isAuthenticated, async (req: any, res) => {
+  app.get("/api/vendor/badges", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       
@@ -2261,7 +2238,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Toggle badge display on profile
-  app.patch("/api/vendor/badges/:badgeId/display", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/vendor/badges/:badgeId/display", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const { badgeId } = req.params;
@@ -2286,22 +2263,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const services = await storage.getArtistServices(req.params.artistId);
       res.json(services);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
-  app.post("/api/artist-services", isAuthenticated, async (req: any, res) => {
+  app.post("/api/artist-services", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const service = await storage.createArtistService({ ...req.body, artistId: userId });
       res.json(service);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
-  app.patch("/api/artist-services/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/artist-services/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const service = await storage.getArtistService(req.params.id);
       if (!service) {
@@ -2314,12 +2293,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const updated = await storage.updateArtistService(req.params.id, req.body);
       res.json(updated);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
-  app.delete("/api/artist-services/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/artist-services/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const service = await storage.getArtistService(req.params.id);
       if (!service) {
@@ -2332,8 +2312,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       await storage.deleteArtistService(req.params.id);
       res.json({ success: true });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -2350,8 +2331,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         service as string | undefined
       );
       res.json(results);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -2367,13 +2349,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         service as string | undefined
       );
       res.json(results);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // ========== BOOKINGS ==========
-  app.post("/api/bookings", isAuthenticated, async (req: any, res) => {
+  app.post("/api/bookings", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       // Normalize eventDate to avoid timezone day-shift issues
@@ -2465,8 +2448,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.json(booking);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -2477,8 +2461,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Booking not found" });
       }
       res.json(booking);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -2548,7 +2533,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/bookings/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/bookings/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const previousBooking = await storage.getBooking(req.params.id);
       if (!previousBooking) {
@@ -2701,12 +2686,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.json(booking);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
-  app.delete("/api/bookings/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/bookings/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const booking = await storage.getBooking(req.params.id);
       if (!booking) {
@@ -2728,8 +2714,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await storage.deleteBooking(req.params.id);
       res.json({ success: true, message: "Booking deleted" });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -2737,12 +2724,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const bookings = await storage.getBookingsByClient(req.params.clientId);
       res.json(bookings);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
-  app.get("/api/bookings/artist/:artistId", async (req: any, res) => {
+  app.get("/api/bookings/artist/:artistId", async (req: Request, res: Response) => {
     try {
       // Support token-based auth for calendar component
       const token = req.query.token as string;
@@ -2798,8 +2786,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }));
       res.json(enrichedBookings);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -2807,14 +2796,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const bookings = await storage.getBookingsByPlanner(req.params.plannerId);
       res.json(bookings);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // ========== BOOKING CHECKLISTS (Day-of Readiness) ==========
   // Get or create a checklist for a booking
-  app.get("/api/bookings/:bookingId/checklist", isAuthenticated, async (req: any, res) => {
+  app.get("/api/bookings/:bookingId/checklist", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const { bookingId } = req.params;
@@ -2869,7 +2859,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update checklist items
-  app.patch("/api/bookings/:bookingId/checklist", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/bookings/:bookingId/checklist", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const { bookingId } = req.params;
@@ -2890,7 +2880,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const now = new Date();
-      const updateData: any = {};
+      const updateData: Partial<BookingChecklist> = {};
       
       if (items !== undefined) {
         updateData.items = items;
@@ -2965,18 +2955,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all checklists for vendor
-  app.get("/api/vendor/checklists", isAuthenticated, async (req: any, res) => {
+  app.get("/api/vendor/checklists", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const checklists = await storage.getBookingChecklistsByVendor(userId);
       res.json(checklists);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: errorMessage });
     }
   });
 
   // ========== MESSAGES ==========
-  app.post("/api/messages", isAuthenticated, async (req: any, res) => {
+  app.post("/api/messages", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const senderId = getAuthUserId(req);
       const data = insertMessageSchema.parse({ ...req.body, senderId });
@@ -3031,18 +3022,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }).catch((err: Error) => {
           console.error('[CDI Engine] Analysis error:', err);
         });
-        
-        // Also run legacy sentiment analysis for backward compatibility
-        if (sender.role === 'client') {
-          cdiAgent.analyzeMessage(senderId, message.content).catch((err: Error) => {
-            console.error('[CDI Agent] Analysis error:', err);
-          });
-        }
       }
       
       res.json(message);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -3050,8 +3035,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const messages = await storage.getMessagesByBooking(req.params.bookingId);
       res.json(messages);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -3062,8 +3048,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req.params.user2Id
       );
       res.json(messages);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -3077,7 +3064,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  app.post("/api/sms/send", isAuthenticated, async (req: any, res) => {
+  app.post("/api/sms/send", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { to, message } = req.body;
       
@@ -3092,12 +3079,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(400).json({ error: result.error });
       }
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: errorMessage });
     }
   });
 
-  app.post("/api/sms/booking-reminder", isAuthenticated, async (req: any, res) => {
+  app.post("/api/sms/booking-reminder", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { clientPhone, clientName, vendorName, serviceName, appointmentDate, appointmentTime } = req.body;
       
@@ -3119,12 +3107,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(400).json({ error: result.error });
       }
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: errorMessage });
     }
   });
 
-  app.post("/api/sms/booking-confirmation", isAuthenticated, async (req: any, res) => {
+  app.post("/api/sms/booking-confirmation", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { clientPhone, clientName, vendorName, serviceName, appointmentDate, appointmentTime } = req.body;
       
@@ -3146,12 +3135,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(400).json({ error: result.error });
       }
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: errorMessage });
     }
   });
 
-  app.post("/api/sms/payment-reminder", isAuthenticated, async (req: any, res) => {
+  app.post("/api/sms/payment-reminder", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { clientPhone, clientName, vendorName, amount, dueDate } = req.body;
       
@@ -3172,12 +3162,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(400).json({ error: result.error });
       }
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: errorMessage });
     }
   });
 
-  app.post("/api/sms/schedule-notification", isAuthenticated, async (req: any, res) => {
+  app.post("/api/sms/schedule-notification", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { recipientPhone, senderName, eventName, scheduleLink } = req.body;
       
@@ -3197,12 +3188,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(400).json({ error: result.error });
       }
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: errorMessage });
     }
   });
 
-  app.post("/api/sms/bulk", isAuthenticated, async (req: any, res) => {
+  app.post("/api/sms/bulk", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { recipients, message } = req.body;
       
@@ -3222,13 +3214,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         failed: result.failed,
         total: recipients.length 
       });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: errorMessage });
     }
   });
 
   // ========== INVOICE SENDING (Email/SMS) ==========
-  app.post("/api/invoice/send-email", isAuthenticated, async (req: any, res) => {
+  app.post("/api/invoice/send-email", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { toEmail, clientName, vendorName, amount, description, paymentLink } = req.body;
       
@@ -3258,7 +3251,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ========== BOOKING EMAIL ==========
-  app.post("/api/booking/send-email", isAuthenticated, async (req: any, res) => {
+  app.post("/api/booking/send-email", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { bookingId, toEmail, clientName, subject, body, eventDate, eventLocation } = req.body;
       const userId = getAuthUserId(req);
@@ -3357,7 +3350,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ========== BRANDED APPOINTMENT CONFIRMATION EMAIL ==========
-  app.post("/api/booking/send-appointment-confirmation", isAuthenticated, async (req: any, res) => {
+  app.post("/api/booking/send-appointment-confirmation", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { bookingId, personalMessage } = req.body;
       const userId = getAuthUserId(req);
@@ -3470,7 +3463,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/invoice/send-sms", isAuthenticated, async (req: any, res) => {
+  app.post("/api/invoice/send-sms", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { toPhone, clientName, vendorName, amount, paymentLink } = req.body;
       
@@ -3504,8 +3497,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const data = insertContractSchema.parse(req.body);
       const contract = await storage.createContract(data);
       res.json(contract);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -3536,8 +3530,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         eventDate,
         eventLocation,
       });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -3548,13 +3543,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Contract not found" });
       }
       res.json(contract);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Send contract via email
-  app.post("/api/contracts/:id/send-email", isAuthenticated, async (req: any, res) => {
+  app.post("/api/contracts/:id/send-email", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const contract = await storage.getContract(req.params.id);
       if (!contract) {
@@ -3583,8 +3579,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       res.json({ success: true, message: "Contract email sent successfully" });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -3592,13 +3589,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const contracts = await storage.getContractsByBooking(req.params.bookingId);
       res.json(contracts);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Upload contract file to object storage
-  app.post("/api/contracts/:id/upload-file", isAuthenticated, async (req: any, res) => {
+  app.post("/api/contracts/:id/upload-file", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const contractId = req.params.id;
@@ -3641,7 +3639,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upload contract file for a booking (create contract if needed)
-  app.post("/api/bookings/:bookingId/upload-contract", isAuthenticated, async (req: any, res) => {
+  app.post("/api/bookings/:bookingId/upload-contract", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const bookingId = req.params.bookingId;
@@ -3716,7 +3714,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/contracts/artist/:artistId", isAuthenticated, async (req: any, res) => {
+  app.get("/api/contracts/artist/:artistId", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (userId !== req.params.artistId) {
@@ -3748,23 +3746,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }));
       
       res.json(enrichedContracts);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // ========== CONTRACT TEMPLATES ==========
-  app.get("/api/contract-templates", isAuthenticated, async (req: any, res) => {
+  app.get("/api/contract-templates", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const templates = await storage.getContractTemplatesByArtist(userId);
       res.json(templates);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
-  app.get("/api/contract-templates/:id", isAuthenticated, async (req: any, res) => {
+  app.get("/api/contract-templates/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const template = await storage.getContractTemplate(req.params.id);
@@ -3775,23 +3775,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "You can only view your own templates" });
       }
       res.json(template);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
-  app.post("/api/contract-templates", isAuthenticated, async (req: any, res) => {
+  app.post("/api/contract-templates", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const templateData = { ...req.body, artistId: userId };
       const template = await storage.createContractTemplate(templateData);
       res.json(template);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
-  app.patch("/api/contract-templates/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/contract-templates/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const existing = await storage.getContractTemplate(req.params.id);
@@ -3803,12 +3805,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const template = await storage.updateContractTemplate(req.params.id, req.body);
       res.json(template);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
-  app.delete("/api/contract-templates/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/contract-templates/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const existing = await storage.getContractTemplate(req.params.id);
@@ -3820,25 +3823,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       await storage.deleteContractTemplate(req.params.id);
       res.json({ success: true });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
-  app.get("/api/contract-templates/default", isAuthenticated, async (req: any, res) => {
+  app.get("/api/contract-templates/default", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const template = await storage.getDefaultContractTemplate(userId);
       res.json(template || null);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // ========== BUILT-IN E-SIGNATURE ==========
   
   // Create contract from form with service items and send for signing
-  app.post("/api/bookings/:bookingId/create-contract", isAuthenticated, async (req: any, res) => {
+  app.post("/api/bookings/:bookingId/create-contract", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const bookingId = req.params.bookingId;
@@ -3976,7 +3981,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/bookings/:bookingId/send-for-signing", isAuthenticated, async (req: any, res) => {
+  app.post("/api/bookings/:bookingId/send-for-signing", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const bookingId = req.params.bookingId;
@@ -4083,7 +4088,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/contracts/:id/signing-status", isAuthenticated, async (req: any, res) => {
+  app.get("/api/contracts/:id/signing-status", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const contractId = req.params.id;
@@ -4112,12 +4117,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         certificateUrl: updatedContract?.openSignCertificateUrl,
         signingUrl: updatedContract?.openSignSigningUrl,
       });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: errorMessage });
     }
   });
 
-  app.post("/api/contracts/:id/resend-signing", isAuthenticated, async (req: any, res) => {
+  app.post("/api/contracts/:id/resend-signing", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const contractId = req.params.id;
@@ -4148,8 +4154,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.json({ success: true, message: "Signing reminder sent" });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: errorMessage });
     }
   });
 
@@ -4401,7 +4408,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Artist: Cancel a contract
-  app.post("/api/contracts/:id/cancel", isAuthenticated, async (req: any, res) => {
+  app.post("/api/contracts/:id/cancel", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const contractId = req.params.id;
@@ -4431,7 +4438,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Artist: Send contract for signing
-  app.post("/api/contracts/:id/send-for-signing", isAuthenticated, async (req: any, res) => {
+  app.post("/api/contracts/:id/send-for-signing", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const contractId = req.params.id;
@@ -4535,8 +4542,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const data = insertPaymentSchema.parse(req.body);
       const payment = await storage.createPayment(data);
       res.json(payment);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -4547,8 +4555,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Payment not found" });
       }
       res.json(payment);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -4559,8 +4568,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Payment not found" });
       }
       res.json(payment);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -4568,47 +4578,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const payments = await storage.getPaymentsByContract(req.params.contractId);
       res.json(payments);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // ========== AI CHAT ==========
   // Get all conversations
-  app.get("/api/ai/chat/conversations", isAuthenticated, async (req: any, res) => {
+  app.get("/api/ai/chat/conversations", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const conversations = await storage.getAiChatConversations(userId);
       res.json(conversations);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Create new conversation
-  app.post("/api/ai/chat/conversations", isAuthenticated, async (req: any, res) => {
+  app.post("/api/ai/chat/conversations", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const { title } = req.body;
       const conversation = await storage.createAiChatConversation(userId, title || "New Chat");
       res.json(conversation);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Get messages for a specific conversation
-  app.get("/api/ai/chat/conversations/:conversationId/messages", isAuthenticated, async (req: any, res) => {
+  app.get("/api/ai/chat/conversations/:conversationId/messages", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const messages = await storage.getAiChatMessagesByConversation(req.params.conversationId);
       res.json(messages);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Update conversation title
-  app.patch("/api/ai/chat/conversations/:conversationId", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/ai/chat/conversations/:conversationId", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { title } = req.body;
       const conversation = await storage.updateAiChatConversationTitle(req.params.conversationId, title);
@@ -4616,44 +4630,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Conversation not found" });
       }
       res.json(conversation);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Delete conversation
-  app.delete("/api/ai/chat/conversations/:conversationId", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/ai/chat/conversations/:conversationId", isAuthenticated, async (req: Request, res: Response) => {
     try {
       await storage.deleteAiChatConversation(req.params.conversationId);
       res.json({ success: true });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
-  // Get chat history (legacy - all messages)
-  app.get("/api/ai/chat/history", isAuthenticated, async (req: any, res) => {
+  // Get chat history
+  app.get("/api/ai/chat/history", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const messages = await storage.getAiChatMessages(userId);
       res.json(messages);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Clear chat history
-  app.delete("/api/ai/chat/history", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/ai/chat/history", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       await storage.clearAiChatMessages(userId);
       res.json({ success: true });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
-  app.post("/api/ai/chat", isAuthenticated, async (req: any, res) => {
+  app.post("/api/ai/chat", isAuthenticated, async (req: Request, res: Response) => {
     console.log("[AI Chat] Received request");
     try {
       const userId = getAuthUserId(req);
@@ -4979,7 +4997,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Confirm and send a proposal that was previewed in chat
-  app.post("/api/ai/confirm-proposal", isAuthenticated, async (req: any, res) => {
+  app.post("/api/ai/confirm-proposal", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (!userId) {
@@ -5022,7 +5040,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get communication logs for artist (only accessible by artists)
-  app.get("/api/communication-logs", isAuthenticated, async (req: any, res) => {
+  app.get("/api/communication-logs", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (!userId) {
@@ -5045,7 +5063,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Forward communication to artist email
-  app.post("/api/communication-logs/:id/forward", isAuthenticated, async (req: any, res) => {
+  app.post("/api/communication-logs/:id/forward", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (!userId) {
@@ -5079,7 +5097,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI Schedule Creation Chat - Enhanced with full time slot generation
-  app.post("/api/ai/schedule-chat", isAuthenticated, async (req: any, res) => {
+  app.post("/api/ai/schedule-chat", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const { message, conversationHistory = [], collectedData = null } = req.body;
@@ -5274,7 +5292,7 @@ IMPORTANT: Always respond with valid JSON only. No markdown, no extra text.`;
   });
 
   // ========== AI IMAGE GENERATION (Nano Banana) ==========
-  app.post("/api/ai/generate-image", isAuthenticated, async (req: any, res) => {
+  app.post("/api/ai/generate-image", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { prompt } = req.body;
       
@@ -5348,7 +5366,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     }
   });
   
-  app.post("/api/availability", async (req: any, res) => {
+  app.post("/api/availability", async (req: Request, res: Response) => {
     try {
       let userId: string;
       
@@ -5387,7 +5405,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   });
 
   // Sync Google Calendar availability for a vendor
-  app.post("/api/availability/sync-google-calendar", isAuthenticated, async (req: any, res) => {
+  app.post("/api/availability/sync-google-calendar", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
@@ -5444,12 +5462,13 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         end
       );
       res.json(availability);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
-  app.delete("/api/availability", async (req: any, res) => {
+  app.delete("/api/availability", async (req: Request, res: Response) => {
     try {
       let userId: string;
       
@@ -5472,8 +5491,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       const { date } = req.body;
       await storage.deleteAvailability(userId, new Date(date));
       res.json({ success: true });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -5487,8 +5507,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       const checkDate = new Date(date as string);
       const isAvailable = await storage.checkAvailability(req.params.userId, checkDate);
       res.json({ isAvailable, date: checkDate.toISOString() });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -5498,8 +5519,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       const data = insertScheduleSchema.parse(req.body);
       const schedule = await storage.createSchedule(data);
       res.json(schedule);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -5510,8 +5532,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         return res.status(404).json({ error: "Schedule not found" });
       }
       res.json(schedule);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -5522,8 +5545,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         return res.status(404).json({ error: "Schedule not found" });
       }
       res.json(schedule);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -5531,7 +5555,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   
   // Get artist's network contacts - CDI-powered ranking (invisible to vendor)
   // Sorts contacts by CDI/fit/availability so best referrals appear first
-  app.get("/api/artist-network", isAuthenticated, async (req: any, res) => {
+  app.get("/api/artist-network", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
@@ -5710,7 +5734,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   });
 
   // Invite someone to network
-  app.post("/api/artist-network/invite", isAuthenticated, async (req: any, res) => {
+  app.post("/api/artist-network/invite", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const { name, email, specialty, notes } = req.body;
@@ -5729,26 +5753,28 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       });
       
       res.json({ success: true, invitation });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // ========== EVENT DAY SCHEDULES (Smart Scheduling Grid) ==========
   
   // Get all schedules for current user (artist/vendor)
-  app.get("/api/event-schedules", isAuthenticated, async (req: any, res) => {
+  app.get("/api/event-schedules", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const schedules = await storage.getEventDaySchedulesByArtist(userId);
       res.json(schedules);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Get single schedule with all team members and appointments
-  app.get("/api/event-schedules/:id", isAuthenticated, async (req: any, res) => {
+  app.get("/api/event-schedules/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const schedule = await storage.getEventDaySchedule(req.params.id);
       if (!schedule) {
@@ -5765,8 +5791,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       const appointments = await storage.getScheduleAppointments(schedule.id);
       
       res.json({ ...schedule, teamMembers, appointments });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -5782,8 +5809,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       const appointments = await storage.getScheduleAppointments(schedule.id);
       
       res.json({ ...schedule, teamMembers, appointments });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -5813,8 +5841,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       await storage.updateEventDaySchedule(schedule.id, { guestNotes: newNotes });
       
       res.json({ success: true, message: "Note saved" });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -5834,8 +5863,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       await storage.updateScheduleAppointment(appointmentId, { notes });
       
       res.json({ success: true, message: "Note saved" });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -5862,8 +5892,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
 
       await storage.updateScheduleAppointment(appointmentId, updates);
       res.json({ success: true });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -5888,8 +5919,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       
       await storage.updateScheduleAppointment(appointmentId, { clientName: clientName.trim() });
       res.json({ success: true, message: "Name updated" });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -5926,8 +5958,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       
       await storage.updateScheduleAppointment(appointmentId, { inspirationPhotos: updatedPhotos });
       res.json({ success: true, photos: updatedPhotos });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -5952,8 +5985,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       
       await storage.updateScheduleAppointment(appointmentId, { inspirationPhotos: updatedPhotos });
       res.json({ success: true, photos: updatedPhotos });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -5979,8 +6013,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       });
 
       res.json(appointment);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -5999,8 +6034,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
 
       await storage.deleteScheduleAppointment(req.params.appointmentId);
       res.json({ success: true });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -6031,8 +6067,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       
       const messages = await storage.getScheduleChatMessages(schedule.id);
       res.json(messages);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -6126,7 +6163,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   });
 
   // Parse a pasted client list into a full schedule grid
-  app.post("/api/schedule/parse-clients", isAuthenticated, async (req: any, res) => {
+  app.post("/api/schedule/parse-clients", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { rawText, startTime, numArtists, artistNames } = req.body;
       if (!rawText) return res.status(400).json({ error: "rawText required" });
@@ -6145,7 +6182,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   });
 
   // Process a voice/text command and return updated grid
-  app.post("/api/schedule/voice-command", isAuthenticated, async (req: any, res) => {
+  app.post("/api/schedule/voice-command", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { command, artists, grid, startTime } = req.body;
       if (!command) return res.status(400).json({ error: "command required" });
@@ -6164,7 +6201,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   });
 
   // Send schedule via email
-  app.post("/api/event-schedules/send-email", isAuthenticated, async (req: any, res) => {
+  app.post("/api/event-schedules/send-email", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const { toEmails, shareTokens, personalMessage } = req.body;
@@ -6245,7 +6282,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     templateType: z.enum(['general', 'invoice', 'schedule', 'confirmation']).optional(),
   });
 
-  app.post("/api/emails/compose", isAuthenticated, async (req: any, res) => {
+  app.post("/api/emails/compose", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const parseResult = composeEmailSchema.safeParse(req.body);
@@ -6280,7 +6317,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   });
 
   // Send schedule via SMS
-  app.post("/api/event-schedules/send-sms", isAuthenticated, async (req: any, res) => {
+  app.post("/api/event-schedules/send-sms", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const { toPhones, shareTokens } = req.body;
@@ -6364,7 +6401,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // ========== TIMELINE IMPORT (AI-powered parsing) ==========
   
   // Parse timeline text and return structured data for review
-  app.post("/api/event-schedules/import/parse", isAuthenticated, async (req: any, res) => {
+  app.post("/api/event-schedules/import/parse", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { timelineText } = req.body;
       
@@ -6391,7 +6428,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   });
 
   // Confirm and save parsed timeline as a new schedule
-  app.post("/api/event-schedules/import/confirm", isAuthenticated, async (req: any, res) => {
+  app.post("/api/event-schedules/import/confirm", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const { eventName, eventDate, eventLocation, readyByTime, notes, teamMembers, appointments } = req.body;
@@ -6465,7 +6502,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   });
 
   // Create new schedule
-  app.post("/api/event-schedules", isAuthenticated, async (req: any, res) => {
+  app.post("/api/event-schedules", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const { 
@@ -6560,13 +6597,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       
       res.json(schedule);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Update schedule
-  app.patch("/api/event-schedules/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/event-schedules/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const schedule = await storage.getEventDaySchedule(req.params.id);
       if (!schedule) {
@@ -6580,13 +6618,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       
       const updated = await storage.updateEventDaySchedule(req.params.id, req.body);
       res.json(updated);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Delete schedule
-  app.delete("/api/event-schedules/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/event-schedules/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const schedule = await storage.getEventDaySchedule(req.params.id);
       if (!schedule) {
@@ -6600,15 +6639,16 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       
       await storage.deleteEventDaySchedule(req.params.id);
       res.json({ success: true });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // ========== SCHEDULE TEAM MEMBERS ==========
   
   // Add team member to schedule
-  app.post("/api/event-schedules/:scheduleId/team", isAuthenticated, async (req: any, res) => {
+  app.post("/api/event-schedules/:scheduleId/team", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const schedule = await storage.getEventDaySchedule(req.params.scheduleId);
       if (!schedule) {
@@ -6631,13 +6671,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       });
       
       res.json(member);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Update team member
-  app.patch("/api/event-schedules/team/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/event-schedules/team/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const member = await storage.getScheduleTeamMember(req.params.id);
@@ -6655,13 +6696,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         return res.status(404).json({ error: "Team member not found" });
       }
       res.json(updated);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Delete team member
-  app.delete("/api/event-schedules/team/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/event-schedules/team/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const member = await storage.getScheduleTeamMember(req.params.id);
@@ -6676,15 +6718,16 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       
       await storage.deleteScheduleTeamMember(req.params.id);
       res.json({ success: true });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // ========== SCHEDULE APPOINTMENTS ==========
   
   // Add appointment to schedule
-  app.post("/api/event-schedules/:scheduleId/appointments", isAuthenticated, async (req: any, res) => {
+  app.post("/api/event-schedules/:scheduleId/appointments", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const schedule = await storage.getEventDaySchedule(req.params.scheduleId);
       if (!schedule) {
@@ -6711,13 +6754,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       });
       
       res.json(appointment);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Bulk create appointments (for smart generation)
-  app.post("/api/event-schedules/:scheduleId/appointments/bulk", isAuthenticated, async (req: any, res) => {
+  app.post("/api/event-schedules/:scheduleId/appointments/bulk", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const schedule = await storage.getEventDaySchedule(req.params.scheduleId);
       if (!schedule) {
@@ -6741,13 +6785,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       
       const created = await storage.bulkCreateScheduleAppointments(appointmentsWithScheduleId);
       res.json(created);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Update appointment
-  app.patch("/api/event-schedules/appointments/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/event-schedules/appointments/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const appointment = await storage.getScheduleAppointment(req.params.id);
@@ -6765,13 +6810,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         return res.status(404).json({ error: "Appointment not found" });
       }
       res.json(updated);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Delete appointment
-  app.delete("/api/event-schedules/appointments/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/event-schedules/appointments/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const appointment = await storage.getScheduleAppointment(req.params.id);
@@ -6786,13 +6832,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       
       await storage.deleteScheduleAppointment(req.params.id);
       res.json({ success: true });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Schedule chat with email notification
-  app.post("/api/schedule-chat", isAuthenticated, async (req: any, res) => {
+  app.post("/api/schedule-chat", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const { scheduleId, recipientEmail, message, shareToken } = req.body;
@@ -6837,7 +6884,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   });
 
   // ========== CHAT INVITES ==========
-  app.post("/api/chat-invites", isAuthenticated, async (req: any, res) => {
+  app.post("/api/chat-invites", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const senderId = getAuthUserId(req);
       const data = insertChatInviteSchema.parse({ ...req.body, senderId, status: 'pending' });
@@ -6850,8 +6897,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       
       const invite = await storage.createChatInvite(inviteData);
       res.json(invite);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -6859,8 +6907,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     try {
       const invites = await storage.getChatInvitesByUser(req.params.userId);
       res.json(invites);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -6871,8 +6920,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         return res.status(404).json({ error: "Invite not found" });
       }
       res.json(invite);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -7080,7 +7130,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
 
   // ========== ARTIST CLIENT CHATS ==========
   // Get all client chats for the current artist
-  app.get("/api/client-chats", isAuthenticated, async (req: any, res) => {
+  app.get("/api/client-chats", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (!userId) {
@@ -7118,7 +7168,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   });
 
   // Get messages for a specific client chat
-  app.get("/api/client-chats/:id/messages", isAuthenticated, async (req: any, res) => {
+  app.get("/api/client-chats/:id/messages", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (!userId) {
@@ -7143,7 +7193,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   });
 
   // Artist sends message to client
-  app.post("/api/client-chats/:id/messages", isAuthenticated, async (req: any, res) => {
+  app.post("/api/client-chats/:id/messages", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (!userId) {
@@ -7204,7 +7254,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   });
 
   // ========== CONVERSATIONS ==========
-  app.post("/api/conversations", isAuthenticated, async (req: any, res) => {
+  app.post("/api/conversations", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const { bookingId, participantIds } = req.body;
@@ -7224,8 +7274,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       
       const participants = await storage.getConversationParticipants(conversation.id);
       res.json({ ...conversation, participants });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -7233,8 +7284,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     try {
       const conversations = await storage.getConversationsByUser(req.params.userId);
       res.json(conversations);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -7246,8 +7298,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       const participants = await storage.getConversationParticipants(conversation.id);
       res.json({ ...conversation, participants });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -7256,14 +7309,15 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       const { userId } = req.body;
       const participant = await storage.addParticipantToConversation(req.params.id, userId);
       res.json(participant);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // ========== BUSINESS CHAT (Internal Team Communication) ==========
   // Get vendor/planner's business conversations
-  app.get("/api/business-chat/conversations", isAuthenticated, async (req: any, res) => {
+  app.get("/api/business-chat/conversations", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
@@ -7274,13 +7328,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       
       const conversations = await storage.getBusinessConversations(userId);
       res.json(conversations);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Create a new business conversation
-  app.post("/api/business-chat/conversations", isAuthenticated, async (req: any, res) => {
+  app.post("/api/business-chat/conversations", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
@@ -7296,13 +7351,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       await storage.addParticipantToConversation(conversation.id, userId);
       
       res.json(conversation);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Get messages in a business conversation
-  app.get("/api/business-chat/conversations/:id/messages", isAuthenticated, async (req: any, res) => {
+  app.get("/api/business-chat/conversations/:id/messages", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const conversation = await storage.getConversation(req.params.id);
@@ -7325,13 +7381,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       await storage.markBusinessChatMessagesRead(req.params.id, userId);
       
       res.json(messages);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Send a message in a business conversation
-  app.post("/api/business-chat/conversations/:id/messages", isAuthenticated, async (req: any, res) => {
+  app.post("/api/business-chat/conversations/:id/messages", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const conversation = await storage.getConversation(req.params.id);
@@ -7431,14 +7488,15 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
           console.error("[Business Chat AI] Analysis error:", err);
         }
       });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // ========== TEAM MEMBERS ==========
   // Get team members for a vendor/planner
-  app.get("/api/team-members", isAuthenticated, async (req: any, res) => {
+  app.get("/api/team-members", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
@@ -7449,13 +7507,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       
       const members = await storage.getTeamMembers(userId);
       res.json(members);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Add a team member
-  app.post("/api/team-members", isAuthenticated, async (req: any, res) => {
+  app.post("/api/team-members", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
@@ -7491,13 +7550,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       });
       
       res.json(member);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Update a team member
-  app.patch("/api/team-members/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/team-members/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const member = await storage.getTeamMember(req.params.id);
@@ -7515,13 +7575,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       });
       
       res.json(updated);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Remove a team member
-  app.delete("/api/team-members/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/team-members/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const member = await storage.getTeamMember(req.params.id);
@@ -7532,13 +7593,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       
       await storage.deleteTeamMember(req.params.id);
       res.json({ success: true });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Add participant to business conversation
-  app.post("/api/business-chat/conversations/:id/participants", isAuthenticated, async (req: any, res) => {
+  app.post("/api/business-chat/conversations/:id/participants", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const conversation = await storage.getConversation(req.params.id);
@@ -7560,8 +7622,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       
       const participant = await storage.addParticipantToConversation(req.params.id, participantId);
       res.json(participant);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -7570,14 +7633,15 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     try {
       const contacts = await storage.getContactsForUser(req.params.userId);
       res.json(contacts);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // ========== DATA IMPORT ==========
   // Import clients and message history in bulk
-  app.post("/api/admin/import/clients-and-messages", isAuthenticated, async (req: any, res) => {
+  app.post("/api/admin/import/clients-and-messages", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -7594,13 +7658,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       const result = await dataImport.importConversationHistory(clients, messages);
       
       res.json(result);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Import clients only
-  app.post("/api/admin/import/clients", isAuthenticated, async (req: any, res) => {
+  app.post("/api/admin/import/clients", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -7617,13 +7682,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       const result = await dataImport.importClients(clients);
       
       res.json(result);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Import messages only
-  app.post("/api/admin/import/messages", isAuthenticated, async (req: any, res) => {
+  app.post("/api/admin/import/messages", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -7640,14 +7706,15 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       const result = await dataImport.importMessages(messages);
       
       res.json(result);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // ========== CDI REALTIME COMPUTATION ==========
   // New realtime CDI endpoint using white paper framework
-  app.post("/api/admin/cdi/compute-realtime/:bookingId", isAuthenticated, async (req: any, res) => {
+  app.post("/api/admin/cdi/compute-realtime/:bookingId", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -7671,13 +7738,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       );
 
       res.json(result);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Get realtime CDI components for a booking
-  app.get("/api/admin/cdi/realtime/:bookingId", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/cdi/realtime/:bookingId", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -7700,13 +7768,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       );
 
       res.json(result);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // ========== SUPPORT CASES ==========
-  app.post("/api/support-cases", isAuthenticated, async (req: any, res) => {
+  app.post("/api/support-cases", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const data = insertSupportCaseSchema.parse({ ...req.body, userId });
@@ -7722,8 +7791,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       });
       
       res.json(supportCase);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -7731,8 +7801,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     try {
       const cases = await storage.getSupportCasesByUser(req.params.userId);
       res.json(cases);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -7743,14 +7814,15 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         return res.status(404).json({ error: "Support case not found" });
       }
       res.json(supportCase);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // ========== INVITATIONS ==========
   // Create invitation (admin only)
-  app.post("/api/invitations", isAuthenticated, async (req: any, res) => {
+  app.post("/api/invitations", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -7773,8 +7845,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       });
       
       res.json(invitation);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
@@ -7790,13 +7863,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       // Invitations never expire - they can be shared freely
       res.json(invitation);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Get all invitations (admin only)
-  app.get("/api/invitations", isAuthenticated, async (req: any, res) => {
+  app.get("/api/invitations", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -7804,13 +7878,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       const invitations = await storage.getInvitationsByInviter(user.id);
       res.json(invitations);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Accept invitation (authenticated user)
-  app.post("/api/invitations/accept/:token", isAuthenticated, async (req: any, res) => {
+  app.post("/api/invitations/accept/:token", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const invitation = await storage.acceptInvitation(req.params.token, userId);
@@ -7822,14 +7897,15 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       await storage.updateUserRole(userId, invitation.role);
       
       res.json({ success: true, invitation });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // ========== OBJECT STORAGE ==========
   // Serve objects (profile images, etc.) - public access for visibility="public" objects
-  app.get("/objects/:objectPath(*)", async (req: any, res) => {
+  app.get("/objects/:objectPath(*)", async (req: Request, res: Response) => {
     const objectStorageService = new ObjectStorageService();
     try {
       const objectFile = await objectStorageService.getObjectEntityFile(req.path);
@@ -7853,7 +7929,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   });
 
   // Get upload URL for object storage
-  app.post("/api/objects/upload", isAuthenticated, async (req: any, res) => {
+  app.post("/api/objects/upload", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const objectStorageService = new ObjectStorageService();
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
@@ -7865,7 +7941,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   });
 
   // Update profile image after upload
-  app.put("/api/profile-image", isAuthenticated, async (req: any, res) => {
+  app.put("/api/profile-image", isAuthenticated, async (req: Request, res: Response) => {
     if (!req.body.imageURL) {
       return res.status(400).json({ error: "imageURL is required" });
     }
@@ -7900,7 +7976,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
 
   // ========== ADMIN IMPORT ==========
   // Import a pre-existing booking with client/planner info
-  app.post("/api/admin/import-booking", isAuthenticated, async (req: any, res) => {
+  app.post("/api/admin/import-booking", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -7925,7 +8001,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         packageDetails
       } = req.body;
       
-      // Create or get client user (placeholder for now - they'll claim via invitation)
+      // Create or get client user
       let clientUser = await storage.getUserByEmail(clientEmail);
       if (!clientUser) {
         clientUser = await storage.upsertUser({
@@ -8031,7 +8107,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   });
 
   // ========== VENDOR SELF-SERVICE IMPORT ==========
-  app.post("/api/vendor/import-booking", isAuthenticated, async (req: any, res) => {
+  app.post("/api/vendor/import-booking", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (!user || (user.role !== 'artist' && user.role !== 'admin')) {
@@ -8188,7 +8264,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   });
 
   // ========== VENDOR CLIENT CONTACTS ==========
-  app.get("/api/vendor/contacts", isAuthenticated, async (req: any, res) => {
+  app.get("/api/vendor/contacts", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (!user || (user.role !== 'artist' && user.role !== 'admin')) {
@@ -8203,7 +8279,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     }
   });
 
-  app.post("/api/vendor/contacts", isAuthenticated, async (req: any, res) => {
+  app.post("/api/vendor/contacts", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (!user || (user.role !== 'artist' && user.role !== 'admin')) {
@@ -8234,7 +8310,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   });
 
   // ========== VENDOR CREATE BOOKING FOR CLIENT ==========
-  app.post("/api/vendor/create-booking", isAuthenticated, async (req: any, res) => {
+  app.post("/api/vendor/create-booking", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (!user || (user.role !== 'artist' && user.role !== 'admin')) {
@@ -8292,7 +8368,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   });
 
   // Get vendor's bookings including client contact info
-  app.get("/api/vendor/bookings", isAuthenticated, async (req: any, res) => {
+  app.get("/api/vendor/bookings", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (!userId) {
@@ -8338,7 +8414,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   });
 
   // Planner self-service import endpoint
-  app.post("/api/planner/import-booking", isAuthenticated, async (req: any, res) => {
+  app.post("/api/planner/import-booking", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (!userId) {
@@ -8464,7 +8540,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   });
 
   // ========== ADMIN ROUTES ==========
-  app.get("/api/admin/users", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/users", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -8472,12 +8548,13 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       const allUsers = await storage.getAllUsers();
       res.json(allUsers);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
-  app.get("/api/admin/bookings", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/bookings", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -8485,12 +8562,13 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       const allBookings = await storage.getAllBookings();
       res.json(allBookings);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
-  app.get("/api/admin/contracts", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/contracts", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -8507,12 +8585,13 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         totalValue: allContracts.reduce((sum, c) => sum + (c.totalAmount || 0), 0),
       };
       res.json(stats);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
-  app.get("/api/admin/payments", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/payments", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -8520,12 +8599,13 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       const allPayments = await storage.getAllPayments();
       res.json(allPayments);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
-  app.get("/api/admin/support-cases", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/support-cases", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -8533,14 +8613,15 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       const allCases = await storage.getAllSupportCases();
       res.json(allCases);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // ========== VENDOR VERIFICATION (Admin) ==========
   // Get all vendors pending verification
-  app.get("/api/admin/vendors/pending", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/vendors/pending", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -8548,13 +8629,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       const pendingVendors = await storage.getPendingVendors();
       res.json(pendingVendors);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Get all vendors with their verification status
-  app.get("/api/admin/vendors", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/vendors", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -8562,13 +8644,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       const allVendors = await storage.getAllVendorsWithStatus();
       res.json(allVendors);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Approve a vendor
-  app.post("/api/admin/vendors/:userId/approve", isAuthenticated, async (req: any, res) => {
+  app.post("/api/admin/vendors/:userId/approve", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const adminUser = await storage.getUser(getAuthUserId(req));
       if (adminUser?.role !== 'admin') {
@@ -8596,13 +8679,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       });
       
       res.json({ message: "Vendor approved successfully", profile });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Reject a vendor
-  app.post("/api/admin/vendors/:userId/reject", isAuthenticated, async (req: any, res) => {
+  app.post("/api/admin/vendors/:userId/reject", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const adminUser = await storage.getUser(getAuthUserId(req));
       if (adminUser?.role !== 'admin') {
@@ -8632,13 +8716,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       });
       
       res.json({ message: "Vendor rejected", profile });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Suspend a vendor (e.g., after reports)
-  app.post("/api/admin/vendors/:userId/suspend", isAuthenticated, async (req: any, res) => {
+  app.post("/api/admin/vendors/:userId/suspend", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const adminUser = await storage.getUser(getAuthUserId(req));
       if (adminUser?.role !== 'admin') {
@@ -8666,14 +8751,15 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       });
       
       res.json({ message: "Vendor suspended", profile });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // ========== PROFILE REPORTS (Admin) ==========
   // Get all profile reports
-  app.get("/api/admin/reports", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/reports", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -8681,13 +8767,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       const reports = await storage.getAllProfileReports();
       res.json(reports);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Review a profile report
-  app.post("/api/admin/reports/:id/review", isAuthenticated, async (req: any, res) => {
+  app.post("/api/admin/reports/:id/review", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const adminUser = await storage.getUser(getAuthUserId(req));
       if (adminUser?.role !== 'admin') {
@@ -8708,13 +8795,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       
       res.json({ message: "Report reviewed", report });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Submit a profile report (any authenticated user can report)
-  app.post("/api/reports", isAuthenticated, async (req: any, res) => {
+  app.post("/api/reports", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const { reportedUserId, reason, description } = req.body;
@@ -8728,13 +8816,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       });
       
       res.json({ message: "Report submitted", report });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // ========== Proving Ground Metrics ==========
-  app.get("/api/admin/vendor-metrics", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/vendor-metrics", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -8744,12 +8833,13 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       const sinceDays = parseInt(req.query.sinceDays as string) || 14;
       const metrics = await storage.getTopVendorMetrics(limit, sinceDays);
       res.json({ metrics, period: `${sinceDays} days` });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
-  app.get("/api/admin/vendor-metrics/:vendorId", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/vendor-metrics/:vendorId", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -8758,13 +8848,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       const sinceDays = parseInt(req.query.sinceDays as string) || 14;
       const metrics = await storage.getVendorMetrics(req.params.vendorId, sinceDays);
       res.json({ metrics, period: `${sinceDays} days` });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // ========== CDI (Choreography Depth Index) ==========
-  app.get("/api/admin/cdi/scores", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/cdi/scores", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -8772,12 +8863,13 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       const scores = await storage.getAllCdiScores();
       res.json(scores);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
-  app.get("/api/admin/cdi/events/:userId", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/cdi/events/:userId", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -8785,12 +8877,13 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       const events = await storage.getCdiEventsByUser(req.params.userId);
       res.json(events);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
-  app.post("/api/admin/cdi/calculate/:userId", isAuthenticated, async (req: any, res) => {
+  app.post("/api/admin/cdi/calculate/:userId", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -8860,14 +8953,15 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       });
       
       res.json(score);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // ========== CDI AI (HACO Framework) ==========
   // Get AI insights for a client
-  app.get("/api/admin/cdi/ai/insights/:userId", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/cdi/ai/insights/:userId", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -8875,13 +8969,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       const insights = await storage.getCdiAiInsightsByUser(req.params.userId);
       res.json(insights);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Get latest AI insight for a client
-  app.get("/api/admin/cdi/ai/insights/:userId/latest", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/cdi/ai/insights/:userId/latest", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -8889,13 +8984,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       const insight = await storage.getLatestCdiAiInsight(req.params.userId);
       res.json(insight || null);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Get threshold policies
-  app.get("/api/admin/cdi/thresholds", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/cdi/thresholds", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -8903,13 +8999,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       const thresholds = await storage.getCdiThresholds();
       res.json(thresholds);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Create threshold policy
-  app.post("/api/admin/cdi/thresholds", isAuthenticated, async (req: any, res) => {
+  app.post("/api/admin/cdi/thresholds", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -8921,13 +9018,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       });
       const threshold = await storage.createCdiThreshold(data);
       res.json(threshold);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Update threshold policy
-  app.patch("/api/admin/cdi/thresholds/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/admin/cdi/thresholds/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -8938,13 +9036,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         return res.status(404).json({ error: "Threshold not found" });
       }
       res.json(threshold);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Record admin override (for HACO adaptive learning)
-  app.post("/api/admin/cdi/overrides", isAuthenticated, async (req: any, res) => {
+  app.post("/api/admin/cdi/overrides", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -8968,13 +9067,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       });
       
       res.json(override);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Get all admin overrides
-  app.get("/api/admin/cdi/overrides", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/cdi/overrides", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -8982,13 +9082,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       const overrides = await storage.getCdiAdminOverrides();
       res.json(overrides);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Trigger AI analysis for a specific client
-  app.post("/api/admin/cdi/ai/analyze/:userId", isAuthenticated, async (req: any, res) => {
+  app.post("/api/admin/cdi/ai/analyze/:userId", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -9006,15 +9107,16 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       
       const insight = await storage.getLatestCdiAiInsight(userId);
       res.json(insight || { message: "Analysis complete" });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // ========== INVISIBLE LABOR API ==========
   
   // Get invisible labor stats for the current user (vendor/planner)
-  app.get("/api/invisible-labor/stats", isAuthenticated, async (req: any, res) => {
+  app.get("/api/invisible-labor/stats", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
@@ -9025,13 +9127,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       
       const stats = await storage.getInvisibleLaborStats(userId);
       res.json(stats);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Get recent pivots (admin view)
-  app.get("/api/admin/invisible-labor/pivots", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/invisible-labor/pivots", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -9040,13 +9143,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       const limit = parseInt(req.query.limit as string) || 50;
       const pivots = await storage.getRecentPivots(limit);
       res.json(pivots);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Get insights for a conversation
-  app.get("/api/business-chat/conversations/:id/insights", isAuthenticated, async (req: any, res) => {
+  app.get("/api/business-chat/conversations/:id/insights", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const conversation = await storage.getConversation(req.params.id);
@@ -9065,15 +9169,16 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       
       const insights = await storage.getBusinessChatInsightsByConversation(req.params.id);
       res.json(insights);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // ========== CDI THREE-DIMENSION API ==========
   
   // Get all composite scores with dimension breakdown
-  app.get("/api/admin/cdi/composite-scores", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/cdi/composite-scores", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -9081,13 +9186,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       const scores = await storage.getAllCdiCompositeScores();
       res.json(scores);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Get latest composite score for a user
-  app.get("/api/admin/cdi/composite-scores/:userId", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/cdi/composite-scores/:userId", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -9095,13 +9201,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       const score = await storage.getLatestCdiCompositeScore(req.params.userId);
       res.json(score || null);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Get dimension scores history for a user
-  app.get("/api/admin/cdi/dimension-scores/:userId", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/cdi/dimension-scores/:userId", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -9109,13 +9216,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       const scores = await storage.getCdiDimensionScoresByUser(req.params.userId);
       res.json(scores);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Get behavioral events for a user
-  app.get("/api/admin/cdi/behavioral-events/:userId", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/cdi/behavioral-events/:userId", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -9123,13 +9231,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       const events = await storage.getCdiBehavioralEventsByUser(req.params.userId);
       res.json(events);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Trigger three-dimension CDI analysis
-  app.post("/api/admin/cdi/analyze-dimensions/:userId", isAuthenticated, async (req: any, res) => {
+  app.post("/api/admin/cdi/analyze-dimensions/:userId", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -9184,13 +9293,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       
       res.json(result);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Submit feedback for evolutionary learning
-  app.post("/api/admin/cdi/feedback", isAuthenticated, async (req: any, res) => {
+  app.post("/api/admin/cdi/feedback", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin' && user?.role !== 'planner') {
@@ -9217,13 +9327,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       });
       
       res.json({ success: true });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Get learning runs history
-  app.get("/api/admin/cdi/learning-runs", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/cdi/learning-runs", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -9231,13 +9342,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       // For now return empty - would need to add getLearningRuns to storage
       res.json([]);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // Template download endpoint (server-side generation to avoid antivirus false positives)
-  app.get("/api/template/booking-csv", isAuthenticated, async (req: any, res) => {
+  app.get("/api/template/booking-csv", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const template = `Client First Name,Client Last Name,Client Email,Event Date,Location,Total Amount,Deposit Amount,Planner First Name,Planner Last Name,Planner Email
 Sarah,Johnson,sarah@email.com,2026-05-15,The Grand Ballroom,2500,500,Emily,Davis,emily@planner.com
@@ -9247,14 +9359,15 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', 'attachment; filename="beauvette-booking-template.csv"');
       res.send(template);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
 
   // ========== CDI TEST ENDPOINT ==========
   // Test CDI analysis with raw text - useful for analyzing message threads
-  app.post("/api/admin/cdi/test-analyze", isAuthenticated, async (req: any, res) => {
+  app.post("/api/admin/cdi/test-analyze", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       const authorizedAdmins = ['49899480', '50616407'];
@@ -9334,7 +9447,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   let iqsInitialized = false;
   
   // Get all lead scores for a vendor
-  app.get("/api/iqs/lead-scores", isAuthenticated, async (req: any, res) => {
+  app.get("/api/iqs/lead-scores", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
@@ -9357,7 +9470,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
   
   // Get high-risk warnings for vendor dashboard
-  app.get("/api/iqs/warnings", isAuthenticated, async (req: any, res) => {
+  app.get("/api/iqs/warnings", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
@@ -9374,7 +9487,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
   
   // Get a specific lead score
-  app.get("/api/iqs/lead-scores/:id", isAuthenticated, async (req: any, res) => {
+  app.get("/api/iqs/lead-scores/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const leadScore = await storage.getIqsLeadScore(id);
@@ -9394,7 +9507,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
   
   // Analyze a lead (create or update score)
-  app.post("/api/iqs/analyze", isAuthenticated, async (req: any, res) => {
+  app.post("/api/iqs/analyze", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
@@ -9424,7 +9537,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
   
   // Analyze a message for red flags
-  app.post("/api/iqs/analyze-message", isAuthenticated, async (req: any, res) => {
+  app.post("/api/iqs/analyze-message", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
@@ -9453,7 +9566,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
   
   // Log an interaction event
-  app.post("/api/iqs/events", isAuthenticated, async (req: any, res) => {
+  app.post("/api/iqs/events", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const { leadScoreId, eventType, details, occurredAt, expectedAt } = req.body;
@@ -9479,7 +9592,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
   
   // Submit vendor feedback on a lead
-  app.post("/api/iqs/feedback", isAuthenticated, async (req: any, res) => {
+  app.post("/api/iqs/feedback", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const { leadScoreId, feedbackType, rating, notes, patternId, eventId, wasAccurate, actualOutcome } = req.body;
@@ -9503,7 +9616,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
   
   // Get all active patterns
-  app.get("/api/iqs/patterns", isAuthenticated, async (req: any, res) => {
+  app.get("/api/iqs/patterns", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const patterns = await storage.getActiveIqsPatterns();
       res.json(patterns);
@@ -9514,7 +9627,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
   
   // Admin: Trigger learning cycle
-  app.post("/api/admin/iqs/learn", isAuthenticated, async (req: any, res) => {
+  app.post("/api/admin/iqs/learn", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -9530,7 +9643,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
   
   // Admin: Get learning run history
-  app.get("/api/admin/iqs/learning-runs", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/iqs/learning-runs", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -9546,7 +9659,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
   
   // Admin: Update a pattern
-  app.patch("/api/admin/iqs/patterns/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/admin/iqs/patterns/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser(getAuthUserId(req));
       if (user?.role !== 'admin') {
@@ -9571,7 +9684,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   // ========== INQUIRIES ==========
   
   // Submit a new inquiry (public - no auth required for prospective clients)
-  app.post("/api/inquiries", async (req: any, res) => {
+  app.post("/api/inquiries", async (req: Request, res: Response) => {
     try {
       // Convert eventDate string to Date object before validation
       const body = {
@@ -9719,7 +9832,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   
   // Get inquiries for a vendor
   // CDI-powered lead routing: prioritizes hot inquiries based on vendor metrics (invisible to vendor)
-  app.get("/api/vendor/inquiries", async (req: any, res) => {
+  app.get("/api/vendor/inquiries", async (req: Request, res: Response) => {
     try {
       // Support token-based auth for calendar component
       const token = req.query.token as string;
@@ -9891,7 +10004,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
   
   // Get single inquiry
-  app.get("/api/inquiries/:id", isAuthenticated, async (req: any, res) => {
+  app.get("/api/inquiries/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const inquiry = await storage.getInquiry(req.params.id);
       if (!inquiry) {
@@ -9916,7 +10029,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
 
   // Update inquiry client info (via threadToken for magic link access)
-  app.patch("/api/inquiries/:threadToken", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/inquiries/:threadToken", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { threadToken } = req.params;
       const { clientName, clientEmail, clientPhone } = req.body;
@@ -9932,7 +10045,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         return res.status(403).json({ error: "Access denied" });
       }
       
-      const updateData: any = {};
+      const updateData: Partial<Inquiry> = {};
       if (clientName !== undefined) updateData.clientName = clientName;
       if (clientEmail !== undefined) updateData.clientEmail = clientEmail;
       if (clientPhone !== undefined) updateData.clientPhone = clientPhone;
@@ -9946,7 +10059,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
   
   // Vendor responds to inquiry (send info sheet manually if not auto-sent)
-  app.post("/api/inquiries/:id/respond", isAuthenticated, async (req: any, res) => {
+  app.post("/api/inquiries/:id/respond", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const inquiry = await storage.getInquiry(req.params.id);
@@ -10010,7 +10123,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
   
   // Send chat invite to client
-  app.post("/api/inquiries/:id/chat-invite", isAuthenticated, async (req: any, res) => {
+  app.post("/api/inquiries/:id/chat-invite", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const inquiry = await storage.getInquiry(req.params.id);
@@ -10092,7 +10205,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
   
   // Send direct chat invite to client (from artist dashboard)
-  app.post("/api/send-client-invite", isAuthenticated, async (req: any, res) => {
+  app.post("/api/send-client-invite", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const { clientEmail, clientName, clientPhone } = req.body;
@@ -10133,11 +10246,6 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           expiresAt,
         }).catch((err: any) => console.error('[Chat Invite Email] Error:', err));
       });
-      
-      // If phone number provided, optionally send SMS (future enhancement)
-      if (clientPhone) {
-        console.log(`[Chat Invite] SMS to ${clientPhone} not yet implemented`);
-      }
       
       res.json({ 
         success: true, 
@@ -10230,7 +10338,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
 
   // Quick reply to inquiry (send email to client)
-  app.post("/api/inquiries/:id/quick-reply", isAuthenticated, async (req: any, res) => {
+  app.post("/api/inquiries/:id/quick-reply", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
@@ -10297,7 +10405,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
 
   // Decline inquiry
-  app.post("/api/inquiries/:id/decline", isAuthenticated, async (req: any, res) => {
+  app.post("/api/inquiries/:id/decline", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
@@ -10354,13 +10462,13 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           'booking',
           'inquiry_declined',
           'role_specific_recall',
-          -10, // Neutral signal - declining is a valid business decision
+          -10, // Neutral signal
           {
             evidenceText: reason || 'Inquiry declined by artist',
           }
         );
       } catch (cdiError) {
-        console.error('[CDI] Error logging decline event:', cdiError);
+        // CDI error shouldn't fail the response
       }
       
       res.json({ success: true });
@@ -10378,7 +10486,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     notifyClient: z.boolean().default(true),
   });
 
-  app.post("/api/inquiries/:id/decline-with-referrals", isAuthenticated, async (req: any, res) => {
+  app.post("/api/inquiries/:id/decline-with-referrals", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
@@ -10668,7 +10776,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
 
   // Hold inquiry - place a tentative hold on a date
-  app.post("/api/inquiries/:id/hold", isAuthenticated, async (req: any, res) => {
+  app.post("/api/inquiries/:id/hold", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
@@ -10736,8 +10844,6 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         },
       });
       
-      // TODO: Send "tentative hold" notification to client
-      
       res.json({ success: true, expiresAt: expiresAt.toISOString() });
     } catch (error: any) {
       console.error("[Inquiry] Error placing hold:", error);
@@ -10746,7 +10852,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
 
   // Confirm inquiry - convert to booking and lock date (atomic transaction)
-  app.post("/api/inquiries/:id/confirm", isAuthenticated, async (req: any, res) => {
+  app.post("/api/inquiries/:id/confirm", isAuthenticated, async (req: Request, res: Response) => {
     const userId = getAuthUserId(req);
     const user = await storage.getUser(userId);
     const inquiry = await storage.getInquiry(req.params.id);
@@ -10776,7 +10882,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     let booking: any = null;
     
     try {
-      // Step 1: Create booking first (this is the critical write)
+      // Create booking first (this is the critical write)
       booking = await storage.createBooking({
         clientId: inquiry.clientId,
         artistId: userId,
@@ -10816,7 +10922,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
     
     try {
-      // Step 2: Patch inquiry with bookingId and status=confirmed
+      // Patch inquiry with bookingId and status=confirmed
       await storage.updateInquiry(inquiry.id, { 
         status: 'confirmed',
         bookingId: booking.id, // New field for calendar locking
@@ -10831,7 +10937,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         lastActionAt: now,
       } as any);
       
-      // Step 3: Lock the date on calendar (availability record)
+      // Lock the date on calendar (availability record)
       await storage.createAvailability({
         userId,
         date: inquiry.eventDate,
@@ -10839,7 +10945,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         notes: `Booked: ${inquiry.clientName}`,
       });
       
-      // Step 4: Audit logs (non-critical, best-effort)
+      // Audit logs (non-critical, best-effort)
       await storage.createAuditLog({
         action: 'confirm_clicked',
         entityType: 'inquiry',
@@ -10868,8 +10974,6 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           eventDate: inquiry.eventDate.toISOString(),
         },
       });
-      
-      // TODO: Send confirmation email to client
       
       res.json({ success: true, bookingId: booking.id });
     } catch (error: any) {
@@ -10908,7 +11012,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
 
   // Propose alternative dates
-  app.post("/api/inquiries/:id/propose", isAuthenticated, async (req: any, res) => {
+  app.post("/api/inquiries/:id/propose", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const user = await storage.getUser(userId);
@@ -11001,8 +11105,6 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         });
       }
       
-      // TODO: Send proposal email to client with alternative dates
-      
       res.json({ success: true, proposedDates });
     } catch (error: any) {
       console.error("[Inquiry] Error proposing dates:", error);
@@ -11011,7 +11113,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
 
   // Get inquiry timeline/audit trail
-  app.get("/api/inquiries/:id/timeline", isAuthenticated, async (req: any, res) => {
+  app.get("/api/inquiries/:id/timeline", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       const inquiry = await storage.getInquiry(req.params.id);
@@ -11073,7 +11175,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
 
   // ========== SCHEDULED EMAILS ==========
   // Create a scheduled email (for invoice scheduling)
-  app.post("/api/scheduled-emails", isAuthenticated, async (req: any, res) => {
+  app.post("/api/scheduled-emails", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (!userId) {
@@ -11107,7 +11209,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
   
   // Get user's scheduled emails
-  app.get("/api/scheduled-emails", isAuthenticated, async (req: any, res) => {
+  app.get("/api/scheduled-emails", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (!userId) {
@@ -11124,7 +11226,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
   
   // Cancel a scheduled email
-  app.delete("/api/scheduled-emails/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/scheduled-emails/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (!userId) {
@@ -11154,7 +11256,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
   });
   
   // Resend an invoice email for a booking
-  app.post("/api/bookings/:id/resend-invoice", isAuthenticated, async (req: any, res) => {
+  app.post("/api/bookings/:id/resend-invoice", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (!userId) {
@@ -11500,10 +11602,9 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           return res.redirect('/login?error=no_account');
         }
         
-        // For now, if profile has no user but users exist, try to match by looking at the profile's business info
-        // This is a recovery mechanism for broken profile-user links
+        // Recovery mechanism for profile-user links
         const firstUser = allUsers[0];
-        console.log(`[Login] AUTO-FIX: Linking profile ${profile.artistSlug} to user ${firstUser.id} (${firstUser.email})`);
+        console.log(`[Login] Linking profile ${profile.artistSlug} to user ${firstUser.id} (${firstUser.email})`);
         
         await db.update(artistProfiles)
           .set({ userId: firstUser.id })
@@ -11519,7 +11620,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       
       
       // Create session
-      (req.session as any).userId = user.id;
+      req.session.userId = user.id;
       (req.session as any).artistId = user.id;
       
       console.log(`[Login] Session created for artist ${profile.artistSlug}, userId: ${user.id}`);
@@ -13989,7 +14090,7 @@ Rules:
     }
   });
 
-  // Setup flow - Step 1: Connect Square
+  // Setup flow - Connect Square
   app.post("/api/public/setup/:artistSlug/square", async (req, res) => {
     try {
       const { artistSlug } = req.params;
@@ -14014,7 +14115,7 @@ Rules:
     }
   });
 
-  // Setup flow - Step 2: Contract Template
+  // Setup flow - Contract Template
   app.post("/api/public/setup/:artistSlug/contract", async (req, res) => {
     try {
       const { artistSlug } = req.params;
@@ -14037,7 +14138,7 @@ Rules:
     }
   });
 
-  // Setup flow - Step 3: Pretty Links
+  // Pretty Links setup
   app.post("/api/public/setup/:artistSlug/links", async (req, res) => {
     try {
       const { artistSlug } = req.params;
@@ -14220,7 +14321,7 @@ Rules:
   });
   
   // Upload info sheet during onboarding (multipart form)
-  app.post("/api/public/artists/upload-info-sheet", async (req: any, res) => {
+  app.post("/api/public/artists/upload-info-sheet", async (req: Request, res: Response) => {
     try {
       // Handle multipart form data manually using raw body
       const contentType = req.headers['content-type'] || '';
@@ -14328,7 +14429,7 @@ Rules:
       
       console.log(`[Settings Update] Artist: ${profile.artistSlug}, infoSheetType: ${infoSheetType}, hasContent: ${!!infoSheetContent}, contentLength: ${infoSheetContent?.length || 0}`);
       
-      const updateData: any = {};
+      const updateData: Partial<ArtistProfile> = {};
       if (infoSheetType !== undefined) updateData.infoSheetType = infoSheetType;
       if (infoSheetContent !== undefined) updateData.infoSheetContent = infoSheetContent;
       if (infoSheetPdfUrl !== undefined) updateData.infoSheetPdfUrl = infoSheetPdfUrl;
@@ -15155,8 +15256,9 @@ Rules:
         profiles: allProfiles,
         users: allUsers
       });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: errorMessage });
     }
   });
 
@@ -15504,7 +15606,7 @@ Rules:
       
       const { infoSheetType, infoSheetContent, infoSheetPdfUrl, infoSheetEnabled, formSuccessMessage, autoResponderMode, customResponse, politeDeclineTemplate, referralListTemplate, pricingInfo, plannerInfoSheet, plannerPricing } = req.body;
       
-      const updateData: any = {};
+      const updateData: Partial<ArtistProfile> = {};
       if (infoSheetType !== undefined) updateData.infoSheetType = infoSheetType;
       if (infoSheetContent !== undefined) updateData.infoSheetContent = infoSheetContent;
       if (infoSheetPdfUrl !== undefined) updateData.infoSheetPdfUrl = infoSheetPdfUrl;
@@ -16073,7 +16175,7 @@ Rules:
   // =====================
   
   // Create proposal
-  app.post("/api/proposals", isAuthenticated, async (req: any, res) => {
+  app.post("/api/proposals", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (!userId) {
@@ -16117,7 +16219,7 @@ Rules:
   });
   
   // Get all proposals for current user
-  app.get("/api/proposals", isAuthenticated, async (req: any, res) => {
+  app.get("/api/proposals", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (!userId) {
@@ -16132,7 +16234,7 @@ Rules:
   });
   
   // Get single proposal
-  app.get("/api/proposals/:id", isAuthenticated, async (req: any, res) => {
+  app.get("/api/proposals/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (!userId) {
@@ -16149,7 +16251,7 @@ Rules:
   });
   
   // Update proposal
-  app.patch("/api/proposals/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/proposals/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (!userId) {
@@ -16161,7 +16263,7 @@ Rules:
       
       const { clientName, clientEmail, clientPhone, clientCompany, eventDate, eventLocation, completionTime, lineItems, travelFee, discount, notes, terms, validUntil, status } = req.body;
       
-      const updateData: any = {};
+      const updateData: Partial<Proposal> = {};
       if (clientName !== undefined) updateData.clientName = clientName;
       if (clientEmail !== undefined) updateData.clientEmail = clientEmail;
       if (clientPhone !== undefined) updateData.clientPhone = clientPhone || null;
@@ -16197,7 +16299,7 @@ Rules:
   });
   
   // Send proposal via email
-  app.post("/api/proposals/:id/send", isAuthenticated, async (req: any, res) => {
+  app.post("/api/proposals/:id/send", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (!userId) {
@@ -16255,7 +16357,7 @@ Rules:
   });
   
   // Delete proposal
-  app.delete("/api/proposals/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/proposals/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (!userId) {
@@ -16274,7 +16376,7 @@ Rules:
   });
   
   // Resend chat link for a proposal (sends a follow-up email with working chat link)
-  app.post("/api/proposals/:id/resend-chat-link", isAuthenticated, async (req: any, res) => {
+  app.post("/api/proposals/:id/resend-chat-link", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (!userId) {
@@ -16720,7 +16822,7 @@ Rules:
     source: z.string().optional().default('chat_smart_button'),
   });
 
-  app.post("/api/audit/smart-action", isAuthenticated, async (req: any, res) => {
+  app.post("/api/audit/smart-action", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       
@@ -16801,7 +16903,7 @@ Rules:
   });
   
   // Admin view of waitlist signups
-  app.get("/api/admin/waitlist", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/waitlist", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUserId(req);
       if (!userId) {
@@ -17015,8 +17117,9 @@ Rules:
     try {
       const photos = await storage.getSimplePhotos();
       res.json(photos);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: errorMessage });
     }
   });
 
@@ -17028,8 +17131,9 @@ Rules:
       }
       const photo = await storage.createSimplePhoto({ personName, imageUrl });
       res.status(201).json(photo);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: errorMessage });
     }
   });
 
@@ -17038,8 +17142,9 @@ Rules:
     try {
       const messages = await storage.getSimpleMessages();
       res.json(messages);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: errorMessage });
     }
   });
 
@@ -17051,8 +17156,9 @@ Rules:
       }
       const msg = await storage.createSimpleMessage({ senderName, message });
       res.status(201).json(msg);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: errorMessage });
     }
   });
 

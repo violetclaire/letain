@@ -23,25 +23,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-interface ChecklistItem {
-  id: string;
-  label: string;
-  completed: boolean;
-  completedAt?: string;
-}
-
-interface Booking {
-  id: string;
-  clientName: string;
-  eventDate: string;
-  eventLocation?: string;
-  arrivalTime?: string;
-  onSiteContact?: string;
-  onSiteContactPhone?: string;
-  notes?: string;
-  serviceType?: string;
-}
+import type { ChecklistItemUI as ChecklistItem, DayOfReadinessBookingUI as Booking } from "@shared/types";
 
 interface DayOfReadinessProps {
   booking: Booking;

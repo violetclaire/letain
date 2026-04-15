@@ -228,8 +228,14 @@ export default function ScheduleCreator({ scheduleId }: { scheduleId: string }) 
         body: JSON.stringify(appointment),
       });
       if (!res.ok) {
-        const error = await res.json().catch(() => ({}));
-        throw new Error(error.error || "Failed to add appointment");
+        let errorMsg = "Failed to add appointment";
+        try {
+          const error = await res.json();
+          errorMsg = error.error || errorMsg;
+        } catch (e) {
+          console.error("Failed to parse add appointment error:", e);
+        }
+        throw new Error(errorMsg);
       }
       return res.json();
     },
@@ -257,8 +263,14 @@ export default function ScheduleCreator({ scheduleId }: { scheduleId: string }) 
         body: JSON.stringify(data),
       });
       if (!res.ok) {
-        const error = await res.json().catch(() => ({}));
-        throw new Error(error.error || "Failed to update appointment");
+        let errorMsg = "Failed to update appointment";
+        try {
+          const error = await res.json();
+          errorMsg = error.error || errorMsg;
+        } catch (e) {
+          console.error("Failed to parse update appointment error:", e);
+        }
+        throw new Error(errorMsg);
       }
       return res.json();
     },

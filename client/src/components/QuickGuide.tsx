@@ -38,11 +38,11 @@ function markGuideSeen(guideId: string) {
   }
 }
 
-export function hasSeenGuide(guideId: string): boolean {
+function hasSeenGuide(guideId: string): boolean {
   return getSeenGuides().includes(guideId);
 }
 
-export function resetGuide(guideId: string) {
+function resetGuide(guideId: string) {
   try {
     const seen = getSeenGuides().filter(id => id !== guideId);
     localStorage.setItem(GUIDE_STORAGE_KEY, JSON.stringify(seen));

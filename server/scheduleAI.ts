@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import type { EventDaySchedule, ScheduleAppointment, ScheduleTeamMember } from "@shared/schema";
+import type { ArtistColumn, GridCell } from "@shared/types";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.AI_INTEGRATIONS_GEMINI_API_KEY || "",
@@ -21,21 +22,6 @@ interface ScheduleChatInput {
 
 interface ScheduleChatResponse {
   response: string;
-}
-
-export interface ArtistColumn {
-  name: string;
-  type: string;
-  duration: number;
-  slots: string[];
-  isLead?: boolean;
-}
-
-export interface GridCell {
-  timeRange: string;
-  clientName: string;
-  service?: string;
-  photoUrl?: string;
 }
 
 export interface ParsedClient {

@@ -296,8 +296,14 @@ export default function ArtistSettings() {
       });
 
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || "Upload failed");
+        let errorMsg = "Upload failed";
+        try {
+          const errData = await res.json();
+          errorMsg = errData.error || errorMsg;
+        } catch (e) {
+          console.error("Failed to parse upload error response:", e);
+        }
+        throw new Error(errorMsg);
       }
 
       queryClient.invalidateQueries({ queryKey: ["/api/artist/settings", token, useSessionAuth] });
@@ -459,7 +465,7 @@ export default function ArtistSettings() {
                       updateSettings.mutate({ customResponse: value });
                     }, 800);
                   }}
-                  placeholder="Hi! Thanks for reaching out. I'm currently not taking new bookings but I'd love to connect when I'm back. In the meantime, feel free to check out my colleagues..."
+                  placeholder="Thank you! I'll respond shortly."
                   className="w-full bg-[#F5F2ED] border border-[#E8E2D9] rounded p-3 text-sm text-black placeholder:text-[#999] focus:outline-none focus:border-[#6B4A55] min-h-[120px] resize-none"
                   data-testid="textarea-pause-message"
                 />

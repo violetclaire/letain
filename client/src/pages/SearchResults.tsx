@@ -4,23 +4,7 @@ import { ArrowLeft, MapPin, Calendar, X, DollarSign, Instagram, Globe, ChevronLe
 import AvailabilityCalendar from "@/components/AvailabilityCalendar";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-
-interface Vendor {
-  id: string;
-  firstName: string | null;
-  lastName: string | null;
-  email: string | null;
-  profile: {
-    businessName?: string | null;
-    bio?: string | null;
-    location?: string | null;
-    specialties?: string[] | null;
-    portfolioUrls?: string[] | null;
-    priceRange?: string | null;
-    instagramHandle?: string | null;
-    websiteUrl?: string | null;
-  };
-}
+import type { Vendor } from "@shared/types";
 
 export default function SearchResults() {
   const [, setLocation] = useLocation();

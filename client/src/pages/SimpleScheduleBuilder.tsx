@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { ArrowLeft, Plus, Trash2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { timeToMinutes, minutesToTime } from "@/lib/dateUtils";
 
 interface GridCell {
   time: string;
@@ -80,24 +81,15 @@ export default function SimpleScheduleBuilder() {
   };
 
   const parseTimeStr = (t: string): number | null => {
-    const cleaned = t.trim().replace(/\./g, '').toUpperCase();
-    const match = cleaned.match(/^(\d{1,2}):?(\d{2})?\s*(AM|PM)?$/);
-    if (!match) return null;
-    let h = parseInt(match[1]);
-    const m = parseInt(match[2] || '0');
-    const ampm = match[3];
-    if (ampm === 'PM' && h < 12) h += 12;
-    if (ampm === 'AM' && h === 12) h = 0;
-    if (!ampm && h < 7) h += 12;
-    return h * 60 + m;
+    try {
+      return timeToMinutes(t);
+    } catch {
+      return null;
+    }
   };
 
   const formatMinutes = (mins: number): string => {
-    const h = Math.floor(mins / 60) % 24;
-    const m = mins % 60;
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    const h12 = h > 12 ? h - 12 : (h === 0 ? 12 : h);
-    return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
+    return minutesToTime(mins);
   };
 
   const DEFAULT_SLOT = 45;

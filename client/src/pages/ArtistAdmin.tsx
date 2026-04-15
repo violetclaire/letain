@@ -5,6 +5,8 @@ import { Loader2, Settings, Calendar, Users, Copy, Check, Mail, CheckCircle, Log
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import type { ArtistProfile } from "@shared/schema";
+import type { InquiryUI } from "@shared/types";
 import QuickGuide from "@/components/QuickGuide";
 import { useTheme } from "@/contexts/ThemeContext";
 import { SecretaryChatbox } from "@/components/SecretaryChatbox";
@@ -27,26 +29,9 @@ function ThemeToggleButton() {
   );
 }
 
-interface Inquiry {
-  id: string;
-  threadToken: string;
-  clientName: string;
-  clientEmail: string;
-  eventDate: string;
-  eventLocation?: string;
-  status: string;
-  createdAt: string;
-  depositPaidAt?: string;
+interface Inquiry extends InquiryUI {
   hasDateConflict?: boolean;
   conflictSource?: string;
-}
-
-interface ArtistProfile {
-  id: string;
-  businessName: string;
-  artistSlug: string;
-  autoResponderMode: 'off' | 'info_sheet' | 'smart' | 'paused' | 'paused_with_referral' | 'availability_smart';
-  editToken?: string;
 }
 
 export default function ArtistAdmin() {
@@ -266,18 +251,30 @@ export default function ArtistAdmin() {
           credentials: 'include'
         });
         if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
+          let errorMsg = "Failed to load dashboard";
+          try {
+            const data = await res.json();
+            errorMsg = data.error || errorMsg;
+          } catch (e) {
+            console.error("Failed to parse error response:", e);
+          }
           if (res.status === 401) throw new Error("Access denied");
-          throw new Error(data.error || "Failed to load dashboard");
+          throw new Error(errorMsg);
         }
         return res.json();
       }
       // Otherwise use token auth
       const res = await fetch(`/api/public/artist-admin/${slug}?token=${token}`);
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
+        let errorMsg = "Artist not found";
+        try {
+          const data = await res.json();
+          errorMsg = data.error || errorMsg;
+        } catch (e) {
+          console.error("Failed to parse error response:", e);
+        }
         if (res.status === 401) throw new Error("Access denied");
-        throw new Error(data.error || "Artist not found");
+        throw new Error(errorMsg);
       }
       return res.json();
     },

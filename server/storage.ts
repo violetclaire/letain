@@ -448,8 +448,8 @@ export interface IStorage {
     entityId: string; 
     performedBy: string; 
     actorRole?: 'artist' | 'planner' | 'client' | 'system' | 'admin';
-    changes?: Record<string, any>;
-    diff?: Record<string, { from: any; to: any }>;
+    changes?: Record<string, unknown>;
+    diff?: Record<string, { from: unknown; to: unknown }>;
   }): Promise<AuditLog>;
   
   // AI Chat Conversations
@@ -788,7 +788,7 @@ export class DatabaseStorage implements IStorage {
 
   // Intakes
   async createClientIntake(intake: InsertClientIntake): Promise<ClientIntake> {
-    const [newIntake] = await db.insert(clientIntakes).values(intake as any).returning();
+    const [newIntake] = await db.insert(clientIntakes).values(intake).returning();
     await db.update(users).set({ intakeCompleted: true, updatedAt: new Date() }).where(eq(users.id, intake.userId));
     return newIntake;
   }
@@ -799,7 +799,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createArtistIntake(intake: InsertArtistIntake): Promise<ArtistIntake> {
-    const [newIntake] = await db.insert(artistIntakes).values(intake as any).returning();
+    const [newIntake] = await db.insert(artistIntakes).values(intake).returning();
     await db.update(users).set({ intakeCompleted: true, updatedAt: new Date() }).where(eq(users.id, intake.userId));
     return newIntake;
   }
@@ -810,7 +810,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPlannerIntake(intake: InsertPlannerIntake): Promise<PlannerIntake> {
-    const [newIntake] = await db.insert(plannerIntakes).values(intake as any).returning();
+    const [newIntake] = await db.insert(plannerIntakes).values(intake).returning();
     await db.update(users).set({ intakeCompleted: true, updatedAt: new Date() }).where(eq(users.id, intake.userId));
     return newIntake;
   }
@@ -848,14 +848,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createArtistProfile(profile: InsertArtistProfile): Promise<ArtistProfile> {
-    const [newProfile] = await db.insert(artistProfiles).values(profile as any).returning();
+    const [newProfile] = await db.insert(artistProfiles).values(profile).returning();
     return newProfile;
   }
 
   async updateArtistProfile(userId: string, profile: Partial<ArtistProfile>): Promise<ArtistProfile | undefined> {
     const [updated] = await db
       .update(artistProfiles)
-      .set(profile as any)
+      .set(profile)
       .where(eq(artistProfiles.userId, userId))
       .returning();
     return updated || undefined;
@@ -912,14 +912,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createArtistService(service: InsertArtistService): Promise<ArtistService> {
-    const [newService] = await db.insert(artistServices).values(service as any).returning();
+    const [newService] = await db.insert(artistServices).values(service).returning();
     return newService;
   }
 
   async updateArtistService(id: string, service: Partial<InsertArtistService>): Promise<ArtistService | undefined> {
     const [updated] = await db
       .update(artistServices)
-      .set(service as any)
+      .set(service)
       .where(eq(artistServices.id, id))
       .returning();
     return updated || undefined;
@@ -989,18 +989,18 @@ export class DatabaseStorage implements IStorage {
 
   async createBooking(booking: InsertBooking): Promise<Booking> {
     // Convert eventDate string to Date object if it's a string
-    const insertData = { ...booking };
+    const insertData: any = { ...booking };
     if (insertData.eventDate && typeof insertData.eventDate === 'string') {
-      const dateStr = insertData.eventDate as string;
+      const dateStr = insertData.eventDate;
       // If date-only string (YYYY-MM-DD), add noon to avoid timezone shift
       if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-        (insertData as any).eventDate = new Date(`${dateStr}T12:00:00`);
+        insertData.eventDate = new Date(`${dateStr}T12:00:00`);
       } else {
-        (insertData as any).eventDate = new Date(dateStr);
+        insertData.eventDate = new Date(dateStr);
       }
     }
     
-    const [newBooking] = await db.insert(bookings).values(insertData as any).returning();
+    const [newBooking] = await db.insert(bookings).values(insertData).returning();
     return newBooking;
   }
 
@@ -1019,7 +1019,7 @@ export class DatabaseStorage implements IStorage {
     
     const [updated] = await db
       .update(bookings)
-      .set({ ...updateData, updatedAt: new Date() } as any)
+      .set({ ...updateData, updatedAt: new Date() })
       .where(eq(bookings.id, id))
       .returning();
     return updated || undefined;
@@ -1086,7 +1086,7 @@ export class DatabaseStorage implements IStorage {
       bookingId: data.bookingId,
       vendorId: data.vendorId,
       checklistType: data.checklistType,
-      items: data.items as any,
+      items: data.items,
       allCompleted: data.allCompleted,
       completedAt: data.completedAt,
     }).returning();
@@ -1094,7 +1094,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateBookingChecklist(id: string, data: Partial<InsertBookingChecklist>): Promise<BookingChecklist | undefined> {
-    const updateData: any = { updatedAt: new Date() };
+    const updateData: Partial<BookingChecklist> = { updatedAt: new Date() };
     if (data.checklistType !== undefined) updateData.checklistType = data.checklistType;
     if (data.items !== undefined) updateData.items = data.items;
     if (data.allCompleted !== undefined) updateData.allCompleted = data.allCompleted;
@@ -1200,7 +1200,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createContractTemplate(template: InsertContractTemplate): Promise<ContractTemplate> {
-    const [newTemplate] = await db.insert(contractTemplates).values(template as any).returning();
+    const [newTemplate] = await db.insert(contractTemplates).values(template).returning();
     return newTemplate;
   }
 

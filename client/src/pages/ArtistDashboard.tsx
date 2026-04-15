@@ -1,4 +1,4 @@
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { useState, useEffect, useRef } from "react";
 import { Folder, ArrowLeft, Calendar, Clock, FileText, DollarSign, Image as ImageIcon, Check, X, AlertCircle, Plus, Search, CreditCard, Send, Instagram, Globe, MessageCircle, MessageSquare, UserPlus, LogOut, Upload, Settings, User, Wallet, BookUser, Info, ChevronDown, ChevronUp, Camera, Paperclip, Mic, Loader2, Eye, ShieldAlert, ThumbsUp, ThumbsDown, Flag, Mail, XCircle, Copy, RefreshCw } from "lucide-react";
 import VoiceDictation from "../components/VoiceDictation";
@@ -7,21 +7,13 @@ import AIChatPanel from "../components/AIChatPanel";
 import BusinessChatPanel from "../components/BusinessChatPanel";
 import ComposeEmailModal from "../components/ComposeEmailModal";
 import DeclineReferralModal from "../components/DeclineReferralModal";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
+import { useDashboard } from "@/hooks/useDashboard";
 import Uppy from "@uppy/core";
 import AwsS3 from "@uppy/aws-s3";
 import DOMPurify from "dompurify";
 
 export default function ArtistDashboard() {
-  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [, setLocation] = useLocation();
-  
-  // Domain detection for white-label branding
-  const isDateInquiry = typeof window !== 'undefined' && window.location.hostname.includes('dateinquiry');
+  const { user, authLoading, isAuthenticated, toast, queryClient, setLocation, isDateInquiry } = useDashboard("artist");
   
   const [view, setView] = useState<"overview" | "folder">("overview");
   const [selectedClient, setSelectedClient] = useState<string | null>(null);

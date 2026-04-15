@@ -1,7 +1,6 @@
 import { Express, Request, Response } from "express";
 import { getSquare, getSquareOAuthClient, getMerchantSquare, getSquareApplicationId, getSquareApplicationSecret, isSquareConfigured, isSquareOAuthConfigured } from "./squareClient";
 import { storage } from "./storage";
-import { getAuthUserId } from "./routes";
 import crypto from "crypto";
 
 async function getMerchantAccessToken(userId: string): Promise<string | null> {
@@ -30,7 +29,7 @@ setInterval(async () => {
   }
 }, 60000);
 
-export function registerSquareRoutes(app: Express, isAuthenticated: any) {
+export function registerSquareRoutes(app: Express, isAuthenticated: any, getAuthUserId: (req: any) => string | null) {
   
   // Debug endpoint to verify Square credentials
   app.get("/api/square/debug-credentials", async (req, res) => {

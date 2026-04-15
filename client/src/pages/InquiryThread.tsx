@@ -6,13 +6,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { Loader2, Send, X, Check, Plus, Trash2, Eye, Pencil, UserPlus, Copy, FileText, Calendar } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-
-interface ServiceItem {
-  clientType: string;
-  service: string;
-  qty: number;
-  price: number;
-}
+import type { Inquiry, ArtistProfile } from "@shared/schema";
+import type { ServiceItem, ThreadMessageUI as ThreadMessage } from "@shared/types";
 
 const CLIENT_TYPES = ["Bride", "Bridesmaid", "Mother of Bride", "Mother of Groom", "Flower Girl", "Guest", "Other"];
 
@@ -39,46 +34,6 @@ function linkifyText(text: string): React.ReactNode {
     }
     return part;
   });
-}
-
-interface Inquiry {
-  id: string;
-  threadToken: string;
-  clientName: string;
-  clientEmail: string;
-  clientPhone?: string;
-  eventDate: string;
-  eventType?: string;
-  eventLocation?: string;
-  message?: string;
-  status: string;
-  createdAt?: string;
-  depositPaidAt?: string;
-}
-
-interface ArtistProfile {
-  id: string;
-  userId: string;
-  businessName: string;
-  artistSlug?: string;
-  squareAccessToken?: boolean;
-  contractTemplate?: boolean;
-  prettyLinks?: Record<string, string>;
-  onboardingCompleted?: boolean;
-  infoSheetContent?: string;
-  infoSheetPdfUrl?: string;
-  infoSheetType?: string;
-  pricingInfo?: string;
-  politeDeclineTemplate?: string;
-  referralListTemplate?: string;
-}
-
-interface ThreadMessage {
-  id: string;
-  type: string;
-  content: string;
-  sentAt: string;
-  sentBy: string;
 }
 
 type ModalType = "accept" | "refer" | "decline" | null;

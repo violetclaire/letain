@@ -746,6 +746,7 @@ export const inquiryNotifications = pgTable("inquiry_notifications", {
     emailId?: string; // Resend email ID for tracking
     templateUsed?: string;
     chatInviteToken?: string;
+    [key: string]: unknown;
   }>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -850,7 +851,7 @@ export const cdiEvents = pgTable("cdi_events", {
   bookingId: varchar("booking_id").references(() => bookings.id),
   eventType: text("event_type").notNull(), // 'message_negative', 'payment_late', 'cancellation_request', 'escalation', 'support_case', etc.
   severity: integer("severity").notNull(), // 1-10 scale
-  metadata: jsonb("metadata").$type<Record<string, any>>(),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -1093,14 +1094,14 @@ export const auditLogs = pgTable("audit_logs", {
   emailSent: boolean("email_sent").default(false), // Whether notification email was sent
   emailSentTo: text("email_sent_to"), // Email address notification was sent to
   metadata: jsonb("metadata").$type<{
-    diff?: Record<string, { from: any; to: any }>; // Changed fields
+    diff?: Record<string, { from: unknown; to: unknown }>; // Changed fields
     reason?: string;
     previousStatus?: string;
     newStatus?: string;
     clientName?: string;
     clientEmail?: string;
     amount?: number;
-    [key: string]: any;
+    [key: string]: unknown;
   }>(),
   ipAddress: text("ip_address"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
