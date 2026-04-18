@@ -92,6 +92,9 @@ export default function VCDemo() {
 
   return (
     <div className="min-h-screen bg-[#f4f1eb] text-[#1a1814]" style={{ fontFamily: "Inter, sans-serif" }}>
+      <div className="bg-[#1a1814] text-[#f4f1eb] text-center py-2 text-[11px] tracking-[0.15em] uppercase" data-testid="text-demo-banner">
+        This is what your inbox looks like with Briarwood
+      </div>
       <header className="border-b border-[#d8d2c8]">
         <div className="max-w-[1100px] mx-auto px-6 sm:px-10 py-6 flex items-baseline justify-between">
           <div>
