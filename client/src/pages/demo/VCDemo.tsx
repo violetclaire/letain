@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   Calendar, ClipboardCheck, Clock, MessageSquare, Users, Bot,
-  Plane, ArrowRight, Sparkles, Send, UserPlus, Inbox
+  Plane, ArrowRight, Sparkles, Send, UserPlus, Inbox, Pencil, Check
 } from "lucide-react";
 
 type Mode = "manual" | "auto_refer" | "hawaii";
@@ -74,7 +74,7 @@ const NETWORK: NetworkMember[] = [
   { id: "n2", name: "Marcus Tan", role: "General Partner", type: "partner", detail: "Routes deep-tech deals" },
   { id: "n3", name: "Hana Cole", role: "General Partner", type: "partner", detail: "Routes consumer deals" },
   { id: "n4", name: "OpenClaw", role: "AI Sourcing Agent", type: "agent", detail: "Pre-screens cold inbound" },
-  { id: "n5", name: "Wharves", role: "AI Diligence Agent", type: "agent", detail: "Pulls market & team signals" },
+  { id: "n5", name: "Your Agent", role: "AI Diligence Agent", type: "agent", detail: "Pulls market & team signals" },
   { id: "n6", name: "Ana Ruiz · Helio", role: "Portfolio Founder", type: "founder", detail: "Refers seed deals in fintech" },
   { id: "n7", name: "Devon Park · Mast", role: "Portfolio Founder", type: "founder", detail: "Refers AI infra deals" },
 ];
@@ -89,6 +89,14 @@ const STATUS_LABEL: Record<PipelineItem["status"], string> = {
 export default function VCDemo() {
   const [mode, setMode] = useState<Mode>("manual");
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [firmName, setFirmName] = useState("Northwood Capital");
+  const [editingFirm, setEditingFirm] = useState(false);
+  const [network, setNetwork] = useState<NetworkMember[]>(NETWORK);
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+
+  const updateMember = (id: string, name: string) => {
+    setNetwork((prev) => prev.map((m) => (m.id === id ? { ...m, name } : m)));
+  };
 
   return (
     <div className="min-h-screen bg-[#f4f1eb] text-[#1a1814]" style={{ fontFamily: "Inter, sans-serif" }}>
@@ -99,13 +107,42 @@ export default function VCDemo() {
         <div className="max-w-[1100px] mx-auto px-6 sm:px-10 py-6 flex items-baseline justify-between">
           <div>
             <p className="text-[10px] uppercase tracking-[0.25em] text-[#5a5550]">Briarwood · Inbound for Investors</p>
-            <h1
-              className="text-3xl sm:text-4xl mt-1 tracking-tight"
-              style={{ fontFamily: "'Fraunces', serif" }}
-              data-testid="text-firm-name"
-            >
-              Northwood Capital
-            </h1>
+            {editingFirm ? (
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  autoFocus
+                  value={firmName}
+                  onChange={(e) => setFirmName(e.target.value)}
+                  onBlur={() => setEditingFirm(false)}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") setEditingFirm(false); }}
+                  className="text-3xl sm:text-4xl tracking-tight bg-transparent border-b border-[#1a1814] outline-none px-1"
+                  style={{ fontFamily: "'Fraunces', serif" }}
+                  data-testid="input-firm-name"
+                />
+                <button
+                  onClick={() => setEditingFirm(false)}
+                  className="text-[#5a5550] hover:text-[#1a1814]"
+                  data-testid="button-save-firm-name"
+                >
+                  <Check className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setEditingFirm(true)}
+                className="group flex items-center gap-2 mt-1"
+                data-testid="button-edit-firm-name"
+              >
+                <h1
+                  className="text-3xl sm:text-4xl tracking-tight"
+                  style={{ fontFamily: "'Fraunces', serif" }}
+                  data-testid="text-firm-name"
+                >
+                  {firmName}
+                </h1>
+                <Pencil className="w-3.5 h-3.5 text-[#5a5550] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </button>
+            )}
           </div>
           <div className="text-right hidden sm:block">
             <p className="text-[11px] text-[#5a5550]">Today</p>
@@ -222,8 +259,14 @@ export default function VCDemo() {
             Anyone here can be looped in to draft responses, route deals, or take over inbound. Add your EA, partners, portfolio founders, or your AI agent.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {NETWORK.map((m) => (
-              <NetworkCard key={m.id} member={m} />
+            {network.map((m) => (
+              <NetworkCard
+                key={m.id}
+                member={m}
+                editing={editingMemberId === m.id}
+                onEdit={() => setEditingMemberId(m.id)}
+                onSave={(name) => { updateMember(m.id, name); setEditingMemberId(null); }}
+              />
             ))}
           </div>
         </section>
@@ -320,12 +363,17 @@ function PipelineRow({
   );
 }
 
-function NetworkCard({ member }: { member: NetworkMember }) {
+function NetworkCard({
+  member, editing, onEdit, onSave,
+}: {
+  member: NetworkMember; editing: boolean; onEdit: () => void; onSave: (name: string) => void;
+}) {
   const Icon = member.type === "agent" ? Bot : Users;
   const tag =
     member.type === "agent" ? "Agent" :
     member.type === "ea" ? "Team" :
     member.type === "partner" ? "Partner" : "Portfolio";
+  const [draft, setDraft] = useState(member.name);
   return (
     <div className="p-4 border border-[#d8d2c8] bg-[#ece7dc] flex items-start gap-3" data-testid={`card-network-${member.id}`}>
       <div className={`mt-0.5 w-8 h-8 flex items-center justify-center border ${member.type === "agent" ? "border-[#b8963e] text-[#b8963e]" : "border-[#d8d2c8] text-[#5a5550]"}`}>
@@ -333,7 +381,29 @@ function NetworkCard({ member }: { member: NetworkMember }) {
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline justify-between gap-2">
-          <p className="text-sm font-medium truncate">{member.name}</p>
+          {editing ? (
+            <input
+              autoFocus
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={() => onSave(draft.trim() || member.name)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") onSave(draft.trim() || member.name);
+                if (e.key === "Escape") { setDraft(member.name); onSave(member.name); }
+              }}
+              className="text-sm font-medium bg-transparent border-b border-[#1a1814] outline-none flex-1 min-w-0"
+              data-testid={`input-network-name-${member.id}`}
+            />
+          ) : (
+            <button
+              onClick={onEdit}
+              className="group flex items-center gap-1.5 min-w-0 text-left"
+              data-testid={`button-edit-network-${member.id}`}
+            >
+              <p className="text-sm font-medium truncate">{member.name}</p>
+              <Pencil className="w-3 h-3 text-[#5a5550] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+            </button>
+          )}
           <span className="text-[10px] uppercase tracking-[0.15em] text-[#5a5550] shrink-0">{tag}</span>
         </div>
         <p className="text-xs text-[#5a5550] mt-0.5">{member.role}</p>
