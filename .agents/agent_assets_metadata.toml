@@ -12,3 +12,9 @@ id = "CyTzI3hF9n28acFohpGiF"
 uri = "file://screenshots/vc-demo.jpg"
 type = "image"
 title = "Briarwood for VCs — Demo Screenshot"
+
+[[outputs]]
+id = "xI1aOIorHONeFRz-xYXSX"
+uri = "file://screenshots/vc-demo-large.jpg"
+type = "image"
+title = "Briarwood for VCs — Click to view full size"

@@ -203,13 +203,13 @@ export default function VCDemo() {
               onSelect={() => setMode("hawaii")}
               testId="mode-hawaii"
               title="Hawaii"
-              detail="Delegate to network while away"
+              detail="Auto-pass with a thank you"
               icon={<Plane className="w-3.5 h-3.5 text-[#5a5550]" />}
             />
           </div>
           {mode === "hawaii" && (
             <p className="text-xs text-[#5a5550] mt-3 italic" data-testid="text-hawaii-detail">
-              While you're away, inbound is delegated to your trusted network. Partners, EA, or your AI agent take over.
+              Every inbound gets a polite pass: "Thank you so much, this is a pass for us." You still get the notification email.
             </p>
           )}
           {mode === "auto_refer" && (
