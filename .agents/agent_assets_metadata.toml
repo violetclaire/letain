@@ -6,3 +6,9 @@ id = "e0kphk1Fd7pIfz6ZYTi3U"
 uri = "file://attached_assets/CDI_Full_Spec.md"
 type = "text"
 title = "CDI Full Technical Spec -- For Cheng Lou"
+
+[[outputs]]
+id = "CyTzI3hF9n28acFohpGiF"
+uri = "file://screenshots/vc-demo.jpg"
+type = "image"
+title = "Briarwood for VCs — Demo Screenshot"
