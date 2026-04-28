@@ -30,3 +30,9 @@ id = "ZJRdZ9cySoC9LxnxXOaW4"
 uri = "file://screenshots/cdi-fico-graphic.jpg"
 type = "image"
 title = "CDI — The FICO for the Agentic Web"
+
+[[outputs]]
+id = "scx1S_XUN1ddzUfUgmZ4R"
+uri = "file://screenshots/cdi-toll-booth.jpg"
+type = "image"
+title = "Briarwood CDI — Registry, Handshake, Logic Stream"

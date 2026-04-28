@@ -1,248 +1,329 @@
-import { Bot, ArrowRight, ArrowDown, ShieldCheck, Activity, History, AlertTriangle, Target, Sparkles } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Bot, ShieldCheck, Store, Play, RotateCcw } from "lucide-react";
+
+type Stage = "idle" | "agent_to_oracle" | "toll" | "oracle_to_firm" | "complete";
+
+interface Firm {
+  id: string;
+  name: string;
+  category: string;
+  cdi: number;
+  active?: boolean;
+}
+
+const FIRMS: Firm[] = [
+  { id: "heritage", name: "Heritage Floral Studio", category: "Bespoke florals", cdi: 9.7, active: true },
+  { id: "bespoke", name: "Bespoke Lighting Group", category: "Architectural lighting", cdi: 9.4 },
+  { id: "marlowe", name: "Marlowe & Co. Advisory", category: "Boutique advisory", cdi: 9.8 },
+  { id: "violet", name: "Atelier Violet", category: "Couture atelier", cdi: 9.2 },
+];
+
+const LOG_LINES = [
+  { tag: "AGENT", color: "text-[#c8d8ff]", text: "Initiating coordination for High-End Boutique Firm..." },
+  { tag: "ECONOMY", color: "text-[#ffb84d]", text: "LLM Reasoning Estimate: 14k tokens (~$2.10)" },
+  { tag: "DECISION", color: "text-[#ffb84d]", text: "Redirecting to Briarwood CDI Oracle for O(1) Verification." },
+  { tag: "API CALL", color: "text-[#00cfff]", text: "GET /cdi/heritage-floral-studio..." },
+  { tag: "RESPONSE", color: "text-[#7CFFB2]", text: "CDI: 9.8 (High Trust). Transaction Tax Collected: $0.50." },
+  { tag: "RESULT", color: "text-[#7CFFB2]", text: "Execution complete. Total Compute Savings: 82%." },
+];
 
 export default function APIOutcomeDemo() {
+  const [stage, setStage] = useState<Stage>("idle");
+  const [logIndex, setLogIndex] = useState(0);
+  const [selectedFirm, setSelectedFirm] = useState<string>("heritage");
+  const timerRef = useRef<NodeJS.Timeout[]>([]);
+
+  const clearTimers = () => {
+    timerRef.current.forEach((t) => clearTimeout(t));
+    timerRef.current = [];
+  };
+
+  useEffect(() => () => clearTimers(), []);
+
+  const execute = () => {
+    clearTimers();
+    setLogIndex(0);
+    setStage("idle");
+
+    // Stream log lines
+    LOG_LINES.forEach((_, i) => {
+      timerRef.current.push(setTimeout(() => setLogIndex(i + 1), 400 + i * 700));
+    });
+
+    // Stage transitions
+    timerRef.current.push(setTimeout(() => setStage("agent_to_oracle"), 200));
+    timerRef.current.push(setTimeout(() => setStage("toll"), 1700));
+    timerRef.current.push(setTimeout(() => setStage("oracle_to_firm"), 3000));
+    timerRef.current.push(setTimeout(() => setStage("complete"), 4400));
+  };
+
+  const reset = () => {
+    clearTimers();
+    setStage("idle");
+    setLogIndex(0);
+  };
+
+  const activeFirm = FIRMS.find((f) => f.id === selectedFirm) ?? FIRMS[0];
+
   return (
     <div className="min-h-screen bg-[#f4f1eb] text-[#1a1814]" style={{ fontFamily: "Inter, sans-serif" }}>
       <div className="bg-[#1a1814] text-[#f4f1eb] text-center py-2 text-[11px] tracking-[0.15em] uppercase" data-testid="text-banner">
-        CDI · The FICO for the agentic web
+        Briarwood CDI · The toll on the agentic web
       </div>
 
       <header className="border-b border-[#d8d2c8]">
-        <div className="max-w-[1200px] mx-auto px-6 sm:px-10 py-8">
-          <p className="text-[10px] uppercase tracking-[0.25em] text-[#5a5550]">Agentic Commerce · Trust API</p>
+        <div className="max-w-[1300px] mx-auto px-6 sm:px-10 py-8">
+          <p className="text-[10px] uppercase tracking-[0.25em] text-[#5a5550]">Agentic Commerce · CDI Oracle</p>
           <h1
             className="text-3xl sm:text-4xl mt-2 tracking-tight"
             style={{ fontFamily: "'Fraunces', serif" }}
             data-testid="text-headline"
           >
-            One call. One trust score.
+            We sell certainty. Agents pay the toll.
           </h1>
-          <p className="text-sm text-[#5a5550] mt-2 max-w-[60ch]">
-            Before any agentic web transaction, an AI agent asks Briarwood the same question a lender asks Equifax: can I trust this counterparty? CDI is the answer in a single number, with the signals behind it.
+          <p className="text-sm text-[#5a5550] mt-2 max-w-[68ch]">
+            An AI agent could burn $2.10 in tokens reasoning about whether a boutique firm is reliable. Or it can hit Briarwood for $0.50 and get an O(1) answer. We've already done the work. We just collect the toll on the way to execution.
           </p>
         </div>
       </header>
 
-      <main className="max-w-[1200px] mx-auto px-6 sm:px-10 py-14">
-        {/* Three-column flow: Agent → Briarwood → CDI Score */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1.2fr_auto_1.3fr] gap-6 items-stretch">
+      <main className="max-w-[1300px] mx-auto px-6 sm:px-10 py-10">
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
 
-          {/* AGENT */}
-          <div className="flex flex-col" data-testid="panel-agent">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-[#5a5550] mb-3">The Agent</p>
-            <div className="flex-1 border border-[#d8d2c8] bg-[#ece7dc] p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-9 h-9 border border-[#b8963e] text-[#b8963e] flex items-center justify-center">
-                  <Bot className="w-4 h-4" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium">OpenClaw</p>
-                  <p className="text-[11px] text-[#5a5550]">Asking before transacting</p>
-                </div>
+          {/* REGISTRY SIDEBAR */}
+          <aside data-testid="panel-registry">
+            <div className="border border-[#d8d2c8] bg-[#ece7dc]">
+              <div className="px-4 py-3 border-b border-[#d8d2c8] flex items-center justify-between">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-[#5a5550]">Boutique Firm Registry</p>
+                <span className="text-[9px] tracking-[0.15em] text-[#5a5550]">LIVE</span>
               </div>
-              <p className="text-[10px] uppercase tracking-[0.15em] text-[#5a5550] mb-2">Query</p>
-              <ul className="text-[12px] space-y-1.5">
-                <PayloadRow k="lookup" v="violet-atelier" />
-                <PayloadRow k="context" v="bridal_makeup" />
-                <PayloadRow k="value_at_risk" v="$4,200" />
-                <PayloadRow k="depth" v="full_signals" />
+              <ul className="divide-y divide-[#d8d2c8]">
+                {FIRMS.map((firm) => {
+                  const isActive = firm.id === selectedFirm;
+                  return (
+                    <li key={firm.id}>
+                      <button
+                        onClick={() => { setSelectedFirm(firm.id); reset(); }}
+                        className={`w-full text-left px-4 py-3 transition-colors ${isActive ? "bg-[#f5f0e8]" : "hover:bg-[#f5f0e8]"}`}
+                        data-testid={`button-firm-${firm.id}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-sm truncate">{firm.name}</p>
+                            <p className="text-[10px] text-[#5a5550] mt-0.5">{firm.category}</p>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="relative flex w-2 h-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#b8963e] opacity-60" />
+                              <span className="relative inline-flex w-2 h-2 rounded-full bg-[#b8963e]" />
+                            </span>
+                            <span
+                              className="text-sm tabular-nums"
+                              style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                              data-testid={`text-cdi-${firm.id}`}
+                            >
+                              {firm.cdi.toFixed(1)}
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
-              <div className="mt-4 pt-4 border-t border-[#d8d2c8]">
-                <p className="text-[10px] uppercase tracking-[0.15em] text-[#5a5550]">Endpoint</p>
-                <p className="text-[12px] mt-1" style={{ fontFamily: "'JetBrains Mono', monospace" }}>GET /v1/cdi/violet-atelier</p>
+              <div className="px-4 py-3 border-t border-[#d8d2c8] text-[10px] text-[#5a5550]">
+                Each score updates as firms coordinate. The answer is already stored. We sell access.
               </div>
             </div>
-          </div>
+          </aside>
 
-          {/* Arrow */}
-          <Arrow label="GET" />
+          {/* MAIN: HANDSHAKE + TERMINAL */}
+          <div className="space-y-6">
 
-          {/* BRIARWOOD CDI ENGINE */}
-          <div className="flex flex-col" data-testid="panel-briarwood">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-[#5a5550] mb-3">Briarwood scores it</p>
-            <div className="flex-1 border border-[#1a1814] bg-[#1a1814] text-[#f4f1eb] p-5">
-              <p className="text-[11px] tracking-[0.2em] uppercase text-[#b8963e] mb-4">CDI Engine</p>
-              <div className="space-y-3">
-                <SignalLine icon={<ShieldCheck className="w-3.5 h-3.5" />} label="R_v · Reliability" weight="35%" />
-                <SignalLine icon={<Target className="w-3.5 h-3.5" />} label="A_m · Accuracy" weight="40%" />
-                <SignalLine icon={<History className="w-3.5 h-3.5" />} label="H_f · History" weight="25%" />
-                <SignalLine icon={<AlertTriangle className="w-3.5 h-3.5" />} label="S_p · Spam penalty" weight="multiplier" />
-              </div>
-              <div className="mt-5 pt-4 border-t border-[#3a3530]">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-[#a8a098] mb-2">Formula</p>
-                <p
-                  className="text-[11px] text-[#f4f1eb] leading-relaxed"
-                  style={{ fontFamily: "'JetBrains Mono', monospace" }}
-                >
-                  CDI = (0.35·R<sub>v</sub> + 0.40·A<sub>m</sub> + 0.25·H<sub>f</sub>) × (1 − S<sub>p</sub>)
-                </p>
-                <p className="text-[10px] text-[#a8a098] mt-2 italic">Patent Pending</p>
-              </div>
-              <div className="mt-4 pt-3 border-t border-[#3a3530] flex items-center justify-between text-[11px] text-[#a8a098]">
-                <span>Latency</span>
-                <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>~ 180ms</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Arrow */}
-          <Arrow label="200" />
-
-          {/* CDI SCORE REPORT */}
-          <div className="flex flex-col" data-testid="panel-score">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-[#5a5550] mb-3">The Trust Report</p>
-            <div className="flex-1 bg-[#f5f0e8] border border-[#d8d2c8] relative overflow-hidden">
-              {/* Perforated edge */}
-              <div
-                className="absolute inset-x-0 top-12 h-px"
-                style={{
-                  backgroundImage: "linear-gradient(to right, #5a5550 50%, transparent 50%)",
-                  backgroundSize: "6px 1px",
-                  backgroundRepeat: "repeat-x"
-                }}
-              />
-              <div className="p-5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-[#1a1814]" />
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-[#1a1814]">CDI Report</p>
-                  </div>
-                  <p className="text-[11px] text-[#5a5550]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>violet-atelier</p>
+            {/* HANDSHAKE VISUAL */}
+            <section className="border border-[#d8d2c8] bg-[#ece7dc] p-8" data-testid="panel-handshake">
+              <div className="flex items-center justify-between mb-6">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-[#5a5550]">The Handshake</p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={execute}
+                    disabled={stage !== "idle" && stage !== "complete"}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1a1814] text-[#f4f1eb] text-xs hover:opacity-90 disabled:opacity-40 transition-opacity"
+                    data-testid="button-execute"
+                  >
+                    <Play className="w-3 h-3" />
+                    Execute
+                  </button>
+                  <button
+                    onClick={reset}
+                    className="flex items-center gap-1.5 px-3 py-1.5 border border-[#d8d2c8] text-xs hover:bg-[#f5f0e8] transition-colors"
+                    data-testid="button-reset"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    Reset
+                  </button>
                 </div>
               </div>
-              <div className="px-5 pt-6 pb-5">
-                {/* Big score */}
-                <div className="flex items-end justify-between border-b border-[#d8d2c8] pb-4">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-[#5a5550]">Score</p>
-                    <p
-                      className="text-6xl leading-none mt-1"
-                      style={{ fontFamily: "'Fraunces', serif" }}
-                      data-testid="text-cdi-score"
+
+              <div className="relative h-[200px] sm:h-[220px]">
+                {/* Connecting line */}
+                <div className="absolute top-1/2 left-[12%] right-[12%] h-px bg-[#d8d2c8] -translate-y-1/2" />
+                {/* Active line segments */}
+                <motion.div
+                  className="absolute top-1/2 left-[12%] h-px -translate-y-1/2 origin-left"
+                  style={{ width: "38%", background: stage === "complete" || stage === "oracle_to_firm" ? "#7C9F6B" : "#b8963e" }}
+                  animate={{ scaleX: stage === "idle" ? 0 : 1 }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                />
+                <motion.div
+                  className="absolute top-1/2 left-[50%] h-px -translate-y-1/2 origin-left"
+                  style={{ width: "38%", background: "#7C9F6B" }}
+                  animate={{ scaleX: stage === "oracle_to_firm" || stage === "complete" ? 1 : 0 }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                />
+
+                {/* Pulse traveling agent → oracle */}
+                <AnimatePresence>
+                  {stage === "agent_to_oracle" && (
+                    <motion.div
+                      className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-[#b8963e]"
+                      style={{ boxShadow: "0 0 12px #b8963e" }}
+                      initial={{ left: "12%" }}
+                      animate={{ left: "50%" }}
+                      transition={{ duration: 1.4, ease: "easeInOut" }}
+                    />
+                  )}
+                </AnimatePresence>
+
+                {/* Pulse traveling oracle → firm */}
+                <AnimatePresence>
+                  {stage === "oracle_to_firm" && (
+                    <motion.div
+                      className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-[#7C9F6B]"
+                      style={{ boxShadow: "0 0 12px #7C9F6B" }}
+                      initial={{ left: "50%" }}
+                      animate={{ left: "88%" }}
+                      transition={{ duration: 1.2, ease: "easeInOut" }}
+                    />
+                  )}
+                </AnimatePresence>
+
+                {/* Three Nodes */}
+                <Node position="left" label="3rd-Party Agent" sub="OpenClaw" icon={<Bot className="w-5 h-5" />} dim={stage !== "idle" && stage !== "agent_to_oracle"} />
+                <CenterNode stage={stage} />
+                <Node position="right" label="Boutique Firm" sub={activeFirm.name} icon={<Store className="w-5 h-5" />} unlocked={stage === "complete"} />
+
+                {/* +$0.50 toll popup */}
+                <AnimatePresence>
+                  {(stage === "toll" || stage === "oracle_to_firm" || stage === "complete") && (
+                    <motion.div
+                      className="absolute left-1/2 -translate-x-1/2"
+                      style={{ top: "8%" }}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.4 }}
+                      data-testid="text-toll"
                     >
-                      87
-                    </p>
-                    <p className="text-[11px] text-[#5a5550] mt-1">of 100</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[10px] px-1.5 py-0.5 bg-[#1a1814] text-[#f4f1eb] tracking-[0.1em]">FULL AUTONOMY</span>
-                    <p className="text-[11px] text-[#5a5550] mt-2">Tier 3 · Conditional → Full at 80</p>
-                  </div>
-                </div>
-
-                {/* Score gauge */}
-                <div className="mt-4">
-                  <div className="relative h-2 bg-[#ece7dc] border border-[#d8d2c8]">
-                    <div className="absolute left-0 top-0 h-full bg-[#1a1814]" style={{ width: "87%" }} />
-                    <div className="absolute top-0 h-full w-px bg-[#5a5550]" style={{ left: "50%" }} />
-                    <div className="absolute top-0 h-full w-px bg-[#5a5550]" style={{ left: "80%" }} />
-                  </div>
-                  <div className="flex justify-between text-[9px] text-[#5a5550] mt-1 tracking-[0.1em]">
-                    <span>0</span>
-                    <span>50 · COND</span>
-                    <span>80 · FULL</span>
-                    <span>100</span>
-                  </div>
-                </div>
-
-                {/* Signal breakdown */}
-                <div className="mt-5 space-y-2.5">
-                  <SignalBar label="Reliability" value={92} />
-                  <SignalBar label="Accuracy" value={88} />
-                  <SignalBar label="History" value={79} />
-                  <SignalBar label="Spam penalty" value={2} dim />
-                </div>
-
-                <div className="mt-5 pt-4 border-t border-[#d8d2c8]">
-                  <p className="text-[10px] uppercase tracking-[0.15em] text-[#5a5550]">Verifiable at</p>
-                  <p className="text-[11px] mt-0.5 break-all" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                    api.briarwood.ai/v1/cdi/violet-atelier/proof
-                  </p>
-                </div>
+                      <span className="text-sm font-medium text-[#1a1814] bg-[#f5f0e8] border border-[#b8963e] px-2 py-0.5">
+                        +$0.50 toll
+                      </span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-            </div>
+
+              {stage === "complete" && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="mt-4 pt-4 border-t border-[#d8d2c8] flex items-center justify-between text-xs"
+                >
+                  <span className="text-[#5a5550]">Compute path</span>
+                  <span className="text-[#1a1814]"><strong>$0.50</strong> via Briarwood vs <span className="line-through text-[#5a5550]">$2.10</span> via raw reasoning · <strong className="text-[#7C9F6B]">76% saved</strong></span>
+                </motion.div>
+              )}
+            </section>
+
+            {/* TERMINAL */}
+            <section data-testid="panel-terminal">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-[#5a5550]">System Execution Log</p>
+                <span className="text-[9px] tracking-[0.15em] text-[#5a5550]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>briarwood@oracle</span>
+              </div>
+              <div
+                className="bg-[#0d1116] text-[#c8d8ff] p-5 min-h-[220px] text-[12px] leading-relaxed"
+                style={{ fontFamily: "'JetBrains Mono', 'SF Mono', Menlo, monospace" }}
+              >
+                {logIndex === 0 && (
+                  <p className="text-[#5a5550]">$ awaiting execute...</p>
+                )}
+                {LOG_LINES.slice(0, logIndex).map((line, i) => (
+                  <motion.p
+                    key={i}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="break-words"
+                  >
+                    <span className={`${line.color} mr-2`}>[{line.tag}]</span>
+                    <span>{line.text}</span>
+                  </motion.p>
+                ))}
+                {logIndex > 0 && logIndex < LOG_LINES.length && (
+                  <span className="inline-block w-2 h-3.5 bg-[#c8d8ff] animate-pulse mt-1" />
+                )}
+              </div>
+            </section>
           </div>
         </div>
-
-        {/* Vertical hint for mobile */}
-        <div className="lg:hidden flex justify-center my-6 text-[#5a5550]">
-          <ArrowDown className="w-5 h-5" />
-        </div>
-
-        {/* Why this matters */}
-        <section className="border-t border-[#d8d2c8] mt-16 pt-10 grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div className="flex items-start gap-3" data-testid="callout-fico">
-            <ShieldCheck className="w-5 h-5 text-[#b8963e] mt-0.5 shrink-0" />
-            <div>
-              <p className="text-sm font-medium">FICO for the agentic web</p>
-              <p className="text-xs text-[#5a5550] mt-1">
-                Lenders rely on FICO to extend credit. AI agents need the same primitive to extend trust. CDI is one number, behaviorally derived, comparable across providers and across agents.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3" data-testid="callout-gated">
-            <Activity className="w-5 h-5 text-[#b8963e] mt-0.5 shrink-0" />
-            <div>
-              <p className="text-sm font-medium">Autonomy is gated by score</p>
-              <p className="text-xs text-[#5a5550] mt-1">
-                Below 50: read-only. 50 to 79: conditional writes. 80 plus: full autonomy. Counterparties earn capability through coordination quality, not through paid placements.
-              </p>
-            </div>
-          </div>
-        </section>
 
         <div className="border-t border-[#d8d2c8] mt-10 pt-6 text-[11px] text-[#5a5550] flex justify-between">
           <span>Briarwood · invisible infrastructure for the agentic web</span>
-          <span>CDI · Patent Pending</span>
+          <span>CDI Oracle · O(1) verification · Patent Pending</span>
         </div>
       </main>
     </div>
   );
 }
 
-function PayloadRow({ k, v }: { k: string; v: string }) {
+function Node({ position, label, sub, icon, dim = false, unlocked = false }: { position: "left" | "right"; label: string; sub: string; icon: React.ReactNode; dim?: boolean; unlocked?: boolean }) {
+  const posClass = position === "left" ? "left-0" : "right-0";
+  const align = position === "left" ? "items-start text-left" : "items-end text-right";
   return (
-    <li className="flex items-baseline justify-between gap-2 border-b border-dashed border-[#d8d2c8] pb-1">
-      <span className="text-[#5a5550]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{k}</span>
-      <span className="text-right">{v}</span>
-    </li>
-  );
-}
-
-function SignalLine({ icon, label, weight }: { icon: React.ReactNode; label: string; weight: string }) {
-  return (
-    <div className="flex items-center justify-between border-l border-[#b8963e]/40 pl-3">
-      <div className="flex items-center gap-2">
-        <span className="text-[#b8963e]">{icon}</span>
-        <p className="text-[12px]">{label}</p>
-      </div>
-      <span className="text-[10px] tracking-[0.15em] text-[#a8a098]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{weight}</span>
-    </div>
-  );
-}
-
-function SignalBar({ label, value, dim = false }: { label: string; value: number; dim?: boolean }) {
-  return (
-    <div>
-      <div className="flex justify-between text-[11px] mb-1">
-        <span className={dim ? "text-[#5a5550]" : ""}>{label}</span>
-        <span className="text-[#5a5550]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{value}{dim ? "%" : "/100"}</span>
-      </div>
-      <div className="h-1.5 bg-[#ece7dc] border border-[#d8d2c8] relative">
-        <div
-          className={dim ? "absolute left-0 top-0 h-full bg-[#b8963e]" : "absolute left-0 top-0 h-full bg-[#1a1814]"}
-          style={{ width: `${value}%` }}
-        />
+    <div className={`absolute top-1/2 -translate-y-1/2 ${posClass} flex flex-col ${align} gap-2 w-[24%]`} data-testid={`node-${position}`}>
+      <motion.div
+        className={`w-14 h-14 flex items-center justify-center border bg-[#f5f0e8] ${unlocked ? "border-[#7C9F6B] text-[#7C9F6B]" : "border-[#1a1814] text-[#1a1814]"}`}
+        animate={{ opacity: dim ? 0.5 : 1, scale: unlocked ? [1, 1.08, 1] : 1 }}
+        transition={{ duration: unlocked ? 0.5 : 0.3 }}
+        style={unlocked ? { boxShadow: "0 0 0 3px rgba(124,159,107,0.2)" } : undefined}
+      >
+        {icon}
+      </motion.div>
+      <div>
+        <p className="text-[11px] uppercase tracking-[0.15em] text-[#5a5550]">{label}</p>
+        <p className="text-sm">{sub}</p>
       </div>
     </div>
   );
 }
 
-function Arrow({ label }: { label: string }) {
+function CenterNode({ stage }: { stage: Stage }) {
+  const glowing = stage === "toll" || stage === "agent_to_oracle";
   return (
-    <div className="hidden lg:flex flex-col items-center justify-center self-center">
-      <span className="text-[9px] tracking-[0.25em] uppercase text-[#5a5550] mb-1">{label}</span>
-      <ArrowRight className="w-5 h-5 text-[#5a5550]" />
+    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-2 w-[24%]" data-testid="node-center">
+      <motion.div
+        className="w-16 h-16 flex items-center justify-center border-2 border-[#b8963e] bg-[#f5f0e8] text-[#b8963e] relative"
+        animate={glowing ? { boxShadow: ["0 0 0 0 rgba(184,150,62,0.5)", "0 0 0 14px rgba(184,150,62,0)"] } : { boxShadow: "0 0 0 2px rgba(184,150,62,0.25)" }}
+        transition={glowing ? { duration: 1.2, repeat: Infinity, ease: "easeOut" } : { duration: 0.3 }}
+      >
+        <ShieldCheck className="w-6 h-6" />
+      </motion.div>
+      <div className="text-center">
+        <p className="text-[11px] uppercase tracking-[0.15em] text-[#5a5550]">Briarwood</p>
+        <p className="text-sm">CDI Oracle</p>
+      </div>
     </div>
   );
 }
