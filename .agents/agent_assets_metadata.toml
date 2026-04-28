@@ -24,3 +24,9 @@ id = "sI0lAb8mgfdo5LiBJZ9s5"
 uri = "file://screenshots/api-outcome-graphic.jpg"
 type = "image"
 title = "API Call Visual — Agent → Briarwood → Confirmed Booking"
+
+[[outputs]]
+id = "ZJRdZ9cySoC9LxnxXOaW4"
+uri = "file://screenshots/cdi-fico-graphic.jpg"
+type = "image"
+title = "CDI — The FICO for the Agentic Web"

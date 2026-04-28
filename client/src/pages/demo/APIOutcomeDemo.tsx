@@ -1,31 +1,31 @@
-import { Bot, ArrowRight, ArrowDown, ShieldCheck, Lock, Search, Calendar, Wallet, CheckCircle2, FileSignature } from "lucide-react";
+import { Bot, ArrowRight, ArrowDown, ShieldCheck, Activity, History, AlertTriangle, Target, Sparkles } from "lucide-react";
 
 export default function APIOutcomeDemo() {
   return (
     <div className="min-h-screen bg-[#f4f1eb] text-[#1a1814]" style={{ fontFamily: "Inter, sans-serif" }}>
       <div className="bg-[#1a1814] text-[#f4f1eb] text-center py-2 text-[11px] tracking-[0.15em] uppercase" data-testid="text-banner">
-        Briarwood sells the outcome, not the lead
+        CDI · The FICO for the agentic web
       </div>
 
       <header className="border-b border-[#d8d2c8]">
         <div className="max-w-[1200px] mx-auto px-6 sm:px-10 py-8">
-          <p className="text-[10px] uppercase tracking-[0.25em] text-[#5a5550]">Agentic Commerce · API</p>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-[#5a5550]">Agentic Commerce · Trust API</p>
           <h1
             className="text-3xl sm:text-4xl mt-2 tracking-tight"
             style={{ fontFamily: "'Fraunces', serif" }}
             data-testid="text-headline"
           >
-            One call. One confirmed booking.
+            One call. One trust score.
           </h1>
           <p className="text-sm text-[#5a5550] mt-2 max-w-[60ch]">
-            An AI agent doesn't get a "lead" or a contact form back. It gets a confirmed, scheduled, paid booking with money already held in escrow.
+            Before any agentic web transaction, an AI agent asks Briarwood the same question a lender asks Equifax: can I trust this counterparty? CDI is the answer in a single number, with the signals behind it.
           </p>
         </div>
       </header>
 
       <main className="max-w-[1200px] mx-auto px-6 sm:px-10 py-14">
-        {/* Three-column flow: Agent → Briarwood → Outcome */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1.4fr_auto_1.3fr] gap-6 items-stretch">
+        {/* Three-column flow: Agent → Briarwood → CDI Score */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1.2fr_auto_1.3fr] gap-6 items-stretch">
 
           {/* AGENT */}
           <div className="flex flex-col" data-testid="panel-agent">
@@ -37,71 +37,60 @@ export default function APIOutcomeDemo() {
                 </div>
                 <div>
                   <p className="text-sm font-medium">OpenClaw</p>
-                  <p className="text-[11px] text-[#5a5550]">CDI tier · Full autonomy</p>
+                  <p className="text-[11px] text-[#5a5550]">Asking before transacting</p>
                 </div>
               </div>
-              <p className="text-[10px] uppercase tracking-[0.15em] text-[#5a5550] mb-2">Request payload</p>
+              <p className="text-[10px] uppercase tracking-[0.15em] text-[#5a5550] mb-2">Query</p>
               <ul className="text-[12px] space-y-1.5">
-                <PayloadRow k="service" v="bridal_makeup" />
-                <PayloadRow k="event_date" v="Sep 12, 2026 · 2:00 PM" />
-                <PayloadRow k="location" v="Carmel, CA" />
-                <PayloadRow k="party_size" v="6" />
-                <PayloadRow k="budget" v="$4,500 max" />
+                <PayloadRow k="lookup" v="violet-atelier" />
+                <PayloadRow k="context" v="bridal_makeup" />
+                <PayloadRow k="value_at_risk" v="$4,200" />
+                <PayloadRow k="depth" v="full_signals" />
               </ul>
               <div className="mt-4 pt-4 border-t border-[#d8d2c8]">
                 <p className="text-[10px] uppercase tracking-[0.15em] text-[#5a5550]">Endpoint</p>
-                <p className="text-[12px] mt-1" style={{ fontFamily: "'JetBrains Mono', monospace" }}>POST /v1/bookings</p>
+                <p className="text-[12px] mt-1" style={{ fontFamily: "'JetBrains Mono', monospace" }}>GET /v1/cdi/violet-atelier</p>
               </div>
             </div>
           </div>
 
           {/* Arrow */}
-          <Arrow label="POST" />
+          <Arrow label="GET" />
 
-          {/* BRIARWOOD */}
+          {/* BRIARWOOD CDI ENGINE */}
           <div className="flex flex-col" data-testid="panel-briarwood">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-[#5a5550] mb-3">Briarwood resolves it</p>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-[#5a5550] mb-3">Briarwood scores it</p>
             <div className="flex-1 border border-[#1a1814] bg-[#1a1814] text-[#f4f1eb] p-5">
-              <p className="text-[11px] tracking-[0.2em] uppercase text-[#b8963e] mb-4">Coordination engine</p>
+              <p className="text-[11px] tracking-[0.2em] uppercase text-[#b8963e] mb-4">CDI Engine</p>
               <div className="space-y-3">
-                <PipelineStep
-                  n="01"
-                  icon={<Search className="w-3.5 h-3.5" />}
-                  title="Match"
-                  detail="Filter by service, date, location, budget, CDI."
-                />
-                <PipelineStep
-                  n="02"
-                  icon={<Calendar className="w-3.5 h-3.5" />}
-                  title="Hold"
-                  detail="Soft-hold the provider's calendar in real time."
-                />
-                <PipelineStep
-                  n="03"
-                  icon={<Wallet className="w-3.5 h-3.5" />}
-                  title="Escrow"
-                  detail="Capture payment. Release on proof_of_service."
-                />
-                <PipelineStep
-                  n="04"
-                  icon={<FileSignature className="w-3.5 h-3.5" />}
-                  title="Sign"
-                  detail="Auto-issue contract under provider's brand."
-                />
+                <SignalLine icon={<ShieldCheck className="w-3.5 h-3.5" />} label="R_v · Reliability" weight="35%" />
+                <SignalLine icon={<Target className="w-3.5 h-3.5" />} label="A_m · Accuracy" weight="40%" />
+                <SignalLine icon={<History className="w-3.5 h-3.5" />} label="H_f · History" weight="25%" />
+                <SignalLine icon={<AlertTriangle className="w-3.5 h-3.5" />} label="S_p · Spam penalty" weight="multiplier" />
               </div>
-              <div className="mt-5 pt-4 border-t border-[#3a3530] flex items-center justify-between text-[11px] text-[#a8a098]">
+              <div className="mt-5 pt-4 border-t border-[#3a3530]">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-[#a8a098] mb-2">Formula</p>
+                <p
+                  className="text-[11px] text-[#f4f1eb] leading-relaxed"
+                  style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                >
+                  CDI = (0.35·R<sub>v</sub> + 0.40·A<sub>m</sub> + 0.25·H<sub>f</sub>) × (1 − S<sub>p</sub>)
+                </p>
+                <p className="text-[10px] text-[#a8a098] mt-2 italic">Patent Pending</p>
+              </div>
+              <div className="mt-4 pt-3 border-t border-[#3a3530] flex items-center justify-between text-[11px] text-[#a8a098]">
                 <span>Latency</span>
-                <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>~ 1.4s</span>
+                <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>~ 180ms</span>
               </div>
             </div>
           </div>
 
           {/* Arrow */}
-          <Arrow label="201" />
+          <Arrow label="200" />
 
-          {/* OUTCOME RECEIPT */}
-          <div className="flex flex-col" data-testid="panel-outcome">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-[#5a5550] mb-3">The Outcome</p>
+          {/* CDI SCORE REPORT */}
+          <div className="flex flex-col" data-testid="panel-score">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-[#5a5550] mb-3">The Trust Report</p>
             <div className="flex-1 bg-[#f5f0e8] border border-[#d8d2c8] relative overflow-hidden">
               {/* Perforated edge */}
               <div
@@ -115,41 +104,59 @@ export default function APIOutcomeDemo() {
               <div className="p-5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-[#1a1814]" />
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-[#1a1814]">Confirmed</p>
+                    <Sparkles className="w-4 h-4 text-[#1a1814]" />
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-[#1a1814]">CDI Report</p>
                   </div>
-                  <p className="text-[11px] text-[#5a5550]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>bk_8f3a2c91</p>
+                  <p className="text-[11px] text-[#5a5550]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>violet-atelier</p>
                 </div>
               </div>
-              <div className="px-5 pt-6 pb-5 space-y-4">
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.15em] text-[#5a5550]">Provider</p>
-                  <p className="text-base mt-0.5" style={{ fontFamily: "'Fraunces', serif" }}>Violet Atelier</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[10px] px-1.5 py-0.5 bg-[#1a1814] text-[#f4f1eb] tracking-[0.1em]">CDI 87</span>
-                    <span className="text-[11px] text-[#5a5550]">Full autonomy</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-[#d8d2c8]">
-                  <Field label="Scheduled" value="Sep 12, 2026" sub="2:00 PM PT" />
-                  <Field label="Total" value="$4,200" sub="Fee $63 (1.5%)" />
-                </div>
-
-                <div className="border border-[#d8d2c8] bg-[#ece7dc] p-3 flex items-start gap-2">
-                  <Lock className="w-3.5 h-3.5 text-[#b8963e] mt-0.5 shrink-0" />
-                  <div className="flex-1">
-                    <p className="text-[11px] font-medium">Funds held in escrow</p>
-                    <p className="text-[10px] text-[#5a5550] mt-0.5">
-                      Releases on proof_of_service hash, Sep 13.
+              <div className="px-5 pt-6 pb-5">
+                {/* Big score */}
+                <div className="flex items-end justify-between border-b border-[#d8d2c8] pb-4">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-[#5a5550]">Score</p>
+                    <p
+                      className="text-6xl leading-none mt-1"
+                      style={{ fontFamily: "'Fraunces', serif" }}
+                      data-testid="text-cdi-score"
+                    >
+                      87
                     </p>
+                    <p className="text-[11px] text-[#5a5550] mt-1">of 100</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] px-1.5 py-0.5 bg-[#1a1814] text-[#f4f1eb] tracking-[0.1em]">FULL AUTONOMY</span>
+                    <p className="text-[11px] text-[#5a5550] mt-2">Tier 3 · Conditional → Full at 80</p>
                   </div>
                 </div>
 
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.15em] text-[#5a5550]">Proof URL</p>
+                {/* Score gauge */}
+                <div className="mt-4">
+                  <div className="relative h-2 bg-[#ece7dc] border border-[#d8d2c8]">
+                    <div className="absolute left-0 top-0 h-full bg-[#1a1814]" style={{ width: "87%" }} />
+                    <div className="absolute top-0 h-full w-px bg-[#5a5550]" style={{ left: "50%" }} />
+                    <div className="absolute top-0 h-full w-px bg-[#5a5550]" style={{ left: "80%" }} />
+                  </div>
+                  <div className="flex justify-between text-[9px] text-[#5a5550] mt-1 tracking-[0.1em]">
+                    <span>0</span>
+                    <span>50 · COND</span>
+                    <span>80 · FULL</span>
+                    <span>100</span>
+                  </div>
+                </div>
+
+                {/* Signal breakdown */}
+                <div className="mt-5 space-y-2.5">
+                  <SignalBar label="Reliability" value={92} />
+                  <SignalBar label="Accuracy" value={88} />
+                  <SignalBar label="History" value={79} />
+                  <SignalBar label="Spam penalty" value={2} dim />
+                </div>
+
+                <div className="mt-5 pt-4 border-t border-[#d8d2c8]">
+                  <p className="text-[10px] uppercase tracking-[0.15em] text-[#5a5550]">Verifiable at</p>
                   <p className="text-[11px] mt-0.5 break-all" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                    api.briarwood.ai/v1/proof/bk_8f3a2c91
+                    api.briarwood.ai/v1/cdi/violet-atelier/proof
                   </p>
                 </div>
               </div>
@@ -164,29 +171,29 @@ export default function APIOutcomeDemo() {
 
         {/* Why this matters */}
         <section className="border-t border-[#d8d2c8] mt-16 pt-10 grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div className="flex items-start gap-3" data-testid="callout-trust">
+          <div className="flex items-start gap-3" data-testid="callout-fico">
             <ShieldCheck className="w-5 h-5 text-[#b8963e] mt-0.5 shrink-0" />
             <div>
-              <p className="text-sm font-medium">Trust is in the response</p>
+              <p className="text-sm font-medium">FICO for the agentic web</p>
               <p className="text-xs text-[#5a5550] mt-1">
-                Every booking carries the provider's CDI score and tier. Agents pay for verified outcomes, not for a list of names to chase.
+                Lenders rely on FICO to extend credit. AI agents need the same primitive to extend trust. CDI is one number, behaviorally derived, comparable across providers and across agents.
               </p>
             </div>
           </div>
-          <div className="flex items-start gap-3" data-testid="callout-escrow">
-            <Lock className="w-5 h-5 text-[#b8963e] mt-0.5 shrink-0" />
+          <div className="flex items-start gap-3" data-testid="callout-gated">
+            <Activity className="w-5 h-5 text-[#b8963e] mt-0.5 shrink-0" />
             <div>
-              <p className="text-sm font-medium">Money is already held</p>
+              <p className="text-sm font-medium">Autonomy is gated by score</p>
               <p className="text-xs text-[#5a5550] mt-1">
-                Funds sit in escrow against the proof_of_service hash. No invoicing dance, no chasing a deposit. The booking is real the moment 201 returns.
+                Below 50: read-only. 50 to 79: conditional writes. 80 plus: full autonomy. Counterparties earn capability through coordination quality, not through paid placements.
               </p>
             </div>
           </div>
         </section>
 
         <div className="border-t border-[#d8d2c8] mt-10 pt-6 text-[11px] text-[#5a5550] flex justify-between">
-          <span>Briarwood · invisible infrastructure for inbound</span>
-          <span>1.5% of GMV. Outcome priced.</span>
+          <span>Briarwood · invisible infrastructure for the agentic web</span>
+          <span>CDI · Patent Pending</span>
         </div>
       </main>
     </div>
@@ -202,27 +209,31 @@ function PayloadRow({ k, v }: { k: string; v: string }) {
   );
 }
 
-function PipelineStep({ n, icon, title, detail }: { n: string; icon: React.ReactNode; title: string; detail: string }) {
+function SignalLine({ icon, label, weight }: { icon: React.ReactNode; label: string; weight: string }) {
   return (
-    <div className="flex items-start gap-3 border-l border-[#b8963e]/40 pl-3">
-      <span className="text-[10px] tracking-[0.2em] text-[#b8963e] mt-0.5">{n}</span>
-      <div className="flex-1">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[#b8963e]">{icon}</span>
-          <p className="text-sm font-medium">{title}</p>
-        </div>
-        <p className="text-[11px] text-[#a8a098] mt-0.5">{detail}</p>
+    <div className="flex items-center justify-between border-l border-[#b8963e]/40 pl-3">
+      <div className="flex items-center gap-2">
+        <span className="text-[#b8963e]">{icon}</span>
+        <p className="text-[12px]">{label}</p>
       </div>
+      <span className="text-[10px] tracking-[0.15em] text-[#a8a098]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{weight}</span>
     </div>
   );
 }
 
-function Field({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function SignalBar({ label, value, dim = false }: { label: string; value: number; dim?: boolean }) {
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-[0.15em] text-[#5a5550]">{label}</p>
-      <p className="text-sm mt-0.5">{value}</p>
-      {sub && <p className="text-[10px] text-[#5a5550]">{sub}</p>}
+      <div className="flex justify-between text-[11px] mb-1">
+        <span className={dim ? "text-[#5a5550]" : ""}>{label}</span>
+        <span className="text-[#5a5550]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{value}{dim ? "%" : "/100"}</span>
+      </div>
+      <div className="h-1.5 bg-[#ece7dc] border border-[#d8d2c8] relative">
+        <div
+          className={dim ? "absolute left-0 top-0 h-full bg-[#b8963e]" : "absolute left-0 top-0 h-full bg-[#1a1814]"}
+          style={{ width: `${value}%` }}
+        />
+      </div>
     </div>
   );
 }
