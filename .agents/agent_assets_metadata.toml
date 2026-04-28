@@ -36,3 +36,9 @@ id = "scx1S_XUN1ddzUfUgmZ4R"
 uri = "file://screenshots/cdi-toll-booth.jpg"
 type = "image"
 title = "Briarwood CDI — Registry, Handshake, Logic Stream"
+
+[[outputs]]
+id = "B21OxojnvmzNEbeLRHhYj"
+uri = "file://attached_assets/briarwood-pitch.pdf"
+type = "pdf"
+title = "Briarwood AI — Trust Substrate Pitch Deck (13 slides)"
