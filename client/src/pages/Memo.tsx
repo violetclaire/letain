@@ -180,7 +180,7 @@ export default function Memo() {
                 <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: "10.5px", color: TEXT, letterSpacing: "-0.2px" }}>Violet Herod</div>
                 <div style={{ fontFamily: "'Courier New', monospace", fontSize: "7.5px", letterSpacing: "0.14em", textTransform: "uppercase", color: BLUE, marginTop: 2, marginBottom: 4 }}>Founder & CEO</div>
                 <div style={{ fontSize: "8.5px", color: FAINT, lineHeight: 1.5 }}>
-                  28-year operator in high-stakes service coordination. Founder of The Makeup Dolls. 900+ events. $1M+ lifetime operator revenue. Zero paid acquisition.
+                  28 years building coordination structure inside a fragmented, trust-gated service market. $1M+ lifetime operator revenue. Zero paid acquisition. Originated the behavioral trust thesis from 28 years of real transaction data.
                 </div>
               </div>
               <div>
