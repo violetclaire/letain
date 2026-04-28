@@ -60,3 +60,9 @@ id = "ZQOVYogdi_xJ2J2GeLzem"
 uri = "file://attached_assets/briarwood-memo.txt"
 type = "text"
 title = "One-Pager Memo — Plain Text (industry-agnostic)"
+
+[[outputs]]
+id = "ET1tllcmoJEt5G_IHaI7t"
+uri = "file://attached_assets/briarwood-cdi-brief.pdf"
+type = "pdf"
+title = "Briarwood CDI Trust Lookup — Demo Brief (PDF)"
