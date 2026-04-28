@@ -64,6 +64,7 @@ import BriarwoodSpec from "@/pages/BriarwoodSpec";
 import Branding from "@/pages/Branding";
 import ContextGraph from "@/pages/ContextGraph";
 import Pitch from "@/pages/Pitch";
+import Memo from "@/pages/Memo";
 import CDIArchitecture from "@/pages/CDIArchitecture";
 import Sandbox from "@/pages/Sandbox";
 import Terminal from "@/pages/Terminal";
@@ -160,6 +161,7 @@ function Router() {
       <Route path="/branding" component={Branding} />
       <Route path="/context-graph" component={ContextGraph} />
       <Route path="/pitch" component={Pitch} />
+      <Route path="/memo" component={Memo} />
       <Route path="/cdi-architecture" component={CDIArchitecture} />
       <Route path="/sandbox" component={Sandbox} />
       <Route path="/terminal" component={Terminal} />
