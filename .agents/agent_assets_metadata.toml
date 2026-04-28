@@ -18,3 +18,9 @@ id = "xI1aOIorHONeFRz-xYXSX"
 uri = "file://screenshots/vc-demo-large.jpg"
 type = "image"
 title = "Briarwood for VCs — Click to view full size"
+
+[[outputs]]
+id = "sI0lAb8mgfdo5LiBJZ9s5"
+uri = "file://screenshots/api-outcome-graphic.jpg"
+type = "image"
+title = "API Call Visual — Agent → Briarwood → Confirmed Booking"
