@@ -48,3 +48,15 @@ id = "onqjZxCrLjiztiNMYU2jM"
 uri = "file://attached_assets/briarwood-memo.pdf"
 type = "pdf"
 title = "Briarwood AI — One-Page Investor Memo"
+
+[[outputs]]
+id = "v2eK1yYhiQsEwINUBQMXp"
+uri = "file://attached_assets/briarwood-pitch-deck.txt"
+type = "text"
+title = "Pitch Deck — Plain Text (13 slides)"
+
+[[outputs]]
+id = "ZQOVYogdi_xJ2J2GeLzem"
+uri = "file://attached_assets/briarwood-memo.txt"
+type = "text"
+title = "One-Pager Memo — Plain Text"
