@@ -61,6 +61,7 @@ import Privacy from "@/pages/Privacy";
 import About from "@/pages/About";
 import DemoLandingPreview from "@/pages/DemoLandingPreview";
 import BriarwoodSpec from "@/pages/BriarwoodSpec";
+import Oracle from "@/pages/Oracle";
 import Branding from "@/pages/Branding";
 import ContextGraph from "@/pages/ContextGraph";
 import Pitch from "@/pages/Pitch";
@@ -158,6 +159,7 @@ function Router() {
       <Route path="/about" component={About} />
       <Route path="/demo-landing" component={DemoLandingPreview} />
       <Route path="/spec" component={BriarwoodSpec} />
+      <Route path="/oracle" component={Oracle} />
       <Route path="/branding" component={Branding} />
       <Route path="/context-graph" component={ContextGraph} />
       <Route path="/pitch" component={Pitch} />
