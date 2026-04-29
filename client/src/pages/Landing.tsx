@@ -1,497 +1,411 @@
+import { useEffect } from "react";
 import { useLocation } from "wouter";
 
-const NAV = [
-  { label: "About", href: "/about" },
-  { label: "Sign In", href: "/login" },
+const PROOF = [
+  "Who responded.",
+  "Who followed through.",
+  "Who closed the loop.",
+  "Who recovered when reality changed.",
 ];
 
-const HOW_IT_WORKS = [
-  {
-    index: "01",
-    title: "Inquiry routing",
-    body: "A new inquiry arrives. CDI captures the first trust signal immediately — response speed, follow-through on quotes, commitment to next steps. The score starts building before any contract is signed.",
-  },
-  {
-    index: "02",
-    title: "Multi-provider coordination",
-    body: "Complex jobs require handoffs between providers. CDI measures how cleanly one provider transitions to the next — the signal that separates professionals from participants.",
-  },
-  {
-    index: "03",
-    title: "Referral networks",
-    body: "Who trusts whom and who actually delivers. CDI maps the private graph that cannot be scraped — the trust relationships that took decades to build.",
-  },
-  {
-    index: "04",
-    title: "Deposit and execution",
-    body: "Money is on the line. CDI tracks whether providers do what they committed to when it actually counts. The loop closes. The score reflects reality, not intentions.",
-  },
-];
-
-const THREE_ACTS = [
-  {
-    heading: "Behavior becomes score",
-    body: "CDI captures coordination behavior from existing workflows — Gmail, SMS, phone. Zero change to how providers work. Every action updates the score in real time. Trust is earned through behavior, not profiles.",
-  },
-  {
-    heading: "Score becomes search",
-    body: "Integrate the CDI API into your platform, agent system, or coordination software. Pass a provider ID, get back a behavioral trust score. Real-time, per decision.",
-  },
-  {
-    heading: "Search makes action safer",
-    body: "Agents act with confidence. Platforms verify before they pay. The physical economy becomes accessible for the first time.",
-  },
-];
-
-const BUILT_FOR = [
-  {
-    label: "Platforms that coordinate human services",
-    body: "Marketplaces, staffing platforms, home services apps — anywhere you match a client with a provider and need to know the job will actually get done.",
-  },
-  {
-    label: "Operators managing distributed workforces",
-    body: "General contractors, franchise operators, field service companies — teams where trust and reliability vary and the cost of a bad hire is real.",
-  },
-  {
-    label: "AI systems entering the physical economy",
-    body: "Agent platforms and coordination software that need a structured, machine-readable signal to operate in the real world — not just the digital one.",
-  },
-];
+const NOT = ["Not a review.", "Not a profile.", "Not a guess."];
 
 export default function Landing() {
   const [, setLocation] = useLocation();
 
+  useEffect(() => {
+    document.title = "Briarwood AI · The FICO for Real-World Execution";
+  }, []);
+
+  const goAccess = () => setLocation("/signup");
+  const goDemo = () => setLocation("/spec");
+
   return (
-    <div style={{ background: "#06070d", color: "#c8d4e8", minHeight: "100vh", fontFamily: "'Inter', sans-serif" }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Inter:wght@400;500;600&display=swap');
+    <div className="relative min-h-screen bg-bg text-ink font-sans" data-testid="page-landing">
+      {/* Pinstripe overlay (vertical suiting lines) */}
+      <div className="estate-pinstripe" aria-hidden />
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+      {/* NAV */}
+      <header className="relative z-20 border-b border-hairline bg-bg/85 backdrop-blur-sm">
+        <div className="estate-container flex items-center justify-between py-6">
+          <button
+            onClick={() => setLocation("/")}
+            data-testid="link-brand"
+            className="font-serif text-[0.95rem] uppercase tracking-[0.22em] text-ink hover:text-oxblood transition-colors"
+          >
+            Briarwood
+          </button>
+          <nav className="flex items-center gap-8 text-[0.78rem] uppercase tracking-[0.18em] text-mutedink">
+            <a
+              href="/spec"
+              data-testid="link-nav-cdi"
+              onClick={(e) => {
+                e.preventDefault();
+                setLocation("/spec");
+              }}
+              className="hover:text-ink underline-offset-4 hover:underline"
+            >
+              CDI
+            </a>
+            <a
+              href="/about"
+              data-testid="link-nav-about"
+              onClick={(e) => {
+                e.preventDefault();
+                setLocation("/about");
+              }}
+              className="hover:text-ink underline-offset-4 hover:underline"
+            >
+              About
+            </a>
+            <a
+              href="/login"
+              data-testid="link-nav-signin"
+              onClick={(e) => {
+                e.preventDefault();
+                setLocation("/login");
+              }}
+              className="hover:text-ink underline-offset-4 hover:underline"
+            >
+              Sign In
+            </a>
+          </nav>
+        </div>
+      </header>
 
-        .bw-nav {
-          position: fixed;
-          top: 0; left: 0; right: 0;
-          z-index: 50;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 20px 40px;
-          border-bottom: 1px solid rgba(255,255,255,0.06);
-          background: rgba(6,7,13,0.85);
-          backdrop-filter: blur(12px);
-        }
+      {/* HERO */}
+      <section className="relative z-10 pt-24 pb-28 sm:pt-36 sm:pb-36">
+        <div className="estate-container">
+          <div className="max-w-[820px]">
+            <div className="font-mono text-[0.7rem] uppercase tracking-[0.28em] text-brass mb-10">
+              <span className="inline-block w-8 h-px align-middle bg-brass mr-3" />
+              Trust Infrastructure · Real-World Economy
+            </div>
 
-        .bw-logo {
-          font-family: 'Fraunces', serif;
-          font-size: 1rem;
-          font-weight: 600;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          color: #e8eef8;
-        }
+            <h1
+              className="font-serif font-light text-ink leading-[1.04] tracking-tight"
+              style={{ fontSize: "clamp(2.6rem, 6.8vw, 5.4rem)" }}
+              data-testid="text-hero-headline"
+            >
+              Briarwood AI
+            </h1>
 
-        .bw-nav-links {
-          display: flex;
-          gap: 32px;
-          list-style: none;
-        }
+            <div
+              className="font-serif italic text-mutedink mt-4"
+              style={{ fontSize: "clamp(1.4rem, 3vw, 2.1rem)", lineHeight: 1.2 }}
+              data-testid="text-hero-tagline"
+            >
+              The FICO for Real-World Execution.
+            </div>
 
-        .bw-nav-links a {
-          color: #8898b0;
-          text-decoration: none;
-          font-size: 0.82rem;
-          letter-spacing: 0.06em;
-          transition: color 0.2s;
-        }
-        .bw-nav-links a:hover { color: #c8d4e8; }
+            <div className="h-px w-24 bg-ink/30 my-10" />
 
-        .bw-container {
-          max-width: 800px;
-          margin: 0 auto;
-          padding: 0 40px;
-        }
+            <p
+              className="font-serif text-ink"
+              style={{ fontSize: "clamp(1.2rem, 2vw, 1.55rem)", lineHeight: 1.45 }}
+              data-testid="text-hero-pull"
+            >
+              Trust is not a profile. Trust is the result of action.
+            </p>
 
-        /* Hero */
-        .bw-hero {
-          padding: 180px 40px 120px;
-          max-width: 800px;
-          margin: 0 auto;
-        }
+            <p
+              className="mt-6 text-mutedink max-w-[60ch]"
+              style={{ fontSize: "1.05rem", lineHeight: 1.7 }}
+              data-testid="text-hero-body"
+            >
+              Briarwood turns real-world coordination behavior into the machine-readable
+              trust signal agents need before routing work or releasing payment.
+            </p>
 
-        .bw-hero-label {
-          font-size: 0.72rem;
-          letter-spacing: 0.2em;
-          text-transform: uppercase;
-          color: #4a6480;
-          margin-bottom: 32px;
-        }
+            <div className="mt-10 flex flex-wrap items-center gap-4">
+              <button
+                onClick={goAccess}
+                data-testid="button-request-access-hero"
+                className="px-7 py-3 bg-ink text-bg text-[0.92rem] tracking-wide hover:bg-oxblood transition-colors"
+              >
+                Request Access
+              </button>
+              <button
+                onClick={goDemo}
+                data-testid="button-view-demo-hero"
+                className="px-7 py-3 border border-hairline text-ink text-[0.92rem] tracking-wide hover:bg-surface transition-colors"
+              >
+                View CDI Demo
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
 
-        .bw-hero h1 {
-          font-family: 'Fraunces', serif;
-          font-size: clamp(2.4rem, 5vw, 4rem);
-          font-weight: 400;
-          line-height: 1.15;
-          color: #e8eef8;
-          margin-bottom: 28px;
-          letter-spacing: -0.5px;
-        }
+      {/* PROBLEM */}
+      <Section eye="01 · The Problem">
+        <Headline>Agents are trapped at search.</Headline>
+        <Lead>AI agents can find options. They cannot verify who will actually execute.</Lead>
+        <Body>
+          Today, they rely on public signals: reviews, websites, social profiles,
+          credentials, and search rankings.
+        </Body>
+        <Body>
+          Those signals were built for discovery. They were not built for trust.
+        </Body>
+      </Section>
 
-        .bw-hero-sub {
-          font-size: 1.05rem;
-          line-height: 1.75;
-          color: #7a90a8;
-          max-width: 560px;
-          margin-bottom: 48px;
-        }
-
-        .bw-cta {
-          display: inline-block;
-          background: #e8eef8;
-          color: #06070d;
-          padding: 13px 28px;
-          font-size: 0.84rem;
-          font-weight: 600;
-          letter-spacing: 0.04em;
-          text-decoration: none;
-          cursor: pointer;
-          border: none;
-          transition: background 0.2s, opacity 0.2s;
-        }
-        .bw-cta:hover { background: #ffffff; }
-
-        .bw-cta-ghost {
-          display: inline-block;
-          border: 1px solid rgba(200,212,232,0.2);
-          color: #c8d4e8;
-          padding: 13px 28px;
-          font-size: 0.84rem;
-          font-weight: 500;
-          letter-spacing: 0.04em;
-          text-decoration: none;
-          cursor: pointer;
-          background: transparent;
-          transition: border-color 0.2s, color 0.2s;
-          margin-left: 12px;
-        }
-        .bw-cta-ghost:hover { border-color: rgba(200,212,232,0.5); color: #e8eef8; }
-
-        /* Divider */
-        .bw-divider {
-          border: none;
-          border-top: 1px solid rgba(255,255,255,0.06);
-          margin: 0;
-        }
-
-        /* Sections */
-        .bw-section {
-          padding: 100px 40px;
-          max-width: 800px;
-          margin: 0 auto;
-        }
-
-        .bw-section-label {
-          font-size: 0.68rem;
-          letter-spacing: 0.2em;
-          text-transform: uppercase;
-          color: #3a5068;
-          margin-bottom: 56px;
-        }
-
-        /* How CDI works */
-        .bw-how-grid {
-          display: grid;
-          gap: 48px;
-        }
-
-        .bw-how-item {
-          display: grid;
-          grid-template-columns: 36px 1fr;
-          gap: 24px;
-        }
-
-        .bw-how-index {
-          font-size: 0.65rem;
-          letter-spacing: 0.14em;
-          color: #3a5068;
-          padding-top: 4px;
-        }
-
-        .bw-how-title {
-          font-family: 'Fraunces', serif;
-          font-size: 1.1rem;
-          font-weight: 400;
-          color: #e8eef8;
-          margin-bottom: 10px;
-        }
-
-        .bw-how-body {
-          font-size: 0.9rem;
-          line-height: 1.75;
-          color: #6a8098;
-        }
-
-        /* Three acts */
-        .bw-acts {
-          display: grid;
-          gap: 0;
-        }
-
-        .bw-act {
-          padding: 40px 0;
-          border-bottom: 1px solid rgba(255,255,255,0.06);
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 48px;
-          align-items: start;
-        }
-
-        .bw-act:first-child { border-top: 1px solid rgba(255,255,255,0.06); }
-
-        .bw-act-heading {
-          font-family: 'Fraunces', serif;
-          font-size: 1.15rem;
-          font-weight: 400;
-          color: #c8d4e8;
-          line-height: 1.3;
-        }
-
-        .bw-act-body {
-          font-size: 0.88rem;
-          line-height: 1.8;
-          color: #5a7490;
-        }
-
-        /* Built for */
-        .bw-built-grid {
-          display: grid;
-          gap: 32px;
-        }
-
-        .bw-built-item {
-          padding: 28px 32px;
-          border: 1px solid rgba(255,255,255,0.06);
-          background: rgba(255,255,255,0.015);
-        }
-
-        .bw-built-label {
-          font-family: 'Fraunces', serif;
-          font-size: 1rem;
-          font-weight: 400;
-          color: #c8d4e8;
-          margin-bottom: 10px;
-        }
-
-        .bw-built-body {
-          font-size: 0.86rem;
-          line-height: 1.75;
-          color: #5a7490;
-        }
-
-        /* Team */
-        .bw-team-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 40px;
-        }
-
-        .bw-team-name {
-          font-family: 'Fraunces', serif;
-          font-size: 1rem;
-          font-weight: 400;
-          color: #c8d4e8;
-          margin-bottom: 4px;
-        }
-
-        .bw-team-role {
-          font-size: 0.72rem;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: #3a5068;
-          margin-bottom: 14px;
-        }
-
-        .bw-team-bio {
-          font-size: 0.86rem;
-          line-height: 1.75;
-          color: #5a7490;
-        }
-
-        /* Closing */
-        .bw-close {
-          padding: 120px 40px;
-          max-width: 800px;
-          margin: 0 auto;
-          text-align: center;
-        }
-
-        .bw-close-headline {
-          font-family: 'Fraunces', serif;
-          font-size: clamp(1.6rem, 3vw, 2.4rem);
-          font-weight: 300;
-          font-style: italic;
-          color: #8898b0;
-          margin-bottom: 48px;
-          line-height: 1.4;
-        }
-
-        /* Footer */
-        .bw-footer {
-          border-top: 1px solid rgba(255,255,255,0.06);
-          padding: 40px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          flex-wrap: wrap;
-          gap: 16px;
-        }
-
-        .bw-footer-brand {
-          font-family: 'Fraunces', serif;
-          font-size: 0.82rem;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: #3a5068;
-        }
-
-        .bw-footer-meta {
-          font-size: 0.74rem;
-          color: #3a5068;
-          letter-spacing: 0.04em;
-        }
-
-        .bw-footer-meta a {
-          color: #4a6480;
-          text-decoration: none;
-        }
-        .bw-footer-meta a:hover { color: #8898b0; }
-
-        @media (max-width: 600px) {
-          .bw-nav { padding: 16px 20px; }
-          .bw-hero { padding: 140px 20px 80px; }
-          .bw-section { padding: 72px 20px; }
-          .bw-act { grid-template-columns: 1fr; gap: 16px; }
-          .bw-team-grid { grid-template-columns: 1fr; }
-          .bw-close { padding: 80px 20px; }
-          .bw-footer { padding: 32px 20px; flex-direction: column; align-items: flex-start; }
-        }
-      `}</style>
-
-      {/* Nav */}
-      <nav className="bw-nav">
-        <div className="bw-logo">Briarwood AI</div>
-        <ul className="bw-nav-links">
-          {NAV.map((n) => (
-            <li key={n.href}>
-              <a href={n.href} onClick={(e) => { e.preventDefault(); setLocation(n.href); }}>
-                {n.label}
-              </a>
+      {/* MISSING LAYER */}
+      <Section eye="02 · The Missing Layer" alt>
+        <Headline>The missing layer is trust.</Headline>
+        <Lead>Every real-world transaction creates proof:</Lead>
+        <ul className="mt-4 max-w-[60ch]">
+          {PROOF.map((line, i) => (
+            <li
+              key={i}
+              className="flex items-baseline gap-5 py-3 border-b border-hairline last:border-b-0"
+              data-testid={`text-proof-${i}`}
+            >
+              <span className="font-mono text-[0.72rem] tracking-[0.2em] text-brass min-w-[1.5rem]">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <span
+                className="font-serif text-ink"
+                style={{ fontSize: "1.18rem", lineHeight: 1.5 }}
+              >
+                {line}
+              </span>
             </li>
           ))}
         </ul>
-      </nav>
+        <Body className="mt-8">
+          But those signals are trapped inside private coordination. They live in DMs,
+          calendars, phone calls, and follow-ups that never reach the public web.
+        </Body>
+        <Body>
+          Briarwood captures the trust created through action and turns it into{" "}
+          <span className="text-oxblood font-semibold">CDI</span>.
+        </Body>
+      </Section>
 
-      {/* Hero */}
-      <div className="bw-hero">
-        <p className="bw-hero-label">CDI · Patent Pending · Pre-Seed 2026</p>
-        <h1>The behavioral trust layer for the physical service economy.</h1>
-        <p className="bw-hero-sub">
-          The $20T physical economy has no API for trust. Agents can make every other economic decision — but go blind the moment they need to select a human service provider. CDI is the missing endpoint. A machine-readable behavioral trust score built from real coordination, not reviews, not ratings, not followers.
+      {/* CDI LOOKUP */}
+      <Section eye="03 · The Trust Lookup">
+        <Headline>CDI is the trust score agents query before action.</Headline>
+        <Lead>An agent needs to know:</Lead>
+        <blockquote
+          className="mt-6 mb-8 pl-6 border-l-2 border-oxblood font-serif italic text-ink max-w-[60ch]"
+          style={{ fontSize: "clamp(1.25rem, 2.2vw, 1.65rem)", lineHeight: 1.4 }}
+          data-testid="text-agent-question"
+        >
+          Can this counterparty be trusted for this transaction, in this context, right
+          now?
+        </blockquote>
+        <Body>Briarwood answers with a machine-readable trust signal.</Body>
+        <div className="mt-6 flex flex-wrap items-center gap-x-10 gap-y-3">
+          {NOT.map((line, i) => (
+            <span
+              key={i}
+              className={
+                i === 2
+                  ? "font-serif italic text-oxblood text-[1.15rem]"
+                  : "font-serif italic text-faintink text-[1.05rem]"
+              }
+              data-testid={`text-not-${i}`}
+            >
+              {line}
+            </span>
+          ))}
+        </div>
+      </Section>
+
+      {/* TWO SIDES */}
+      <Section eye="04 · Architecture" alt>
+        <Headline>Two sides. One trust substrate.</Headline>
+        <div className="mt-10 grid gap-10 md:grid-cols-2 max-w-[68ch]">
+          <SideCard
+            tag="For Operators"
+            body="Briarwood captures invisible coordination as work happens. Inquiries, handoffs, follow-through, recovery. Zero change to the existing workflow."
+            testid="card-side-operators"
+          />
+          <SideCard
+            tag="For Agents and Platforms"
+            body="Briarwood makes that trust queryable before routing, handoff, or payment. One API call, one structured trust signal."
+            testid="card-side-agents"
+          />
+        </div>
+        <p
+          className="mt-10 font-serif text-ink"
+          style={{ fontSize: "clamp(1.1rem, 2vw, 1.4rem)" }}
+          data-testid="text-side-summary"
+        >
+          Operators create the signal. Agents query the signal.
         </p>
-        <button className="bw-cta" onClick={() => setLocation("/waitlist")}>
-          Request Early Access
-        </button>
-        <a className="bw-cta-ghost" href="/about" onClick={(e) => { e.preventDefault(); setLocation("/about"); }}>
-          Read about CDI
-        </a>
-      </div>
+      </Section>
 
-      <hr className="bw-divider" />
+      {/* DON'T GUESS */}
+      <Section eye="05 · The Cost of Guessing">
+        <Headline>Don't guess. Query.</Headline>
+        <Body>The real cost is not just tokens.</Body>
+        <Body>It is making agents guess trust from scratch every time.</Body>
+        <p
+          className="mt-8 font-serif italic text-oxblood max-w-[60ch]"
+          style={{ fontSize: "clamp(1.4rem, 2.6vw, 1.9rem)", lineHeight: 1.35 }}
+          data-testid="text-lookup"
+        >
+          Briarwood turns trust into a lookup.
+        </p>
+      </Section>
 
-      {/* How CDI is already live */}
-      <div className="bw-section">
-        <p className="bw-section-label">Briarwood in action · Where CDI is already live</p>
-        <div className="bw-how-grid">
-          {HOW_IT_WORKS.map((item) => (
-            <div className="bw-how-item" key={item.index}>
-              <div className="bw-how-index">{item.index}</div>
-              <div>
-                <div className="bw-how-title">{item.title}</div>
-                <div className="bw-how-body">{item.body}</div>
-              </div>
-            </div>
-          ))}
+      {/* ORIGIN */}
+      <Section eye="06 · Origin" alt>
+        <Headline>Built from real-world coordination.</Headline>
+        <Body>
+          Briarwood begins inside a trust-gated operator network built over decades of
+          high-stakes service coordination.
+        </Body>
+        <p
+          className="mt-8 pl-6 border-l-2 border-brass font-serif italic text-ink max-w-[60ch]"
+          style={{ fontSize: "clamp(1.2rem, 2.2vw, 1.55rem)", lineHeight: 1.4 }}
+          data-testid="text-moat"
+        >
+          The labs cannot scrape what never reached the internet.
+        </p>
+      </Section>
+
+      {/* CLOSE */}
+      <Section eye="07 · Why Now">
+        <Headline>The agentic web needs a trust substrate.</Headline>
+        <Body>Money can already move at software speed.</Body>
+        <p
+          className="font-serif italic text-oxblood mt-1 mb-3"
+          style={{ fontSize: "clamp(1.3rem, 2.4vw, 1.8rem)", lineHeight: 1.35 }}
+          data-testid="text-trust-cannot"
+        >
+          Trust cannot.
+        </p>
+        <p
+          className="mt-8 font-serif text-ink max-w-[68ch]"
+          style={{ fontSize: "clamp(1.6rem, 3vw, 2.2rem)", lineHeight: 1.25, letterSpacing: "-0.02em" }}
+          data-testid="text-close-line"
+        >
+          Briarwood makes real-world trust machine-readable.
+        </p>
+        <div className="mt-12 flex flex-wrap items-center gap-4">
+          <button
+            onClick={goAccess}
+            data-testid="button-request-access-footer"
+            className="px-7 py-3 bg-ink text-bg text-[0.92rem] tracking-wide hover:bg-oxblood transition-colors"
+          >
+            Request Access
+          </button>
+          <button
+            onClick={goDemo}
+            data-testid="button-view-demo-footer"
+            className="px-7 py-3 border border-hairline text-ink text-[0.92rem] tracking-wide hover:bg-surface transition-colors"
+          >
+            View CDI Demo
+          </button>
         </div>
-      </div>
+      </Section>
 
-      <hr className="bw-divider" />
-
-      {/* Three acts */}
-      <div className="bw-section">
-        <p className="bw-section-label">How it works</p>
-        <div className="bw-acts">
-          {THREE_ACTS.map((act) => (
-            <div className="bw-act" key={act.heading}>
-              <div className="bw-act-heading">{act.heading}</div>
-              <div className="bw-act-body">{act.body}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <hr className="bw-divider" />
-
-      {/* Built for */}
-      <div className="bw-section">
-        <p className="bw-section-label">Built for</p>
-        <div className="bw-built-grid">
-          {BUILT_FOR.map((item) => (
-            <div className="bw-built-item" key={item.label}>
-              <div className="bw-built-label">{item.label}</div>
-              <div className="bw-built-body">{item.body}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <hr className="bw-divider" />
-
-      {/* Team */}
-      <div className="bw-section">
-        <p className="bw-section-label">The team</p>
-        <div className="bw-team-grid">
-          <div>
-            <div className="bw-team-name">Violet Herod</div>
-            <div className="bw-team-role">Founder & CEO</div>
-            <div className="bw-team-bio">Built the wedge. Owns the network. Designed the scoring framework. Filed the patent.</div>
+      {/* FOOTER */}
+      <footer className="relative z-10 border-t border-hairline">
+        <div className="estate-container py-10 flex flex-wrap items-center justify-between gap-4">
+          <div className="font-mono text-[0.7rem] uppercase tracking-[0.22em] text-faintink">
+            Briarwood AI · dateinquiry.com
           </div>
-          <div>
-            <div className="bw-team-name">Dundy Pasupuleti</div>
-            <div className="bw-team-role">Co-Founder & CTO</div>
-            <div className="bw-team-bio">AI Ops Engineer at Apple. Building ML infrastructure at scale. Architecting the engine that turns behavior into a machine-readable signal.</div>
+          <div className="font-mono text-[0.7rem] uppercase tracking-[0.22em] text-faintink">
+            CDI™ Patent Pending · 2026
           </div>
-        </div>
-      </div>
-
-      <hr className="bw-divider" />
-
-      {/* Closing CTA */}
-      <div className="bw-close">
-        <p className="bw-close-headline">The first API for a world that doesn't have one.</p>
-        <button className="bw-cta" onClick={() => setLocation("/waitlist")}>
-          Request Early Access
-        </button>
-      </div>
-
-      {/* Footer */}
-      <footer className="bw-footer">
-        <div className="bw-footer-brand">Briarwood AI</div>
-        <div className="bw-footer-meta">
-          San Francisco · 2026 · CDI™ Patent Pending ·{" "}
-          <a href="mailto:violet@briarwood.ai">violet@briarwood.ai</a> ·{" "}
-          <a href="/privacy" onClick={(e) => { e.preventDefault(); setLocation("/privacy"); }}>Privacy</a> ·{" "}
-          <a href="/about" onClick={(e) => { e.preventDefault(); setLocation("/about"); }}>About</a>
         </div>
       </footer>
+    </div>
+  );
+}
+
+/* ----------------------- helpers ----------------------- */
+
+function Section({
+  eye,
+  children,
+  alt = false,
+}: {
+  eye: string;
+  children: React.ReactNode;
+  alt?: boolean;
+}) {
+  return (
+    <section
+      className={`relative z-10 border-t border-hairline ${alt ? "bg-surface/40" : ""}`}
+    >
+      <div className="estate-container py-24 sm:py-32">
+        <div className="font-mono text-[0.7rem] uppercase tracking-[0.28em] text-brass mb-8">
+          <span className="inline-block w-8 h-px align-middle bg-brass mr-3" />
+          {eye}
+        </div>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function Headline({ children }: { children: React.ReactNode }) {
+  return (
+    <h2
+      className="font-serif font-light text-ink tracking-tight"
+      style={{ fontSize: "clamp(2rem, 4.4vw, 3.4rem)", lineHeight: 1.1 }}
+    >
+      {children}
+    </h2>
+  );
+}
+
+function Lead({ children }: { children: React.ReactNode }) {
+  return (
+    <p
+      className="mt-8 font-serif text-ink max-w-[60ch]"
+      style={{ fontSize: "clamp(1.15rem, 1.8vw, 1.35rem)", lineHeight: 1.55 }}
+    >
+      {children}
+    </p>
+  );
+}
+
+function Body({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <p
+      className={`mt-5 text-mutedink max-w-[60ch] ${className}`}
+      style={{ fontSize: "1.05rem", lineHeight: 1.75 }}
+    >
+      {children}
+    </p>
+  );
+}
+
+function SideCard({
+  tag,
+  body,
+  testid,
+}: {
+  tag: string;
+  body: string;
+  testid: string;
+}) {
+  return (
+    <div
+      className="border-t border-ink pt-6"
+      data-testid={testid}
+    >
+      <div className="font-mono text-[0.7rem] uppercase tracking-[0.22em] text-brass mb-4">
+        {tag}
+      </div>
+      <p
+        className="font-serif text-ink"
+        style={{ fontSize: "1.1rem", lineHeight: 1.6 }}
+      >
+        {body}
+      </p>
     </div>
   );
 }
