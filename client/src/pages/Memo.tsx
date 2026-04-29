@@ -131,16 +131,16 @@ export default function Memo() {
             Investor Memo · Pre-Seed · 2026
           </div>
           <div className="memo-h1">BRIARWOOD AI</div>
-          <div className="memo-sub">The Trust Substrate for the Real-World Service Economy</div>
+          <div className="memo-sub">The FICO score for real-world execution.</div>
 
           <div className="memo-lede">
-            Briarwood turns real-world coordination behavior into the machine-readable trust signal AI agents need to move from search to execution.
+            Today, trust verification is manual: DMs, referrals, reviews, gut checks. Briarwood replaces it with a machine-readable CDI score agents query before routing work or releasing payment. The workflow is the wedge. The behavioral data flywheel is the moat. The CDI API is the infrastructure layer.
           </div>
 
-          <div style={{ marginTop: 14, fontFamily: "'Inter', sans-serif", fontSize: "9.5px", color: FAINT, lineHeight: 1.6 }}>
-            AI agents can search, reason, and recommend services, but they cannot verify who will actually follow through in the real world. Today, they rely on noisy public signals: reviews, SEO, websites, and social profiles. Those signals do not prove execution, reliability, recovery, or trust under pressure. <span style={{ color: TEXT, fontWeight: 600 }}>That is why the agentic web stops at the screen.</span>
+          <div style={{ marginTop: 12, fontFamily: "'Inter', sans-serif", fontSize: "9.5px", color: FAINT, lineHeight: 1.55 }}>
+            Trust verification in the real-world service economy is still manual labor: DMs, screenshots, backchannel calls, gut checks. AI agents inherit the same broken process. Public signals like reviews, SEO, websites, and social profiles do not prove execution, reliability, recovery, or trust under pressure. <span style={{ color: TEXT, fontWeight: 600 }}>That is why the agentic web stops at the screen.</span>
             <br /><br />
-            Briarwood solves this by capturing the trust signals that already exist inside real service transactions: responsiveness, timing, handoffs, follow-through, recovery, payment behavior, and execution outcomes. From those signals, we generate <span style={{ color: BLUE, fontWeight: 700, textShadow: `0 0 6px ${BLUE}` }}>CDI — the Coordination Depth Index</span> — a behavioral trust metric that agents and platforms can query before routing work, coordinating a handoff, or releasing payment.
+            Briarwood solves this by capturing the trust signals that already exist inside real service transactions: responsiveness, timing, handoffs, follow-through, recovery, payment behavior, execution outcomes. From those signals, we generate the <span style={{ color: BLUE, fontWeight: 700, textShadow: `0 0 6px ${BLUE}` }}>Coordination Depth Index, or CDI</span>: a structured trust signal with reason codes, risk flags, and routing recommendations agents and platforms can query before routing work or releasing payment.
           </div>
 
           <Section label="The Wedge · Network Recapture">
@@ -151,7 +151,10 @@ export default function Memo() {
             Agent commerce is moving from search and recommendation toward execution. Agents cannot safely transact in the real-world economy without a trust layer. <span style={{ color: TEXT, fontWeight: 600 }}>The model should not spend tokens guessing who to trust. It should query Briarwood.</span>
           </Section>
 
-          <Section label="Business Model">
+          <Section label="Business Model · Sell the Outcome, Not the Tool">
+            <div style={{ marginBottom: 6, fontSize: "9px", color: FAINT, lineHeight: 1.5 }}>
+              Operators get free coordination software because the workflow captures invisible labor. Agents and platforms pay for the trust outcome: CDI lookup, routing confidence, payment guidance.
+            </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginTop: 4 }}>
               {[
                 ["1.5%", "Transaction fee on verified routed work"],
@@ -165,22 +168,23 @@ export default function Memo() {
                 </div>
               ))}
             </div>
-            <div style={{ marginTop: 6, fontSize: "9px", color: FAINT, fontStyle: "italic" }}>
-              The transaction fee monetizes the wedge. The CDI API monetizes the infrastructure.
-            </div>
+          </Section>
+
+          <Section label="Distribution · Founder Network">
+            Briarwood does not start with paid ads or cold outbound. It starts inside a 28-year trust-gated operator network across Bay Area and Napa service markets. The first 250 providers are not cold-start customers. They are <span style={{ color: TEXT, fontWeight: 600 }}>referral-graph expansion</span> from relationships where trust already moves. Distribution is a prerequisite, not an afterthought.
           </Section>
 
           <Section label="Moat">
-            <span style={{ color: TEXT, fontWeight: 600 }}>The labs cannot scrape what never reached the internet.</span> Briarwood is built on 28 years of high-stakes coordination from a trust-gated service network. Recent internal analysis of 15 years of records produced <span style={{ color: BLUE, fontWeight: 700 }}>222 behavioral signals</span> and scored <span style={{ color: BLUE, fontWeight: 700 }}>27 real actors</span>. This private behavioral data — latency, follow-through, handoffs, recovery under pressure, execution integrity — cannot be scraped, synthesized, or bought from the public web.
+            <span style={{ color: TEXT, fontWeight: 600 }}>The labs cannot scrape what never reached the internet.</span> Briarwood is built on 28 years of high-stakes coordination from a trust-gated service network. Recent internal analysis of 15 years of records produced <span style={{ color: BLUE, fontWeight: 700 }}>222 behavioral signals</span> and scored <span style={{ color: BLUE, fontWeight: 700 }}>27 real actors</span>. This is private behavioral data: latency, follow-through, handoffs, recovery under pressure, execution integrity. It cannot be scraped, synthesized, or bought from the public web.
           </Section>
 
-          <Section label="Team">
+          <Section label="Team · I Lived the Manual Trust Layer">
             <div className="grid-2" style={{ marginTop: 4 }}>
               <div>
                 <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: "10.5px", color: TEXT, letterSpacing: "-0.2px" }}>Violet Herod</div>
                 <div style={{ fontFamily: "'Courier New', monospace", fontSize: "7.5px", letterSpacing: "0.14em", textTransform: "uppercase", color: BLUE, marginTop: 2, marginBottom: 4 }}>Founder & CEO</div>
                 <div style={{ fontSize: "8.5px", color: FAINT, lineHeight: 1.5 }}>
-                  28 years building coordination structure inside a fragmented, trust-gated service market. $1M+ lifetime operator revenue. Zero paid acquisition. Originated the behavioral trust thesis from 28 years of real transaction data.
+                  For 28 years, manually verified who could execute, who could be trusted, who could recover under pressure, and who deserved the next handoff. Briarwood turns that lived operating system into CDI. $1M+ lifetime operator revenue. Zero paid acquisition.
                 </div>
               </div>
               <div>
@@ -211,13 +215,13 @@ export default function Memo() {
           </Section>
 
           <div style={{
-            marginTop: 16, padding: "10px 14px",
+            marginTop: 14, padding: "10px 14px",
             border: `1px solid ${BLUE}50`, borderLeft: `3px solid ${BLUE}`,
             background: `${SURF}cc`, boxShadow: `0 0 12px ${BLUE}15`,
             fontFamily: "'Inter', sans-serif", fontSize: "10px",
             color: TEXT, fontStyle: "italic", lineHeight: 1.5,
           }}>
-            Briarwood is the trust substrate that lets agents transact reliably in the real-world economy.
+            The first agent that can safely hire and pay humans in the real world will need a trust substrate. Briarwood is building it. <span style={{ color: BLUE, fontWeight: 600, fontStyle: "normal", textShadow: `0 0 6px ${BLUE}` }}>It is the trust layer that lets agents leave the browser.</span>
           </div>
         </div>
 

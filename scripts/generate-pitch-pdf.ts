@@ -6,7 +6,7 @@ import { execSync } from "child_process";
 
 const URL = process.env.PITCH_URL ?? "http://localhost:5000/pitch?print=1";
 const OUT = process.env.PITCH_OUT ?? "attached_assets/briarwood-pitch.pdf";
-const SLIDE_COUNT = 13;
+const SLIDE_COUNT = 14;
 
 function resolveChromium(): string {
   const candidates = [

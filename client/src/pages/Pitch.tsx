@@ -9,7 +9,7 @@ const BG    = "#050810";
 const SURF  = "#090d1a";
 const TEXT  = "#c8d8ff";
 const FAINT = "rgba(200,216,255,0.35)";
-const SLIDES = 13;
+const SLIDES = 14;
 
 const isPrint = () => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("print");
 
@@ -408,9 +408,9 @@ export default function Pitch() {
               fontSize: "clamp(1.05rem, 2vw, 1.55rem)",
               color: TEXT, textAlign: "center", maxWidth: 720, lineHeight: 1.3,
               letterSpacing: "-0.5px",
-            }}>The Trust Substrate for the Real-World Service Economy</div>
-            <Body style={{ marginTop: 28, maxWidth: 760 }}>
-              Briarwood is the trust substrate that lets agents move from search to execution in the real-world economy. We turn 28 years of real-world coordination behavior into the behavioral trust signal agents need to safely hire, route, and pay independent service providers.
+            }}>The FICO score for real-world execution.</div>
+            <Body style={{ marginTop: 28, maxWidth: 780 }}>
+              Today, trust verification is manual: DMs, referrals, reviews, gut checks. Briarwood replaces it with a machine-readable CDI score agents query before routing work or releasing payment. The workflow is the wedge. The behavioral data flywheel is the moat. The CDI API is the infrastructure layer.
             </Body>
             <div style={{ marginTop: 36, display: "flex", alignItems: "center", gap: 10,
               fontFamily: "'Courier New', monospace", fontSize: "0.54rem",
@@ -429,12 +429,12 @@ export default function Pitch() {
             <Eye>02 / Problem</Eye>
             <H1>Agents are street blind.</H1>
             <Body>
-              AI agents can search, reason, and recommend services, but real-world service search is still an expensive dead end. They rely on noisy public signals: reviews, SEO, websites, and social profiles. Those signals do not prove who follows through, handles pressure, or recovers when things change.
+              Trust verification in real-world services is still manual labor: DMs, referrals, gut checks, screenshots, scrolling reviews, backchannel calls. AI agents inherit the same broken process. Public signals like reviews, SEO, websites, and social profiles do not prove who follows through, handles pressure, or recovers when things change.
             </Body>
           </motion.div>
           <div className="g2">
-            <Cell k="The Token Tax" v="Agents waste tokens trying to infer trust they cannot verify." />
-            <Cell k="The Hard Stop" v="Without a real trust signal, the agentic web stops at the screen." />
+            <Cell k="The Token Tax" v="Agents burn tokens trying to infer trust from noisy public signals." />
+            <Cell k="The Hard Stop" v="Without a machine-readable trust layer, the agentic web stops at the screen." />
           </div>
         </S>
 
@@ -442,10 +442,10 @@ export default function Pitch() {
         <S n={3} label="SOLUTION">
           <motion.div {...fd}>
             <Eye>03 / Solution</Eye>
-            <H1>The Trust Substrate.</H1>
-            <Sub>CDI: a reliability metric based on real coordination behavior.</Sub>
+            <H1>The FICO for real-world execution.</H1>
+            <Sub>CDI replaces manual trust verification with a machine-readable score.</Sub>
             <Body>
-              Briarwood captures how providers actually coordinate in real jobs: timing, responsiveness, follow-through, handoffs, and recovery. From that, we generate CDI, a behavioral trust metric agents can query before routing work or releasing payment.
+              Briarwood captures how providers actually coordinate in real jobs: timing, responsiveness, follow-through, handoffs, and recovery. From that, we generate CDI: a structured trust signal with reason codes, risk flags, and routing recommendations agents can query before routing work or releasing payment.
             </Body>
           </motion.div>
           <div className="g3">
@@ -522,8 +522,8 @@ export default function Pitch() {
         <S n={8} label="BUSINESS MODEL">
           <motion.div {...fd}>
             <Eye>08 / Business Model</Eye>
-            <H1>Free software creates the data. CDI monetizes the trust layer.</H1>
-            <Sub>We give operators coordination software because adoption creates the behavioral substrate.</Sub>
+            <H1>We sell the outcome, not the tool.</H1>
+            <Sub>Operators get free coordination software because the workflow captures invisible labor. Agents and platforms pay for the trust outcome.</Sub>
           </motion.div>
           <div className="g4" style={{ marginTop: 24 }}>
             <Cell k="01 Transaction Fee" v="1.5% on verified routed work through the Briarwood trust layer." />
@@ -577,21 +577,39 @@ export default function Pitch() {
           </div>
         </S>
 
-        {/* 11 — TEAM */}
-        <S n={11} label="TEAM">
+        {/* 11 — DISTRIBUTION */}
+        <S n={11} label="DISTRIBUTION">
           <motion.div {...fd}>
-            <Eye>11 / Team</Eye>
-            <H1>Built by the operator who lived the problem.</H1>
+            <Eye>11 / Distribution</Eye>
+            <H1>The founder network is the distribution channel.</H1>
+            <Sub>We start where trust already flows.</Sub>
+            <Body>
+              Briarwood does not start with paid ads or cold outbound. It starts inside a 28-year trust-gated operator network across Bay Area and Napa service markets. The first 250 providers are not cold-start customers. They are referral-graph expansion from relationships where trust already moves.
+            </Body>
+          </motion.div>
+          <div className="g3" style={{ marginTop: 28 }}>
+            <Cell k="01 Trust-Gated Origin" v="28 years of coordination inside a referral-only operator network. Distribution is a prerequisite, not an afterthought." />
+            <Cell k="02 Referral Graph Expansion" v="Each verified handoff is a permissioned introduction. Onboarding compounds along existing trust edges." />
+            <Cell k="03 Demand Already Flows" v="We are not asking how to find customers. We are starting where demand and trust already converge." />
+          </div>
+        </S>
+
+        {/* 12 — TEAM */}
+        <S n={12} label="TEAM">
+          <motion.div {...fd}>
+            <Eye>12 / Team</Eye>
+            <H1>I lived the manual trust layer.</H1>
+            <Sub>Founder-market fit is the strongest predictor. Briarwood turns 28 years of lived trust verification into CDI.</Sub>
           </motion.div>
           <div className="g2" style={{ marginTop: 32 }}>
             <div style={{ background: `${SURF}dd`, padding: "26px 28px", borderTop: `1px solid ${BLUE}18` }}>
               <div style={{ fontFamily: "'Courier New', monospace", fontSize: "0.56rem", letterSpacing: "0.2em", textTransform: "uppercase", color: BLUE, marginBottom: 8, textShadow: `0 0 8px ${BLUE}80` }}>Founder & CEO</div>
               <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 800, fontSize: "1.5rem", color: TEXT, marginBottom: 12, letterSpacing: "-0.5px" }}>Violet Herod</div>
               <ul style={{ listStyle: "none", padding: 0, fontFamily: "'Inter', sans-serif", fontSize: "0.84rem", color: FAINT, lineHeight: 1.7 }}>
-                <li>· 28 years in a fragmented, trust-gated service market</li>
+                <li>· 28 years manually verifying who could execute, who could be trusted, who could recover</li>
                 <li>· $1M+ lifetime operator revenue, zero paid acquisition</li>
                 <li>· Originated the behavioral trust thesis from real transaction data</li>
-                <li>· Built the coordination network where Briarwood begins</li>
+                <li>· Built the trust-gated network where Briarwood begins</li>
               </ul>
             </div>
             <div style={{ background: `${SURF}dd`, padding: "26px 28px", borderTop: `1px solid ${BLUE}18` }}>
@@ -601,16 +619,16 @@ export default function Pitch() {
                 <li>· Computer Science, Santa Clara University</li>
                 <li>· AI infrastructure and backend systems</li>
                 <li>· Inference pipelines, Kubernetes, GCP, GPU optimization</li>
-                <li>· Raised by SMB owners — direct context for the operator economy</li>
+                <li>· Raised by SMB owners. Direct context for the operator economy</li>
               </ul>
             </div>
           </div>
         </S>
 
-        {/* 12 — THE ASK */}
-        <S n={12} label="THE ASK">
+        {/* 13 — THE ASK */}
+        <S n={13} label="THE ASK">
           <motion.div {...fd}>
-            <Eye>12 / The Ask</Eye>
+            <Eye>13 / The Ask</Eye>
             <div style={{
               fontFamily: "'Inter', sans-serif", fontWeight: 800,
               fontSize: "clamp(3rem, 7vw, 5.5rem)", letterSpacing: "-3px",
@@ -628,28 +646,32 @@ export default function Pitch() {
           </div>
         </S>
 
-        {/* 13 — CLOSE */}
-        <S n={13} label="CLOSE">
+        {/* 14 — CLOSE */}
+        <S n={14} label="CLOSE">
           <motion.div {...fd} style={{ textAlign: "center" }}>
-            <Eye>13 / Close</Eye>
+            <Eye>14 / Close</Eye>
             <div style={{
               fontFamily: "'Inter', sans-serif", fontWeight: 800,
-              fontSize: "clamp(2rem, 4.8vw, 4rem)", letterSpacing: "-1.5px", lineHeight: 1.15,
-              color: TEXT, marginTop: 16, maxWidth: 880,
+              fontSize: "clamp(1.9rem, 4.4vw, 3.4rem)", letterSpacing: "-1.4px", lineHeight: 1.18,
+              color: TEXT, marginTop: 12, maxWidth: 920,
             }}>
-              Without a trust substrate,<br />
-              <span style={{ color: RED, textShadow: `0 0 30px ${RED}, 0 0 60px ${RED}40` }}>agents are trapped in the browser.</span>
+              The first agent that can safely hire and pay humans in the real world will need a trust substrate.<br />
+              <span style={{ color: BLUE, textShadow: `0 0 24px ${BLUE}` }}>Briarwood is building it.</span>
             </div>
-            <div style={{ margin: "32px auto", width: 1, height: 40, background: `${BLUE}40`, boxShadow: `0 0 8px ${BLUE}` }} />
-            <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "1.15rem", color: TEXT, letterSpacing: "-0.3px" }}>
-              Briarwood makes real-world trust machine-readable.
+            <div style={{ margin: "26px auto 22px", width: 1, height: 36, background: `${BLUE}40`, boxShadow: `0 0 8px ${BLUE}` }} />
+            <div style={{
+              fontFamily: "'Inter', sans-serif", fontWeight: 700,
+              fontSize: "clamp(1.4rem, 3vw, 2.2rem)", letterSpacing: "-1px",
+              color: TEXT, maxWidth: 820, lineHeight: 1.25,
+            }}>
+              Briarwood is the trust layer that lets agents <span style={{ color: RED, textShadow: `0 0 22px ${RED}` }}>leave the browser</span>.
             </div>
-            <div style={{ marginTop: 36,
+            <div style={{ marginTop: 32,
               fontFamily: "'Inter', sans-serif", fontWeight: 800,
-              fontSize: "clamp(2.2rem, 5.5vw, 4rem)", letterSpacing: "-2px",
-              color: TEXT, textShadow: `0 0 30px ${BLUE}40`,
+              fontSize: "clamp(1.8rem, 4.2vw, 3rem)", letterSpacing: "-1.5px",
+              color: TEXT, textShadow: `0 0 24px ${BLUE}40`,
             }}>BRIARWOOD AI</div>
-            <Sub style={{ marginTop: 12 }}>The Trust Substrate for the Real-World Service Economy</Sub>
+            <Sub style={{ marginTop: 10 }}>The FICO score for real-world execution</Sub>
             <div style={{ marginTop: 48, fontFamily: "'Courier New', monospace", fontSize: "0.52rem",
               letterSpacing: "0.2em", color: `${TEXT}25`, textTransform: "uppercase",
               position: "relative", zIndex: 2 }}>
