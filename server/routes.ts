@@ -2994,31 +2994,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const dynamicWeights = await cdiEngine.getDynamicWeights();
         
         // Run three-dimension CDI analysis with dynamic weights
+        // BEHAVIORAL CDI: record the ground-truth event (message sent) with a
+        // fixed signal derived from observable facts only (it happened, length).
+        // The AI interpretation below is annotation, not score input.
+        cdiEngine.recordBehavioralEvent(
+          senderId,
+          (sender.role as 'client' | 'artist' | 'planner') || 'client',
+          'communication',
+          'message_sent',
+          'emotional_fidelity',
+          message.content && message.content.trim().length > 0 ? 5 : 0,
+          {
+            bookingId: data.bookingId || undefined,
+            evidenceText: message.content.substring(0, 100),
+          }
+        ).catch((err: Error) => console.error('[CDI Engine] Behavioral event error:', err));
+
+        // AI COMMENTARY (annotation only — never written to headline CDI).
         cdiEngine.analyzeForCDI(senderId, message.content, {
           actorRole: (sender.role as 'client' | 'artist' | 'planner') || 'client',
           targetRole: data.recipientId ? undefined : undefined,
           bookingId: data.bookingId || undefined,
           bookingStatus: booking?.status || undefined,
         }, dynamicWeights).then(async (result: any) => {
-          console.log(`[CDI] ${sender.role} ${senderId}: Score ${result.compositeScore} (${result.trustLevel})`);
-          console.log(`[CDI] Dimensions - EF: ${result.dimensions.emotionalFidelity.score}, CA: ${result.dimensions.choreographyAwareness.score}, RSR: ${result.dimensions.roleSpecificRecall.score}`);
-          
-          // Store composite score for tracking
-          await cdiEngine.storeCdiCompositeScore(senderId, result);
-          
-          // Record behavioral event for communication
-          await cdiEngine.recordBehavioralEvent(
-            senderId,
-            (sender.role as 'client' | 'artist' | 'planner') || 'client',
-            'communication',
-            'message_sent',
-            'emotional_fidelity',
-            result.dimensions.emotionalFidelity.score > 70 ? 10 : result.dimensions.emotionalFidelity.score > 50 ? 0 : -10,
-            {
-              bookingId: data.bookingId || undefined,
-              evidenceText: message.content.substring(0, 100),
-            }
-          );
+          console.log(`[CDI Commentary] ${sender.role} ${senderId}: AI read=${result.compositeScore} (${result.trustLevel}) — annotation only`);
+          await cdiEngine.storeAiInterpretation(senderId, result, { messageId: message.id });
         }).catch((err: Error) => {
           console.error('[CDI Engine] Analysis error:', err);
         });
@@ -9259,25 +9259,15 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       const result = await cdiEngine.analyzeForCDI(userId, message, {
         actorRole: (targetUser?.role as 'client' | 'artist' | 'planner') || 'client',
       }, dynamicWeights);
-      
-      // Store the composite score with the weights that were used
-      await storage.createCdiCompositeScore({
-        userId,
-        compositeScore: result.compositeScore,
-        trustLevel: result.trustLevel,
-        emotionalFidelityScore: result.dimensions.emotionalFidelity.score,
-        choreographyAwarenessScore: result.dimensions.choreographyAwareness.score,
-        roleSpecificRecallScore: result.dimensions.roleSpecificRecall.score,
-        emotionalFidelityWeight: result.weightsUsed.emotionalFidelity,
-        choreographyAwarenessWeight: result.weightsUsed.choreographyAwareness,
-        roleSpecificRecallWeight: result.weightsUsed.roleSpecificRecall,
-        hacoOverallDecision: result.hacoOverallDecision,
-        predictedSuccess: result.predictedSuccess,
-        interventionRecommended: result.interventionRecommended,
-        interventionReason: result.interventionReason,
-      });
-      
-      // Store dimension scores
+
+      // BOUNDARY: AI dimension analysis is annotation, not headline CDI.
+      // Per-dimension scores are kept (useful as commentary) but the composite
+      // is routed to cdi_ai_insights, NOT cdi_composite_scores. Headline CDI
+      // is reserved for behavioral aggregation only.
+      await cdiEngine.storeAiInterpretation(userId, result);
+
+      // Store dimension scores (commentary; tagged in evidence so consumers
+      // know they came from the AI annotator).
       for (const [dimKey, dimValue] of Object.entries(result.dimensions)) {
         const dimension = dimKey.replace(/([A-Z])/g, '_$1').toLowerCase();
         const dim = dimValue as { score: number; confidence: number; hacoDecision: string; components: any; evidence: any };
@@ -9291,8 +9281,12 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
           evidencePayload: dim.evidence,
         });
       }
-      
-      res.json(result);
+
+      res.json({
+        ...result,
+        source: 'ai_annotation',
+        boundary: 'AI commentary only. Headline CDI is computed from behavioral events.',
+      });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       res.status(400).json({ error: message });

@@ -517,20 +517,75 @@ export async function recordBehavioralEvent(
   }
 }
 
-// Store composite CDI score
+// ============================================================================
+// CDI TRUST-RECORD BOUNDARY
+// ============================================================================
+// Product principle:
+//   LLMs can interpret the trust record. They cannot create the trust record.
+//
+// Concretely:
+//   - Headline CDI is derived ONLY from cdi_behavioral_events (timestamps,
+//     status transitions, payment webhooks, holds honored, completions).
+//   - Anything produced by analyzeForCDI / cdiAgent (Gemini reading message
+//     text) is AI Commentary. It is stored in cdi_ai_insights and is NEVER
+//     written into cdi_composite_scores.
+//   - This avoids LLM self-preference bias contaminating the trust score
+//     (cf. Xu, Li & Jiang 2026, "AI Self-preferencing in Algorithmic Hiring").
+// ============================================================================
+
+// Store an AI interpretation of a message as ANNOTATION ONLY.
+// This intentionally writes to cdi_ai_insights (commentary), not
+// cdi_composite_scores (headline trust score).
+export async function storeAiInterpretation(
+  userId: string,
+  result: CDICompositeResult,
+  context?: { messageId?: string }
+): Promise<void> {
+  try {
+    console.log(`[CDI Engine] Storing AI interpretation for user ${userId}: ${result.compositeScore} (${result.trustLevel}) — annotation only, not written to headline CDI`);
+
+    // Map composite to a sentiment label for the insight record.
+    const sentiment =
+      result.compositeScore >= 70 ? 'positive' :
+      result.compositeScore >= 50 ? 'neutral' :
+      result.compositeScore >= 30 ? 'negative' : 'distressed';
+
+    await storage.createCdiAiInsight({
+      userId,
+      messageId: context?.messageId || null,
+      sentiment,
+      confidenceScore: Math.max(
+        result.dimensions.emotionalFidelity.confidence,
+        result.dimensions.choreographyAwareness.confidence,
+        result.dimensions.roleSpecificRecall.confidence,
+      ),
+      hacoDecision: result.hacoOverallDecision,
+      distressSignals: null,
+      rawMetrics: {
+        anxietyLevel: 0,
+        frustrationLevel: 0,
+        confusionLevel: 0,
+        satisfactionLevel: result.compositeScore,
+        urgencyLevel: 0,
+      },
+      suggestedAction: result.interventionRecommended ? (result.interventionReason || 'review') : null,
+      aiRationale: `AI interpretation (annotation only). Dimensions: EF=${result.dimensions.emotionalFidelity.score}, CA=${result.dimensions.choreographyAwareness.score}, RSR=${result.dimensions.roleSpecificRecall.score}. This score does NOT contribute to headline behavioral CDI.`,
+      quantumState: null,
+    } as any);
+  } catch (error) {
+    console.error('[CDI Engine] Error storing AI interpretation:', error);
+  }
+}
+
+// DEPRECATED: kept as a guarded shim so older call sites do not silently
+// write LLM-derived scores into the headline composite table.
+// Use storeAiInterpretation() instead.
 export async function storeCdiCompositeScore(
   userId: string,
   result: CDICompositeResult
 ): Promise<void> {
-  try {
-    console.log(`[CDI Engine] Storing composite score for user ${userId}: ${result.compositeScore} (${result.trustLevel})`);
-    console.log(`[CDI Engine] Dimensions: EF=${result.dimensions.emotionalFidelity.score}, CA=${result.dimensions.choreographyAwareness.score}, RSR=${result.dimensions.roleSpecificRecall.score}`);
-    console.log(`[CDI Engine] Weights Used: EF=${result.weightsUsed.emotionalFidelity}%, CA=${result.weightsUsed.choreographyAwareness}%, RSR=${result.weightsUsed.roleSpecificRecall}%`);
-    
-    // Future: Full storage.createCdiCompositeScore(...) with all fields
-  } catch (error) {
-    console.error('[CDI Engine] Error storing composite score:', error);
-  }
+  console.warn(`[CDI Engine] storeCdiCompositeScore is deprecated and intentionally a no-op. LLM-derived scores must not be written to cdi_composite_scores. Routing to AI Commentary instead for user ${userId}.`);
+  await storeAiInterpretation(userId, result);
 }
 
 // Process feedback for evolutionary learning

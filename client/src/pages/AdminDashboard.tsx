@@ -1202,7 +1202,7 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
               <div className="card-frame rounded-md px-5 py-4 text-center">
                 <div className="font-header mb-1 text-4xl text-black">{avgCdi}</div>
-                <div className="text-[0.65rem] uppercase tracking-widest ink-soft">Avg CDI Score</div>
+                <div className="text-[0.65rem] uppercase tracking-widest ink-soft">Avg Behavioral CDI</div>
               </div>
               <div className="card-frame rounded-md px-5 py-4 text-center">
                 <div className="font-header mb-1 text-4xl text-[#ea580c]">{highRiskCount}</div>
@@ -1223,7 +1223,7 @@ export default function AdminDashboard() {
               {/* LEFT: CDI SCORES LIST */}
               <div className="space-y-4 lg:col-span-1">
                 <h2 className="font-header text-lg ink-main mb-2 flex items-center gap-2">
-                  <Activity size={18} /> CDI Scores
+                  <Activity size={18} /> Behavioral CDI
                 </h2>
                 
                 {cdiScores.length === 0 ? (
@@ -1333,7 +1333,7 @@ export default function AdminDashboard() {
                     {/* CDI BREAKDOWN */}
                     <div className="mb-6 rounded border border-[#e5e8f2] bg-[#fbfcff] p-4">
                       <div className="mb-4 flex items-center justify-between">
-                        <h3 className="text-xs font-semibold ink-main uppercase tracking-wide">CDI Score Breakdown</h3>
+                        <h3 className="text-xs font-semibold ink-main uppercase tracking-wide">Behavioral CDI Breakdown</h3>
                         <div className={`flex items-center gap-1 text-lg font-bold ${getCdiColor(selectedCdi.score)}`}>
                           <span>{selectedCdi.score}/100</span>
                         </div>
@@ -1364,8 +1364,8 @@ export default function AdminDashboard() {
                       <div className="mb-6 rounded border-2 border-[#7c3aed]/30 bg-gradient-to-br from-[#f5f3ff] to-[#ede9fe] p-4">
                         <div className="mb-4 flex items-center justify-between">
                           <h3 className="text-xs font-semibold ink-main uppercase tracking-wide flex items-center gap-2">
-                            <Shield size={14} className="text-[#7c3aed]" /> Choreography Depth Index
-                            <span className="text-[0.6rem] text-[#7c3aed] bg-[#7c3aed]/10 px-2 py-0.5 rounded-full">3D</span>
+                            <Shield size={14} className="text-[#7c3aed]" /> AI Commentary
+                            <span className="text-[0.6rem] text-[#7c3aed] bg-[#7c3aed]/10 px-2 py-0.5 rounded-full">annotation</span>
                           </h3>
                           <div className="flex items-center gap-2">
                             <span className={`text-xs font-bold px-2 py-1 rounded ${

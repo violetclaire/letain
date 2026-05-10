@@ -328,6 +328,26 @@ export function registerAgentRoutes(app: Express) {
           conditional: { minScore: 50, description: "Can submit inquiries and place holds with audit logging" },
           restricted: { minScore: 0, description: "Read-only access - availability, pricing, CDI lookup" },
         },
+        dataPolicy: {
+          principle: "LLMs can interpret the trust record. They cannot create the trust record.",
+          headlineSource: "behavioral_events_only",
+          aiRole: "interpretation_only_never_source_of_truth",
+          headlineInputs: [
+            "response_latency_timestamps",
+            "booking_status_transitions",
+            "payment_webhook_events",
+            "holds_honored",
+            "handoffs_completed",
+            "service_completion_signals",
+            "verified_follow_through",
+          ],
+          aiCommentary: {
+            description: "Gemini-derived analysis of message text is stored separately as AI Commentary and is never weighted into the headline CDI score.",
+            storage: "cdi_ai_insights",
+            visibilityToAgents: "available via per-artist commentary endpoints; clearly tagged as 'ai_annotation'",
+          },
+          rationale: "Designed to avoid LLM self-preference bias contaminating trust scoring. Headline CDI is behavior, not language.",
+        },
       },
     });
   });
