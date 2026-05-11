@@ -9,7 +9,8 @@
 ./client/public/pinstripe.jpeg
 ./client/src/App.tsx
 ./client/src/components/AIChatPanel.tsx
-./client/src/components/AvailabilityCalendar.tsx
+./client/src/components/AvailabilityCal
+endar.tsx
 ./client/src/components/ChatCalendar.tsx
 ./client/src/components/ComposeEmailModal.tsx
 ./client/src/components/DayOfReadiness.tsx
