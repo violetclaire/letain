@@ -1,0 +1,300 @@
+import { useEffect } from "react";
+import { Switch, Route, useLocation } from "wouter";
+import { queryClient } from "./lib/queryClient";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { ThemeProvider } from "@/contexts/ThemeContext";
+import NotFound from "@/pages/not-found";
+
+import Landing from "@/pages/Landing";
+import Login from "@/pages/Login";
+import Signup from "@/pages/Signup";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
+import Register from "@/pages/Register";
+import ServiceSelection from "@/pages/intake/ServiceSelection";
+import ClientDetails from "@/pages/intake/ClientDetails";
+import ArtistIntake from "@/pages/intake/ArtistIntake";
+import PlannerIntake from "@/pages/intake/PlannerIntake";
+import ClientDashboard from "@/pages/ClientDashboard";
+import ArtistDashboard from "@/pages/ArtistDashboard";
+import PlannerDashboard from "@/pages/PlannerDashboard";
+import BrowseArtists from "@/pages/BrowseArtists";
+import AdminDashboard from "@/pages/AdminDashboard";
+import AdminImport from "@/pages/AdminImport";
+import SearchResults from "@/pages/SearchResults";
+import InviteAccept from "@/pages/InviteAccept";
+import VendorImport from "@/pages/VendorImport";
+import PlannerImport from "@/pages/PlannerImport";
+import ManageBookings from "@/pages/ManageBookings";
+import ProfileSettings from "@/pages/ProfileSettings";
+import ContractEditor from "@/pages/ContractEditor";
+import VendorProfile from "@/pages/VendorProfile";
+import ScheduleList from "@/pages/ScheduleList";
+import ScheduleCreator from "@/pages/ScheduleCreator";
+import ScheduleBuilder from "@/pages/ScheduleBuilder";
+import SimpleScheduleBuilder from "@/pages/SimpleScheduleBuilder";
+import PublicSchedule from "@/pages/PublicSchedule";
+import MultiDaySchedule from "@/pages/MultiDaySchedule";
+import DemoLanding from "@/pages/demo/DemoLanding";
+import DemoClientDashboard from "@/pages/demo/DemoClientDashboard";
+import DemoArtistDashboard from "@/pages/demo/DemoArtistDashboard";
+import DemoPlannerDashboard from "@/pages/demo/DemoPlannerDashboard";
+import DemoAdminDashboard from "@/pages/demo/DemoAdminDashboard";
+import InvestorDemo from "@/pages/demo/InvestorDemo";
+import VCDemo from "@/pages/demo/VCDemo";
+import ServicesDemo from "@/pages/demo/ServicesDemo";
+import APIOutcomeDemo from "@/pages/demo/APIOutcomeDemo";
+import ArtistRolodex from "@/pages/ArtistRolodex";
+import PaymentSuccess from "@/pages/PaymentSuccess";
+import PublicOnboarding from "@/pages/PublicOnboarding";
+import PublicArtistCalendar from "@/pages/PublicArtistCalendar";
+import PublicAnalytics from "@/pages/PublicAnalytics";
+import ArtistSettings from "@/pages/ArtistSettings";
+import TrustedCircle from "@/pages/TrustedCircle";
+import Proposals from "@/pages/Proposals";
+import VendorOnboarding from "@/pages/VendorOnboarding";
+import Waitlist from "@/pages/Waitlist";
+import ClientWaitlist from "@/pages/ClientWaitlist";
+import Privacy from "@/pages/Privacy";
+import About from "@/pages/About";
+import DemoLandingPreview from "@/pages/DemoLandingPreview";
+import BriarwoodSpec from "@/pages/BriarwoodSpec";
+import Oracle from "@/pages/Oracle";
+import Branding from "@/pages/Branding";
+import ContextGraph from "@/pages/ContextGraph";
+import Pitch from "@/pages/Pitch";
+import Memo from "@/pages/Memo";
+import CDIArchitecture from "@/pages/CDIArchitecture";
+import Sandbox from "@/pages/Sandbox";
+import Terminal from "@/pages/Terminal";
+import Proposal from "@/pages/Proposal";
+import ChatInvite from "@/pages/ChatInvite";
+import DirectChat from "@/pages/DirectChat";
+import ArtistQuickChat from "@/pages/ArtistQuickChat";
+import ClientMessages from "@/pages/ClientMessages";
+import ContractSigning from "@/pages/ContractSigning";
+import ContractCountersign from "@/pages/ContractCountersign";
+import ViewSignedContract from "@/pages/ViewSignedContract";
+import PlannerView from "@/pages/PlannerView";
+import SecretaryOnboarding from "@/pages/SecretaryOnboarding";
+import InquirePage from "@/pages/InquirePage";
+import InquiryThread from "@/pages/InquiryThread";
+import ClientThread from "@/pages/ClientThread";
+import SetupSquare from "@/pages/SetupSquare";
+import SetupContract from "@/pages/SetupContract";
+import SetupLinks from "@/pages/SetupLinks";
+import SetupComplete from "@/pages/SetupComplete";
+import ThreadPage from "@/pages/ThreadPage";
+import RecoverAccess from "@/pages/RecoverAccess";
+import ArtistAdmin from "@/pages/ArtistAdmin";
+import ArtistClientInbox from "@/pages/ArtistClientInbox";
+import ArtistLogin from "@/pages/ArtistLogin";
+import AccessVerify from "@/pages/AccessVerify";
+import ArtistAvailability from "@/pages/ArtistAvailability";
+import PublicQuote from "@/pages/PublicQuote";
+import Revenue from "@/pages/Revenue";
+import ToileInbound from "@/pages/ToileInbound";
+import ToileOnboarding from "@/pages/ToileOnboarding";
+import BriarwoodDemo from "@/pages/BriarwoodDemo";
+import AgentBrief from "@/pages/AgentBrief";
+
+// Domain-aware login - shows "Find Your Thread" on dateinquiry.com, full login on beauvette.app
+function DomainAwareLogin() {
+  const isWhiteLabelDomain = window.location.hostname.includes('dateinquiry');
+  if (isWhiteLabelDomain) {
+    return <ArtistLogin />;
+  }
+  return <Login />;
+}
+
+function InviteRedirectHandler() {
+  const [location, setLocation] = useLocation();
+  const { data: user } = useQuery({
+    queryKey: ["/api/auth/user"],
+    queryFn: async () => {
+      const res = await fetch("/api/auth/user");
+      if (!res.ok) return null;
+      return res.json();
+    },
+  });
+
+  useEffect(() => {
+    const storedToken = sessionStorage.getItem('inviteToken');
+    if (storedToken && user && location === '/') {
+      setLocation(`/invite/${storedToken}`);
+    }
+  }, [user, location, setLocation]);
+
+  return null;
+}
+
+function Router() {
+  return (
+    <Switch>
+      <Route path="/" component={Landing} />
+      <Route path="/login" component={DomainAwareLogin} />
+      <Route path="/artist-login" component={ArtistLogin} />
+      <Route path="/access/:code" component={AccessVerify} />
+      <Route path="/signup" component={Signup} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password/:token" component={ResetPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
+      <Route path="/recover-access" component={RecoverAccess} />
+      <Route path="/register" component={Register} />
+      <Route path="/intake/client" component={ServiceSelection} />
+      <Route path="/intake/client/details" component={ClientDetails} />
+      <Route path="/intake/artist" component={ArtistIntake} />
+      <Route path="/intake/planner" component={PlannerIntake} />
+      <Route path="/search" component={Waitlist} />
+      <Route path="/client" component={ClientDashboard} />
+      <Route path="/artist" component={ArtistDashboard} />
+      <Route path="/artist/inbox" component={ArtistClientInbox} />
+      <Route path="/planner" component={PlannerDashboard} />
+      <Route path="/browse" component={Waitlist} />
+      <Route path="/waitlist" component={Waitlist} />
+      <Route path="/clients" component={ClientWaitlist} />
+      <Route path="/privacy" component={Privacy} />
+      <Route path="/about" component={About} />
+      <Route path="/demo-landing" component={DemoLandingPreview} />
+      <Route path="/spec" component={BriarwoodSpec} />
+      <Route path="/oracle" component={Oracle} />
+      <Route path="/branding" component={Branding} />
+      <Route path="/context-graph" component={ContextGraph} />
+      <Route path="/pitch" component={Pitch} />
+      <Route path="/memo" component={Memo} />
+      <Route path="/cdi-architecture" component={CDIArchitecture} />
+      <Route path="/sandbox" component={Sandbox} />
+      <Route path="/terminal" component={Terminal} />
+      <Route path="/proposal" component={Proposal} />
+      <Route path="/admin" component={AdminDashboard} />
+      <Route path="/admin/import" component={AdminImport} />
+      <Route path="/artist/import" component={VendorImport} />
+      <Route path="/artist/manage-bookings" component={ManageBookings} />
+      <Route path="/artist/availability" component={ArtistAvailability} />
+      <Route path="/artist/rolodex" component={ArtistRolodex} />
+      <Route path="/artist/proposals" component={Proposals} />
+      <Route path="/artist/messages" component={ClientMessages} />
+      <Route path="/artist/onboarding" component={VendorOnboarding} />
+      <Route path="/planner/import" component={PlannerImport} />
+      <Route path="/settings" component={ProfileSettings} />
+      <Route path="/artist/contracts" component={ContractEditor} />
+      <Route path="/invite/:token" component={InviteAccept} />
+      <Route path="/vendor/:id" component={VendorProfile} />
+      
+      {/* Day-of Schedule Routes */}
+      <Route path="/artist/schedules" component={ScheduleList} />
+      <Route path="/artist/schedule-builder" component={SimpleScheduleBuilder} />
+      <Route path="/schedule-creator/:scheduleId">
+        {(params) => <ScheduleCreator scheduleId={params.scheduleId} />}
+      </Route>
+      <Route path="/schedule/:shareToken">
+        {(params) => <PublicSchedule shareToken={params.shareToken} />}
+      </Route>
+      <Route path="/quote/:shareToken" component={PublicQuote} />
+      <Route path="/schedules/new" component={ScheduleBuilder} />
+      <Route path="/schedules/:tokens">
+        {(params) => <MultiDaySchedule tokens={params.tokens} />}
+      </Route>
+      
+      {/* Toile Routes */}
+      <Route path="/toile" component={ToileOnboarding} />
+      <Route path="/toile/inbound" component={ToileInbound} />
+
+      {/* Briarwood Demo */}
+      <Route path="/demo/briarwood" component={BriarwoodDemo} />
+      <Route path="/cdi-brief" component={AgentBrief} />
+      
+      {/* Demo Mode Routes */}
+      <Route path="/demo" component={DemoLanding} />
+      <Route path="/demo/client" component={DemoClientDashboard} />
+      <Route path="/demo/artist" component={DemoArtistDashboard} />
+      <Route path="/demo/planner" component={DemoPlannerDashboard} />
+      <Route path="/demo/admin" component={DemoAdminDashboard} />
+      <Route path="/demo/investor" component={InvestorDemo} />
+      <Route path="/demo/bessemer" component={InvestorDemo} />
+      <Route path="/demo/vc" component={VCDemo} />
+      <Route path="/demo/services" component={ServicesDemo} />
+      <Route path="/demo/api" component={APIOutcomeDemo} />
+      
+      {/* Payment Routes */}
+      <Route path="/payment-success" component={PaymentSuccess} />
+      
+      {/* Chat Invite Route */}
+      <Route path="/chat-invite/:token" component={ChatInvite} />
+      <Route path="/chat/:token" component={DirectChat} />
+      <Route path="/quick-chat/:chatToken" component={ArtistQuickChat} />
+      
+      {/* Contract Signing Route (public - no auth required) */}
+      <Route path="/sign/:token">
+        {(params) => <ContractSigning token={params.token} />}
+      </Route>
+      
+      {/* Artist Countersign Route */}
+      <Route path="/countersign/:token">
+        {(params) => <ContractCountersign token={params.token} />}
+      </Route>
+      
+      {/* View Signed Contract Route */}
+      <Route path="/contract/:contractId">
+        {(params) => <ViewSignedContract contractId={params.contractId} />}
+      </Route>
+      
+      {/* Planner View Route (shared booking view for planners) */}
+      <Route path="/planner-view/:bookingId">
+        {(params) => <PlannerView bookingId={params.bookingId} />}
+      </Route>
+      
+      {/* Secretary Onboarding (public) */}
+      <Route path="/secretary" component={SecretaryOnboarding} />
+      
+      {/* Artist Admin Dashboard (slug-based, no login required) */}
+      <Route path="/admin/:slug" component={ArtistAdmin} />
+      
+      {/* Inquiry Thread (artist view of individual inquiry) */}
+      <Route path="/inquiry/:threadToken" component={InquiryThread} />
+      
+      {/* Client Thread (client view - read/reply only) */}
+      <Route path="/thread/:clientToken" component={ClientThread} />
+      
+      {/* Private Coordination Thread (white-label client view) */}
+      <Route path="/t/:token" component={ThreadPage} />
+      
+      {/* Setup flow routes */}
+      <Route path="/setup/:artistSlug/square" component={SetupSquare} />
+      <Route path="/setup/:artistSlug/contract" component={SetupContract} />
+      <Route path="/setup/:artistSlug/links" component={SetupLinks} />
+      <Route path="/setup/:artistSlug/complete" component={SetupComplete} />
+      
+      {/* Public Routes */}
+      <Route path="/onboarding" component={PublicOnboarding} />
+      <Route path="/analytics" component={PublicAnalytics} />
+      <Route path="/:artistSlug/settings" component={ArtistSettings} />
+      <Route path="/:artistSlug/calendar" component={PublicArtistCalendar} />
+      <Route path="/:artistSlug/circle" component={TrustedCircle} />
+      <Route path="/:artistSlug/revenue" component={Revenue} />
+      
+      {/* Primary inquiry route - clean URL for sharing (dateinquiry.com/business-name) */}
+      <Route path="/:artistSlug" component={InquirePage} />
+      
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <TooltipProvider>
+          <Toaster />
+          <InviteRedirectHandler />
+          <Router />
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+}
+
+export default App;

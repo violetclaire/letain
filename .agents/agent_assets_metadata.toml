@@ -72,3 +72,21 @@ id = "fof1EWebgiTXcUE9yquau"
 uri = "file://attached_assets/briarwood-cdi-brief.txt"
 type = "text"
 title = "CDI Trust Lookup Demo Brief — Full Text"
+
+[[outputs]]
+id = "H7XyF1bFprDT2ZmwimGtV"
+uri = "file://briarwood-beta-package.tar.gz"
+type = "unspecified"
+title = "Briarwood Beta — Clean Transfer Package (.tar.gz)"
+
+[[outputs]]
+id = "Jh6UVJZL5eh2B28_soIhz"
+uri = "file://briarwood-beta-package-MANIFEST.txt"
+type = "text"
+title = "Package file manifest"
+
+[[outputs]]
+id = "v_ISh55fGOAF_AVqPvVP_"
+uri = "file://briarwood-beta-package/TRANSFER_README.md"
+type = "text"
+title = "Transfer README for Claude Code"
