@@ -90,3 +90,15 @@ id = "v_ISh55fGOAF_AVqPvVP_"
 uri = "file://briarwood-beta-package/TRANSFER_README.md"
 type = "text"
 title = "Transfer README for Claude Code"
+
+[[outputs]]
+id = "T390ONxr2y_kDTiyWUmqn"
+uri = "file://erika_export/erika_marie_clients.csv"
+type = "table"
+title = "Erika Marie — All 69 Clients (live from dateinquiry.com)"
+
+[[outputs]]
+id = "kPAWdThTeNd99iZsqeZPG"
+uri = "file://erika_export/erika_marie_contracts_likely.csv"
+type = "table"
+title = "Erika Marie — 43 Clients Likely With Contracts Sent"
