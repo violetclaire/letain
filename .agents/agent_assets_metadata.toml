@@ -114,3 +114,39 @@ id = "F8TbEZFECvonP6Lbt0CMD"
 uri = "file://erika_export/erika_marie_contracts_likely.pdf"
 type = "pdf"
 title = "Erika Marie — 43 Clients With Contracts Sent (PDF)"
+
+[[outputs]]
+id = "HLCLZzMKkFIwYNHOO9O6y"
+uri = "file://erika_export/erika_marie_signed_contracts.zip"
+type = "unspecified"
+title = "All 5 Contracts (ZIP of PDFs)"
+
+[[outputs]]
+id = "PMnq0UOVaZ_RUt5KWUq44"
+uri = "file://erika_export/contracts/02_Nessa_Cossestine_fully_executed.pdf"
+type = "pdf"
+title = "SIGNED — Nessa Cossestine ($870)"
+
+[[outputs]]
+id = "9-7WkEdvNq0u2pZNrOf4w"
+uri = "file://erika_export/contracts/03_Ellie__fully_executed.pdf"
+type = "pdf"
+title = "SIGNED — Ellie Henretty ($3,140)"
+
+[[outputs]]
+id = "XhdeyZbWwrJkZyHflDikT"
+uri = "file://erika_export/contracts/01_Sof_a_Mart_nez__pending.pdf"
+type = "pdf"
+title = "Pending — Sofía Martínez ($400)"
+
+[[outputs]]
+id = "Faoy5kbVv2VBWMxQ0njwu"
+uri = "file://erika_export/contracts/04_Ellie__pending.pdf"
+type = "pdf"
+title = "Pending — Ellie Henretty revised ($3,800)"
+
+[[outputs]]
+id = "Sfm8kqFpxsH2xwi5nzq0D"
+uri = "file://erika_export/contracts/05_Angelica_Scott_pending.pdf"
+type = "pdf"
+title = "Pending — Angelica Scott ($2,060)"
