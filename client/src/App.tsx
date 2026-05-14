@@ -89,6 +89,7 @@ import SetupComplete from "@/pages/SetupComplete";
 import ThreadPage from "@/pages/ThreadPage";
 import RecoverAccess from "@/pages/RecoverAccess";
 import ArtistAdmin from "@/pages/ArtistAdmin";
+import ArtistArchive from "@/pages/ArtistArchive";
 import ArtistClientInbox from "@/pages/ArtistClientInbox";
 import ArtistLogin from "@/pages/ArtistLogin";
 import AccessVerify from "@/pages/AccessVerify";
@@ -250,6 +251,7 @@ function Router() {
       <Route path="/secretary" component={SecretaryOnboarding} />
       
       {/* Artist Admin Dashboard (slug-based, no login required) */}
+      <Route path="/admin/:slug/archive" component={ArtistArchive} />
       <Route path="/admin/:slug" component={ArtistAdmin} />
       
       {/* Inquiry Thread (artist view of individual inquiry) */}

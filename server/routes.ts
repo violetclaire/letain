@@ -15833,6 +15833,90 @@ Rules:
     }
   });
 
+  // ARCHIVE: All clients + all contracts for an artist (read-only folder view)
+  app.get("/api/public/artist-archive/:slug", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const { token } = req.query;
+      const sessionUserId = (req.session as any)?.userId;
+
+      // Resolve profile by slug first (slug is the requested identity)
+      const profile = await storage.getArtistProfileBySlug(slug);
+      if (!profile) {
+        return res.status(404).json({ error: "Artist not found" });
+      }
+
+      // Authorize: token MUST match the slug's editToken, OR session user must own the profile.
+      // If both are present they must agree.
+      const tokenOk = token && profile.editToken && token === profile.editToken;
+      const sessionOk = sessionUserId && profile.userId === sessionUserId;
+      if (!tokenOk && !sessionOk) {
+        return res.status(401).json({ error: "Access denied" });
+      }
+      if (token && sessionUserId && !tokenOk) {
+        return res.status(401).json({ error: "Token does not match this account" });
+      }
+
+      const inquiriesRaw = await storage.getInquiriesByVendor(profile.userId);
+      const contractsRaw = await storage.getContractsByArtist(profile.userId);
+
+      const inquiries = inquiriesRaw
+        .map((inq: any) => ({
+          id: inq.id,
+          threadToken: inq.threadToken,
+          clientName: inq.clientName,
+          clientEmail: inq.clientEmail,
+          clientPhone: inq.clientPhone || null,
+          eventDate: inq.eventDate,
+          eventLocation: inq.eventLocation || null,
+          eventType: inq.eventType || null,
+          message: inq.message || null,
+          status: inq.status,
+          createdAt: inq.createdAt,
+          depositPaidAt: inq.depositPaidAt || null,
+          infoSheetSentAt: inq.infoSheetSentAt || null,
+        }))
+        .sort((a: any, b: any) => {
+          const dA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dB - dA;
+        });
+
+      const contracts = contractsRaw.map((c: any) => ({
+        id: c.id,
+        inquiryId: c.inquiryId || null,
+        bookingId: c.bookingId || null,
+        clientName: c.clientName || c.signedByName || null,
+        clientEmail: c.signedByEmail || c.clientContact || null,
+        totalAmount: c.totalAmount,
+        depositAmount: c.depositAmount,
+        status: c.status,
+        eventDates: c.eventDates || null,
+        eventLocation: c.eventLocation || null,
+        sentForSigningAt: c.sentForSigningAt || null,
+        signedAt: c.signedAt || null,
+        artistSignedAt: c.artistSignedAt || null,
+        hasSigningLink: !!c.signingToken,
+        fileUrl: c.fileUrl || null,
+        openSignCertificateUrl: c.openSignCertificateUrl || null,
+        createdAt: c.createdAt,
+      }));
+
+      res.json({
+        artist: {
+          id: profile.id,
+          businessName: profile.businessName,
+          artistSlug: profile.artistSlug,
+        },
+        inquiries,
+        contracts,
+      });
+    } catch (error: any) {
+      console.error("[Artist Archive] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Public inquiry submission (supports both artistSlug and username)
   app.post("/api/public/inquiries", async (req, res) => {
     try {
