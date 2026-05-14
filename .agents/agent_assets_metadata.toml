@@ -102,3 +102,15 @@ id = "kPAWdThTeNd99iZsqeZPG"
 uri = "file://erika_export/erika_marie_contracts_likely.csv"
 type = "table"
 title = "Erika Marie — 43 Clients Likely With Contracts Sent"
+
+[[outputs]]
+id = "zr7A645qrPC5Uivo09fTk"
+uri = "file://erika_export/erika_marie_clients.pdf"
+type = "pdf"
+title = "Erika Marie — All 69 Clients (PDF)"
+
+[[outputs]]
+id = "F8TbEZFECvonP6Lbt0CMD"
+uri = "file://erika_export/erika_marie_contracts_likely.pdf"
+type = "pdf"
+title = "Erika Marie — 43 Clients With Contracts Sent (PDF)"
