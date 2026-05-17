@@ -77,7 +77,7 @@ title = "CDI Trust Lookup Demo Brief — Full Text"
 id = "H7XyF1bFprDT2ZmwimGtV"
 uri = "file://briarwood-beta-package.tar.gz"
 type = "unspecified"
-title = "Briarwood Beta — Clean Transfer Package (.tar.gz)"
+title = "Updated Handoff Package (150 files)"
 
 [[outputs]]
 id = "Jh6UVJZL5eh2B28_soIhz"
@@ -150,3 +150,15 @@ id = "Sfm8kqFpxsH2xwi5nzq0D"
 uri = "file://erika_export/contracts/05_Angelica_Scott_pending.pdf"
 type = "pdf"
 title = "Pending — Angelica Scott ($2,060)"
+
+[[outputs]]
+id = "Y98RMwd9RWofs32KpLva3"
+uri = "file://briarwood-beta-package/PRODUCT_BRIEF.md"
+type = "text"
+title = "Briarwood Product Brief (for Dundy)"
+
+[[outputs]]
+id = "fLT3vhwiagFIj7Me-geJN"
+uri = "file://briarwood-beta-package/GAP_ANALYSIS.md"
+type = "text"
+title = "Gap Analysis — Brief vs. Existing Build"
