@@ -81,6 +81,62 @@ These will tempt you. Resist until the workflow above is solid.
 2. **Agent-readable.** Clean semantic fields. No JSON blobs masquerading as structure. Every record has unique ID, timestamps, status, owner.
 3. **Headless.** UI is one of several possible clients. Treat it that way.
 4. **Event log writes are required, not optional.** Every workflow action writes a trust event in the same transaction. If the event write fails, the action fails.
+5. **The routing layer learns.** Every routed or completed job must make the next routing decision smarter. The trusted network is not a static directory — it is a feedback loop. See "The Learning Loop" below.
+
+---
+
+## The Learning Loop (core IP)
+
+> **Every routed or completed job should make the next routing decision smarter.**
+
+This is what separates Briarwood from a Rolodex. The trusted network is alive — it gets more accurate every time an operator routes or a job closes.
+
+### What the loop captures
+
+Every handoff and every completed job writes signals back to the network record:
+
+| Signal | Source event |
+|---|---|
+| `acceptance_rate` per contact | `handoff.accepted` / `handoff.declined` / `handoff.no_response` |
+| `response_latency` per contact | time between `handoff.created` and any response |
+| `booking_rate` per contact | `handoff.accepted` → `job.booked` conversion |
+| `completion_rate` per contact | `job.booked` → `job.completed` conversion |
+| `payment_followthrough` per contact | `job.completed` → `payment.received` |
+| `repeat_referral_rate` per contact | `referral.repeated` over time |
+| `outcome_quality` per contact | operator-tagged + client-side `outcome.confirmed` |
+| `service_fit_score` per (contact, service_type, location) | derived from past `job.completed` matches |
+
+### What the loop returns
+
+When an operator goes to route a new inquiry, the system surfaces:
+
+1. **Ranked candidates** — contacts ordered by `service_fit_score × completion_rate × recency`, not alphabetical.
+2. **Hidden-signal warnings** — "Sarah has 2 open holds already" / "Maria has declined the last 3 referrals for this location."
+3. **Confidence band** — "High match: 4 successful handoffs to Maria for Napa weddings in the last 12 months."
+4. **Fallback list** — second and third choices pre-computed so a one-tap re-route works.
+
+### What this looks like in the schema
+
+The `network_contacts` table is the static directory.
+The `contact_signals` table (rebuilt nightly or rolled forward in real time) is the **learned layer** on top.
+
+```
+network_contacts        (who they are)
+       │
+       ▼
+contact_signals         (how they actually behave — derived from trust_events)
+       │
+       ▼
+routing_recommendations (ranked candidates per inquiry context)
+```
+
+Never ask the operator to score contacts. Let the events do it.
+
+### Why this matters
+
+A static directory ages out in weeks. A learning network compounds: every job everyone routes makes everyone's routing smarter. This is the actual moat — not the workflow alone, but the workflow **plus** the learning loop on top.
+
+**Do not build the recommendation engine in Phase 1.** Capture the events cleanly. The ranking logic is Phase 2-3, once enough event data exists to train against.
 
 ---
 
