@@ -162,3 +162,9 @@ id = "fLT3vhwiagFIj7Me-geJN"
 uri = "file://briarwood-beta-package/GAP_ANALYSIS.md"
 type = "text"
 title = "Gap Analysis — Brief vs. Existing Build"
+
+[[outputs]]
+id = "qbl5KEhdC8j4ENl-GK7t7"
+uri = "file://briarwood-landing.zip"
+type = "unspecified"
+title = "briarwood.ai landing page — ZIP ready to host"

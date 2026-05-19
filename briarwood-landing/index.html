@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Briarwood — Making trusted service networks legible</title>
+<meta name="description" content="Briarwood captures how trusted service networks already operate and turns that behavior into a trust signal. We are not replacing word of mouth. We are making it legible for the first time.">
+
+<meta property="og:title" content="Briarwood">
+<meta property="og:description" content="Making trusted service networks legible.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://briarwood.ai">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Briarwood">
+<meta name="twitter:description" content="Making trusted service networks legible.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg: hsl(36 24% 95%);
+  --surface: hsl(36 18% 93%);
+  --ink: hsl(0 0% 10%);
+  --muted-ink: hsl(0 0% 23%);
+  --faint-ink: hsl(0 0% 35%);
+  --brass: hsl(42 33% 57%);
+  --oxblood: hsl(0 50% 24%);
+  --hairline: hsl(36 10% 84%);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  width: 100%;
+}
+
+header {
+  padding: 2.5rem 0 1.5rem;
+  border-bottom: 1px solid var(--hairline);
+}
+
+header .container {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.wordmark {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 500;
+  font-size: 1.35rem;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.wordmark .dot {
+  color: var(--brass);
+}
+
+nav a {
+  color: var(--muted-ink);
+  text-decoration: none;
+  font-size: 0.9rem;
+  margin-left: 1.5rem;
+  border-bottom: 1px solid transparent;
+  padding-bottom: 2px;
+  transition: border-color 0.2s;
+}
+
+nav a:hover { border-bottom-color: var(--ink); }
+
+main {
+  flex: 1;
+  padding: 5rem 0 6rem;
+  animation: fadeUp 0.5s ease-out;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+h1 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 500;
+  font-size: clamp(2.5rem, 6vw, 3.75rem);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  margin-bottom: 1.5rem;
+}
+
+.tagline {
+  font-family: 'Fraunces', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(1.15rem, 2.4vw, 1.35rem);
+  color: var(--muted-ink);
+  line-height: 1.4;
+  margin-bottom: 3.5rem;
+  max-width: 32ch;
+}
+
+.prose {
+  max-width: 60ch;
+}
+
+.prose p {
+  font-size: 1.075rem;
+  color: var(--muted-ink);
+  margin-bottom: 1.4rem;
+  line-height: 1.65;
+}
+
+.prose p.emphatic {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.divider {
+  width: 60px;
+  height: 1px;
+  background: var(--brass);
+  margin: 3rem 0;
+  border: none;
+}
+
+.closing {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.4rem;
+  line-height: 1.4;
+  color: var(--ink);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  margin-bottom: 0.5rem;
+}
+
+.closing-sub {
+  font-family: 'Fraunces', Georgia, serif;
+  font-style: italic;
+  font-size: 1.25rem;
+  line-height: 1.4;
+  color: var(--muted-ink);
+  font-weight: 400;
+}
+
+footer {
+  border-top: 1px solid var(--hairline);
+  padding: 2rem 0 2.5rem;
+  font-size: 0.875rem;
+  color: var(--faint-ink);
+}
+
+footer .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+footer a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--brass);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  transition: text-decoration-color 0.2s;
+}
+
+footer a:hover { text-decoration-color: var(--ink); }
+
+.contact-prompt {
+  font-family: 'Fraunces', Georgia, serif;
+  font-style: italic;
+}
+
+@media (max-width: 600px) {
+  header { padding: 1.5rem 0 1rem; }
+  main { padding: 3rem 0 4rem; }
+  nav a { margin-left: 1rem; font-size: 0.85rem; }
+  .tagline { margin-bottom: 2.5rem; }
+  .divider { margin: 2rem 0; }
+}
+
+::selection {
+  background: var(--brass);
+  color: var(--bg);
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <div class="wordmark">Briarwood<span class="dot">.</span></div>
+    <nav>
+      <a href="mailto:violet@briarwood.ai">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+
+    <h1>Briarwood</h1>
+
+    <p class="tagline">Making trusted service networks legible.</p>
+
+    <div class="prose">
+
+      <p>Word-of-mouth businesses already run on private trust networks.</p>
+
+      <p>But the behavior behind that trust lives in DMs, texts, memory, and manual coordination.</p>
+
+      <p class="emphatic">It has never had infrastructure.</p>
+
+      <hr class="divider">
+
+      <p>Most companies monetize the wrong layer: leads, listings, ads, profiles, and payments.</p>
+
+      <p class="emphatic">But trust is not bought.</p>
+
+      <p class="emphatic">Trust is earned through action.</p>
+
+      <hr class="divider">
+
+      <p>Briarwood captures how trusted service networks already operate and turns that behavior into a trust signal.</p>
+
+      <p class="closing">We are not replacing word of mouth.</p>
+      <p class="closing-sub">We are making it legible for the first time.</p>
+
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    <span>&copy; <span id="year"></span> Briarwood</span>
+    <span class="contact-prompt">
+      Talk to us &mdash; <a href="mailto:violet@briarwood.ai">violet@briarwood.ai</a>
+    </span>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+</script>
+
+</body>
+</html>
