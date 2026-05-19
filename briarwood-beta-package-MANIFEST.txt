@@ -144,6 +144,7 @@ briarwood-beta-package/server/vite.ts
 briarwood-beta-package/shared/models/chat.ts
 briarwood-beta-package/shared/schema.ts
 briarwood-beta-package/shared/types.ts
+briarwood-beta-package/STACK_TARGET.md
 briarwood-beta-package/tailwind.config.ts
 briarwood-beta-package/TRANSFER_README.md
 briarwood-beta-package/tsconfig.json

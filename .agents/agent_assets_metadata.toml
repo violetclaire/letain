@@ -77,7 +77,7 @@ title = "CDI Trust Lookup Demo Brief — Full Text"
 id = "H7XyF1bFprDT2ZmwimGtV"
 uri = "file://briarwood-beta-package.tar.gz"
 type = "unspecified"
-title = "Updated Handoff Package (150 files)"
+title = "Dundy Handoff Package (151 files, updated)"
 
 [[outputs]]
 id = "Jh6UVJZL5eh2B28_soIhz"
@@ -168,3 +168,9 @@ id = "qbl5KEhdC8j4ENl-GK7t7"
 uri = "file://briarwood-landing.zip"
 type = "unspecified"
 title = "briarwood.ai landing page — ZIP ready to host"
+
+[[outputs]]
+id = "TZQIYZcg6PFo4uuoLbcbO"
+uri = "file://briarwood-beta-package/STACK_TARGET.md"
+type = "text"
+title = "Briarwood Target Stack — honest breakdown of all 12 tools"
