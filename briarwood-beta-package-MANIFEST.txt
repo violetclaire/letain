@@ -115,6 +115,7 @@ briarwood-beta-package/GAP_ANALYSIS.md
 briarwood-beta-package/package.json
 briarwood-beta-package/postcss.config.js
 briarwood-beta-package/PRODUCT_BRIEF.md
+briarwood-beta-package/READ_FIRST.md
 briarwood-beta-package/server/activityService.ts
 briarwood-beta-package/server/aiChat.ts
 briarwood-beta-package/server/cdiAgent.ts

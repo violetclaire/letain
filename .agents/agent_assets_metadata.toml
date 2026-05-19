@@ -77,7 +77,7 @@ title = "CDI Trust Lookup Demo Brief — Full Text"
 id = "H7XyF1bFprDT2ZmwimGtV"
 uri = "file://briarwood-beta-package.tar.gz"
 type = "unspecified"
-title = "Dundy Handoff Package (151 files, updated)"
+title = "Dundy Handoff Package (152 files, final)"
 
 [[outputs]]
 id = "Jh6UVJZL5eh2B28_soIhz"
@@ -174,3 +174,9 @@ id = "TZQIYZcg6PFo4uuoLbcbO"
 uri = "file://briarwood-beta-package/STACK_TARGET.md"
 type = "text"
 title = "Briarwood Target Stack — honest breakdown of all 12 tools"
+
+[[outputs]]
+id = "VqB9O_7GtDBBhAqXUOQMv"
+uri = "file://briarwood-beta-package/READ_FIRST.md"
+type = "text"
+title = "READ FIRST — Briarwood build priorities for Dundy"
