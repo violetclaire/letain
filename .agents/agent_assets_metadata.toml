@@ -180,3 +180,9 @@ id = "VqB9O_7GtDBBhAqXUOQMv"
 uri = "file://briarwood-beta-package/READ_FIRST.md"
 type = "text"
 title = "READ FIRST — now includes The Learning Loop"
+
+[[outputs]]
+id = "TuugUvjxTega1fkVCwehM"
+uri = "file://screenshots/briarwood-landing-preview.png"
+type = "image"
+title = "Preview of the new briarwood.ai landing page (with video logo background)"
