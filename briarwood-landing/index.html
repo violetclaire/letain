@@ -46,6 +46,37 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.bg-video {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 100%;
+  min-height: 100%;
+  width: auto;
+  height: auto;
+  z-index: -2;
+  object-fit: cover;
+  opacity: 0.32;
+  filter: sepia(0.25) saturate(0.85) contrast(0.95);
+  pointer-events: none;
+}
+
+.bg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse at center, hsla(36, 24%, 95%, 0.55) 0%, hsla(36, 24%, 95%, 0.82) 70%, hsla(36, 24%, 95%, 0.95) 100%);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-video { display: none; }
 }
 
 .container {
@@ -211,6 +242,11 @@ footer a:hover { text-decoration-color: var(--ink); }
 </style>
 </head>
 <body>
+
+<video class="bg-video" autoplay muted loop playsinline preload="auto" aria-hidden="true">
+  <source src="briarwood-bg.mp4" type="video/mp4">
+</video>
+<div class="bg-overlay" aria-hidden="true"></div>
 
 <header>
   <div class="container">
