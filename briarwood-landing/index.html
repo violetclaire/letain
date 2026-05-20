@@ -34,7 +34,18 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  background-color: hsl(345 31% 11%);
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0,
+    transparent 5px,
+    hsla(36, 24%, 92%, 0.055) 5px,
+    hsla(36, 24%, 92%, 0.055) 5.5px
+  );
+  min-height: 100%;
+}
 
 body {
   background-color: var(--bg);
