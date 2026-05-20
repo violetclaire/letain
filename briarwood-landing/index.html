@@ -21,14 +21,15 @@
 
 <style>
 :root {
-  --bg: hsl(36 24% 95%);
-  --surface: hsl(36 18% 93%);
-  --ink: hsl(0 0% 10%);
-  --muted-ink: hsl(0 0% 23%);
-  --faint-ink: hsl(0 0% 35%);
-  --brass: hsl(42 33% 57%);
-  --oxblood: hsl(0 50% 24%);
-  --hairline: hsl(36 10% 84%);
+  --bg: hsl(0 50% 18%);
+  --surface: hsl(0 50% 22%);
+  --cream: hsl(36 30% 92%);
+  --ink: hsl(36 30% 92%);
+  --muted-ink: hsl(36 22% 82%);
+  --faint-ink: hsl(36 16% 70%);
+  --brass: hsl(42 45% 70%);
+  --oxblood: hsl(0 50% 18%);
+  --hairline: hsla(36, 30%, 92%, 0.18);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -36,7 +37,14 @@
 html { scroll-behavior: smooth; }
 
 body {
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0,
+    transparent 38px,
+    hsla(36, 30%, 92%, 0.07) 38px,
+    hsla(36, 30%, 92%, 0.07) 39px
+  );
   color: var(--ink);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 17px;
@@ -236,8 +244,12 @@ footer a:hover { text-decoration-color: var(--ink); }
 }
 
 ::selection {
-  background: var(--brass);
+  background: var(--cream);
   color: var(--bg);
+}
+
+footer a {
+  color: var(--cream);
 }
 </style>
 </head>
