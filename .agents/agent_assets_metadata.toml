@@ -186,3 +186,9 @@ id = "TuugUvjxTega1fkVCwehM"
 uri = "file://screenshots/briarwood-landing-preview.png"
 type = "image"
 title = "Clean 1px pinstripes every 14px"
+
+[[outputs]]
+id = "gTfhhdVPmdI819wZ_YLx9"
+uri = "file://yc-session-export.md"
+type = "text"
+title = "Briarwood YC Session Export"
