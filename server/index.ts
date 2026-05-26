@@ -22,6 +22,25 @@ async function ensureDatabaseSchema() {
     { name: 'artist_profiles.login_code', sql: sql`ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS login_code varchar(255)` },
     { name: 'artist_profiles.login_code_expires_at', sql: sql`ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS login_code_expires_at timestamp` },
     { name: 'schedule_appointments.inspiration_photos', sql: sql`ALTER TABLE schedule_appointments ADD COLUMN IF NOT EXISTS inspiration_photos text[]` },
+
+    // --- Handoff accountability slice (YC submission session) ---
+    { name: 'thread_referrals.urgency_hours', sql: sql`ALTER TABLE thread_referrals ADD COLUMN IF NOT EXISTS urgency_hours integer` },
+    { name: 'thread_referrals.payment_secured_status', sql: sql`ALTER TABLE thread_referrals ADD COLUMN IF NOT EXISTS payment_secured_status text` },
+    { name: 'thread_referrals.contract_attached_id', sql: sql`ALTER TABLE thread_referrals ADD COLUMN IF NOT EXISTS contract_attached_id varchar(255)` },
+    { name: 'thread_referrals.scope_summary', sql: sql`ALTER TABLE thread_referrals ADD COLUMN IF NOT EXISTS scope_summary text` },
+    { name: 'thread_referrals.helper_reported_outcome', sql: sql`ALTER TABLE thread_referrals ADD COLUMN IF NOT EXISTS helper_reported_outcome text` },
+    { name: 'thread_referrals.helper_paid_at', sql: sql`ALTER TABLE thread_referrals ADD COLUMN IF NOT EXISTS helper_paid_at timestamp` },
+    { name: 'thread_referrals.helper_payment_note', sql: sql`ALTER TABLE thread_referrals ADD COLUMN IF NOT EXISTS helper_payment_note text` },
+    { name: 'thread_referrals.helper_private_note', sql: sql`ALTER TABLE thread_referrals ADD COLUMN IF NOT EXISTS helper_private_note text` },
+    { name: 'thread_referrals.helper_outcome_reported_at', sql: sql`ALTER TABLE thread_referrals ADD COLUMN IF NOT EXISTS helper_outcome_reported_at timestamp` },
+    { name: 'thread_referrals.helper_wants_to_share_advice', sql: sql`ALTER TABLE thread_referrals ADD COLUMN IF NOT EXISTS helper_wants_to_share_advice boolean DEFAULT false` },
+    { name: 'thread_referrals.helper_advice_draft', sql: sql`ALTER TABLE thread_referrals ADD COLUMN IF NOT EXISTS helper_advice_draft text` },
+    { name: 'thread_referrals.originator_advice_prompted_at', sql: sql`ALTER TABLE thread_referrals ADD COLUMN IF NOT EXISTS originator_advice_prompted_at timestamp` },
+    { name: 'thread_referrals.originator_advice_consent', sql: sql`ALTER TABLE thread_referrals ADD COLUMN IF NOT EXISTS originator_advice_consent text` },
+    { name: 'thread_referrals.originator_advice_consent_at', sql: sql`ALTER TABLE thread_referrals ADD COLUMN IF NOT EXISTS originator_advice_consent_at timestamp` },
+    { name: 'trusted_circle.quietly_removed', sql: sql`ALTER TABLE trusted_circle ADD COLUMN IF NOT EXISTS quietly_removed boolean DEFAULT false` },
+    { name: 'trusted_circle.removed_at', sql: sql`ALTER TABLE trusted_circle ADD COLUMN IF NOT EXISTS removed_at timestamp` },
+    { name: 'trusted_circle.removed_reason', sql: sql`ALTER TABLE trusted_circle ADD COLUMN IF NOT EXISTS removed_reason text` },
   ];
   
   for (const migration of migrations) {

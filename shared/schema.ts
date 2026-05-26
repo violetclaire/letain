@@ -206,6 +206,8 @@ export const artistProfiles = pgTable("artist_profiles", {
 });
 
 // Trusted Circle - referral network for artists
+// Quiet-removal fields support the "compassionate exit" pattern: not a blacklist,
+// just "not in my default routing right now." They are never notified.
 export const trustedCircle = pgTable("trusted_circle", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   referrerId: varchar("referrer_id").notNull().references(() => users.id),
@@ -214,6 +216,9 @@ export const trustedCircle = pgTable("trusted_circle", {
   refereeInstagram: text("referee_instagram"),
   inviteToken: varchar("invite_token").unique(),
   status: text("status").default("pending"), // 'pending', 'active'
+  quietlyRemoved: boolean("quietly_removed").default(false),
+  removedAt: timestamp("removed_at"),
+  removedReason: text("removed_reason"), // private — your note to yourself
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -1888,12 +1893,33 @@ export const threadMessages = pgTable("thread_messages", {
 });
 
 // Thread Referrals - when artist refers to another artist
+// Extended with handoff accountability fields (YC slice: inquiry → trusted handoff → outcome)
 export const threadReferrals = pgTable("thread_referrals", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   threadId: varchar("thread_id").notNull().references(() => threads.id),
-  referredArtistProfileId: varchar("referred_artist_profile_id").notNull().references(() => artistProfiles.id),
-  note: text("note"),
+  referredArtistId: varchar("referred_artist_id").notNull(),
   status: text("status").default("pending"), // pending, accepted, declined
+
+  // --- Handoff accountability (originator attests at handoff time) ---
+  urgencyHours: integer("urgency_hours"), // hours between handoff creation and event date
+  paymentSecuredStatus: text("payment_secured_status"), // 'secured_2plus_weeks' | 'secured_1_to_2_weeks' | 'secured_under_1_week' | 'not_yet_secured'
+  contractAttachedId: varchar("contract_attached_id"), // FK reference (loose) to contract
+  scopeSummary: text("scope_summary"), // full service scope, not just "bridal hair"
+
+  // --- Helper outcome report (helper fills in after the job) ---
+  helperReportedOutcome: text("helper_reported_outcome"), // 'clean' | 'paid_as_agreed_but_scope_off' | 'paid_late_or_partial' | 'scope_and_payment_both_off' | 'cancellation_no_fault'
+  helperPaidAt: timestamp("helper_paid_at"),
+  helperPaymentNote: text("helper_payment_note"), // free text — "two installments, week late"
+  helperPrivateNote: text("helper_private_note"), // gut note, never shared with originator
+  helperOutcomeReportedAt: timestamp("helper_outcome_reported_at"),
+
+  // --- Consent-gated coaching loop ---
+  helperWantsToShareAdvice: boolean("helper_wants_to_share_advice").default(false),
+  helperAdviceDraft: text("helper_advice_draft"), // helper's coaching note (only visible if originator opts in)
+  originatorAdvicePromptedAt: timestamp("originator_advice_prompted_at"),
+  originatorAdviceConsent: text("originator_advice_consent"), // 'yes' | 'no' | 'not_yet'
+  originatorAdviceConsentAt: timestamp("originator_advice_consent_at"),
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

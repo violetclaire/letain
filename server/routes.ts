@@ -68,10 +68,14 @@ import {
   insertCdiEventSchema,
   insertCdiThresholdSchema,
   insertCdiAdminOverrideSchema,
-  insertInquirySchema
+  insertInquirySchema,
+  threadReferrals,
+  threads,
+  artistProfiles,
+  trustedCircle
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql, inArray, isNotNull } from "drizzle-orm";
 
 // Default form configuration for new artists
 function getDefaultFormConfig(): FormConfig {
@@ -17325,6 +17329,347 @@ Rules:
     } catch (error: any) {
       console.error("Context graph export error:", error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============================================================
+  // HANDOFF ACCOUNTABILITY LOOP (YC submission slice)
+  // The line: "the original operator needs visibility into whether
+  // the client was actually protected when they routed them to a peer."
+  //
+  // Access model: every handoff endpoint is gated by ?token=<threadPublicToken>
+  // matching the parent thread's opaque token. This is the existing zero-login
+  // pattern used everywhere else in the app — the helper gets the token via the
+  // email notification, the originator already has it from their thread.
+  // ============================================================
+
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  // Resolves a handoff and verifies the caller has the matching thread token.
+  // Returns { handoff, thread } on success or sends an error response.
+  async function authorizeHandoff(req: Request, res: Response) {
+    if (!UUID_RE.test(req.params.id)) {
+      res.status(404).json({ error: "Handoff not found" });
+      return null;
+    }
+    const token = (req.query.token as string) || (req.headers["x-thread-token"] as string);
+    if (!token) {
+      res.status(401).json({ error: "Missing thread token" });
+      return null;
+    }
+    const handoff = await db.query.threadReferrals.findFirst({
+      where: (r, { eq }) => eq(r.id, req.params.id),
+    });
+    if (!handoff) {
+      res.status(404).json({ error: "Handoff not found" });
+      return null;
+    }
+    const thread = await db.query.threads.findFirst({
+      where: (t, { eq }) => eq(t.id, handoff.threadId),
+    });
+    if (!thread || thread.threadPublicToken !== token) {
+      res.status(403).json({ error: "Invalid thread token for this handoff" });
+      return null;
+    }
+    return { handoff, thread };
+  }
+
+  // Strips fields the originator must never see (consent-gated coaching guarantee).
+  function publicHandoffView(h: any) {
+    return {
+      id: h.id,
+      threadId: h.threadId,
+      referredArtistId: h.referredArtistId,
+      status: h.status,
+      urgencyHours: h.urgencyHours,
+      paymentSecuredStatus: h.paymentSecuredStatus,
+      contractAttachedId: h.contractAttachedId,
+      scopeSummary: h.scopeSummary,
+      helperReportedOutcome: h.helperReportedOutcome,
+      helperPaidAt: h.helperPaidAt,
+      helperOutcomeReportedAt: h.helperOutcomeReportedAt,
+      helperWantsToShareAdvice: !!h.helperWantsToShareAdvice,
+      // Excluded: helperPrivateNote, helperPaymentNote, helperAdviceDraft,
+      // originatorAdviceConsent details. These are exposed only via the
+      // dedicated coaching-prompt endpoint, with consent gating.
+      createdAt: h.createdAt,
+    };
+  }
+
+  // POST /api/handoffs - Create an attested handoff (originator).
+  // Enforces the originator's attestations at creation time. This is the moat:
+  // the system asks the awkward questions upfront so the helper never has to.
+  app.post("/api/handoffs", async (req: Request, res: Response) => {
+    try {
+      const schema = z.object({
+        threadId: z.string().uuid(),
+        threadToken: z.string().min(1),
+        referredArtistId: z.string().uuid(),
+        // Required attestations
+        paymentSecuredStatus: z.enum([
+          "secured_2plus_weeks",
+          "secured_1_to_2_weeks",
+          "secured_under_1_week",
+          "not_yet_secured",
+        ]),
+        scopeSummary: z.string().min(10, "Document the full scope of services"),
+        contractAttachedId: z.string().optional(),
+      });
+      const data = schema.parse(req.body);
+
+      // Verify the originator owns the thread (via token)
+      const thread = await db.query.threads.findFirst({
+        where: (t, { eq }) => eq(t.id, data.threadId),
+      });
+      if (!thread || thread.threadPublicToken !== data.threadToken) {
+        return res.status(403).json({ error: "Invalid thread token" });
+      }
+
+      // Compute urgency from event date
+      let urgencyHours: number | undefined;
+      if (thread.eventDate) {
+        urgencyHours = Math.max(
+          0,
+          Math.round((new Date(thread.eventDate).getTime() - Date.now()) / 36e5)
+        );
+      }
+
+      const [created] = await db
+        .insert(threadReferrals)
+        .values({
+          threadId: data.threadId,
+          referredArtistId: data.referredArtistId,
+          paymentSecuredStatus: data.paymentSecuredStatus,
+          scopeSummary: data.scopeSummary,
+          contractAttachedId: data.contractAttachedId,
+          urgencyHours,
+        })
+        .returning();
+
+      res.json({ ok: true, handoff: publicHandoffView(created) });
+    } catch (err: any) {
+      console.error("[handoff] create error:", err);
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // GET /api/handoffs/:id?token=... - Helper-facing handoff view.
+  // Token-gated. Returns the originator's attestations and a "gaps" list so
+  // the helper sees what wasn't secured before they accept.
+  app.get("/api/handoffs/:id", async (req: Request, res: Response) => {
+    try {
+      const auth = await authorizeHandoff(req, res);
+      if (!auth) return;
+      const { handoff } = auth;
+
+      const gaps: string[] = [];
+      if (!handoff.paymentSecuredStatus || handoff.paymentSecuredStatus === "not_yet_secured") {
+        gaps.push("payment_not_secured");
+      }
+      if (!handoff.contractAttachedId) gaps.push("no_contract_attached");
+      if (!handoff.scopeSummary) gaps.push("scope_not_documented");
+
+      res.json({
+        handoff: publicHandoffView(handoff),
+        gaps,
+        acceptAtOwnRisk: gaps.length > 0,
+      });
+    } catch (err: any) {
+      console.error("[handoff] get error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST /api/handoffs/:id/helper-outcome - Helper reports outcome after the job.
+  // 5 outcome buckets calibrated to the real failure modes Erika described:
+  // clean | paid_as_agreed_but_scope_off | paid_late_or_partial |
+  // scope_and_payment_both_off | cancellation_no_fault.
+  // The private note + advice draft stay with the helper unless the originator
+  // explicitly opts in (consent-gated coaching).
+  app.post("/api/handoffs/:id/helper-outcome", async (req: Request, res: Response) => {
+    try {
+      const auth = await authorizeHandoff(req, res);
+      if (!auth) return;
+      const schema = z.object({
+        outcome: z.enum([
+          "clean",
+          "paid_as_agreed_but_scope_off",
+          "paid_late_or_partial",
+          "scope_and_payment_both_off",
+          "cancellation_no_fault",
+        ]),
+        helperPaidAt: z.string().datetime().optional(),
+        paymentNote: z.string().max(2000).optional(),
+        privateNote: z.string().max(4000).optional(),
+        wantsToShareAdvice: z.boolean().default(false),
+        adviceDraft: z.string().max(4000).optional(),
+      });
+      const data = schema.parse(req.body);
+
+      const [updated] = await db
+        .update(threadReferrals)
+        .set({
+          helperReportedOutcome: data.outcome,
+          helperPaidAt: data.helperPaidAt ? new Date(data.helperPaidAt) : undefined,
+          helperPaymentNote: data.paymentNote,
+          helperPrivateNote: data.privateNote,
+          helperWantsToShareAdvice: data.wantsToShareAdvice,
+          helperAdviceDraft: data.wantsToShareAdvice ? data.adviceDraft : null,
+          helperOutcomeReportedAt: new Date(),
+        })
+        .where(eq(threadReferrals.id, req.params.id))
+        .returning();
+
+      if (!updated) return res.status(404).json({ error: "Handoff not found" });
+      res.json({ ok: true, handoff: publicHandoffView(updated) });
+    } catch (err: any) {
+      console.error("[handoff] outcome error:", err);
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // GET /api/handoffs/:id/coaching-prompt - Originator-facing prompt.
+  // Returns { hasAdviceWaiting: true } only if helper opted to share.
+  // The originator never sees the advice text until they actively consent.
+  app.get("/api/handoffs/:id/coaching-prompt", async (req: Request, res: Response) => {
+    try {
+      const auth = await authorizeHandoff(req, res);
+      if (!auth) return;
+      const h = auth.handoff;
+
+      const hasAdviceWaiting = !!(h.helperWantsToShareAdvice && h.helperAdviceDraft);
+      const consent = h.originatorAdviceConsent;
+
+      res.json({
+        hasAdviceWaiting,
+        promptCopy: hasAdviceWaiting
+          ? "Your last handoff partner has some feedback that could improve future bookings. Want to hear it?"
+          : null,
+        consent,
+        adviceVisible: consent === "yes" ? h.helperAdviceDraft : null,
+      });
+    } catch (err: any) {
+      console.error("[handoff] coaching-prompt error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST /api/handoffs/:id/coaching-consent - Originator's answer.
+  // 'yes' | 'no' | 'not_yet'. We record every response — a pattern of 'no'
+  // over time is itself a meaningful signal (without ever surfacing the
+  // underlying advice to them).
+  app.post("/api/handoffs/:id/coaching-consent", async (req: Request, res: Response) => {
+    try {
+      const auth = await authorizeHandoff(req, res);
+      if (!auth) return;
+      const schema = z.object({ consent: z.enum(["yes", "no", "not_yet"]) });
+      const { consent } = schema.parse(req.body);
+
+      const [updated] = await db
+        .update(threadReferrals)
+        .set({
+          originatorAdviceConsent: consent,
+          originatorAdviceConsentAt: new Date(),
+          originatorAdvicePromptedAt: sql`COALESCE(originator_advice_prompted_at, NOW())`,
+        })
+        .where(eq(threadReferrals.id, req.params.id))
+        .returning();
+
+      if (!updated) return res.status(404).json({ error: "Handoff not found" });
+      res.json({
+        ok: true,
+        adviceVisible: consent === "yes" ? updated.helperAdviceDraft : null,
+      });
+    } catch (err: any) {
+      console.error("[handoff] coaching-consent error:", err);
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // GET /api/handoffs/originator/:userId/mirror - Originator's pattern mirror.
+  // Aggregate-only. Never identifies which helper said what.
+  // Requires authenticated session matching :userId (originator looking at self).
+  app.get("/api/handoffs/originator/:userId/mirror", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const sessionUserId = req.user?.claims?.sub || req.user?.id;
+      if (sessionUserId !== req.params.userId) {
+        return res.status(403).json({ error: "Can only view your own mirror" });
+      }
+
+      // userId → artistProfile → threads (via artistProfileId) → handoffs
+      const profile = await db.query.artistProfiles.findFirst({
+        where: (p, { eq }) => eq(p.userId, req.params.userId),
+        columns: { id: true },
+      });
+      if (!profile) return res.json({ total: 0, patterns: {} });
+
+      const userThreads = await db.query.threads.findMany({
+        where: (t, { eq }) => eq(t.artistProfileId, profile.id),
+        columns: { id: true },
+      });
+      const threadIds = userThreads.map(t => t.id);
+      if (threadIds.length === 0) return res.json({ total: 0, patterns: {} });
+
+      const handoffs = await db.query.threadReferrals.findMany({
+        where: (r) =>
+          and(inArray(r.threadId, threadIds), isNotNull(r.helperReportedOutcome)),
+      });
+
+      const total = handoffs.length;
+      const patterns = {
+        clean: handoffs.filter(h => h.helperReportedOutcome === "clean").length,
+        scope_concerns: handoffs.filter(h =>
+          ["paid_as_agreed_but_scope_off", "scope_and_payment_both_off"].includes(h.helperReportedOutcome || "")
+        ).length,
+        payment_concerns: handoffs.filter(h =>
+          ["paid_late_or_partial", "scope_and_payment_both_off"].includes(h.helperReportedOutcome || "")
+        ).length,
+        cancellation_no_fault: handoffs.filter(h => h.helperReportedOutcome === "cancellation_no_fault").length,
+        coaching_waiting: handoffs.filter(h => h.helperWantsToShareAdvice && !h.originatorAdviceConsent).length,
+      };
+
+      res.json({ total, patterns });
+    } catch (err: any) {
+      console.error("[handoff] mirror error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST /api/trusted-circle/:memberId/quietly-remove - Compassionate exit.
+  // The peer is never notified. They simply stop appearing in default routing.
+  // The reason note is private to the remover. Reversible (POST again with
+  // restore: true).
+  app.post("/api/trusted-circle/:memberId/quietly-remove", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const sessionUserId = req.user?.claims?.sub || req.user?.id;
+      const schema = z.object({
+        reason: z.string().max(2000).optional(),
+        restore: z.boolean().optional(),
+      });
+      const data = schema.parse(req.body);
+
+      const member = await db.query.trustedCircle.findFirst({
+        where: (c, { eq }) => eq(c.id, req.params.memberId),
+      });
+      if (!member) return res.status(404).json({ error: "Circle member not found" });
+      if (member.referrerId !== sessionUserId) {
+        return res.status(403).json({ error: "Can only update your own circle" });
+      }
+
+      const [updated] = await db
+        .update(trustedCircle)
+        .set({
+          quietlyRemoved: !data.restore,
+          removedAt: data.restore ? null : new Date(),
+          removedReason: data.restore ? null : (data.reason ?? member.removedReason),
+        })
+        .where(eq(trustedCircle.id, req.params.memberId))
+        .returning();
+
+      res.json({ ok: true, member: updated });
+    } catch (err: any) {
+      console.error("[trusted-circle] quietly-remove error:", err);
+      res.status(400).json({ error: err.message });
     }
   });
 
