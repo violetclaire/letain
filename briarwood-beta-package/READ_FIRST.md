@@ -12,6 +12,17 @@ If you remember only one thing from this package, remember that.
 
 ---
 
+## Marketing landing page (briarwood.ai)
+
+The final landing page is locked. Files are in **`landing/`** in this package:
+
+- `landing/index.html` — the live HTML (oxblood `hsl(345 31% 11%)` background, cream `hsl(36 24% 92%)` text, 1px Versace pinstripes every 14px, Fraunces + Inter)
+- `landing/briarwood-landing.zip` — same file zipped for one-click upload
+
+**To deploy briarwood.ai:** the domain is wired to a separate Replit (`code-paste-html` owned by violetherod). Upload `briarwood-landing.zip` there. Do NOT modify the design — every color, weight, and pinstripe spacing was iterated to its final form. If you need to change copy only, edit `landing/index.html` directly.
+
+---
+
 ## What "the workflow" means
 
 The core operator loop is the entire product. It is:
