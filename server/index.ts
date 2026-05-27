@@ -103,6 +103,24 @@ app.use(cors({
 // Serve attached_assets as static files
 app.use('/attached_assets', express.static(path.join(process.cwd(), 'attached_assets')));
 
+// Briarwood marketing landing — served when host is briarwood.ai (or www.briarwood.ai)
+// This runs before everything else so the SPA never claims `/` on this domain.
+const BRIARWOOD_LANDING_HOSTS = new Set([
+  'briarwood.ai',
+  'www.briarwood.ai',
+]);
+const briarwoodLandingPath = path.join(process.cwd(), 'briarwood-landing', 'index.html');
+app.use((req, res, next) => {
+  const host = (req.hostname || '').toLowerCase();
+  if (!BRIARWOOD_LANDING_HOSTS.has(host)) return next();
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+  if (req.path === '/' || req.path === '/index.html') {
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    return res.sendFile(briarwoodLandingPath);
+  }
+  return next();
+});
+
 // Health check endpoints - MUST be first, before any middleware
 // This ensures deployment health checks can succeed immediately
 app.get("/health", (_req, res) => {
