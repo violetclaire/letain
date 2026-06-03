@@ -108,6 +108,8 @@ app.use('/attached_assets', express.static(path.join(process.cwd(), 'attached_as
 const BRIARWOOD_LANDING_HOSTS = new Set([
   'briarwood.ai',
   'www.briarwood.ai',
+  'briarwood.com',
+  'www.briarwood.com',
 ]);
 const briarwoodLandingPath = path.join(process.cwd(), 'briarwood-landing', 'index.html');
 app.use((req, res, next) => {
