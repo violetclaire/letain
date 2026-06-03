@@ -110,6 +110,8 @@ const BRIARWOOD_LANDING_HOSTS = new Set([
   'www.briarwood.ai',
   'briarwood.com',
   'www.briarwood.com',
+  'atbriarwood.com',
+  'www.atbriarwood.com',
 ]);
 const briarwoodLandingPath = path.join(process.cwd(), 'briarwood-landing', 'index.html');
 app.use((req, res, next) => {
