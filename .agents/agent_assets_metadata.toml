@@ -192,3 +192,9 @@ id = "gTfhhdVPmdI819wZ_YLx9"
 uri = "file://yc-session-export.md"
 type = "text"
 title = "Briarwood YC Session Export"
+
+[[outputs]]
+id = "VOBuwCmtqqGIdU3fgRdw9"
+uri = "file://briarwood-beta-package/landing/briarwood-landing.zip"
+type = "unspecified"
+title = "Briarwood Landing (atbriarwood.com) - unzip for index.html"
