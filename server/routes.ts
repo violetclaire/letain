@@ -3190,7 +3190,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Admin access required" });
       }
       const limit = Math.min(parseInt(String(req.query.limit ?? "50"), 10) || 50, 200);
-      const rows = await storage.getRecentInboundSms(limit);
+      const rows = await storage.getRecentInboundSmsEnriched(limit);
       res.json({ count: rows.length, messages: rows });
     } catch (error: any) {
       res.status(500).json({ error: error?.message || "Failed to load inbound SMS" });

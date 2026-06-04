@@ -430,6 +430,7 @@ export interface IStorage {
   getInboundSmsByMessageSid(messageSid: string): Promise<InboundSmsMessage | undefined>;
   createInboundSms(msg: InsertInboundSmsMessage): Promise<InboundSmsMessage>;
   getRecentInboundSms(limit?: number): Promise<InboundSmsMessage[]>;
+  getRecentInboundSmsEnriched(limit?: number): Promise<any[]>;
   findUserIdByPhone(phone: string): Promise<string | undefined>;
   findClientContactByPhone(phone: string): Promise<{ id: string; artistId: string } | undefined>;
   findActiveInquiryByClientPhone(phone: string): Promise<{ id: string } | undefined>;
@@ -2053,6 +2054,61 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(inboundSmsMessages)
       .orderBy(desc(inboundSmsMessages.receivedAt))
       .limit(limit);
+  }
+
+  // Inbound SMS rows enriched with the names/records they matched to, plus the
+  // CDI trust event each one created. Used by the admin "Inbound Replies" view.
+  async getRecentInboundSmsEnriched(limit: number = 50): Promise<any[]> {
+    const rows = await this.getRecentInboundSms(limit);
+    if (rows.length === 0) return [];
+
+    const userIds = Array.from(new Set(rows.map(r => r.matchedUserId).filter(Boolean))) as string[];
+    const contactIds = Array.from(new Set(rows.map(r => r.matchedContactId).filter(Boolean))) as string[];
+    const inquiryIds = Array.from(new Set(rows.map(r => r.matchedInquiryId).filter(Boolean))) as string[];
+    const eventIds = Array.from(new Set(rows.map(r => r.trustEventId).filter(Boolean))) as string[];
+
+    const [userRows, contactRows, inquiryRows, eventRows] = await Promise.all([
+      userIds.length
+        ? db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email, businessName: users.businessName })
+            .from(users).where(inArray(users.id, userIds))
+        : Promise.resolve([] as any[]),
+      contactIds.length
+        ? db.select({ id: clientContacts.id, name: clientContacts.name, email: clientContacts.email })
+            .from(clientContacts).where(inArray(clientContacts.id, contactIds))
+        : Promise.resolve([] as any[]),
+      inquiryIds.length
+        ? db.select({ id: inquiries.id, clientName: inquiries.clientName, status: inquiries.status, eventDate: inquiries.eventDate })
+            .from(inquiries).where(inArray(inquiries.id, inquiryIds))
+        : Promise.resolve([] as any[]),
+      eventIds.length
+        ? db.select({ id: cdiBehavioralEvents.id, eventType: cdiBehavioralEvents.eventType, eventCategory: cdiBehavioralEvents.eventCategory, dimension: cdiBehavioralEvents.dimension, signalStrength: cdiBehavioralEvents.signalStrength, createdAt: cdiBehavioralEvents.createdAt })
+            .from(cdiBehavioralEvents).where(inArray(cdiBehavioralEvents.id, eventIds))
+        : Promise.resolve([] as any[]),
+    ]);
+
+    const userMap = new Map(userRows.map((u: any) => [u.id, u]));
+    const contactMap = new Map(contactRows.map((c: any) => [c.id, c]));
+    const inquiryMap = new Map(inquiryRows.map((i: any) => [i.id, i]));
+    const eventMap = new Map(eventRows.map((e: any) => [e.id, e]));
+
+    const fullName = (u: any) =>
+      u ? (u.businessName || [u.firstName, u.lastName].filter(Boolean).join(" ") || u.email || null) : null;
+
+    return rows.map(r => {
+      const u = r.matchedUserId ? userMap.get(r.matchedUserId) : undefined;
+      const c = r.matchedContactId ? contactMap.get(r.matchedContactId) : undefined;
+      const i = r.matchedInquiryId ? inquiryMap.get(r.matchedInquiryId) : undefined;
+      const e = r.trustEventId ? eventMap.get(r.trustEventId) : undefined;
+      return {
+        ...r,
+        matchedUserName: fullName(u),
+        matchedContactName: c?.name ?? null,
+        matchedInquiry: i ? { id: i.id, clientName: i.clientName, status: i.status, eventDate: i.eventDate } : null,
+        trustEvent: e
+          ? { id: e.id, eventType: e.eventType, eventCategory: e.eventCategory, dimension: e.dimension, signalStrength: e.signalStrength, createdAt: e.createdAt }
+          : null,
+      };
+    });
   }
 
   async findUserIdByPhone(phone: string): Promise<string | undefined> {

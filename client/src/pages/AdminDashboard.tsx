@@ -419,6 +419,13 @@ export default function AdminDashboard() {
                 >
                   <Upload size={14} /> Import Bookings
                 </Link>
+                <Link
+                  href="/admin/inbound-replies"
+                  className="px-3 py-1.5 border border-[#262329]/30 text-[#262329] text-xs rounded-md hover:bg-[#262329]/5 flex items-center gap-1.5 transition-colors"
+                  data-testid="link-inbound-replies"
+                >
+                  <MessageSquare size={14} /> Inbound Replies
+                </Link>
                 <button
                   onClick={fetchAdminData}
                   className="text-xs ink-soft hover:ink-main flex items-center gap-1 transition-colors"

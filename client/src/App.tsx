@@ -23,6 +23,7 @@ import PlannerDashboard from "@/pages/PlannerDashboard";
 import BrowseArtists from "@/pages/BrowseArtists";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminImport from "@/pages/AdminImport";
+import AdminInboundReplies from "@/pages/AdminInboundReplies";
 import SearchResults from "@/pages/SearchResults";
 import InviteAccept from "@/pages/InviteAccept";
 import VendorImport from "@/pages/VendorImport";
@@ -172,6 +173,7 @@ function Router() {
       <Route path="/proposal" component={Proposal} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/import" component={AdminImport} />
+      <Route path="/admin/inbound-replies" component={AdminInboundReplies} />
       <Route path="/artist/import" component={VendorImport} />
       <Route path="/artist/manage-bookings" component={ManageBookings} />
       <Route path="/artist/availability" component={ArtistAvailability} />
