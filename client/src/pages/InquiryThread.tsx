@@ -6,7 +6,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Loader2, Send, X, Check, Plus, Trash2, Eye, Pencil, UserPlus, Copy, FileText, Calendar } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import type { Inquiry, ArtistProfile } from "@shared/schema";
+import type { Inquiry, ArtistProfile, TrustTimelineEntry } from "@shared/schema";
 import type { ServiceItem, ThreadMessageUI as ThreadMessage } from "@shared/types";
 
 const CLIENT_TYPES = ["Bride", "Bridesmaid", "Mother of Bride", "Mother of Groom", "Flower Girl", "Guest", "Other"];
@@ -326,7 +326,7 @@ export default function InquiryThread() {
     );
   }
 
-  const { inquiry, artist, messages = [], isArtist = false }: { inquiry: Inquiry; artist: ArtistProfile; messages: ThreadMessage[]; isArtist: boolean } = data;
+  const { inquiry, artist, messages = [], isArtist = false, canViewTrustTimeline = false }: { inquiry: Inquiry; artist: ArtistProfile; messages: ThreadMessage[]; isArtist: boolean; canViewTrustTimeline?: boolean } = data;
   const slug = artist?.artistSlug;
   const onboardingComplete = artist?.onboardingCompleted;
 
@@ -1094,6 +1094,11 @@ export default function InquiryThread() {
             </p>
           </section>
         )}
+
+        {/* Trust Timeline (Artist/admin only) */}
+        {canViewTrustTimeline && threadToken && (
+          <TrustTimeline threadToken={threadToken} />
+        )}
       </main>
 
       {/* MODALS (Artist only) */}
@@ -1325,5 +1330,100 @@ export default function InquiryThread() {
         </div>
       )}
     </div>
+  );
+}
+
+function TrustTimeline({ threadToken }: { threadToken: string }) {
+  const { data, isLoading, isError } = useQuery<{ timeline: TrustTimelineEntry[] }>({
+    queryKey: [`/api/inquiries/${threadToken}/trust-timeline`],
+    queryFn: async () => {
+      const res = await fetch(`/api/inquiries/${threadToken}/trust-timeline`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load trust timeline");
+      return res.json();
+    },
+    enabled: !!threadToken,
+    retry: false,
+  });
+
+  // Authenticated-only endpoint: if the viewer is not signed in (e.g. magic-link
+  // only) it 401s. Hide the section rather than show an error.
+  if (isError) return null;
+
+  const sourceLabels: Record<string, string> = {
+    sms: "SMS",
+    test_tool: "Test tool",
+    manual_match: "Manual match",
+    system: "System action",
+  };
+
+  const items = data?.timeline ?? [];
+
+  return (
+    <section className="border-t border-[#E8E2D9] pt-8 mt-10" data-testid="section-trust-timeline">
+      <p className="text-[10px] tracking-[0.2em] uppercase text-[#666] mb-1">Trust Timeline</p>
+      <p className="text-xs text-[#888] mb-6">
+        Coordination signals recorded for this inquiry.
+      </p>
+
+      {isLoading ? (
+        <p className="text-sm text-[#888]" data-testid="text-timeline-loading">Loading...</p>
+      ) : items.length === 0 ? (
+        <p className="text-sm text-[#888]" data-testid="text-timeline-empty">
+          No trust events yet. When a matched reply comes in, it will appear here.
+        </p>
+      ) : (
+        <ol className="space-y-4" data-testid="list-trust-events">
+          {items.map((ev) => (
+            <li
+              key={ev.id}
+              className="bg-white border border-[#E8E2D9] rounded p-4"
+              data-testid={`event-${ev.id}`}
+            >
+              <div className="flex items-start justify-between gap-4 mb-2">
+                <p className="text-sm font-medium text-[#1A1A1A]" data-testid={`text-event-type-${ev.id}`}>
+                  {ev.eventType.replace(/_/g, " ")}
+                </p>
+                <span className="text-[10px] uppercase tracking-wider text-[#666] whitespace-nowrap" data-testid={`text-event-source-${ev.id}`}>
+                  {sourceLabels[ev.source] || ev.source}
+                </span>
+              </div>
+
+              <p className="text-xs text-[#888] mb-2" data-testid={`text-event-time-${ev.id}`}>
+                {new Date(ev.createdAt).toLocaleString()}
+              </p>
+
+              <div className="text-xs text-[#555] space-y-1">
+                {ev.personName && (
+                  <p data-testid={`text-event-person-${ev.id}`}>
+                    <span className="text-[#888]">Person: </span>{ev.personName}
+                    {ev.personType ? ` (${ev.personType})` : ""}
+                  </p>
+                )}
+                {(ev.matchStatus || typeof ev.matchConfidence === "number") && (
+                  <p data-testid={`text-event-match-${ev.id}`}>
+                    <span className="text-[#888]">Match: </span>
+                    {ev.matchStatus || "n/a"}
+                    {typeof ev.matchConfidence === "number" ? ` (${ev.matchConfidence}% confidence)` : ""}
+                  </p>
+                )}
+                {ev.matchReason && (
+                  <p data-testid={`text-event-reason-${ev.id}`}>
+                    <span className="text-[#888]">Reason: </span>{ev.matchReason}
+                  </p>
+                )}
+                <p data-testid={`text-event-signal-${ev.id}`}>
+                  <span className="text-[#888]">Signal strength: </span>{ev.signalStrength}
+                </p>
+                {ev.evidenceText && (
+                  <p className="italic text-[#777] pt-1" data-testid={`text-event-evidence-${ev.id}`}>
+                    "{ev.evidenceText}"
+                  </p>
+                )}
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
   );
 }

@@ -126,6 +126,7 @@ import {
   type InsertCdiBehavioralEvent,
   type InboundSmsMessage,
   type InsertInboundSmsMessage,
+  type TrustTimelineEntry,
   type CdiDimensionScore,
   type InsertCdiDimensionScore,
   type CdiCompositeScore,
@@ -426,8 +427,12 @@ export interface IStorage {
   createCdiBehavioralEvent(event: InsertCdiBehavioralEvent): Promise<CdiBehavioralEvent>;
   getCdiBehavioralEventsByUser(userId: string): Promise<CdiBehavioralEvent[]>;
   getCdiBehavioralEventsByBooking(bookingId: string): Promise<CdiBehavioralEvent[]>;
+  // Trust timeline: enriched trust events for an inquiry/referral context
+  getTrustTimeline(opts: { inquiryId?: string; referralId?: string }): Promise<TrustTimelineEntry[]>;
   // Inbound SMS (Step 1: headless coordination)
   getInboundSmsByMessageSid(messageSid: string): Promise<InboundSmsMessage | undefined>;
+  getInboundSmsByInquiryId(inquiryId: string): Promise<InboundSmsMessage[]>;
+  getInboundSmsByReferralId(referralId: string): Promise<InboundSmsMessage[]>;
   createInboundSms(msg: InsertInboundSmsMessage): Promise<InboundSmsMessage>;
   getRecentInboundSms(limit?: number): Promise<InboundSmsMessage[]>;
   getRecentInboundSmsEnriched(limit?: number): Promise<any[]>;
@@ -2060,7 +2065,126 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(cdiBehavioralEvents.createdAt));
   }
 
+  // Build the enriched "Trust Timeline" for one inquiry or referral context.
+  // The reliable link between a CDI trust event and an inquiry/referral is the
+  // inbound_sms_messages row (it carries matchedInquiryId/matchedReferralId AND
+  // trustEventId). We also fold in any events tied to the inquiry's booking, so
+  // system-generated trust events show up alongside the SMS-sourced ones.
+  async getTrustTimeline(opts: { inquiryId?: string; referralId?: string }): Promise<TrustTimelineEntry[]> {
+    const smsRows = opts.inquiryId
+      ? await this.getInboundSmsByInquiryId(opts.inquiryId)
+      : opts.referralId
+      ? await this.getInboundSmsByReferralId(opts.referralId)
+      : [];
+
+    const smsByEventId = new Map<string, InboundSmsMessage>();
+    const eventIds: string[] = [];
+    for (const r of smsRows) {
+      if (r.trustEventId) {
+        smsByEventId.set(r.trustEventId, r);
+        eventIds.push(r.trustEventId);
+      }
+    }
+
+    const events: CdiBehavioralEvent[] = [];
+    const seen = new Set<string>();
+    if (eventIds.length) {
+      const rows = await db.select().from(cdiBehavioralEvents)
+        .where(inArray(cdiBehavioralEvents.id, eventIds));
+      for (const e of rows) { if (!seen.has(e.id)) { seen.add(e.id); events.push(e); } }
+    }
+
+    // Also include trust events tied to this inquiry's booking (system actions).
+    if (opts.inquiryId) {
+      const inquiry = await this.getInquiry(opts.inquiryId);
+      const bookingId = inquiry?.bookingId || inquiry?.convertedToBookingId || null;
+      if (bookingId) {
+        const bookingEvents = await this.getCdiBehavioralEventsByBooking(bookingId);
+        for (const e of bookingEvents) { if (!seen.has(e.id)) { seen.add(e.id); events.push(e); } }
+      }
+    }
+
+    // Resolve linked person names with a tiny per-call cache (small N).
+    const userCache = new Map<string, User | undefined>();
+    const contactCache = new Map<string, ClientContact | undefined>();
+    const resolveUser = async (id: string) => {
+      if (!userCache.has(id)) userCache.set(id, await this.getUser(id));
+      return userCache.get(id);
+    };
+    const resolveContact = async (id: string) => {
+      if (!contactCache.has(id)) contactCache.set(id, await this.getClientContact(id));
+      return contactCache.get(id);
+    };
+    const userName = (u?: User) =>
+      u ? ([u.firstName, u.lastName].filter(Boolean).join(" ").trim() || u.email || u.username || null) : null;
+
+    const entries: TrustTimelineEntry[] = [];
+    for (const e of events) {
+      const sms = smsByEventId.get(e.id);
+      let source: TrustTimelineEntry["source"] = "system";
+      let personName: string | null = null;
+      let personType: TrustTimelineEntry["personType"] = null;
+      let matchStatus: string | null = null;
+      let matchConfidence: number | null = null;
+
+      if (sms) {
+        const simulated = !!(sms.rawPayload as any)?._simulated;
+        source = simulated ? "test_tool" : (sms.matchStatus === "manual" ? "manual_match" : "sms");
+        matchStatus = sms.matchStatus ?? null;
+        matchConfidence = sms.matchConfidence ?? null;
+        if (sms.matchedUserId) {
+          personName = userName(await resolveUser(sms.matchedUserId));
+          personType = "user";
+        } else if (sms.matchedContactId) {
+          const c = await resolveContact(sms.matchedContactId);
+          personName = c ? (c.name || c.email || c.phone || null) : null;
+          personType = "contact";
+        } else {
+          personName = sms.fromNumber || null;
+          personType = "phone";
+        }
+      } else {
+        // Booking/system event: attribute to the scored user.
+        personName = userName(await resolveUser(e.userId));
+        personType = "user";
+      }
+
+      const reason = (e.metadata?.contextualFactors || []).join(" · ") || null;
+
+      entries.push({
+        id: e.id,
+        eventType: e.eventType,
+        eventCategory: e.eventCategory,
+        dimension: e.dimension,
+        signalStrength: e.signalStrength,
+        createdAt: (e.createdAt instanceof Date ? e.createdAt.toISOString() : String(e.createdAt)),
+        source,
+        personName,
+        personType,
+        matchStatus,
+        matchConfidence,
+        matchReason: reason,
+        evidenceText: e.metadata?.evidenceText ?? null,
+      });
+    }
+
+    entries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return entries;
+  }
+
   // ===== Inbound SMS (Step 1: headless coordination) =====
+  async getInboundSmsByInquiryId(inquiryId: string): Promise<InboundSmsMessage[]> {
+    return await db.select().from(inboundSmsMessages)
+      .where(eq(inboundSmsMessages.matchedInquiryId, inquiryId))
+      .orderBy(desc(inboundSmsMessages.createdAt));
+  }
+
+  async getInboundSmsByReferralId(referralId: string): Promise<InboundSmsMessage[]> {
+    return await db.select().from(inboundSmsMessages)
+      .where(eq(inboundSmsMessages.matchedReferralId, referralId))
+      .orderBy(desc(inboundSmsMessages.createdAt));
+  }
+
   async getInboundSmsByMessageSid(messageSid: string): Promise<InboundSmsMessage | undefined> {
     const [row] = await db.select().from(inboundSmsMessages)
       .where(eq(inboundSmsMessages.messageSid, messageSid))

@@ -54,3 +54,16 @@ so coordination can never be double-counted.
   shown on /admin/inbound-replies with "Use" buttons (POST /api/sms/inbound/:id/match);
   no trust event.
 - `unmatched`: nothing plausible -> stored, no trust event.
+
+## Surfacing trust events to admins (Trust Timeline)
+The inquiry detail page (`InquiryThread.tsx`, route `/inquiry/:threadToken`) loads
+from `GET /api/public/inquiry/:threadToken`. That route's `isArtist` flag is TRUE
+ONLY for the owning vendor (viewerUserId === inquiry.vendorId), so admins get
+isArtist=false. Any authenticated admin-visible section must gate on a SEPARATE
+flag, not isArtist. The Trust Timeline uses `canViewTrustTimeline` (vendor OR
+role==='admin') returned from that route, and its data comes from the
+authenticated-only `GET /api/inquiries/:threadToken/trust-timeline`.
+
+**Why:** gating admin UI on isArtist silently hides it from admins even though the
+backend permits access. **How to apply:** for new admin surfaces on client/vendor
+shared pages, add an explicit privileged flag rather than reusing isArtist.

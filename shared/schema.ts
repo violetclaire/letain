@@ -2410,3 +2410,22 @@ export const insertInboundSmsMessageSchema = createInsertSchema(inboundSmsMessag
 });
 export type InsertInboundSmsMessage = z.infer<typeof insertInboundSmsMessageSchema>;
 export type InboundSmsMessage = typeof inboundSmsMessages.$inferSelect;
+
+// A single enriched trust event for display in the inquiry/referral "Trust
+// Timeline". Built server-side (see storage.getTrustTimeline) so the admin UI
+// needs no extra lookups. Read-only/derived; not a table.
+export type TrustTimelineEntry = {
+  id: string; // cdi_behavioral_events.id
+  eventType: string; // e.g. 'response_received'
+  eventCategory: string; // e.g. 'communication'
+  dimension: string; // CDI dimension
+  signalStrength: number; // -100..+100
+  createdAt: string; // ISO timestamp
+  source: "sms" | "test_tool" | "manual_match" | "system"; // where the event came from
+  personName: string | null; // linked person/contact, if resolved
+  personType: "user" | "contact" | "phone" | null;
+  matchStatus: string | null; // inbound match status if event came from an SMS reply
+  matchConfidence: number | null; // 0-100 if available
+  matchReason: string | null; // human-readable factors behind the match
+  evidenceText: string | null; // short excerpt of the reply, if any
+};

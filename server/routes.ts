@@ -10278,7 +10278,31 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       res.status(500).json({ error: error.message });
     }
   });
-  
+
+  // Trust Timeline for one inquiry — the CDI behavioral events (e.g. an inbound
+  // SMS reply that produced a response_received event) connected to this inquiry,
+  // shown in the inquiry's own context. Authenticated + vendor/admin only; the
+  // threadToken is the artist's admin token, never exposed to clients.
+  app.get("/api/inquiries/:threadToken/trust-timeline", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { threadToken } = req.params;
+      const inquiry = await storage.getInquiryByThreadToken(threadToken);
+      if (!inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+      const userId = getAuthUserId(req);
+      const user = await storage.getUser(userId);
+      if (inquiry.vendorId !== userId && user?.role !== "admin") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const timeline = await storage.getTrustTimeline({ inquiryId: inquiry.id });
+      res.json({ timeline });
+    } catch (error: any) {
+      console.error("[Trust Timeline] Error:", error?.message);
+      res.status(500).json({ error: error?.message || "Failed to load trust timeline" });
+    }
+  });
+
   // Vendor responds to inquiry (send info sheet manually if not auto-sent)
   app.post("/api/inquiries/:id/respond", isAuthenticated, async (req: Request, res: Response) => {
     try {
@@ -12292,6 +12316,15 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       // Check if viewer is the artist (logged in as this artist)
       const viewerUserId = getAuthUserId(req);
       const isArtist = viewerUserId && viewerUserId === inquiry.vendorId;
+
+      // Privileged viewers (the owning vendor OR an admin) may see the Trust
+      // Timeline. Admins are not the vendor so isArtist is false for them; this
+      // separate flag lets the authenticated timeline section render for them too.
+      let canViewTrustTimeline = !!isArtist;
+      if (!canViewTrustTimeline && viewerUserId) {
+        const viewer = await storage.getUser(viewerUserId);
+        if (viewer?.role === "admin") canViewTrustTimeline = true;
+      }
       
       // Get messages from notifications
       const notificationMessages = notifications
@@ -12385,6 +12418,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         artist: artistData,
         messages,
         isArtist,
+        canViewTrustTimeline,
       });
     } catch (error: any) {
       console.error("[Inquiry Thread] Error fetching inquiry:", error);
