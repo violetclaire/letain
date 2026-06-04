@@ -3,3 +3,4 @@
 - [Briarwood DB quirks](briarwood-db-quirks.md) — users table has no businessName/displayName; neon-serverless Pool supports db.transaction + .for("update"); ~1000 benign pre-existing tsc errors.
 - [Inbound SMS matching](inbound-sms-matching.md) — attribute by inquiry context; trust event only on confident person+inquiry match (hasPersonSignal required); insert row first for idempotency.
 - [Assistant prompt queue](assistant-prompt-queue.md) — headless prompt layer; delivery OFF by default; queued status has no flush job yet; new-inquiry event wired with availability analysis + circle/team routing suggestions.
+- [Briarwood vs DateInquiry vs Makeup Dolls](briarwood-architecture.md) — Briarwood=permanent infra; DateInquiry=temp intake bridge (do not name permanent concepts after it); Makeup Dolls=live source. Design new logic channel-agnostic.
