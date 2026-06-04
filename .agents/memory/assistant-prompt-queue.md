@@ -44,3 +44,15 @@ status to possible_network_route when the operator is unavailable/conflict AND a
 route exists. Suggested actions: ACCEPT/SEND_PRICING/(BUILD_SCHEDULE if partySize>1),
 ROUTE/REVIEW when routing, REVIEW-first when unknown/unavailable-with-no-route.
 **Why:** honest reads over optimistic guesses; operator always approves routing.
+
+## Control surface (internal Assistant page) - settings + queue
+Operator-facing control center at route /admin/:slug/assistant (page
+client/src/pages/AssistantControl.tsx, linked from ArtistAdmin nav). Three endpoints,
+SESSION-AUTH ONLY (getAuthUserId; no magic-link token, no public path - they 401
+unauthenticated): GET/PATCH /api/assistant/settings (read+write the artist_profiles
+assistant pref columns via a strict zod schema - only channel/phone/email/mode/quiet
+hours/timezone; quiet hours bounded 0..23) and GET /api/assistant/prompts (operator
+sees own via getAssistantPromptsByOperator; users.role==='admin' sees all via
+getAllAssistantPrompts). Queue is read-only display (no delivery toggling here).
+**Why:** user wanted one internal control center, no public access; admin-all kept
+simple via role check. Delivery still OFF until operator turns phone/email on here.

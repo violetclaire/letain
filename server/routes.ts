@@ -1628,6 +1628,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========== ASSISTANT CONTROL SURFACE (headless prompt queue) ==========
+  // Internal control center for the headless assistant. Two concerns:
+  //   1. Settings: how Briarwood talks to the operator (channels, mode, quiet hours)
+  //   2. Queue: read-only view of what the assistant thinks needs attention
+  // Access rules: authenticated session ONLY (no public, no magic-link token).
+  //   - Operators see only their own settings + their own prompts.
+  //   - Admins (users.role === 'admin') can see every operator's prompts.
+  // Additive only: settings write through to the existing artist_profiles assistant
+  // preference columns; nothing here changes delivery behavior on its own.
+
+  function assistantSettingsView(profile: ArtistProfile) {
+    return {
+      preferredDeliveryChannel: profile.preferredDeliveryChannel ?? "email",
+      assistantPhoneEnabled: profile.assistantPhoneEnabled ?? false,
+      assistantEmailEnabled: profile.assistantEmailEnabled ?? false,
+      assistantPromptMode: profile.assistantPromptMode ?? "immediate",
+      assistantQuietHoursStart: profile.assistantQuietHoursStart ?? null,
+      assistantQuietHoursEnd: profile.assistantQuietHoursEnd ?? null,
+      assistantTimezone: profile.assistantTimezone ?? null,
+    };
+  }
+
+  const assistantSettingsSchema = z.object({
+    preferredDeliveryChannel: z.enum(["sms", "email", "both"]).optional(),
+    assistantPhoneEnabled: z.boolean().optional(),
+    assistantEmailEnabled: z.boolean().optional(),
+    assistantPromptMode: z.enum(["immediate", "digest"]).optional(),
+    assistantQuietHoursStart: z.number().int().min(0).max(23).nullable().optional(),
+    assistantQuietHoursEnd: z.number().int().min(0).max(23).nullable().optional(),
+    assistantTimezone: z.string().max(64).nullable().optional(),
+  }).strict();
+
+  app.get("/api/assistant/settings", async (req: Request, res: Response) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const user = await storage.getUser(userId);
+      const profile = await storage.getArtistProfile(userId);
+      if (!profile) {
+        return res.status(404).json({ error: "Profile not found" });
+      }
+      res.json({
+        ...assistantSettingsView(profile),
+        isAdmin: user?.role === "admin",
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.patch("/api/assistant/settings", async (req: Request, res: Response) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const parsed = assistantSettingsSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0]?.message || "Invalid settings" });
+      }
+      const profile = await storage.getArtistProfile(userId);
+      if (!profile) {
+        return res.status(404).json({ error: "Profile not found" });
+      }
+      const updated = await storage.updateArtistProfile(userId, parsed.data);
+      if (!updated) {
+        return res.status(500).json({ error: "Failed to save settings" });
+      }
+      const user = await storage.getUser(userId);
+      res.json({
+        ...assistantSettingsView(updated),
+        isAdmin: user?.role === "admin",
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.get("/api/assistant/prompts", async (req: Request, res: Response) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const user = await storage.getUser(userId);
+      const isAdmin = user?.role === "admin";
+      const prompts = isAdmin
+        ? await storage.getAllAssistantPrompts(200)
+        : await storage.getAssistantPromptsByOperator(userId, 200);
+      res.json({ isAdmin, prompts });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: message });
+    }
+  });
+
   // Direct portfolio photo upload
   app.post("/api/artist-profiles/:userId/portfolio", isAuthenticated, async (req: Request, res: Response) => {
     try {

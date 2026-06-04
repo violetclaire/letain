@@ -443,6 +443,7 @@ export interface IStorage {
   updateAssistantPrompt(id: string, updates: Partial<AssistantPrompt>): Promise<AssistantPrompt | undefined>;
   getAssistantPrompt(id: string): Promise<AssistantPrompt | undefined>;
   getAssistantPromptsByOperator(operatorId: string, limit?: number): Promise<AssistantPrompt[]>;
+  getAllAssistantPrompts(limit?: number): Promise<AssistantPrompt[]>;
   // Inbound SMS (Step 1: headless coordination)
   getInboundSmsByMessageSid(messageSid: string): Promise<InboundSmsMessage | undefined>;
   getInboundSmsByInquiryId(inquiryId: string): Promise<InboundSmsMessage[]>;
@@ -2261,6 +2262,14 @@ export class DatabaseStorage implements IStorage {
   async getAssistantPromptsByOperator(operatorId: string, limit: number = 50): Promise<AssistantPrompt[]> {
     return await db.select().from(assistantPrompts)
       .where(eq(assistantPrompts.operatorId, operatorId))
+      .orderBy(desc(assistantPrompts.createdAt))
+      .limit(limit);
+  }
+
+  // Admin-only: every operator's prompts, newest first. Used by the assistant
+  // control surface when the requester has role 'admin'.
+  async getAllAssistantPrompts(limit: number = 200): Promise<AssistantPrompt[]> {
+    return await db.select().from(assistantPrompts)
       .orderBy(desc(assistantPrompts.createdAt))
       .limit(limit);
   }
