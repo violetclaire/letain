@@ -41,6 +41,24 @@ async function ensureDatabaseSchema() {
     { name: 'trusted_circle.quietly_removed', sql: sql`ALTER TABLE trusted_circle ADD COLUMN IF NOT EXISTS quietly_removed boolean DEFAULT false` },
     { name: 'trusted_circle.removed_at', sql: sql`ALTER TABLE trusted_circle ADD COLUMN IF NOT EXISTS removed_at timestamp` },
     { name: 'trusted_circle.removed_reason', sql: sql`ALTER TABLE trusted_circle ADD COLUMN IF NOT EXISTS removed_reason text` },
+
+    // --- Inbound SMS (Step 1: headless coordination) ---
+    { name: 'inbound_sms_messages.table', sql: sql`CREATE TABLE IF NOT EXISTS inbound_sms_messages (
+      id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+      message_sid varchar UNIQUE NOT NULL,
+      from_number text NOT NULL,
+      to_number text NOT NULL,
+      body text NOT NULL DEFAULT '',
+      matched_user_id varchar,
+      matched_contact_id varchar,
+      matched_inquiry_id varchar,
+      matched_referral_id varchar,
+      match_status text NOT NULL DEFAULT 'unmatched',
+      trust_event_id varchar,
+      raw_payload jsonb,
+      received_at timestamp NOT NULL DEFAULT now(),
+      created_at timestamp NOT NULL DEFAULT now()
+    )` },
   ];
   
   for (const migration of migrations) {

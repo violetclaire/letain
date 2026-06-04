@@ -1,0 +1,2 @@
+- [Drizzle jsonb + null-prototype body](drizzle-jsonb-urlencoded.md) — storing parsed urlencoded req.body in a jsonb column crashes Drizzle; spread it as `{ ...body }`.
+- [Twilio inbound webhook](twilio-inbound-webhook.md) — validate X-Twilio-Signature fail-closed; URL reconstruction must match the public host behind Replit's proxy.

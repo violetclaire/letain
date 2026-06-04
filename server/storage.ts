@@ -36,6 +36,7 @@ import {
   cdiThresholds,
   cdiAdminOverrides,
   cdiBehavioralEvents,
+  inboundSmsMessages,
   cdiDimensionScores,
   cdiCompositeScores,
   cdiFeedbackEvents,
@@ -123,6 +124,8 @@ import {
   type InsertCdiAdminOverride,
   type CdiBehavioralEvent,
   type InsertCdiBehavioralEvent,
+  type InboundSmsMessage,
+  type InsertInboundSmsMessage,
   type CdiDimensionScore,
   type InsertCdiDimensionScore,
   type CdiCompositeScore,
@@ -423,6 +426,13 @@ export interface IStorage {
   createCdiBehavioralEvent(event: InsertCdiBehavioralEvent): Promise<CdiBehavioralEvent>;
   getCdiBehavioralEventsByUser(userId: string): Promise<CdiBehavioralEvent[]>;
   getCdiBehavioralEventsByBooking(bookingId: string): Promise<CdiBehavioralEvent[]>;
+  // Inbound SMS (Step 1: headless coordination)
+  getInboundSmsByMessageSid(messageSid: string): Promise<InboundSmsMessage | undefined>;
+  createInboundSms(msg: InsertInboundSmsMessage): Promise<InboundSmsMessage>;
+  getRecentInboundSms(limit?: number): Promise<InboundSmsMessage[]>;
+  findUserIdByPhone(phone: string): Promise<string | undefined>;
+  findClientContactByPhone(phone: string): Promise<{ id: string; artistId: string } | undefined>;
+  findActiveInquiryByClientPhone(phone: string): Promise<{ id: string } | undefined>;
   createCdiDimensionScore(score: InsertCdiDimensionScore): Promise<CdiDimensionScore>;
   getCdiDimensionScoresByUser(userId: string): Promise<CdiDimensionScore[]>;
   getLatestCdiDimensionScores(userId: string): Promise<CdiDimensionScore[]>;
@@ -2024,6 +2034,51 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(cdiBehavioralEvents)
       .where(eq(cdiBehavioralEvents.bookingId, bookingId))
       .orderBy(desc(cdiBehavioralEvents.createdAt));
+  }
+
+  // ===== Inbound SMS (Step 1: headless coordination) =====
+  async getInboundSmsByMessageSid(messageSid: string): Promise<InboundSmsMessage | undefined> {
+    const [row] = await db.select().from(inboundSmsMessages)
+      .where(eq(inboundSmsMessages.messageSid, messageSid))
+      .limit(1);
+    return row;
+  }
+
+  async createInboundSms(msg: InsertInboundSmsMessage): Promise<InboundSmsMessage> {
+    const [row] = await db.insert(inboundSmsMessages).values(msg as any).returning();
+    return row;
+  }
+
+  async getRecentInboundSms(limit: number = 50): Promise<InboundSmsMessage[]> {
+    return await db.select().from(inboundSmsMessages)
+      .orderBy(desc(inboundSmsMessages.receivedAt))
+      .limit(limit);
+  }
+
+  async findUserIdByPhone(phone: string): Promise<string | undefined> {
+    const [row] = await db.select({ id: users.id }).from(users)
+      .where(eq(users.phone, phone))
+      .limit(1);
+    return row?.id;
+  }
+
+  async findClientContactByPhone(phone: string): Promise<{ id: string; artistId: string } | undefined> {
+    const [row] = await db.select({ id: clientContacts.id, artistId: clientContacts.artistId })
+      .from(clientContacts)
+      .where(eq(clientContacts.phone, phone))
+      .limit(1);
+    return row;
+  }
+
+  async findActiveInquiryByClientPhone(phone: string): Promise<{ id: string } | undefined> {
+    const [row] = await db.select({ id: inquiries.id }).from(inquiries)
+      .where(and(
+        eq(inquiries.clientPhone, phone),
+        inArray(inquiries.status, ['pending', 'accepted', 'auto_responded', 'referred']),
+      ))
+      .orderBy(desc(inquiries.createdAt))
+      .limit(1);
+    return row;
   }
 
   async createCdiDimensionScore(score: InsertCdiDimensionScore): Promise<CdiDimensionScore> {

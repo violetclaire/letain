@@ -31,6 +31,26 @@ export function isSmsConfigured(): boolean {
   return getTwilioConfig() !== null;
 }
 
+// Verify an inbound Twilio webhook is authentic using the X-Twilio-Signature
+// header. Returns false when Twilio is not configured or the signature is
+// missing/invalid, so callers can reject forged requests (fail-closed).
+export function validateTwilioRequest(
+  signature: string | undefined,
+  url: string,
+  params: Record<string, any>,
+): boolean {
+  const config = getTwilioConfig();
+  if (!config || !signature) {
+    return false;
+  }
+  try {
+    return twilio.validateRequest(config.authToken, signature, url, params || {});
+  } catch (err) {
+    console.error('[SMS] Twilio signature validation error:', (err as Error)?.message);
+    return false;
+  }
+}
+
 export interface SendSmsResult {
   success: boolean;
   messageId?: string;
@@ -167,7 +187,7 @@ export async function sendCustomNotification(
   return sendSms(phone, fullMessage);
 }
 
-function normalizePhoneNumber(phone: string): string | null {
+export function normalizePhoneNumber(phone: string): string | null {
   const cleaned = phone.replace(/[^\d+]/g, '');
   
   if (cleaned.startsWith('+')) {

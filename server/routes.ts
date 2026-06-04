@@ -3068,6 +3068,135 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // ===== INBOUND SMS (Step 1: headless coordination) =====
+  // Twilio posts here (application/x-www-form-urlencoded) whenever someone
+  // replies to a Briarwood text. Purely additive: stores the reply, matches it
+  // to a known sender/inquiry when possible, and writes a response_received
+  // trust event. Always returns 200 + empty TwiML so Twilio doesn't retry.
+  app.post("/api/sms/inbound", async (req: Request, res: Response) => {
+    const replyTwiml = '<?xml version="1.0" encoding="UTF-8"?><Response></Response>';
+    const sendOk = () => res.status(200).type("text/xml").send(replyTwiml);
+    try {
+      const body = req.body || {};
+
+      // Verify the request really came from Twilio before doing anything else.
+      // Without this, anyone could spoof a "From" number and inject fake trust
+      // events. Reconstruct the exact public URL Twilio signed over.
+      const signature = req.header("X-Twilio-Signature");
+      const proto = (req.headers["x-forwarded-proto"] as string)?.split(",")[0] || req.protocol;
+      const fullUrl = `${proto}://${req.get("host")}${req.originalUrl}`;
+      if (!smsService.validateTwilioRequest(signature, fullUrl, body)) {
+        console.warn(`[SMS Inbound] Rejected: invalid/missing Twilio signature (url=${fullUrl}).`);
+        return res.status(403).type("text/xml").send(replyTwiml);
+      }
+      const messageSid: string = body.MessageSid || body.SmsSid || "";
+      const fromRaw: string = body.From || "";
+      const toRaw: string = body.To || "";
+      const text: string = (body.Body ?? "").toString();
+
+      if (!messageSid || !fromRaw) {
+        console.warn("[SMS Inbound] Missing MessageSid or From; ignoring.", { messageSid, fromRaw });
+        return sendOk();
+      }
+
+      // Idempotency — never store the same Twilio MessageSid twice.
+      const existing = await storage.getInboundSmsByMessageSid(messageSid);
+      if (existing) {
+        console.log(`[SMS Inbound] Duplicate MessageSid ${messageSid} ignored.`);
+        return sendOk();
+      }
+
+      const fromNumber = smsService.normalizePhoneNumber(fromRaw) || fromRaw;
+      const toNumber = smsService.normalizePhoneNumber(toRaw) || toRaw;
+
+      // Best-effort matching (unmatched replies are logged, never dropped).
+      let matchedUserId: string | undefined;
+      let matchedContactId: string | undefined;
+      let matchedInquiryId: string | undefined;
+
+      try {
+        matchedUserId = await storage.findUserIdByPhone(fromNumber);
+        const contact = await storage.findClientContactByPhone(fromNumber);
+        if (contact) {
+          matchedContactId = contact.id;
+          if (!matchedUserId) matchedUserId = contact.artistId; // attribute to the artist who owns the contact
+        }
+        const inquiry = await storage.findActiveInquiryByClientPhone(fromNumber);
+        if (inquiry) matchedInquiryId = inquiry.id;
+      } catch (matchErr: any) {
+        console.error("[SMS Inbound] Matching error (continuing):", matchErr?.message);
+      }
+
+      const matchStatus = matchedUserId || matchedInquiryId || matchedContactId
+        ? "matched"
+        : "unmatched";
+
+      // Write a response_received trust event ONLY when we can attribute it to a
+      // real user (cdiBehavioralEvents.userId is required + FK to users).
+      let trustEventId: string | undefined;
+      if (matchedUserId) {
+        try {
+          const event = await storage.createCdiBehavioralEvent({
+            userId: matchedUserId,
+            actorRole: "client",
+            eventCategory: "communication",
+            eventType: "response_received",
+            dimension: "emotional_fidelity",
+            signalStrength: 10,
+            metadata: {
+              evidenceText: text.slice(0, 280),
+              contextualFactors: [
+                "channel:sms_inbound",
+                matchedInquiryId ? `inquiry:${matchedInquiryId}` : "inquiry:none",
+              ],
+            },
+          } as any);
+          trustEventId = event.id;
+        } catch (evtErr: any) {
+          console.error("[SMS Inbound] Trust event write failed (continuing):", evtErr?.message);
+        }
+      } else {
+        console.log(`[SMS Inbound] Unmatched reply from ${fromNumber} — stored, no trust event.`);
+      }
+
+      const saved = await storage.createInboundSms({
+        messageSid,
+        fromNumber,
+        toNumber,
+        body: text,
+        matchedUserId: matchedUserId ?? null,
+        matchedContactId: matchedContactId ?? null,
+        matchedInquiryId: matchedInquiryId ?? null,
+        matchedReferralId: null,
+        matchStatus,
+        trustEventId: trustEventId ?? null,
+        rawPayload: { ...body },
+      } as any);
+
+      console.log(`[SMS Inbound] Stored ${saved.id} (sid=${messageSid}, status=${matchStatus}, trustEvent=${trustEventId || "none"})`);
+      return sendOk();
+    } catch (error: any) {
+      console.error("[SMS Inbound] Handler error:", error?.message, error?.stack);
+      // Still return 200 so Twilio doesn't hammer retries on a transient failure.
+      return sendOk();
+    }
+  });
+
+  // Admin-visible verification log for inbound SMS.
+  app.get("/api/sms/inbound/recent", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = await storage.getUser(getAuthUserId(req));
+      if (user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const limit = Math.min(parseInt(String(req.query.limit ?? "50"), 10) || 50, 200);
+      const rows = await storage.getRecentInboundSms(limit);
+      res.json({ count: rows.length, messages: rows });
+    } catch (error: any) {
+      res.status(500).json({ error: error?.message || "Failed to load inbound SMS" });
+    }
+  });
+
   app.post("/api/sms/send", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { to, message } = req.body;

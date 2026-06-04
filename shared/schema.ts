@@ -2363,3 +2363,34 @@ export type AgentActionLog = typeof agentActionLogs.$inferSelect;
 export type InsertAgentEvent = z.infer<typeof insertAgentEventSchema>;
 export type AgentEvent = typeof agentEvents.$inferSelect;
 
+
+// ============================================================================
+// Inbound SMS (Step 1: headless coordination — receive Twilio replies)
+// Purely additive. Does NOT touch the existing `messages` table (which requires
+// internal user FKs). External inbound texts land here, get matched when
+// possible, and emit a response_received trust event into cdiBehavioralEvents.
+// ============================================================================
+export const inboundSmsMessages = pgTable("inbound_sms_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  messageSid: varchar("message_sid").unique().notNull(), // Twilio MessageSid — dedupe key
+  fromNumber: text("from_number").notNull(), // normalized E.164 sender
+  toNumber: text("to_number").notNull(), // our Twilio number that received it
+  body: text("body").notNull().default(""),
+  // Best-effort matching (all nullable — unmatched replies are logged, not dropped)
+  matchedUserId: varchar("matched_user_id"), // resolved sender (users.id) if known
+  matchedContactId: varchar("matched_contact_id"), // client_contacts.id if known
+  matchedInquiryId: varchar("matched_inquiry_id"), // inquiries.id if linked
+  matchedReferralId: varchar("matched_referral_id"), // thread_referrals.id if linked
+  matchStatus: text("match_status").notNull().default("unmatched"), // 'matched' | 'partial' | 'unmatched'
+  trustEventId: varchar("trust_event_id"), // cdi_behavioral_events.id if one was written
+  rawPayload: jsonb("raw_payload"), // full Twilio form body for audit/debug
+  receivedAt: timestamp("received_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertInboundSmsMessageSchema = createInsertSchema(inboundSmsMessages).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertInboundSmsMessage = z.infer<typeof insertInboundSmsMessageSchema>;
+export type InboundSmsMessage = typeof inboundSmsMessages.$inferSelect;
