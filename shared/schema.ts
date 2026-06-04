@@ -2501,3 +2501,100 @@ export type TrustTimelineEntry = {
   matchReason: string | null; // human-readable factors behind the match
   evidenceText: string | null; // short excerpt of the reply, if any
 };
+
+// ---------------------------------------------------------------------------
+// Briarwood core: generic Delegation + Routing layer.
+//
+// These tables are channel- and role-agnostic on purpose. DateInquiry is only
+// one intake source today; the same model serves email, SMS, manual entry, and
+// other operators later. Nothing here is makeup/beauty specific. Additive only:
+// no existing table is renamed and existing flows are untouched.
+// ---------------------------------------------------------------------------
+
+// A route target is "who or what an inquiry/task/message can go to next". It is
+// the operator's own address book: trusted colleagues, team members, an
+// assistant, a scheduler, a planner, a vendor, an agent, a bookkeeper, or any
+// custom contact the operator defines. Referral is just one kind of routing.
+export const routeTargets = pgTable("route_targets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  operatorId: varchar("operator_id").notNull(), // users.id who owns this target
+  name: text("name").notNull(),
+  email: text("email"),
+  phone: text("phone"),
+  roleLabel: text("role_label"), // free-form: 'Hairstylist','Assistant','Scheduler','Agent','Vendor','Bookkeeping', etc.
+  tags: text("tags").array(), // custom operator-defined tags
+  capabilities: text("capabilities").array(), // services/capabilities, if relevant
+  isInternal: boolean("is_internal").default(false), // internal team vs external
+  isAgent: boolean("is_agent").default(false), // human vs agent/system
+  active: boolean("active").default(true),
+  preferred: boolean("preferred").default(false),
+  availabilitySource: text("availability_source"), // optional: 'calendar'|'none'
+  trustedCircleId: varchar("trusted_circle_id"), // optional link to an existing trusted_circle entry
+  linkedUserId: varchar("linked_user_id"), // optional link to a platform user
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertRouteTargetSchema = createInsertSchema(routeTargets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertRouteTarget = z.infer<typeof insertRouteTargetSchema>;
+export type RouteTarget = typeof routeTargets.$inferSelect;
+
+// A routing record: one decision to send an inquiry/task to one route target.
+// routeType distinguishes referral vs delegation vs review vs scheduling vs
+// agent handoff vs follow-up. status tracks the preflight handshake and where
+// it ended up. Nothing here ever messages a client; that is a separate response.
+export const inquiryRoutes = pgTable("inquiry_routes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  operatorId: varchar("operator_id").notNull(),
+  inquiryId: varchar("inquiry_id"), // nullable: the model can route any task later, not just inquiries
+  routeTargetId: varchar("route_target_id").notNull(),
+  routeType: text("route_type").notNull().default("referral"), // 'referral'|'delegation'|'review'|'scheduling'|'agent'|'follow_up'
+  status: text("status").notNull().default("draft"), // 'draft'|'pending'|'accepted'|'declined'|'needs_review'|'sent_to_client'|'completed'
+  targetLabelSnapshot: text("target_label_snapshot"), // role/label captured at routing time
+  preflightChannel: text("preflight_channel"), // 'sms'|'email'
+  preflightMessage: text("preflight_message"),
+  preflightSentAt: timestamp("preflight_sent_at"),
+  responseRaw: text("response_raw"), // the target's reply (captured manually or inbound)
+  respondedAt: timestamp("responded_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertInquiryRouteSchema = createInsertSchema(inquiryRoutes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertInquiryRoute = z.infer<typeof insertInquiryRouteSchema>;
+export type InquiryRoute = typeof inquiryRoutes.$inferSelect;
+
+// An outgoing client-facing message draft from the response composer. Covers
+// the three client messages: pricing/available response, polite decline, and a
+// referral list. Always operator-approved before send: status starts 'draft'
+// and only becomes 'sent' after the operator approves.
+export const inquiryResponses = pgTable("inquiry_responses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  operatorId: varchar("operator_id").notNull(),
+  inquiryId: varchar("inquiry_id").notNull(),
+  responseType: text("response_type").notNull(), // 'pricing'|'decline'|'referral'
+  channel: text("channel").default("email"), // 'email'|'sms'
+  personalNote: text("personal_note"), // optional note placed at the top of the message
+  body: text("body").notNull(),
+  status: text("status").notNull().default("draft"), // 'draft'|'sent'
+  sentAt: timestamp("sent_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertInquiryResponseSchema = createInsertSchema(inquiryResponses).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertInquiryResponse = z.infer<typeof insertInquiryResponseSchema>;
+export type InquiryResponse = typeof inquiryResponses.$inferSelect;

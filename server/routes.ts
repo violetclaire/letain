@@ -70,10 +70,11 @@ import {
   insertCdiThresholdSchema,
   insertCdiAdminOverrideSchema,
   insertInquirySchema,
+  insertRouteTargetSchema,
+  insertInquiryRouteSchema,
+  insertInquiryResponseSchema,
   threadReferrals,
-  threads,
-  artistProfiles,
-  trustedCircle
+  threads
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, sql, inArray, isNotNull } from "drizzle-orm";
@@ -1725,6 +1726,412 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       res.status(500).json({ error: message });
+    }
+  });
+
+  // =====================================================================
+  // Briarwood core: Response Composer + generic Routing / Delegation layer.
+  //
+  // All endpoints below are operator-authenticated (session, getAuthUserId).
+  // None are public. Nothing sends a client-facing message without the
+  // operator explicitly approving (the /send and /preflight endpoints).
+  // None of this touches the live DateInquiry inquiry status or flow.
+  // =====================================================================
+
+  // Build the human-readable composer context for an inquiry (operator name,
+  // formatted date, pricing link if any). Shared by composer endpoints.
+  const buildComposerContextFor = async (inquiry: any, operatorId: string) => {
+    const vendor = await storage.getUser(operatorId);
+    const profile = await storage.getArtistProfile(operatorId);
+    const operatorName =
+      profile?.businessName ||
+      `${vendor?.firstName || ""} ${vendor?.lastName || ""}`.trim() ||
+      vendor?.email ||
+      "Your artist";
+    const eventDate = inquiry.eventDate
+      ? new Date(inquiry.eventDate).toLocaleDateString("en-US", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
+      : null;
+    const pricingLink = profile?.infoSheetPdfUrl || null;
+    return {
+      clientName: inquiry.clientName,
+      serviceType: inquiry.serviceType,
+      eventDate,
+      eventLocation: inquiry.eventLocation,
+      venue: null,
+      referralSourceName: null,
+      operatorName,
+      pricingLink,
+    };
+  };
+
+  // --- Route targets (generic address book) ---
+  app.get("/api/route-targets", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const targets = await storage.getRouteTargetsByOperator(userId);
+      res.json({ targets });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/route-targets", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const parsed = insertRouteTargetSchema.safeParse({ ...req.body, operatorId: userId });
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0]?.message || "Invalid route target" });
+      }
+      const target = await storage.createRouteTarget({ ...parsed.data, operatorId: userId });
+      res.json({ target });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/route-targets/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const existing = await storage.getRouteTarget(req.params.id);
+      if (!existing) return res.status(404).json({ error: "Route target not found" });
+      if (existing.operatorId !== userId) return res.status(403).json({ error: "Access denied" });
+      const { name, email, phone, roleLabel, tags, capabilities, isInternal, isAgent, active, preferred, availabilitySource, notes } = req.body;
+      const updated = await storage.updateRouteTarget(req.params.id, {
+        ...(name !== undefined ? { name } : {}),
+        ...(email !== undefined ? { email } : {}),
+        ...(phone !== undefined ? { phone } : {}),
+        ...(roleLabel !== undefined ? { roleLabel } : {}),
+        ...(tags !== undefined ? { tags } : {}),
+        ...(capabilities !== undefined ? { capabilities } : {}),
+        ...(isInternal !== undefined ? { isInternal } : {}),
+        ...(isAgent !== undefined ? { isAgent } : {}),
+        ...(active !== undefined ? { active } : {}),
+        ...(preferred !== undefined ? { preferred } : {}),
+        ...(availabilitySource !== undefined ? { availabilitySource } : {}),
+        ...(notes !== undefined ? { notes } : {}),
+      });
+      res.json({ target: updated });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // --- Composer: one-stop context for an inquiry ---
+  // Returns inquiry context, default drafts, existing routes + responses, and
+  // the operator's route targets, so the UI can render the composer in one call.
+  app.get("/api/inquiries/:id/composer", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const inquiry = await storage.getInquiry(req.params.id);
+      if (!inquiry) return res.status(404).json({ error: "Inquiry not found" });
+      if (inquiry.vendorId !== userId) return res.status(403).json({ error: "Access denied" });
+
+      const routing = await import("./routingService");
+      const ctx = await buildComposerContextFor(inquiry, userId);
+      const routes = await storage.getInquiryRoutesByInquiry(inquiry.id);
+      const responses = await storage.getInquiryResponsesByInquiry(inquiry.id);
+      const targets = await storage.getRouteTargetsByOperator(userId);
+      const acceptedNames: string[] = [];
+      for (const r of routes) {
+        if (r.status === "accepted") {
+          const t = await storage.getRouteTarget(r.routeTargetId);
+          if (t) acceptedNames.push(t.name);
+        }
+      }
+
+      res.json({
+        context: ctx,
+        defaults: {
+          pricing: routing.buildPricingDraft(ctx),
+          decline: routing.buildDeclineDraft(ctx),
+          referral: routing.buildReferralDraft(ctx, acceptedNames),
+        },
+        routes,
+        responses,
+        targets,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // --- Composer: save a draft response (does NOT send) ---
+  app.post("/api/inquiries/:id/responses", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const inquiry = await storage.getInquiry(req.params.id);
+      if (!inquiry) return res.status(404).json({ error: "Inquiry not found" });
+      if (inquiry.vendorId !== userId) return res.status(403).json({ error: "Access denied" });
+
+      const parsed = insertInquiryResponseSchema.safeParse({
+        ...req.body,
+        operatorId: userId,
+        inquiryId: inquiry.id,
+        status: "draft",
+      });
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0]?.message || "Invalid response" });
+      }
+      const response = await storage.createInquiryResponse({
+        ...parsed.data,
+        operatorId: userId,
+        inquiryId: inquiry.id,
+        status: "draft",
+      });
+      const routing = await import("./routingService");
+      await routing.recordRoutingEvent({
+        operatorId: userId,
+        eventType: "response_drafted",
+        evidenceText: `Drafted ${response.responseType} response for inquiry ${inquiry.id}`,
+        contextualFactors: [`type:${response.responseType}`],
+      });
+      res.json({ response });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // --- Composer: approve + send a draft to the client ---
+  app.post("/api/inquiry-responses/:id/send", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const response = await storage.getInquiryResponse(req.params.id);
+      if (!response) return res.status(404).json({ error: "Response not found" });
+      if (response.operatorId !== userId) return res.status(403).json({ error: "Access denied" });
+      if (response.status === "sent") {
+        return res.status(400).json({ error: "This response was already sent" });
+      }
+      const inquiry = await storage.getInquiry(response.inquiryId);
+      if (!inquiry) return res.status(404).json({ error: "Inquiry not found" });
+
+      // Referral messages may only go out once at least one routed person has
+      // accepted. Enforced server-side so a direct API call cannot bypass the UI.
+      if (response.responseType === "referral") {
+        const existingRoutes = await storage.getInquiryRoutesByInquiry(inquiry.id);
+        const hasAccepted = existingRoutes.some((r) => r.status === "accepted");
+        if (!hasAccepted) {
+          return res.status(400).json({
+            error: "At least one routed person must accept before sending a referral",
+          });
+        }
+      }
+
+      const routing = await import("./routingService");
+      const ctx = await buildComposerContextFor(inquiry, userId);
+      // Operator may have edited body/note client-side; honor the latest values.
+      const finalBody = routing.applyPersonalNote(
+        (req.body?.body ?? response.body) as string,
+        (req.body?.personalNote ?? response.personalNote) as string | null,
+      );
+      const subjectMap: Record<string, string> = {
+        pricing: `Information from ${ctx.operatorName}`,
+        decline: `Thank you from ${ctx.operatorName}`,
+        referral: `A few trusted recommendations from ${ctx.operatorName}`,
+      };
+      const subject = subjectMap[response.responseType] || `Message from ${ctx.operatorName}`;
+
+      const { sendGeneralEmail } = await import("./emailService");
+      await sendGeneralEmail({
+        to: inquiry.clientEmail,
+        subject,
+        body: finalBody,
+        senderName: ctx.operatorName,
+      });
+
+      const updated = await storage.updateInquiryResponse(response.id, {
+        body: finalBody,
+        personalNote: (req.body?.personalNote ?? response.personalNote) as string | null,
+        status: "sent",
+        sentAt: new Date(),
+      });
+
+      const eventType =
+        response.responseType === "pricing"
+          ? "pricing_sent"
+          : response.responseType === "decline"
+            ? "declined"
+            : "referral_sent_to_client";
+      await routing.recordRoutingEvent({
+        operatorId: userId,
+        eventType,
+        evidenceText: `Sent ${response.responseType} response to client for inquiry ${inquiry.id}`,
+        contextualFactors: [`type:${response.responseType}`],
+      });
+
+      // If this was a referral message, mark accepted routes as sent_to_client.
+      if (response.responseType === "referral") {
+        const routes = await storage.getInquiryRoutesByInquiry(inquiry.id);
+        for (const r of routes) {
+          if (r.status === "accepted") {
+            await storage.updateInquiryRoute(r.id, { status: "sent_to_client" });
+          }
+        }
+      }
+
+      res.json({ response: updated });
+    } catch (error: any) {
+      console.error("[Composer] Send error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // --- Routing: create routes (select one or more targets) ---
+  app.post("/api/inquiries/:id/routes", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const inquiry = await storage.getInquiry(req.params.id);
+      if (!inquiry) return res.status(404).json({ error: "Inquiry not found" });
+      if (inquiry.vendorId !== userId) return res.status(403).json({ error: "Access denied" });
+
+      const { targetIds, routeType } = req.body as { targetIds?: string[]; routeType?: string };
+      if (!Array.isArray(targetIds) || targetIds.length === 0) {
+        return res.status(400).json({ error: "Select at least one route target" });
+      }
+      const type = routeType || "referral";
+      const created = [];
+      for (const targetId of targetIds) {
+        const target = await storage.getRouteTarget(targetId);
+        if (!target || target.operatorId !== userId) {
+          return res.status(400).json({ error: `Invalid route target: ${targetId}` });
+        }
+        const route = await storage.createInquiryRoute({
+          operatorId: userId,
+          inquiryId: inquiry.id,
+          routeTargetId: targetId,
+          routeType: type,
+          status: "draft",
+          targetLabelSnapshot: target.roleLabel || null,
+        });
+        created.push(route);
+      }
+      const routing = await import("./routingService");
+      await routing.recordRoutingEvent({
+        operatorId: userId,
+        eventType: type === "referral" ? "routed" : "delegated",
+        evidenceText: `Created ${created.length} ${type} route(s) for inquiry ${inquiry.id}`,
+        contextualFactors: [`type:${type}`, `count:${created.length}`],
+      });
+      res.json({ routes: created });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // --- Routing: send preflight to a route target (asks before client sees them) ---
+  app.post("/api/inquiry-routes/:id/preflight", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const route = await storage.getInquiryRoute(req.params.id);
+      if (!route) return res.status(404).json({ error: "Route not found" });
+      if (route.operatorId !== userId) return res.status(403).json({ error: "Access denied" });
+      const target = await storage.getRouteTarget(route.routeTargetId);
+      if (!target) return res.status(404).json({ error: "Route target not found" });
+
+      const inquiry = route.inquiryId ? await storage.getInquiry(route.inquiryId) : null;
+      const ctx = inquiry ? await buildComposerContextFor(inquiry, userId) : null;
+      const routing = await import("./routingService");
+      const message = routing.buildPreflightMessage({
+        operatorName: ctx?.operatorName || "Your colleague",
+        targetName: target.name,
+        serviceType: inquiry?.serviceType,
+        eventDate: ctx?.eventDate,
+        eventLocation: inquiry?.eventLocation,
+        routeType: route.routeType as any,
+      });
+
+      // Choose channel by available contact info (operator can prefer one).
+      const wantChannel = (req.body?.channel as string) || (target.phone ? "sms" : "email");
+      let delivered = false;
+      let usedChannel = wantChannel;
+      if (wantChannel === "sms" && target.phone) {
+        const { sendSms } = await import("./smsService");
+        const result = await sendSms(target.phone, message);
+        delivered = result.success;
+        usedChannel = "sms";
+      } else if (target.email) {
+        const { sendGeneralEmail } = await import("./emailService");
+        await sendGeneralEmail({
+          to: target.email,
+          subject: `${ctx?.operatorName || "A colleague"} would like to send you an inquiry`,
+          body: message,
+          senderName: ctx?.operatorName || "Briarwood",
+        });
+        delivered = true;
+        usedChannel = "email";
+      } else {
+        return res.status(400).json({ error: "This route target has no email or phone to preflight" });
+      }
+
+      const updated = await storage.updateInquiryRoute(route.id, {
+        status: "pending",
+        preflightChannel: usedChannel,
+        preflightMessage: message,
+        preflightSentAt: new Date(),
+      });
+      await routing.recordRoutingEvent({
+        operatorId: userId,
+        eventType: "route_preflight_sent",
+        evidenceText: `Preflighted ${route.routeType} to ${target.name} via ${usedChannel}`,
+        contextualFactors: [`channel:${usedChannel}`, `delivered:${delivered}`],
+      });
+      res.json({ route: updated, delivered });
+    } catch (error: any) {
+      console.error("[Routing] Preflight error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // --- Routing: record a route target's response (operator captures the reply) ---
+  app.patch("/api/inquiry-routes/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const route = await storage.getInquiryRoute(req.params.id);
+      if (!route) return res.status(404).json({ error: "Route not found" });
+      if (route.operatorId !== userId) return res.status(403).json({ error: "Access denied" });
+
+      const { status, responseRaw } = req.body as { status?: string; responseRaw?: string };
+      const allowed = ["accepted", "declined", "needs_review", "completed", "pending", "draft"];
+      if (status && !allowed.includes(status)) {
+        return res.status(400).json({ error: `Invalid status: ${status}` });
+      }
+      const updated = await storage.updateInquiryRoute(route.id, {
+        ...(status ? { status } : {}),
+        ...(responseRaw !== undefined ? { responseRaw } : {}),
+        ...(status === "accepted" || status === "declined" || status === "needs_review"
+          ? { respondedAt: new Date() }
+          : {}),
+      });
+      if (status === "accepted" || status === "declined" || status === "needs_review") {
+        const routing = await import("./routingService");
+        await routing.recordRoutingEvent({
+          operatorId: userId,
+          eventType:
+            status === "accepted"
+              ? "route_preflight_accepted"
+              : status === "declined"
+                ? "route_preflight_declined"
+                : "response_received",
+          evidenceText: `Route ${route.id} marked ${status}`,
+          contextualFactors: [`status:${status}`],
+        });
+      }
+      res.json({ route: updated });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
   });
 

@@ -44,6 +44,51 @@ interface AssistantPrompt {
   actedOnAt: string | null;
 }
 
+interface RouteTarget {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  roleLabel: string | null;
+  active: boolean | null;
+  preferred: boolean | null;
+  isInternal: boolean | null;
+  isAgent: boolean | null;
+}
+
+interface InquiryRoute {
+  id: string;
+  routeTargetId: string;
+  routeType: string;
+  status: string;
+  preflightChannel: string | null;
+  responseRaw: string | null;
+}
+
+interface InquiryResponse {
+  id: string;
+  responseType: string;
+  status: string;
+  body: string;
+  personalNote: string | null;
+  sentAt: string | null;
+}
+
+interface ComposerData {
+  context: {
+    clientName: string;
+    serviceType: string | null;
+    eventDate: string | null;
+    eventLocation: string | null;
+    operatorName: string;
+    pricingLink: string | null;
+  };
+  defaults: { pricing: string; decline: string; referral: string };
+  routes: InquiryRoute[];
+  responses: InquiryResponse[];
+  targets: RouteTarget[];
+}
+
 const STATUS_STYLES: Record<string, string> = {
   sent: "bg-green-100 text-green-900 border-green-300",
   queued: "bg-brass/20 text-ink border-brass/40",
@@ -75,6 +120,364 @@ function linkedRef(p: AssistantPrompt): string | null {
   return null;
 }
 
+const ROUTE_TYPES = [
+  "referral",
+  "delegation",
+  "review",
+  "scheduling",
+  "agent",
+  "follow_up",
+];
+
+function InquiryComposer({ inquiryId }: { inquiryId: string }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const composerKey = [`/api/inquiries/${inquiryId}/composer`];
+
+  const composerQuery = useQuery<ComposerData>({
+    queryKey: composerKey,
+    queryFn: async () => {
+      const res = await fetch(`/api/inquiries/${inquiryId}/composer`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to load composer");
+      return res.json();
+    },
+    retry: false,
+  });
+
+  const [mode, setMode] = useState<"pricing" | "decline" | "referral" | null>(null);
+  const [note, setNote] = useState("");
+  const [body, setBody] = useState("");
+  const [selectedTargets, setSelectedTargets] = useState<string[]>([]);
+  const [routeType, setRouteType] = useState("referral");
+
+  const refresh = () => queryClient.invalidateQueries({ queryKey: composerKey });
+
+  const startMode = (m: "pricing" | "decline" | "referral") => {
+    setMode(m);
+    setNote("");
+    setBody(composerQuery.data?.defaults[m] ?? "");
+  };
+
+  const sendResponse = useMutation({
+    mutationFn: async () => {
+      if (!mode) return;
+      const draftRes = await apiRequest("POST", `/api/inquiries/${inquiryId}/responses`, {
+        responseType: mode,
+        personalNote: note || null,
+        body,
+      });
+      const { response } = await draftRes.json();
+      const sendRes = await apiRequest("POST", `/api/inquiry-responses/${response.id}/send`, {
+        body,
+        personalNote: note || null,
+      });
+      return sendRes.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Message sent to client" });
+      setMode(null);
+      refresh();
+    },
+    onError: (err: Error) => {
+      toast({ title: "Could not send", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const createRoutes = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/inquiries/${inquiryId}/routes`, {
+        targetIds: selectedTargets,
+        routeType,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Routes created" });
+      setSelectedTargets([]);
+      refresh();
+    },
+    onError: (err: Error) => {
+      toast({ title: "Could not create routes", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const preflight = useMutation({
+    mutationFn: async (routeId: string) => {
+      const res = await apiRequest("POST", `/api/inquiry-routes/${routeId}/preflight`, {});
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Preflight sent" });
+      refresh();
+    },
+    onError: (err: Error) => {
+      toast({ title: "Could not send preflight", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const setRouteStatus = useMutation({
+    mutationFn: async ({ routeId, status }: { routeId: string; status: string }) => {
+      const res = await apiRequest("PATCH", `/api/inquiry-routes/${routeId}`, { status });
+      return res.json();
+    },
+    onSuccess: () => refresh(),
+    onError: (err: Error) => {
+      toast({ title: "Could not update route", description: err.message, variant: "destructive" });
+    },
+  });
+
+  if (composerQuery.isLoading) {
+    return (
+      <div className="mt-4 flex items-center gap-2 text-ink/60 text-sm" data-testid={`status-composer-loading-${inquiryId}`}>
+        <Loader2 className="w-4 h-4 animate-spin" /> Loading composer
+      </div>
+    );
+  }
+  if (!composerQuery.data) {
+    return (
+      <p className="mt-4 text-sm text-ink/60" data-testid={`text-composer-unavailable-${inquiryId}`}>
+        Composer unavailable for this prompt.
+      </p>
+    );
+  }
+
+  const data = composerQuery.data;
+  const ctx = data.context;
+  const targetName = (id: string) => data.targets.find((t) => t.id === id)?.name ?? "Unknown";
+  const acceptedCount = data.routes.filter((r) => r.status === "accepted").length;
+  const referralSent = data.responses.some(
+    (r) => r.responseType === "referral" && r.status === "sent",
+  );
+
+  return (
+    <div className="mt-5 border-t border-hairline pt-5" data-testid={`composer-${inquiryId}`}>
+      {/* INQUIRY CONTEXT */}
+      <div className="mb-4 grid grid-cols-2 gap-x-6 gap-y-1 text-sm text-ink/70" data-testid={`composer-context-${inquiryId}`}>
+        <div><span className="text-ink/50">Client:</span> {ctx.clientName}</div>
+        <div><span className="text-ink/50">Service:</span> {ctx.serviceType || "—"}</div>
+        <div><span className="text-ink/50">Date:</span> {ctx.eventDate || "—"}</div>
+        <div><span className="text-ink/50">Location:</span> {ctx.eventLocation || "—"}</div>
+      </div>
+
+      {/* ACTION PICKER */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        <button
+          onClick={() => startMode("pricing")}
+          className="text-sm border border-hairline px-3 py-1.5 hover:bg-surface-2"
+          data-testid={`button-mode-pricing-${inquiryId}`}
+        >
+          Send pricing / info
+        </button>
+        <button
+          onClick={() => startMode("decline")}
+          className="text-sm border border-hairline px-3 py-1.5 hover:bg-surface-2"
+          data-testid={`button-mode-decline-${inquiryId}`}
+        >
+          Decline (no routing)
+        </button>
+        <button
+          onClick={() => startMode("referral")}
+          className="text-sm border border-hairline px-3 py-1.5 hover:bg-surface-2"
+          data-testid={`button-mode-referral-${inquiryId}`}
+        >
+          Refer / route / delegate
+        </button>
+      </div>
+
+      {/* COMPOSER PANEL */}
+      {mode && (
+        <div className="border border-hairline bg-bg p-4 mb-4" data-testid={`composer-panel-${inquiryId}`}>
+          {mode === "referral" && (
+            <div className="mb-4">
+              <div className="font-medium text-sm mb-2">1. Route to your network</div>
+              <p className="text-xs text-ink/55 mb-3">
+                Ask each person before the client ever sees them. Only people who accept will be
+                included in the referral message.
+              </p>
+              <div className="mb-3">
+                <label className="block text-xs text-ink/55 mb-1">Route type</label>
+                <select
+                  value={routeType}
+                  onChange={(e) => setRouteType(e.target.value)}
+                  className="w-full sm:w-56 px-3 py-2 bg-bg border border-hairline text-sm"
+                  data-testid={`select-route-type-${inquiryId}`}
+                >
+                  {ROUTE_TYPES.map((rt) => (
+                    <option key={rt} value={rt}>{rt}</option>
+                  ))}
+                </select>
+              </div>
+
+              {data.targets.length === 0 ? (
+                <p className="text-xs text-ink/55 mb-2" data-testid={`text-no-targets-${inquiryId}`}>
+                  No route targets yet. Add people to your network from the routing settings.
+                </p>
+              ) : (
+                <div className="space-y-2 mb-3">
+                  {data.targets.filter((t) => t.active !== false).map((t) => (
+                    <label
+                      key={t.id}
+                      className="flex items-center gap-2 text-sm"
+                      data-testid={`target-option-${t.id}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedTargets.includes(t.id)}
+                        onChange={(e) =>
+                          setSelectedTargets((prev) =>
+                            e.target.checked ? [...prev, t.id] : prev.filter((x) => x !== t.id),
+                          )
+                        }
+                        data-testid={`checkbox-target-${t.id}`}
+                      />
+                      <span>{t.name}</span>
+                      {t.roleLabel && <span className="text-xs text-ink/50">({t.roleLabel})</span>}
+                    </label>
+                  ))}
+                </div>
+              )}
+              <button
+                onClick={() => createRoutes.mutate()}
+                disabled={selectedTargets.length === 0 || createRoutes.isPending}
+                className="text-sm bg-ink text-bg px-3 py-1.5 disabled:opacity-50"
+                data-testid={`button-create-routes-${inquiryId}`}
+              >
+                {createRoutes.isPending && <Loader2 className="w-3 h-3 animate-spin inline mr-1" />}
+                Add selected to routing
+              </button>
+
+              {/* EXISTING ROUTES + PREFLIGHT */}
+              {data.routes.length > 0 && (
+                <div className="mt-4 space-y-2" data-testid={`routes-list-${inquiryId}`}>
+                  {data.routes.map((r) => (
+                    <div
+                      key={r.id}
+                      className="flex flex-wrap items-center gap-2 text-sm border border-hairline px-3 py-2"
+                      data-testid={`route-row-${r.id}`}
+                    >
+                      <span className="font-medium">{targetName(r.routeTargetId)}</span>
+                      <span className="text-xs text-ink/50">{r.routeType}</span>
+                      <Badge variant="outline" className="text-xs">{r.status}</Badge>
+                      {(r.status === "draft" || r.status === "pending") && (
+                        <button
+                          onClick={() => preflight.mutate(r.id)}
+                          disabled={preflight.isPending}
+                          className="text-xs underline text-ink"
+                          data-testid={`button-preflight-${r.id}`}
+                        >
+                          Send preflight
+                        </button>
+                      )}
+                      {r.status === "pending" && (
+                        <>
+                          <button
+                            onClick={() => setRouteStatus.mutate({ routeId: r.id, status: "accepted" })}
+                            className="text-xs underline text-green-800"
+                            data-testid={`button-route-accept-${r.id}`}
+                          >
+                            Mark accepted
+                          </button>
+                          <button
+                            onClick={() => setRouteStatus.mutate({ routeId: r.id, status: "declined" })}
+                            className="text-xs underline text-ink/60"
+                            data-testid={`button-route-decline-${r.id}`}
+                          >
+                            Mark declined
+                          </button>
+                          <button
+                            onClick={() => setRouteStatus.mutate({ routeId: r.id, status: "needs_review" })}
+                            className="text-xs underline text-ink/60"
+                            data-testid={`button-route-review-${r.id}`}
+                          >
+                            Needs review
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="font-medium text-sm mt-5 mb-2">2. Message the client</div>
+              <p className="text-xs text-ink/55 mb-3">
+                {acceptedCount > 0
+                  ? `${acceptedCount} accepted. They will appear in the referral list below.`
+                  : "No one has accepted yet. The list below updates as people accept."}
+              </p>
+            </div>
+          )}
+
+          {/* PERSONAL NOTE + BODY (all modes) */}
+          <label className="block text-xs text-ink/55 mb-1">Personal note (optional, goes on top)</label>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            rows={2}
+            placeholder="Add a warm personal line, for example mentioning the venue or who referred them."
+            className="w-full px-3 py-2 bg-bg border border-hairline text-sm mb-3"
+            data-testid={`input-note-${inquiryId}`}
+          />
+          <label className="block text-xs text-ink/55 mb-1">Message</label>
+          <textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            rows={8}
+            className="w-full px-3 py-2 bg-bg border border-hairline text-sm mb-3 font-sans"
+            data-testid={`input-body-${inquiryId}`}
+          />
+
+          {/* PREVIEW */}
+          <div className="border border-hairline bg-surface-2 p-3 mb-3" data-testid={`preview-${inquiryId}`}>
+            <div className="text-xs text-ink/50 mb-1">Preview</div>
+            <div className="text-sm whitespace-pre-wrap">
+              {(note ? note + "\n\n" : "") + body}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => sendResponse.mutate()}
+              disabled={sendResponse.isPending || !body.trim() || (mode === "referral" && acceptedCount === 0)}
+              className="text-sm bg-ink text-bg px-4 py-2 disabled:opacity-50"
+              data-testid={`button-send-${inquiryId}`}
+            >
+              {sendResponse.isPending && <Loader2 className="w-3 h-3 animate-spin inline mr-1" />}
+              Approve and send
+            </button>
+            <button
+              onClick={() => setMode(null)}
+              className="text-sm underline text-ink/70"
+              data-testid={`button-cancel-${inquiryId}`}
+            >
+              Cancel
+            </button>
+            {mode === "referral" && acceptedCount === 0 && (
+              <span className="text-xs text-ink/50">Need at least one accepted route to send a referral.</span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* SENT HISTORY */}
+      {data.responses.length > 0 && (
+        <div className="text-xs text-ink/55 space-y-1" data-testid={`responses-history-${inquiryId}`}>
+          {data.responses.map((r) => (
+            <div key={r.id}>
+              {r.responseType}: {r.status}
+              {r.sentAt ? ` (${fmt(r.sentAt)})` : ""}
+            </div>
+          ))}
+        </div>
+      )}
+      {referralSent && (
+        <p className="text-xs text-green-800 mt-1">Referral list sent to client.</p>
+      )}
+    </div>
+  );
+}
+
 export default function AssistantControl() {
   const [, params] = useRoute("/admin/:slug/assistant");
   const slug = params?.slug;
@@ -83,6 +486,7 @@ export default function AssistantControl() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const [openComposer, setOpenComposer] = useState<string | null>(null);
   const [form, setForm] = useState<AssistantSettings | null>(null);
 
   const settingsQuery = useQuery<AssistantSettings>({
@@ -412,6 +816,23 @@ export default function AssistantControl() {
                       </span>
                     )}
                   </div>
+
+                  {p.inquiryId && (
+                    <div className="mt-4">
+                      <button
+                        onClick={() =>
+                          setOpenComposer((cur) => (cur === p.id ? null : p.id))
+                        }
+                        className="text-sm underline text-ink"
+                        data-testid={`button-toggle-composer-${p.id}`}
+                      >
+                        {openComposer === p.id ? "Hide composer" : "Respond"}
+                      </button>
+                      {openComposer === p.id && (
+                        <InquiryComposer inquiryId={p.inquiryId} />
+                      )}
+                    </div>
+                  )}
                 </article>
               );
             })}

@@ -130,6 +130,15 @@ import {
   assistantPrompts,
   type AssistantPrompt,
   type InsertAssistantPrompt,
+  routeTargets,
+  type RouteTarget,
+  type InsertRouteTarget,
+  inquiryRoutes,
+  type InquiryRoute,
+  type InsertInquiryRoute,
+  inquiryResponses,
+  type InquiryResponse,
+  type InsertInquiryResponse,
   type CdiDimensionScore,
   type InsertCdiDimensionScore,
   type CdiCompositeScore,
@@ -444,6 +453,21 @@ export interface IStorage {
   getAssistantPrompt(id: string): Promise<AssistantPrompt | undefined>;
   getAssistantPromptsByOperator(operatorId: string, limit?: number): Promise<AssistantPrompt[]>;
   getAllAssistantPrompts(limit?: number): Promise<AssistantPrompt[]>;
+  // Briarwood routing layer: generic route targets (address book)
+  createRouteTarget(data: InsertRouteTarget): Promise<RouteTarget>;
+  getRouteTarget(id: string): Promise<RouteTarget | undefined>;
+  getRouteTargetsByOperator(operatorId: string): Promise<RouteTarget[]>;
+  updateRouteTarget(id: string, updates: Partial<RouteTarget>): Promise<RouteTarget | undefined>;
+  // Briarwood routing layer: per-inquiry routes / delegation / preflight
+  createInquiryRoute(data: InsertInquiryRoute): Promise<InquiryRoute>;
+  getInquiryRoute(id: string): Promise<InquiryRoute | undefined>;
+  getInquiryRoutesByInquiry(inquiryId: string): Promise<InquiryRoute[]>;
+  updateInquiryRoute(id: string, updates: Partial<InquiryRoute>): Promise<InquiryRoute | undefined>;
+  // Briarwood response composer: outgoing client-message drafts
+  createInquiryResponse(data: InsertInquiryResponse): Promise<InquiryResponse>;
+  getInquiryResponse(id: string): Promise<InquiryResponse | undefined>;
+  getInquiryResponsesByInquiry(inquiryId: string): Promise<InquiryResponse[]>;
+  updateInquiryResponse(id: string, updates: Partial<InquiryResponse>): Promise<InquiryResponse | undefined>;
   // Inbound SMS (Step 1: headless coordination)
   getInboundSmsByMessageSid(messageSid: string): Promise<InboundSmsMessage | undefined>;
   getInboundSmsByInquiryId(inquiryId: string): Promise<InboundSmsMessage[]>;
@@ -2272,6 +2296,87 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(assistantPrompts)
       .orderBy(desc(assistantPrompts.createdAt))
       .limit(limit);
+  }
+
+  // --- Briarwood routing layer: route targets (generic address book) ---
+  async createRouteTarget(data: InsertRouteTarget): Promise<RouteTarget> {
+    const [row] = await db.insert(routeTargets).values(data as any).returning();
+    return row;
+  }
+
+  async getRouteTarget(id: string): Promise<RouteTarget | undefined> {
+    const [row] = await db.select().from(routeTargets)
+      .where(eq(routeTargets.id, id))
+      .limit(1);
+    return row || undefined;
+  }
+
+  async getRouteTargetsByOperator(operatorId: string): Promise<RouteTarget[]> {
+    return await db.select().from(routeTargets)
+      .where(eq(routeTargets.operatorId, operatorId))
+      .orderBy(desc(routeTargets.createdAt));
+  }
+
+  async updateRouteTarget(id: string, updates: Partial<RouteTarget>): Promise<RouteTarget | undefined> {
+    const [row] = await db.update(routeTargets)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(routeTargets.id, id))
+      .returning();
+    return row || undefined;
+  }
+
+  // --- Briarwood routing layer: per-inquiry routes / delegation / preflight ---
+  async createInquiryRoute(data: InsertInquiryRoute): Promise<InquiryRoute> {
+    const [row] = await db.insert(inquiryRoutes).values(data as any).returning();
+    return row;
+  }
+
+  async getInquiryRoute(id: string): Promise<InquiryRoute | undefined> {
+    const [row] = await db.select().from(inquiryRoutes)
+      .where(eq(inquiryRoutes.id, id))
+      .limit(1);
+    return row || undefined;
+  }
+
+  async getInquiryRoutesByInquiry(inquiryId: string): Promise<InquiryRoute[]> {
+    return await db.select().from(inquiryRoutes)
+      .where(eq(inquiryRoutes.inquiryId, inquiryId))
+      .orderBy(desc(inquiryRoutes.createdAt));
+  }
+
+  async updateInquiryRoute(id: string, updates: Partial<InquiryRoute>): Promise<InquiryRoute | undefined> {
+    const [row] = await db.update(inquiryRoutes)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(inquiryRoutes.id, id))
+      .returning();
+    return row || undefined;
+  }
+
+  // --- Briarwood response composer: outgoing client-message drafts ---
+  async createInquiryResponse(data: InsertInquiryResponse): Promise<InquiryResponse> {
+    const [row] = await db.insert(inquiryResponses).values(data as any).returning();
+    return row;
+  }
+
+  async getInquiryResponse(id: string): Promise<InquiryResponse | undefined> {
+    const [row] = await db.select().from(inquiryResponses)
+      .where(eq(inquiryResponses.id, id))
+      .limit(1);
+    return row || undefined;
+  }
+
+  async getInquiryResponsesByInquiry(inquiryId: string): Promise<InquiryResponse[]> {
+    return await db.select().from(inquiryResponses)
+      .where(eq(inquiryResponses.inquiryId, inquiryId))
+      .orderBy(desc(inquiryResponses.createdAt));
+  }
+
+  async updateInquiryResponse(id: string, updates: Partial<InquiryResponse>): Promise<InquiryResponse | undefined> {
+    const [row] = await db.update(inquiryResponses)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(inquiryResponses.id, id))
+      .returning();
+    return row || undefined;
   }
 
   // Inbound SMS rows enriched with the names/records they matched to, plus the

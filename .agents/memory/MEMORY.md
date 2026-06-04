@@ -4,3 +4,4 @@
 - [Inbound SMS matching](inbound-sms-matching.md) — attribute by inquiry context; trust event only on confident person+inquiry match (hasPersonSignal required); insert row first for idempotency.
 - [Assistant prompt queue](assistant-prompt-queue.md) — headless prompt layer; delivery OFF by default; queued status has no flush job yet; new-inquiry event wired with availability analysis + circle/team routing suggestions.
 - [Briarwood vs DateInquiry vs Makeup Dolls](briarwood-architecture.md) — Briarwood=permanent infra; DateInquiry=temp intake bridge (do not name permanent concepts after it); Makeup Dolls=live source. Design new logic channel-agnostic.
+- [Briarwood composer + routing](briarwood-composer-routing.md) — operator approves every send; referral acceptance gate enforced server-side (UI-only is bypassable); events CDI-neutral (signalStrength 0); generic route targets.
