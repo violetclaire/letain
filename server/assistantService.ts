@@ -1,6 +1,7 @@
 import { storage } from "./storage";
 import * as smsService from "./smsService";
 import { sendEmail } from "./emailService";
+import * as cdiEngine from "./cdiEngine";
 import type { AssistantPrompt } from "@shared/schema";
 
 // The headless assistant delivery layer.
@@ -224,13 +225,36 @@ export async function getOperatorAvailabilityLabel(
 export type AvailabilityStatus =
   | "operator_available"
   | "operator_unavailable"
+  | "booked_by_contract"
+  | "blocked_on_calendar"
   | "possible_conflict"
   | "possible_network_route"
+  | "unknown"
+  | "needs_review";
+
+// Where the conclusion came from, so the operator can verify it.
+export type EvidenceSource =
+  | "contract"
+  | "calendar"
+  | "inquiry"
+  | "booking"
+  | "trusted_circle"
   | "unknown";
+
+export type AvailabilityConfidence = "high" | "medium" | "low";
+
+// The single suggested next action carried by a structured result. (The prompt
+// still composes a short ordered list of actions for the operator separately.)
+export type SuggestedAction = "ACCEPT" | "SEND_PRICING" | "ROUTE" | "REVIEW" | "DECLINE";
 
 export interface AvailabilityAnalysis {
   status: AvailabilityStatus; // operator-level (never possible_network_route here)
-  detail: string | null; // short human-readable reason
+  reason: string; // short human-readable explanation
+  evidenceSource: EvidenceSource;
+  conflictingRecordIds: string[]; // IDs of the contracts/bookings/inquiries that conflict
+  confidence: AvailabilityConfidence;
+  suggestedAction: SuggestedAction;
+  detail: string | null; // backwards-compatible alias of reason
 }
 
 export interface RoutingSuggestion {
@@ -244,38 +268,241 @@ function toDateStr(d: Date): string {
   return d.toISOString().split("T")[0];
 }
 
-// Analyze the operator's own availability for an inquiry's date using existing
-// calendar data only. If the data is incomplete, return 'unknown' rather than
-// guessing. Falls back to the same "no record means open" rule the live app
-// already uses, so this does not contradict the operator's calendar view.
+// Small constructor so every return path carries the full structured shape.
+function mkAnalysis(
+  status: AvailabilityStatus,
+  reason: string,
+  evidenceSource: EvidenceSource,
+  conflictingRecordIds: string[],
+  confidence: AvailabilityConfidence,
+  suggestedAction: SuggestedAction,
+): AvailabilityAnalysis {
+  return {
+    status,
+    reason,
+    evidenceSource,
+    conflictingRecordIds,
+    confidence,
+    suggestedAction,
+    detail: reason,
+  };
+}
+
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+// Build the date strings a free-text contract field ("eventDates") might use, so
+// we can match conservatively. We never guess: a contract is only treated as
+// covering the date if one of these tokens literally appears in its text.
+function dateTokens(d: Date): string[] {
+  const iso = d.toISOString().split("T")[0]; // YYYY-MM-DD (UTC)
+  const [y, m, day] = iso.split("-").map(Number);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const monthLong = MONTH_NAMES[m - 1];
+  const monthShort = monthLong.slice(0, 3);
+  return [
+    iso, // 2027-08-21
+    `${m}/${day}/${y}`, // 8/21/2027
+    `${pad(m)}/${pad(day)}/${y}`, // 08/21/2027
+    `${monthLong} ${day}, ${y}`, // August 21, 2027
+    `${monthShort} ${day}, ${y}`, // Aug 21, 2027
+    `${monthLong} ${day}`, // August 21
+  ];
+}
+
+function contractCoversDate(c: { eventDates?: string | null }, tokens: string[]): boolean {
+  const text = (c.eventDates || "").toString();
+  if (!text) return false;
+  return tokens.some((t) => text.includes(t));
+}
+
+const TERMINAL_INQUIRY_STATUSES = new Set(["declined", "expired", "completed"]);
+const BOOKED_BOOKING_STATUSES = new Set(["accepted", "confirmed", "completed"]);
+
+// Analyze the operator's availability for an inquiry's date by comparing it
+// against every existing signal: signed contracts, booked/blocked calendar
+// dates, pending holds, active bookings, and other live inquiries competing for
+// the same date. Strongest "booked" signal wins; softer conflicts fall through
+// to review. If the data is incomplete we return 'unknown' rather than guessing,
+// and we never contradict the operator's own calendar view (same fallback the
+// live app uses: no record means open). Read-only: this never writes anything.
 export async function analyzeInquiryAvailability(
   operatorId: string,
   eventDate: Date | null | undefined,
+  currentInquiryId?: string | null,
 ): Promise<AvailabilityAnalysis> {
   if (!eventDate || isNaN(eventDate.getTime())) {
-    return { status: "unknown", detail: "No event date provided" };
+    return mkAnalysis("unknown", "No event date provided", "unknown", [], "low", "REVIEW");
   }
   try {
     const dateStr = toDateStr(eventDate);
-    const blocked = await storage.getBlockedDateForArtist(operatorId, dateStr);
+    const tokens = dateTokens(eventDate);
+
+    // Gather every signal in parallel. Each source degrades to empty on failure
+    // so a positive conflict on one source is never missed, but we remember that
+    // a source failed: if no conflict is found we must NOT claim "available" off
+    // incomplete data — we return 'unknown' instead of guessing.
+    let sourceFailed = false;
+    const safe = async <T>(p: Promise<T>, fallback: T): Promise<T> => {
+      try {
+        return await p;
+      } catch {
+        sourceFailed = true;
+        return fallback;
+      }
+    };
+    const [blocked, contracts, bookings, inquiries] = await Promise.all([
+      safe(storage.getBlockedDateForArtist(operatorId, dateStr), null as any),
+      safe(storage.getContractsByArtist(operatorId), [] as any[]),
+      safe(storage.getBookingsByArtist(operatorId), [] as any[]),
+      safe(storage.getInquiriesByVendor(operatorId), [] as any[]),
+    ]);
+
+    const contractMatches = (contracts as any[]).filter((c) => contractCoversDate(c, tokens));
+    const sameDayBookings = (bookings as any[]).filter(
+      (b) => b.eventDate && toDateStr(new Date(b.eventDate)) === dateStr,
+    );
+
+    // 1. Signed contract on the date — the strongest "booked" signal.
+    const signedContract = contractMatches.find(
+      (c) => (c.status || "").toLowerCase() === "signed",
+    );
+    if (signedContract) {
+      return mkAnalysis(
+        "booked_by_contract",
+        "A signed contract already covers this date",
+        "contract",
+        [signedContract.id],
+        "high",
+        "ROUTE",
+      );
+    }
+
+    // 2. An active (accepted/confirmed/completed) booking on the date.
+    const activeBooking = sameDayBookings.find((b) =>
+      BOOKED_BOOKING_STATUSES.has((b.status || "").toLowerCase()),
+    );
+    if (activeBooking) {
+      return mkAnalysis(
+        "operator_unavailable",
+        "An existing booking is on this date",
+        "booking",
+        [activeBooking.id],
+        "high",
+        "ROUTE",
+      );
+    }
+
+    // 3. Calendar explicitly marked booked.
+    if (blocked && (blocked.reason || "").toLowerCase() === "booked") {
+      return mkAnalysis(
+        "blocked_on_calendar",
+        "This date is marked booked on your calendar",
+        "calendar",
+        [blocked.id],
+        "high",
+        "ROUTE",
+      );
+    }
+
+    // --- Softer conflicts (medium confidence): worth a review, not certain. ---
+
+    // 3b. A contract in progress (sent or draft) covering the date.
+    const pendingContract = contractMatches.find((c) =>
+      ["sent", "draft"].includes((c.status || "").toLowerCase()),
+    );
+    if (pendingContract) {
+      return mkAnalysis(
+        "possible_conflict",
+        "A contract in progress covers this date",
+        "contract",
+        [pendingContract.id],
+        "medium",
+        "REVIEW",
+      );
+    }
+
+    // 3c. A pending booking on the date.
+    const pendingBooking = sameDayBookings.find(
+      (b) => (b.status || "").toLowerCase() === "pending",
+    );
+    if (pendingBooking) {
+      return mkAnalysis(
+        "possible_conflict",
+        "A pending booking is on this date",
+        "booking",
+        [pendingBooking.id],
+        "medium",
+        "REVIEW",
+      );
+    }
+
+    // 3d. A calendar block for another reason (e.g. a pending soft hold).
     if (blocked) {
       const reason = (blocked.reason || "").toLowerCase();
-      if (reason === "booked") {
-        return { status: "operator_unavailable", detail: "Date already booked" };
-      }
-      // A blocked row means the date is taken in some way, so we never report it
-      // as freely available. 'Pending' is an explicit soft hold; any other
-      // reason is treated the same (a conflict worth reviewing) rather than
-      // guessing the date is open.
-      const detail = reason === "pending" ? "Date has a pending hold" : "Date is blocked";
-      return { status: "possible_conflict", detail };
+      const detail =
+        reason === "pending"
+          ? "This date has a pending hold on your calendar"
+          : "This date is blocked on your calendar";
+      return mkAnalysis("possible_conflict", detail, "calendar", [blocked.id], "medium", "REVIEW");
     }
+
+    // 3e. Another live inquiry competing for the same date.
+    const competing = (inquiries as any[]).filter((i) => {
+      if (currentInquiryId && i.id === currentInquiryId) return false;
+      if (!i.eventDate || toDateStr(new Date(i.eventDate)) !== dateStr) return false;
+      return !TERMINAL_INQUIRY_STATUSES.has((i.status || "").toLowerCase());
+    });
+    if (competing.length > 0) {
+      return mkAnalysis(
+        "needs_review",
+        competing.length === 1
+          ? "Another inquiry is competing for this date"
+          : `${competing.length} other inquiries are competing for this date`,
+        "inquiry",
+        competing.slice(0, 5).map((i) => i.id),
+        "medium",
+        "REVIEW",
+      );
+    }
+
+    // 4. No conflicts found — defer to the calendar check the live app uses.
     const available = await storage.checkAvailability(operatorId, eventDate);
-    return available
-      ? { status: "operator_available", detail: null }
-      : { status: "operator_unavailable", detail: "Marked unavailable" };
+    if (available) {
+      // A clean "available" is only honest if every evidence source actually
+      // answered. If one failed we could be sitting on a hidden conflict, so we
+      // report 'unknown' rather than guess the date is open.
+      if (sourceFailed) {
+        return mkAnalysis(
+          "unknown",
+          "Some records could not be checked, so availability is unconfirmed",
+          "unknown",
+          [],
+          "low",
+          "REVIEW",
+        );
+      }
+      return mkAnalysis(
+        "operator_available",
+        "No contract, booking, or calendar block found for this date",
+        "calendar",
+        [],
+        "high",
+        "ACCEPT",
+      );
+    }
+    return mkAnalysis(
+      "operator_unavailable",
+      "Your calendar shows this date as unavailable",
+      "calendar",
+      [],
+      "medium",
+      "ROUTE",
+    );
   } catch {
-    return { status: "unknown", detail: null };
+    return mkAnalysis("unknown", "Could not complete the availability check", "unknown", [], "low", "REVIEW");
   }
 }
 
@@ -367,42 +594,59 @@ export interface BuiltInquiryPrompt {
   title: string;
   body: string;
   recommendedActions: string[];
-  availabilityStatus: AvailabilityStatus;
+  availabilityStatus: AvailabilityStatus; // final status (may be possible_network_route)
+  analysis: AvailabilityAnalysis; // the raw operator-level read, before route escalation
   suggestions: RoutingSuggestion[];
 }
 
-function availabilityPhrase(status: AvailabilityStatus): string {
+// The operator-level statuses that mean "you probably cannot take this", which
+// trigger a trusted-circle route lookup and may escalate to network routing.
+function isUnavailableLike(status: AvailabilityStatus): boolean {
+  return (
+    status === "operator_unavailable" ||
+    status === "booked_by_contract" ||
+    status === "blocked_on_calendar" ||
+    status === "possible_conflict" ||
+    status === "needs_review"
+  );
+}
+
+function availabilityPhrase(status: AvailabilityStatus, reason: string): string {
   switch (status) {
     case "operator_available":
       return "You appear available.";
-    case "operator_unavailable":
-      return "You appear unavailable.";
-    case "possible_conflict":
-      return "You may have a conflict (a pending hold is on this date).";
     case "possible_network_route":
-      return "You appear unavailable, but your circle may be able to cover this.";
-    default:
+      return "You appear unavailable for this date, but your circle may be able to cover it.";
+    case "booked_by_contract":
+      return "You appear unavailable because you have a signed contract on this date.";
+    case "unknown":
       return "Your availability for this date is unclear.";
+    default:
+      // Use the specific structured reason for unavailable/blocked/conflict/review.
+      return reason ? `${reason}.` : "You may not be available for this date.";
   }
 }
 
 // Compose the upgraded "new inquiry" prompt: the structured facts, an honest
-// availability read, any routing options, and a suggested next action.
+// availability read (contracts, calendar, bookings, other inquiries), any
+// routing options, and a suggested next action.
 export async function buildInquiryAssistantPrompt(
-  input: InquiryPromptInput,
+  input: InquiryPromptInput & { inquiryId?: string | null },
 ): Promise<BuiltInquiryPrompt> {
-  const analysis = await analyzeInquiryAvailability(input.operatorId, input.eventDate);
+  const analysis = await analyzeInquiryAvailability(
+    input.operatorId,
+    input.eventDate,
+    input.inquiryId ?? null,
+  );
 
   let suggestions: RoutingSuggestion[] = [];
-  if (analysis.status === "operator_unavailable" || analysis.status === "possible_conflict") {
+  if (isUnavailableLike(analysis.status)) {
     suggestions = await getRoutingSuggestions(input.operatorId, input.eventDate);
   }
 
   const hasRoute = suggestions.length > 0;
   const finalStatus: AvailabilityStatus =
-    (analysis.status === "operator_unavailable" || analysis.status === "possible_conflict") && hasRoute
-      ? "possible_network_route"
-      : analysis.status;
+    isUnavailableLike(analysis.status) && hasRoute ? "possible_network_route" : analysis.status;
 
   const multiPerson = (input.partySize ?? 0) > 1;
 
@@ -414,13 +658,18 @@ export async function buildInquiryAssistantPrompt(
       if (multiPerson) recommendedActions.push("BUILD_SCHEDULE");
       break;
     case "possible_network_route":
-      recommendedActions = ["ROUTE", "REVIEW", "SEND_PRICING"];
+      recommendedActions = ["ROUTE", "REVIEW"];
       break;
+    case "booked_by_contract":
     case "operator_unavailable":
-      recommendedActions = ["REVIEW", "ROUTE"];
+    case "blocked_on_calendar":
+      recommendedActions = ["REVIEW", "ROUTE", "DECLINE"];
       break;
     case "possible_conflict":
       recommendedActions = ["REVIEW", "ACCEPT"];
+      break;
+    case "needs_review":
+      recommendedActions = ["REVIEW"];
       break;
     default:
       recommendedActions = ["REVIEW", "SEND_PRICING"];
@@ -450,7 +699,7 @@ export async function buildInquiryAssistantPrompt(
     const note = input.message.trim().replace(/\s+/g, " ").slice(0, 140);
     lines.push(`Note: "${note}"`);
   }
-  lines.push(availabilityPhrase(finalStatus));
+  lines.push(availabilityPhrase(finalStatus, analysis.reason));
   if (hasRoute) {
     const routeText = suggestions
       .map((s) => (s.availability === "available" ? `${s.name} (available)` : s.name))
@@ -464,6 +713,59 @@ export async function buildInquiryAssistantPrompt(
     body: lines.join("\n"),
     recommendedActions,
     availabilityStatus: finalStatus,
+    analysis,
     suggestions,
   };
+}
+
+// Record structured, score-neutral trust events for the availability check so
+// the operator's coordination history reflects that the work was done. These
+// are observational only (signalStrength 0) so they never move the CDI score,
+// and they never auto-route or message anyone. Fire-and-forget; never throws.
+//
+//  - availability_checked: always, once a check has run
+//  - fit_evaluated:        always, carrying the suggested next action
+//  - route_suggested:      only when unavailable AND a trusted route exists
+export async function recordAvailabilityTrustEvents(params: {
+  operatorId: string;
+  inquiryId: string;
+  built: BuiltInquiryPrompt;
+}): Promise<void> {
+  const { operatorId, inquiryId, built } = params;
+  const { analysis, availabilityStatus: finalStatus, suggestions } = built;
+
+  const record = (eventType: string, evidenceText: string, contextualFactors: string[]) =>
+    cdiEngine.recordBehavioralEvent(
+      operatorId,
+      "artist",
+      "coordination",
+      eventType,
+      "choreography_awareness",
+      0, // score-neutral: observational, never inflates CDI
+      { evidenceText, contextualFactors: contextualFactors.filter(Boolean) },
+    );
+
+  try {
+    await record(
+      "availability_checked",
+      `Availability check for inquiry ${inquiryId}: ${analysis.status} (${analysis.confidence} confidence)`,
+      [analysis.reason, `source:${analysis.evidenceSource}`],
+    );
+    await record(
+      "fit_evaluated",
+      `Evaluated fit for inquiry ${inquiryId}: suggested ${analysis.suggestedAction}`,
+      [`final_status:${finalStatus}`, `action:${analysis.suggestedAction}`],
+    );
+    if (finalStatus === "possible_network_route" && suggestions.length > 0) {
+      await record(
+        "route_suggested",
+        `Possible trusted-circle routes for inquiry ${inquiryId}: ${suggestions
+          .map((s) => s.name)
+          .join(", ")}`,
+        suggestions.map((s) => `${s.source}:${s.name}:${s.availability}`),
+      );
+    }
+  } catch (err) {
+    console.error("[Assistant] Failed to record availability trust events:", err);
+  }
 }

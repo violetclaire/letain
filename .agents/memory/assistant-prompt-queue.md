@@ -56,3 +56,30 @@ sees own via getAssistantPromptsByOperator; users.role==='admin' sees all via
 getAllAssistantPrompts). Queue is read-only display (no delivery toggling here).
 **Why:** user wanted one internal control center, no public access; admin-all kept
 simple via role check. Delivery still OFF until operator turns phone/email on here.
+
+## Inquiry availability + contract/calendar check (analyzeInquiryAvailability)
+Deep availability read run on each new inquiry, READ-ONLY and additive. Precedence
+(strongest booked signal wins): signed contract on date > active booking
+(accepted/confirmed/completed) > calendar block reason 'booked' > soft conflicts
+(sent/draft contract, pending booking, pending/other block, competing live inquiry)
+> calendar fallback (storage.checkAvailability). 8 statuses incl booked_by_contract,
+blocked_on_calendar, needs_review. Result is structured: status, reason,
+evidenceSource, conflictingRecordIds, confidence, suggestedAction (+ detail alias).
+**Contract dates are FREE TEXT** (contracts.eventDates) - matched conservatively via
+dateTokens() substring tokens (ISO, M/D/Y, "Month D, YYYY", etc, all UTC to match
+toDateStr); never guesses if no token matches. **Partial-data rule:** per-source
+fetch failures are tracked (sourceFailed flag); if any source failed and no conflict
+found, return 'unknown' NOT operator_available - do not claim available off
+incomplete data. buildInquiryAssistantPrompt escalates unavailable-like + has-route
+to possible_network_route.
+**Why:** task demanded honest availability without guessing; architect flagged that
+swallowing source failures to [] could falsely report available.
+
+## Availability trust events (score-neutral)
+recordAvailabilityTrustEvents writes availability_checked, fit_evaluated, and
+route_suggested (last only when possible_network_route) via
+cdiEngine.recordBehavioralEvent with signalStrength 0 so they appear in the operator's
+behavioral log but NEVER move CDI. They are operator-level (userId=vendorId); they do
+NOT surface in the inquiry trust timeline because that timeline only links events via
+booking or inbound-SMS, and a fresh inquiry has neither - adding an inquiry-direct link
+would require schema/query changes (not additive-safe), so intentionally left out.

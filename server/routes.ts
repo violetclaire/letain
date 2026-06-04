@@ -10167,6 +10167,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
 
           const built = await assistant.buildInquiryAssistantPrompt({
             operatorId: inquiry.vendorId,
+            inquiryId: inquiry.id,
             clientName: inquiry.clientName,
             serviceType: inquiry.serviceType,
             eventDate: inquiry.eventDate ? new Date(inquiry.eventDate) : null,
@@ -10183,6 +10184,15 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
             title: built.title,
             body: built.body,
             recommendedActions: built.recommendedActions,
+          });
+
+          // Record score-neutral trust events (availability_checked, fit_evaluated,
+          // and route_suggested when a network route exists). Observational only:
+          // never auto-routes, never messages the client, never moves CDI.
+          await assistant.recordAvailabilityTrustEvents({
+            operatorId: inquiry.vendorId,
+            inquiryId: inquiry.id,
+            built,
           });
         } catch (err) {
           console.error('[Assistant] Failed to create new-inquiry prompt:', err);
