@@ -195,6 +195,7 @@ import {
   type FormConfig,
   trustedCircle,
   type TrustedCircle,
+  blockedDates,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, lt, desc, asc, or, sql, inArray, ilike } from "drizzle-orm";
@@ -298,6 +299,10 @@ export interface IStorage {
   setAvailability(availability: InsertAvailability): Promise<Availability>;
   deleteAvailability(userId: string, date: Date): Promise<void>;
   checkAvailability(userId: string, date: Date): Promise<boolean>;
+  getBlockedDateForArtist(
+    artistId: string,
+    dateStr: string,
+  ): Promise<{ id: string; artistId: string; blockedDate: string; reason: string | null } | undefined>;
   
   // Schedules (legacy)
   getScheduleByBooking(bookingId: string): Promise<Schedule | undefined>;
@@ -1385,6 +1390,26 @@ export class DatabaseStorage implements IStorage {
     // If no record exists, they haven't set availability (assume available)
     if (result.length === 0) return true;
     return result[0].isAvailable;
+  }
+
+  async getBlockedDateForArtist(
+    artistId: string,
+    dateStr: string,
+  ): Promise<{ id: string; artistId: string; blockedDate: string; reason: string | null } | undefined> {
+    // Select only the columns the live table is guaranteed to have. The
+    // blocked_dates table predates a created_at column in some environments, so
+    // a `select()` of all schema columns would reference a missing column.
+    const [row] = await db
+      .select({
+        id: blockedDates.id,
+        artistId: blockedDates.artistId,
+        blockedDate: blockedDates.blockedDate,
+        reason: blockedDates.reason,
+      })
+      .from(blockedDates)
+      .where(and(eq(blockedDates.artistId, artistId), eq(blockedDates.blockedDate, dateStr)))
+      .limit(1);
+    return row || undefined;
   }
 
   // Schedules

@@ -30,3 +30,17 @@ Only the "new inquiry received" event is wired so far: fire-and-forget call at t
 end of `POST /api/inquiries` (after the existing vendor email), never blocks or
 fails inquiry creation. Other events (reply, schedule needed, invoice due, referral,
 routing) are intended future callers of the same helper.
+
+## Availability analysis + trusted-circle routing (decision layer)
+`analyzeInquiryAvailability(operatorId, eventDate)` reads ONLY existing calendar
+data: a blocked_dates row with reason 'Booked' => operator_unavailable; any other
+blocked row (Pending/other) => possible_conflict (a blocked row is never reported
+as available); no block => fall back to checkAvailability; missing date or any
+throw => unknown (never guess). `getRoutingSuggestions()` returns active trusted-circle
++ accepted (non-removed) team members, resolves each to a user to check their
+date availability, prefers available, capped at 3 - SUGGESTION ONLY, never auto-routes.
+`buildInquiryAssistantPrompt()` composes the upgraded new-inquiry prompt and upgrades
+status to possible_network_route when the operator is unavailable/conflict AND a
+route exists. Suggested actions: ACCEPT/SEND_PRICING/(BUILD_SCHEDULE if partySize>1),
+ROUTE/REVIEW when routing, REVIEW-first when unknown/unavailable-with-no-route.
+**Why:** honest reads over optimistic guesses; operator always approves routing.

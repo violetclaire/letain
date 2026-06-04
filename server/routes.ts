@@ -10051,24 +10051,38 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       // not change existing DateInquiry email behavior.
       import('./assistantService').then(async (assistant) => {
         try {
-          const availability = await assistant.getOperatorAvailabilityLabel(
-            data.vendorId,
-            data.eventDate ? new Date(data.eventDate) : null,
-          );
-          const eventDateLabel = data.eventDate
-            ? new Date(data.eventDate).toLocaleDateString('en-US', {
-                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-              })
-            : 'a date to be confirmed';
-          const service = data.serviceType || 'services';
-          const location = data.eventLocation || 'an unspecified location';
+          // Resolve the referring vendor's name for context, if this lead came
+          // through a referral.
+          let referralSourceName: string | null = null;
+          if (inquiry.referralSourceVendorId) {
+            try {
+              const refVendor = await storage.getUser(inquiry.referralSourceVendorId);
+              const refProfile = await storage.getArtistProfile(inquiry.referralSourceVendorId);
+              referralSourceName =
+                refProfile?.businessName || refVendor?.firstName || null;
+            } catch {
+              referralSourceName = null;
+            }
+          }
+
+          const built = await assistant.buildInquiryAssistantPrompt({
+            operatorId: inquiry.vendorId,
+            clientName: inquiry.clientName,
+            serviceType: inquiry.serviceType,
+            eventDate: inquiry.eventDate ? new Date(inquiry.eventDate) : null,
+            eventLocation: inquiry.eventLocation,
+            partySize: inquiry.partySize,
+            message: inquiry.message,
+            referralSourceName,
+          });
+
           await assistant.createAssistantPromptAndDeliver({
-            operatorId: data.vendorId,
+            operatorId: inquiry.vendorId,
             inquiryId: inquiry.id,
             promptType: 'new_inquiry',
-            title: `New inquiry from ${data.clientName}`,
-            body: `New inquiry for ${service} on ${eventDateLabel} in ${location}. You appear ${availability}. Reply ACCEPT, ROUTE, or REVIEW.`,
-            recommendedActions: ['ACCEPT', 'ROUTE', 'REVIEW'],
+            title: built.title,
+            body: built.body,
+            recommendedActions: built.recommendedActions,
           });
         } catch (err) {
           console.error('[Assistant] Failed to create new-inquiry prompt:', err);

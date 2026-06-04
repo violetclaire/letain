@@ -33,3 +33,12 @@ with different rows and different schema. Do NOT use executeSql to verify app da
 or migrations — it will show a stale/empty picture (e.g. new tables appear missing).
 To verify against the real app DB, run a one-off `npx tsx` script that imports
 `server/db` so it uses the same NEON connection.
+
+## blocked_dates table is missing created_at (schema/DB drift)
+The live `blocked_dates` table has only: id, artist_id, blocked_date (text YYYY-MM-DD),
+reason ('Pending'|'Booked'). The Drizzle schema declares a `created_at` column that
+does NOT exist in the live DB. A plain `db.select().from(blockedDates)` therefore
+emits a `created_at` reference and THROWS (column does not exist). Always project
+explicit columns when reading/writing blocked_dates (id, artist_id, blocked_date,
+reason). Do not "fix" by adding the column unless asked - additive-only constraint,
+and existing app code already lives with the drift.

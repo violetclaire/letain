@@ -211,3 +211,259 @@ export async function getOperatorAvailabilityLabel(
     return "unknown";
   }
 }
+
+// ---------------------------------------------------------------------------
+// Inquiry availability analysis + trusted-circle routing
+//
+// The decision layer: when an inquiry arrives, work out whether the operator
+// appears available, whether there is a conflict, and (if not available) who in
+// their trusted circle or team might fit. This NEVER auto-routes and never sends
+// a client response. It only produces an honest read for the operator's prompt.
+// ---------------------------------------------------------------------------
+
+export type AvailabilityStatus =
+  | "operator_available"
+  | "operator_unavailable"
+  | "possible_conflict"
+  | "possible_network_route"
+  | "unknown";
+
+export interface AvailabilityAnalysis {
+  status: AvailabilityStatus; // operator-level (never possible_network_route here)
+  detail: string | null; // short human-readable reason
+}
+
+export interface RoutingSuggestion {
+  name: string;
+  email: string | null;
+  source: "circle" | "team";
+  availability: "available" | "unavailable" | "unknown";
+}
+
+function toDateStr(d: Date): string {
+  return d.toISOString().split("T")[0];
+}
+
+// Analyze the operator's own availability for an inquiry's date using existing
+// calendar data only. If the data is incomplete, return 'unknown' rather than
+// guessing. Falls back to the same "no record means open" rule the live app
+// already uses, so this does not contradict the operator's calendar view.
+export async function analyzeInquiryAvailability(
+  operatorId: string,
+  eventDate: Date | null | undefined,
+): Promise<AvailabilityAnalysis> {
+  if (!eventDate || isNaN(eventDate.getTime())) {
+    return { status: "unknown", detail: "No event date provided" };
+  }
+  try {
+    const dateStr = toDateStr(eventDate);
+    const blocked = await storage.getBlockedDateForArtist(operatorId, dateStr);
+    if (blocked) {
+      const reason = (blocked.reason || "").toLowerCase();
+      if (reason === "booked") {
+        return { status: "operator_unavailable", detail: "Date already booked" };
+      }
+      // A blocked row means the date is taken in some way, so we never report it
+      // as freely available. 'Pending' is an explicit soft hold; any other
+      // reason is treated the same (a conflict worth reviewing) rather than
+      // guessing the date is open.
+      const detail = reason === "pending" ? "Date has a pending hold" : "Date is blocked";
+      return { status: "possible_conflict", detail };
+    }
+    const available = await storage.checkAvailability(operatorId, eventDate);
+    return available
+      ? { status: "operator_available", detail: null }
+      : { status: "operator_unavailable", detail: "Marked unavailable" };
+  } catch {
+    return { status: "unknown", detail: null };
+  }
+}
+
+// Suggest trusted-circle and team members who might cover the inquiry. Suggestion
+// only: the operator approves any route. Where a member can be resolved to a
+// registered user, their availability for the date is checked too.
+export async function getRoutingSuggestions(
+  operatorId: string,
+  eventDate: Date | null | undefined,
+  limit: number = 3,
+): Promise<RoutingSuggestion[]> {
+  const candidates: { name: string; email: string | null; source: "circle" | "team" }[] = [];
+
+  try {
+    const circle = await storage.getTrustedCircleByReferrer(operatorId);
+    for (const m of circle) {
+      if (m.status === "active" && !m.quietlyRemoved && m.refereeName) {
+        candidates.push({ name: m.refereeName, email: m.refereeEmail ?? null, source: "circle" });
+      }
+    }
+  } catch {
+    // ignore - circle is optional
+  }
+
+  try {
+    const team = await storage.getTeamMembers(operatorId);
+    for (const t of team) {
+      const status = (t.status || "").toLowerCase();
+      const removed =
+        status === "removed" ||
+        status === "declined" ||
+        status === "inactive" ||
+        status === "revoked";
+      const active = !removed && (!!t.acceptedAt || status === "active" || status === "accepted");
+      if (active && t.memberName) {
+        candidates.push({ name: t.memberName, email: t.memberEmail ?? null, source: "team" });
+      }
+    }
+  } catch {
+    // ignore - team is optional
+  }
+
+  // Resolve availability for all candidates so "prefer available" holds globally,
+  // with a sane upper bound to avoid pathological work for very large circles.
+  const bounded = candidates.slice(0, 25);
+  const resolved: RoutingSuggestion[] = [];
+  for (const c of bounded) {
+    let availability: RoutingSuggestion["availability"] = "unknown";
+    if (eventDate && !isNaN(eventDate.getTime()) && c.email) {
+      try {
+        const user = await storage.getUserByEmail(c.email);
+        if (user) {
+          const blocked = await storage.getBlockedDateForArtist(user.id, toDateStr(eventDate));
+          if (blocked) {
+            availability =
+              (blocked.reason || "").toLowerCase() === "booked" ? "unavailable" : "unknown";
+          } else {
+            availability = (await storage.checkAvailability(user.id, eventDate))
+              ? "available"
+              : "unavailable";
+          }
+        }
+      } catch {
+        // leave as unknown
+      }
+    }
+    resolved.push({ ...c, availability });
+  }
+
+  // Prefer available, then unknown, then unavailable.
+  const rank = (a: RoutingSuggestion["availability"]) =>
+    a === "available" ? 0 : a === "unknown" ? 1 : 2;
+  resolved.sort((a, b) => rank(a.availability) - rank(b.availability));
+  return resolved.slice(0, limit);
+}
+
+export interface InquiryPromptInput {
+  operatorId: string;
+  clientName: string;
+  serviceType?: string | null;
+  eventDate?: Date | null;
+  eventLocation?: string | null;
+  partySize?: number | null;
+  message?: string | null;
+  referralSourceName?: string | null; // resolved name of the referring vendor, if any
+}
+
+export interface BuiltInquiryPrompt {
+  title: string;
+  body: string;
+  recommendedActions: string[];
+  availabilityStatus: AvailabilityStatus;
+  suggestions: RoutingSuggestion[];
+}
+
+function availabilityPhrase(status: AvailabilityStatus): string {
+  switch (status) {
+    case "operator_available":
+      return "You appear available.";
+    case "operator_unavailable":
+      return "You appear unavailable.";
+    case "possible_conflict":
+      return "You may have a conflict (a pending hold is on this date).";
+    case "possible_network_route":
+      return "You appear unavailable, but your circle may be able to cover this.";
+    default:
+      return "Your availability for this date is unclear.";
+  }
+}
+
+// Compose the upgraded "new inquiry" prompt: the structured facts, an honest
+// availability read, any routing options, and a suggested next action.
+export async function buildInquiryAssistantPrompt(
+  input: InquiryPromptInput,
+): Promise<BuiltInquiryPrompt> {
+  const analysis = await analyzeInquiryAvailability(input.operatorId, input.eventDate);
+
+  let suggestions: RoutingSuggestion[] = [];
+  if (analysis.status === "operator_unavailable" || analysis.status === "possible_conflict") {
+    suggestions = await getRoutingSuggestions(input.operatorId, input.eventDate);
+  }
+
+  const hasRoute = suggestions.length > 0;
+  const finalStatus: AvailabilityStatus =
+    (analysis.status === "operator_unavailable" || analysis.status === "possible_conflict") && hasRoute
+      ? "possible_network_route"
+      : analysis.status;
+
+  const multiPerson = (input.partySize ?? 0) > 1;
+
+  // Suggested next actions, primary action first.
+  let recommendedActions: string[];
+  switch (finalStatus) {
+    case "operator_available":
+      recommendedActions = ["ACCEPT", "SEND_PRICING"];
+      if (multiPerson) recommendedActions.push("BUILD_SCHEDULE");
+      break;
+    case "possible_network_route":
+      recommendedActions = ["ROUTE", "REVIEW", "SEND_PRICING"];
+      break;
+    case "operator_unavailable":
+      recommendedActions = ["REVIEW", "ROUTE"];
+      break;
+    case "possible_conflict":
+      recommendedActions = ["REVIEW", "ACCEPT"];
+      break;
+    default:
+      recommendedActions = ["REVIEW", "SEND_PRICING"];
+  }
+
+  const service = input.serviceType || "services";
+  const location = input.eventLocation || "an unspecified location";
+  const dateLabel =
+    input.eventDate && !isNaN(input.eventDate.getTime())
+      ? input.eventDate.toLocaleDateString("en-US", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
+      : "a date to be confirmed";
+
+  const lines: string[] = [];
+  lines.push(`New inquiry from ${input.clientName} for ${service} on ${dateLabel} in ${location}.`);
+  if (input.partySize && input.partySize > 0) {
+    lines.push(`Party size: ${input.partySize}.`);
+  }
+  if (input.referralSourceName) {
+    lines.push(`Referred by ${input.referralSourceName}.`);
+  }
+  if (input.message && input.message.trim()) {
+    const note = input.message.trim().replace(/\s+/g, " ").slice(0, 140);
+    lines.push(`Note: "${note}"`);
+  }
+  lines.push(availabilityPhrase(finalStatus));
+  if (hasRoute) {
+    const routeText = suggestions
+      .map((s) => (s.availability === "available" ? `${s.name} (available)` : s.name))
+      .join(", ");
+    lines.push(`Possible routes: ${routeText}.`);
+  }
+  lines.push(`Suggested: ${recommendedActions.join(", ")}.`);
+
+  return {
+    title: `New inquiry from ${input.clientName}`,
+    body: lines.join("\n"),
+    recommendedActions,
+    availabilityStatus: finalStatus,
+    suggestions,
+  };
+}
