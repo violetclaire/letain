@@ -2370,6 +2370,20 @@ export type AgentEvent = typeof agentEvents.$inferSelect;
 // internal user FKs). External inbound texts land here, get matched when
 // possible, and emit a response_received trust event into cdiBehavioralEvents.
 // ============================================================================
+// A ranked suggestion for which inquiry/referral/person an inbound reply belongs
+// to. Stored when the matcher is not confident enough to auto-link (needs_review).
+export type InboundSuggestedMatch = {
+  type: "inquiry" | "referral" | "user" | "contact";
+  id: string;
+  label: string; // human-readable, so admin UI needs no extra lookups
+  detail?: string; // secondary line (status, date, service, etc.)
+  score: number;
+  reasons: string[]; // why this was suggested ("phone match", "active inquiry", ...)
+  // attribution hints used when an admin confirms this suggestion
+  artistId?: string | null; // the operator to attribute the trust event to
+  clientUserId?: string | null; // the client's users.id if known
+};
+
 export const inboundSmsMessages = pgTable("inbound_sms_messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   messageSid: varchar("message_sid").unique().notNull(), // Twilio MessageSid — dedupe key
@@ -2381,7 +2395,9 @@ export const inboundSmsMessages = pgTable("inbound_sms_messages", {
   matchedContactId: varchar("matched_contact_id"), // client_contacts.id if known
   matchedInquiryId: varchar("matched_inquiry_id"), // inquiries.id if linked
   matchedReferralId: varchar("matched_referral_id"), // thread_referrals.id if linked
-  matchStatus: text("match_status").notNull().default("unmatched"), // 'matched' | 'partial' | 'unmatched'
+  matchStatus: text("match_status").notNull().default("unmatched"), // 'matched' | 'needs_review' | 'manual' | 'unmatched'
+  matchConfidence: integer("match_confidence"), // 0-100 score from the context matcher
+  suggestedMatches: jsonb("suggested_matches").$type<InboundSuggestedMatch[]>(), // ranked candidates for needs_review
   trustEventId: varchar("trust_event_id"), // cdi_behavioral_events.id if one was written
   rawPayload: jsonb("raw_payload"), // full Twilio form body for audit/debug
   receivedAt: timestamp("received_at").defaultNow().notNull(),

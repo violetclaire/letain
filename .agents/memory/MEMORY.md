@@ -1,3 +1,4 @@
 - [Drizzle jsonb + null-prototype body](drizzle-jsonb-urlencoded.md) — storing parsed urlencoded req.body in a jsonb column crashes Drizzle; spread it as `{ ...body }`.
 - [Twilio inbound webhook](twilio-inbound-webhook.md) — validate X-Twilio-Signature fail-closed; URL reconstruction must match the public host behind Replit's proxy.
 - [Briarwood DB quirks](briarwood-db-quirks.md) — users table has no businessName/displayName; neon-serverless Pool supports db.transaction + .for("update"); ~1000 benign pre-existing tsc errors.
+- [Inbound SMS matching](inbound-sms-matching.md) — attribute by inquiry context; trust event only on confident person+inquiry match (hasPersonSignal required); insert row first for idempotency.

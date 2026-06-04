@@ -5,6 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ArrowLeft, ChevronDown, ChevronRight, RefreshCw, Search, Check } from "lucide-react";
 
+interface SuggestedMatch {
+  type: "inquiry" | "referral" | "user" | "contact";
+  id: string;
+  label: string;
+  detail?: string;
+  score: number;
+  reasons: string[];
+}
+
 interface InboundReply {
   id: string;
   messageSid: string;
@@ -12,6 +21,8 @@ interface InboundReply {
   toNumber: string;
   body: string;
   matchStatus: string;
+  matchConfidence: number | null;
+  suggestedMatches: SuggestedMatch[] | null;
   matchedUserId: string | null;
   matchedContactId: string | null;
   matchedInquiryId: string | null;
@@ -161,14 +172,24 @@ export default function AdminInboundReplies() {
                         </span>
                         <span
                           className={`text-xs px-2 py-0.5 rounded-full ${
-                            r.matchStatus === "matched"
+                            r.matchStatus === "matched" || r.matchStatus === "manual"
                               ? "bg-[#3D5A3B]/15 text-[#3D5A3B]"
+                              : r.matchStatus === "needs_review"
+                              ? "bg-[#C08A2D]/20 text-[#8a5e1a]"
                               : "bg-[#262329]/10 text-[#262329]/60"
                           }`}
                           data-testid={`status-match-${r.id}`}
                         >
-                          {r.matchStatus}
+                          {r.matchStatus === "needs_review" ? "needs review" : r.matchStatus}
                         </span>
+                        {typeof r.matchConfidence === "number" && r.matchConfidence > 0 && (
+                          <span
+                            className="text-xs px-2 py-0.5 rounded-full bg-[#262329]/5 text-[#262329]/50"
+                            data-testid={`badge-confidence-${r.id}`}
+                          >
+                            {r.matchConfidence}% sure
+                          </span>
+                        )}
                         {r.trustEvent && (
                           <span
                             className="text-xs px-2 py-0.5 rounded-full bg-[#E8B4B8]/25 text-[#8a5a5e]"
@@ -265,6 +286,15 @@ export default function AdminInboundReplies() {
                         />
                       </dl>
 
+                      {r.matchStatus === "needs_review" && r.suggestedMatches && r.suggestedMatches.length > 0 && (
+                        <SuggestedMatches
+                          reply={r}
+                          onMatched={() => {
+                            queryClient.invalidateQueries({ queryKey: ["/api/sms/inbound/recent"] });
+                          }}
+                        />
+                      )}
+
                       <MatchPanel
                         reply={r}
                         onMatched={() => {
@@ -290,6 +320,83 @@ function Detail({ label, value, testid }: { label: string; value: string; testid
       <dd className="text-[#262329] break-words font-mono text-[13px]" data-testid={testid}>
         {value}
       </dd>
+    </div>
+  );
+}
+
+function SuggestedMatches({ reply, onMatched }: { reply: InboundReply; onMatched: () => void }) {
+  const [saving, setSaving] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const useSuggestion = async (s: SuggestedMatch) => {
+    setSaving(s.id);
+    setError(null);
+    try {
+      const fieldByType: Record<SuggestedMatch["type"], string> = {
+        user: "matchedUserId",
+        contact: "matchedContactId",
+        inquiry: "matchedInquiryId",
+        referral: "matchedReferralId",
+      };
+      const res = await fetch(`/api/sms/inbound/${reply.id}/match`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [fieldByType[s.type]]: s.id }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || "Could not apply suggestion");
+      }
+      onMatched();
+    } catch (e: any) {
+      setError(e?.message || "Could not apply suggestion");
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  return (
+    <div className="mt-4 border-t border-[#E8B4B8]/20 pt-4" data-testid={`suggestions-${reply.id}`}>
+      <h4 className="text-xs uppercase tracking-wide text-[#262329]/50 mb-3">
+        Suggested matches — confirm the right one
+      </h4>
+      <div className="space-y-2">
+        {reply.suggestedMatches!.map((s) => (
+          <div
+            key={`${s.type}-${s.id}`}
+            className="flex items-start justify-between gap-3 px-3 py-2 rounded-md border border-[#C08A2D]/30 bg-white"
+            data-testid={`suggestion-${s.id}`}
+          >
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm text-[#262329] font-medium truncate">{s.label}</span>
+                <span className="text-xs px-1.5 py-0.5 rounded-full bg-[#262329]/5 text-[#262329]/50">
+                  {s.type}
+                </span>
+                <span className="text-xs text-[#262329]/40">{s.score}%</span>
+              </div>
+              {s.detail && <div className="text-xs text-[#262329]/50 truncate">{s.detail}</div>}
+              {s.reasons?.length > 0 && (
+                <div className="text-xs text-[#262329]/40 mt-0.5">{s.reasons.join(" · ")}</div>
+              )}
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={saving !== null}
+              onClick={() => useSuggestion(s)}
+              data-testid={`suggestion-use-${s.id}`}
+            >
+              {saving === s.id ? "..." : "Use"}
+            </Button>
+          </div>
+        ))}
+      </div>
+      {error && (
+        <p className="text-xs text-[#8a2b2b] mt-2" data-testid={`suggestions-error-${reply.id}`}>
+          {error}
+        </p>
+      )}
     </div>
   );
 }

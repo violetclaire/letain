@@ -437,6 +437,13 @@ export interface IStorage {
   findUserIdByPhone(phone: string): Promise<string | undefined>;
   findClientContactByPhone(phone: string): Promise<{ id: string; artistId: string } | undefined>;
   findActiveInquiryByClientPhone(phone: string): Promise<{ id: string } | undefined>;
+  // Inbound-reply context matching (returns all plausible candidates to score)
+  findUsersByPhone(phone: string): Promise<Array<{ id: string; firstName: string | null; lastName: string | null; username: string | null; email: string | null; role: string | null; phone: string | null }>>;
+  findClientContactsByPhone(phone: string): Promise<Array<{ id: string; artistId: string; name: string; email: string | null; phone: string | null; linkedUserId: string | null }>>;
+  findInquiriesByPhone(phone: string): Promise<any[]>;
+  findInquiriesByEmail(email: string): Promise<any[]>;
+  findThreadReferralsByClient(opts: { phone?: string; email?: string }): Promise<any[]>;
+  findRecentOutboundByPhone(phone: string, sinceMs: number): Promise<Array<{ artistId: string; createdAt: Date | null; communicationType: string }>>;
   // Admin search helpers for manual matching
   searchUsersForMatch(q: string, limit?: number): Promise<Array<{ id: string; name: string; email: string | null; role: string | null; phone: string | null }>>;
   searchClientContactsForMatch(q: string, limit?: number): Promise<Array<{ id: string; name: string; email: string; phone: string | null; artistId: string }>>;
@@ -2155,6 +2162,79 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(inquiries.createdAt))
       .limit(1);
     return row;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Inbound-reply context matching (additive). These return ALL plausible
+  // candidates so the matcher can score them, rather than guessing one row.
+  // ---------------------------------------------------------------------------
+  async findUsersByPhone(phone: string): Promise<Array<{ id: string; firstName: string | null; lastName: string | null; username: string | null; email: string | null; role: string | null; phone: string | null }>> {
+    if (!phone) return [];
+    return await db.select({
+      id: users.id, firstName: users.firstName, lastName: users.lastName,
+      username: users.username, email: users.email, role: users.role, phone: users.phone,
+    }).from(users).where(eq(users.phone, phone)).limit(10);
+  }
+
+  async findClientContactsByPhone(phone: string): Promise<Array<{ id: string; artistId: string; name: string; email: string | null; phone: string | null; linkedUserId: string | null }>> {
+    if (!phone) return [];
+    return await db.select({
+      id: clientContacts.id, artistId: clientContacts.artistId, name: clientContacts.name,
+      email: clientContacts.email, phone: clientContacts.phone, linkedUserId: clientContacts.linkedUserId,
+    }).from(clientContacts).where(eq(clientContacts.phone, phone)).limit(20);
+  }
+
+  private inquiryCandidateCols = {
+    id: inquiries.id, vendorId: inquiries.vendorId, clientId: inquiries.clientId,
+    clientName: inquiries.clientName, clientEmail: inquiries.clientEmail, clientPhone: inquiries.clientPhone,
+    eventDate: inquiries.eventDate, eventLocation: inquiries.eventLocation, eventType: inquiries.eventType,
+    serviceType: inquiries.serviceType, status: inquiries.status, createdAt: inquiries.createdAt,
+  };
+
+  async findInquiriesByPhone(phone: string): Promise<any[]> {
+    if (!phone) return [];
+    return await db.select(this.inquiryCandidateCols).from(inquiries)
+      .where(eq(inquiries.clientPhone, phone))
+      .orderBy(desc(inquiries.createdAt)).limit(25);
+  }
+
+  async findInquiriesByEmail(email: string): Promise<any[]> {
+    if (!email) return [];
+    return await db.select(this.inquiryCandidateCols).from(inquiries)
+      .where(ilike(inquiries.clientEmail, email))
+      .orderBy(desc(inquiries.createdAt)).limit(25);
+  }
+
+  // Thread referrals whose underlying thread belongs to this client (by phone or
+  // email). Joined so the matcher can score on event/service context too.
+  async findThreadReferralsByClient(opts: { phone?: string; email?: string }): Promise<any[]> {
+    const { phone, email } = opts;
+    if (!phone && !email) return [];
+    const conds: any[] = [];
+    if (phone) conds.push(eq(threads.clientPhone, phone));
+    if (email) conds.push(ilike(threads.clientEmail, email));
+    return await db.select({
+      id: threadReferrals.id, threadId: threadReferrals.threadId, referredArtistId: threadReferrals.referredArtistId,
+      status: threadReferrals.status, scopeSummary: threadReferrals.scopeSummary, createdAt: threadReferrals.createdAt,
+      threadClientName: threads.clientName, threadClientEmail: threads.clientEmail, threadClientPhone: threads.clientPhone,
+      threadEventDate: threads.eventDate, threadEventType: threads.eventType, threadServiceType: threads.serviceType,
+      threadStatus: threads.status,
+    }).from(threadReferrals)
+      .innerJoin(threads, eq(threadReferrals.threadId, threads.id))
+      .where(or(...conds))
+      .orderBy(desc(threadReferrals.createdAt)).limit(25);
+  }
+
+  // Recent outbound comms to this phone — a soft signal that an artist is in an
+  // active conversation with the sender (item 2/9 of the matching order).
+  async findRecentOutboundByPhone(phone: string, sinceMs: number): Promise<Array<{ artistId: string; createdAt: Date | null; communicationType: string }>> {
+    if (!phone) return [];
+    const since = new Date(Date.now() - sinceMs);
+    return await db.select({
+      artistId: communicationLogs.artistId, createdAt: communicationLogs.createdAt, communicationType: communicationLogs.communicationType,
+    }).from(communicationLogs)
+      .where(and(eq(communicationLogs.recipientPhone, phone), gte(communicationLogs.createdAt, since)))
+      .orderBy(desc(communicationLogs.createdAt)).limit(20);
   }
 
   async getInboundSmsById(id: string): Promise<InboundSmsMessage | undefined> {

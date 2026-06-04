@@ -12,6 +12,7 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import { GoogleGenAI, Modality } from "@google/genai";
 import * as smsService from "./smsService";
+import { resolveInboundMatch, type InboundMatchResult } from "./inboundMatcher";
 import * as iqsService from "./iqsService";
 import { logActivity, getRecentActivity, getTodayActivity } from "./activityService";
 import { calculateCDI, runSampleCalculations, CDIInput, SAMPLE_TRANSACTIONS } from "./cdiService";
@@ -3109,35 +3110,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fromNumber = smsService.normalizePhoneNumber(fromRaw) || fromRaw;
       const toNumber = smsService.normalizePhoneNumber(toRaw) || toRaw;
 
-      // Best-effort matching (unmatched replies are logged, never dropped).
-      let matchedUserId: string | undefined;
-      let matchedContactId: string | undefined;
-      let matchedInquiryId: string | undefined;
-
+      // Context-based matching: attribute the reply to the SERVICE INQUIRY it
+      // belongs to, not just the phone number. Phone is only one of several
+      // signals (see server/inboundMatcher.ts). Unmatched/uncertain replies are
+      // logged, never dropped.
+      let match: InboundMatchResult;
       try {
-        matchedUserId = await storage.findUserIdByPhone(fromNumber);
-        const contact = await storage.findClientContactByPhone(fromNumber);
-        if (contact) {
-          matchedContactId = contact.id;
-          if (!matchedUserId) matchedUserId = contact.artistId; // attribute to the artist who owns the contact
-        }
-        const inquiry = await storage.findActiveInquiryByClientPhone(fromNumber);
-        if (inquiry) matchedInquiryId = inquiry.id;
+        match = await resolveInboundMatch(storage, { fromNumber, body: text });
       } catch (matchErr: any) {
         console.error("[SMS Inbound] Matching error (continuing):", matchErr?.message);
+        match = {
+          status: "unmatched", confidence: 0,
+          matchedUserId: null, matchedContactId: null, matchedInquiryId: null, matchedReferralId: null,
+          trustUserId: null, inquiryIdForEvidence: null, suggestions: [],
+        };
       }
 
-      const matchStatus = matchedUserId || matchedInquiryId || matchedContactId
-        ? "matched"
-        : "unmatched";
+      // Persist the inbound row FIRST. The unique message_sid constraint is the
+      // race guard: if two duplicate webhook deliveries slip past the dedupe
+      // check above, the second insert throws here and we bail BEFORE writing a
+      // trust event — so duplicates can never double-count coordination.
+      let saved;
+      try {
+        saved = await storage.createInboundSms({
+          messageSid,
+          fromNumber,
+          toNumber,
+          body: text,
+          matchedUserId: match.matchedUserId ?? null,
+          matchedContactId: match.matchedContactId ?? null,
+          matchedInquiryId: match.matchedInquiryId ?? null,
+          matchedReferralId: match.matchedReferralId ?? null,
+          matchStatus: match.status,
+          matchConfidence: match.confidence,
+          suggestedMatches: match.suggestions.length ? match.suggestions : null,
+          trustEventId: null,
+          rawPayload: { ...body },
+        } as any);
+      } catch (insErr: any) {
+        if (insErr?.code === "23505") {
+          console.log(`[SMS Inbound] Race-duplicate MessageSid ${messageSid} ignored.`);
+          return sendOk();
+        }
+        throw insErr;
+      }
 
-      // Write a response_received trust event ONLY when we can attribute it to a
-      // real user (cdiBehavioralEvents.userId is required + FK to users).
+      // Write a response_received trust event ONLY when the reply is confidently
+      // attributed to BOTH a person AND an inquiry/referral (status 'matched').
+      // 'needs_review' and 'unmatched' never emit a trust event.
       let trustEventId: string | undefined;
-      if (matchedUserId) {
+      if (match.status === "matched" && match.trustUserId) {
         try {
           const event = await storage.createCdiBehavioralEvent({
-            userId: matchedUserId,
+            userId: match.trustUserId,
             actorRole: "client",
             eventCategory: "communication",
             eventType: "response_received",
@@ -3147,33 +3172,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
               evidenceText: text.slice(0, 280),
               contextualFactors: [
                 "channel:sms_inbound",
-                matchedInquiryId ? `inquiry:${matchedInquiryId}` : "inquiry:none",
+                `confidence:${match.confidence}`,
+                match.matchedInquiryId ? `inquiry:${match.matchedInquiryId}` : (match.matchedReferralId ? `referral:${match.matchedReferralId}` : "inquiry:none"),
               ],
             },
           } as any);
           trustEventId = event.id;
+          await storage.updateInboundSmsMatch(saved.id, { trustEventId });
         } catch (evtErr: any) {
           console.error("[SMS Inbound] Trust event write failed (continuing):", evtErr?.message);
         }
       } else {
-        console.log(`[SMS Inbound] Unmatched reply from ${fromNumber} — stored, no trust event.`);
+        console.log(`[SMS Inbound] ${match.status} reply from ${fromNumber} (conf=${match.confidence}, suggestions=${match.suggestions.length}) — stored, no trust event.`);
       }
 
-      const saved = await storage.createInboundSms({
-        messageSid,
-        fromNumber,
-        toNumber,
-        body: text,
-        matchedUserId: matchedUserId ?? null,
-        matchedContactId: matchedContactId ?? null,
-        matchedInquiryId: matchedInquiryId ?? null,
-        matchedReferralId: null,
-        matchStatus,
-        trustEventId: trustEventId ?? null,
-        rawPayload: { ...body },
-      } as any);
-
-      console.log(`[SMS Inbound] Stored ${saved.id} (sid=${messageSid}, status=${matchStatus}, trustEvent=${trustEventId || "none"})`);
+      console.log(`[SMS Inbound] Stored ${saved.id} (sid=${messageSid}, status=${match.status}, conf=${match.confidence}, trustEvent=${trustEventId || "none"})`);
       return sendOk();
     } catch (error: any) {
       console.error("[SMS Inbound] Handler error:", error?.message, error?.stack);

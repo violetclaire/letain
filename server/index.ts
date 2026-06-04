@@ -59,6 +59,9 @@ async function ensureDatabaseSchema() {
       received_at timestamp NOT NULL DEFAULT now(),
       created_at timestamp NOT NULL DEFAULT now()
     )` },
+    // Context-based matching (additive — safe on tables that already exist)
+    { name: 'inbound_sms_messages.match_confidence', sql: sql`ALTER TABLE inbound_sms_messages ADD COLUMN IF NOT EXISTS match_confidence integer` },
+    { name: 'inbound_sms_messages.suggested_matches', sql: sql`ALTER TABLE inbound_sms_messages ADD COLUMN IF NOT EXISTS suggested_matches jsonb` },
   ];
   
   for (const migration of migrations) {
