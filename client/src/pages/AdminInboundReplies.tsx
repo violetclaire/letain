@@ -138,6 +138,7 @@ export default function AdminInboundReplies() {
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-8">
+        <SmsTestTool />
         {rowsLoading ? (
           <div className="text-[#262329]/60" data-testid="text-loading">Loading replies...</div>
         ) : rows.length === 0 ? (
@@ -309,6 +310,206 @@ export default function AdminInboundReplies() {
           </div>
         )}
       </main>
+    </div>
+  );
+}
+
+interface SimResult {
+  outcome: string;
+  savedId: string | null;
+  matchStatus: string | null;
+  matchConfidence: number | null;
+  matchReasons: string[];
+  suggestedMatches: SuggestedMatch[] | null;
+  trustEventId: string | null;
+  trustEventCreated: boolean;
+}
+
+const SMS_TEST_PRESETS: { name: string; from: string; body: string; keepSid?: boolean; hint: string }[] = [
+  { name: "1. High-confidence", from: "+15555550123", body: "Yes! Confirming my makeup booking for that date.", hint: "Needs one active inquiry for this phone. Expect: matched + trust event." },
+  { name: "2. Partial / ambiguous", from: "+15555550123", body: "Hi, just confirming!", hint: "Needs two active inquiries for this phone. Expect: needs review, no trust event." },
+  { name: "3. Unknown phone", from: "+19998887777", body: "Hello?", hint: "Phone in no inquiry/contact. Expect: unmatched, no trust event." },
+  { name: "4. Duplicate delivery", from: "+15555550123", body: "Confirming!", keepSid: true, hint: "Run once, then run again with the same MessageSid kept. Expect: second is a duplicate, still one trust event." },
+  { name: "5. Phone known, unclear inquiry", from: "+15555550123", body: "Hey, following up.", hint: "Phone matches only a past/closed inquiry. Expect: needs review or unmatched, no trust event." },
+];
+
+function SmsTestTool() {
+  const queryClient = useQueryClient();
+  const { data: status } = useQuery<{ enabled: boolean }>({
+    queryKey: ["/api/admin/sms-test/status"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/sms-test/status");
+      if (!res.ok) throw new Error("Failed to load test tool status");
+      return res.json();
+    },
+  });
+
+  const [from, setFrom] = useState("+15555550123");
+  const [body, setBody] = useState("");
+  const [messageSid, setMessageSid] = useState("");
+  const [hint, setHint] = useState<string | null>(null);
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState<SimResult | null>(null);
+  const [lastSid, setLastSid] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!status?.enabled) return null;
+
+  const applyPreset = (p: typeof SMS_TEST_PRESETS[number]) => {
+    setFrom(p.from);
+    setBody(p.body);
+    setHint(p.hint);
+    setResult(null);
+    setError(null);
+    if (!p.keepSid) setMessageSid("");
+  };
+
+  const run = async () => {
+    setRunning(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/sms-test/simulate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ from, body, messageSid: messageSid.trim() || undefined }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || "Simulation failed");
+      setResult(j.result as SimResult);
+      setLastSid(j.messageSid);
+      setMessageSid(j.messageSid);
+      queryClient.invalidateQueries({ queryKey: ["/api/sms/inbound/recent"] });
+    } catch (e: any) {
+      setError(e?.message || "Simulation failed");
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  return (
+    <div
+      className="mb-8 rounded-lg border border-[#C08A2D]/40 bg-[#FFFDF8] p-5"
+      data-testid="sms-test-tool"
+    >
+      <div className="flex items-center gap-2 mb-1">
+        <h2 className="text-lg font-serif text-[#262329]">SMS Test Tool</h2>
+        <span className="text-xs px-2 py-0.5 rounded-full bg-[#C08A2D]/20 text-[#8a5e1a]">admin only</span>
+      </div>
+      <p className="text-sm text-[#262329]/60 mb-4">
+        Sends a fake inbound text through the real matching, storage, and trust-event logic. Nothing is sent to anyone.
+      </p>
+
+      <div className="flex flex-wrap gap-2 mb-4">
+        {SMS_TEST_PRESETS.map((p) => (
+          <button
+            key={p.name}
+            onClick={() => applyPreset(p)}
+            className="text-xs px-3 py-1 rounded-full border border-[#C08A2D]/40 bg-white text-[#262329] hover:bg-[#FAF9F7]"
+            data-testid={`preset-${p.name.charAt(0)}`}
+          >
+            {p.name}
+          </button>
+        ))}
+      </div>
+
+      {hint && (
+        <p className="text-xs text-[#8a5e1a] mb-4" data-testid="text-preset-hint">{hint}</p>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+        <label className="text-xs text-[#262329]/60">
+          From number
+          <input
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+            placeholder="+15555550123"
+            className="mt-1 w-full px-3 py-2 text-sm rounded-md border border-[#E8B4B8]/40 bg-white text-[#262329] font-mono focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3D2226]/70"
+            data-testid="input-test-from"
+          />
+        </label>
+        <label className="text-xs text-[#262329]/60 sm:col-span-2">
+          MessageSid (optional — reuse to test duplicates)
+          <input
+            value={messageSid}
+            onChange={(e) => setMessageSid(e.target.value)}
+            placeholder="Leave blank to auto-generate"
+            className="mt-1 w-full px-3 py-2 text-sm rounded-md border border-[#E8B4B8]/40 bg-white text-[#262329] font-mono focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3D2226]/70"
+            data-testid="input-test-sid"
+          />
+        </label>
+      </div>
+
+      <label className="text-xs text-[#262329]/60 block mb-3">
+        Message body
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          rows={2}
+          placeholder="Type the fake reply text..."
+          className="mt-1 w-full px-3 py-2 text-sm rounded-md border border-[#E8B4B8]/40 bg-white text-[#262329] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3D2226]/70"
+          data-testid="input-test-body"
+        />
+      </label>
+
+      <div className="flex items-center gap-3">
+        <Button onClick={run} disabled={running || !from.trim()} data-testid="button-run-test">
+          {running ? "Running..." : "Run simulation"}
+        </Button>
+        {lastSid && (
+          <span className="text-xs text-[#262329]/50 font-mono break-all" data-testid="text-last-sid">
+            last sid: {lastSid}
+          </span>
+        )}
+      </div>
+
+      {error && (
+        <p className="text-xs text-[#8a2b2b] mt-3" data-testid="text-test-error">{error}</p>
+      )}
+
+      {result && (
+        <div className="mt-4 border-t border-[#C08A2D]/30 pt-4 text-sm" data-testid="test-result">
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
+            <Detail label="Outcome" value={result.outcome} testid="result-outcome" />
+            <Detail label="Stored message ID" value={result.savedId || "—"} testid="result-saved-id" />
+            <Detail label="Match status" value={result.matchStatus || "—"} testid="result-status" />
+            <Detail
+              label="Match confidence"
+              value={typeof result.matchConfidence === "number" ? `${result.matchConfidence}%` : "—"}
+              testid="result-confidence"
+            />
+            <Detail
+              label="Trust event created?"
+              value={result.trustEventCreated ? "Yes" : "No"}
+              testid="result-trust-created"
+            />
+            <Detail label="Trust event ID" value={result.trustEventId || "—"} testid="result-trust-id" />
+            <Detail
+              label="Match reason"
+              value={result.matchReasons?.length ? result.matchReasons.join(" · ") : "—"}
+              testid="result-reasons"
+            />
+            <Detail
+              label="Suggested matches"
+              value={result.suggestedMatches?.length ? String(result.suggestedMatches.length) : "0"}
+              testid="result-suggestion-count"
+            />
+          </dl>
+          {result.suggestedMatches && result.suggestedMatches.length > 0 && (
+            <ul className="mt-3 space-y-1" data-testid="result-suggestions">
+              {result.suggestedMatches.map((s) => (
+                <li key={`${s.type}-${s.id}`} className="text-xs text-[#262329]/70">
+                  <span className="font-medium">{s.label}</span>{" "}
+                  <span className="text-[#262329]/40">({s.type}, {s.score}%)</span>
+                  {s.reasons?.length > 0 && <span className="text-[#262329]/40"> — {s.reasons.join(" · ")}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="text-xs text-[#262329]/50 mt-3">
+            The simulated reply also appears in the list below. Open it to confirm the stored record.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

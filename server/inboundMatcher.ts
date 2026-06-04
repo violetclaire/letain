@@ -31,6 +31,8 @@ export type InboundMatchResult = {
   // means "do not write a trust event."
   trustUserId: string | null;
   inquiryIdForEvidence: string | null; // for trust-event metadata context
+  // Human-readable reasons for the chosen/best candidate (admin + test tool).
+  matchReasons: string[];
   // Ranked candidates surfaced to the admin when not confident.
   suggestions: InboundSuggestedMatch[];
 };
@@ -101,7 +103,7 @@ export async function resolveInboundMatch(
   const empty: InboundMatchResult = {
     status: "unmatched", confidence: 0,
     matchedUserId: null, matchedContactId: null, matchedInquiryId: null, matchedReferralId: null,
-    trustUserId: null, inquiryIdForEvidence: null, suggestions: [],
+    trustUserId: null, inquiryIdForEvidence: null, matchReasons: [], suggestions: [],
   };
   if (!fromNumber) return empty;
 
@@ -206,7 +208,7 @@ export async function resolveInboundMatch(
     const personSuggestions = buildPersonSuggestions(users, contacts, fromNumber);
     if (personSuggestions.length > 0) {
       // We know WHO but not WHICH service need -> needs_review, no trust event.
-      return { ...empty, status: "needs_review", confidence: 30, suggestions: personSuggestions };
+      return { ...empty, status: "needs_review", confidence: 30, matchReasons: personSuggestions[0]?.reasons ?? [], suggestions: personSuggestions };
     }
     return empty; // truly unmatched
   }
@@ -238,6 +240,7 @@ export async function resolveInboundMatch(
       matchedReferralId: top.referralId,
       trustUserId: top.artistId,
       inquiryIdForEvidence: top.inquiryId ?? top.referralId,
+      matchReasons: top.candidate.reasons,
       suggestions: [],
     };
   }
@@ -249,6 +252,7 @@ export async function resolveInboundMatch(
       status: "needs_review",
       confidence: Math.min(59, Math.max(REVIEW_MIN, topScore)),
       matchedContactId: primaryContactId,
+      matchReasons: suggestions[0]?.reasons ?? [],
       suggestions,
     };
   }
@@ -256,7 +260,7 @@ export async function resolveInboundMatch(
   // Candidates existed but all too weak; fall back to person-only review.
   const personSuggestions = buildPersonSuggestions(users, contacts, fromNumber);
   if (personSuggestions.length > 0) {
-    return { ...empty, status: "needs_review", confidence: 30, matchedContactId: primaryContactId, suggestions: personSuggestions };
+    return { ...empty, status: "needs_review", confidence: 30, matchedContactId: primaryContactId, matchReasons: personSuggestions[0]?.reasons ?? [], suggestions: personSuggestions };
   }
   return empty;
 }

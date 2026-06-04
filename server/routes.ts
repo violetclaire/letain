@@ -12,7 +12,7 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import { GoogleGenAI, Modality } from "@google/genai";
 import * as smsService from "./smsService";
-import { resolveInboundMatch, type InboundMatchResult } from "./inboundMatcher";
+import { processInboundSms } from "./inboundProcessor";
 import * as iqsService from "./iqsService";
 import { logActivity, getRecentActivity, getTodayActivity } from "./activityService";
 import { calculateCDI, runSampleCalculations, CDIInput, SAMPLE_TRANSACTIONS } from "./cdiService";
@@ -3090,103 +3090,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.warn(`[SMS Inbound] Rejected: invalid/missing Twilio signature (url=${fullUrl}).`);
         return res.status(403).type("text/xml").send(replyTwiml);
       }
-      const messageSid: string = body.MessageSid || body.SmsSid || "";
-      const fromRaw: string = body.From || "";
-      const toRaw: string = body.To || "";
-      const text: string = (body.Body ?? "").toString();
+      // Hand the authenticated payload to the SINGLE shared inbound path that
+      // does matching, storage, idempotency, and the trust-event write. The
+      // admin SMS test simulator calls this exact same function — there is no
+      // duplicate logic. (See server/inboundProcessor.ts.)
+      const result = await processInboundSms(storage, {
+        messageSid: body.MessageSid || body.SmsSid || "",
+        fromRaw: body.From || "",
+        toRaw: body.To || "",
+        text: (body.Body ?? "").toString(),
+        rawPayload: { ...body },
+      });
 
-      if (!messageSid || !fromRaw) {
-        console.warn("[SMS Inbound] Missing MessageSid or From; ignoring.", { messageSid, fromRaw });
-        return sendOk();
-      }
-
-      // Idempotency — never store the same Twilio MessageSid twice.
-      const existing = await storage.getInboundSmsByMessageSid(messageSid);
-      if (existing) {
-        console.log(`[SMS Inbound] Duplicate MessageSid ${messageSid} ignored.`);
-        return sendOk();
-      }
-
-      const fromNumber = smsService.normalizePhoneNumber(fromRaw) || fromRaw;
-      const toNumber = smsService.normalizePhoneNumber(toRaw) || toRaw;
-
-      // Context-based matching: attribute the reply to the SERVICE INQUIRY it
-      // belongs to, not just the phone number. Phone is only one of several
-      // signals (see server/inboundMatcher.ts). Unmatched/uncertain replies are
-      // logged, never dropped.
-      let match: InboundMatchResult;
-      try {
-        match = await resolveInboundMatch(storage, { fromNumber, body: text });
-      } catch (matchErr: any) {
-        console.error("[SMS Inbound] Matching error (continuing):", matchErr?.message);
-        match = {
-          status: "unmatched", confidence: 0,
-          matchedUserId: null, matchedContactId: null, matchedInquiryId: null, matchedReferralId: null,
-          trustUserId: null, inquiryIdForEvidence: null, suggestions: [],
-        };
-      }
-
-      // Persist the inbound row FIRST. The unique message_sid constraint is the
-      // race guard: if two duplicate webhook deliveries slip past the dedupe
-      // check above, the second insert throws here and we bail BEFORE writing a
-      // trust event — so duplicates can never double-count coordination.
-      let saved;
-      try {
-        saved = await storage.createInboundSms({
-          messageSid,
-          fromNumber,
-          toNumber,
-          body: text,
-          matchedUserId: match.matchedUserId ?? null,
-          matchedContactId: match.matchedContactId ?? null,
-          matchedInquiryId: match.matchedInquiryId ?? null,
-          matchedReferralId: match.matchedReferralId ?? null,
-          matchStatus: match.status,
-          matchConfidence: match.confidence,
-          suggestedMatches: match.suggestions.length ? match.suggestions : null,
-          trustEventId: null,
-          rawPayload: { ...body },
-        } as any);
-      } catch (insErr: any) {
-        if (insErr?.code === "23505") {
-          console.log(`[SMS Inbound] Race-duplicate MessageSid ${messageSid} ignored.`);
-          return sendOk();
-        }
-        throw insErr;
-      }
-
-      // Write a response_received trust event ONLY when the reply is confidently
-      // attributed to BOTH a person AND an inquiry/referral (status 'matched').
-      // 'needs_review' and 'unmatched' never emit a trust event.
-      let trustEventId: string | undefined;
-      if (match.status === "matched" && match.trustUserId) {
-        try {
-          const event = await storage.createCdiBehavioralEvent({
-            userId: match.trustUserId,
-            actorRole: "client",
-            eventCategory: "communication",
-            eventType: "response_received",
-            dimension: "emotional_fidelity",
-            signalStrength: 10,
-            metadata: {
-              evidenceText: text.slice(0, 280),
-              contextualFactors: [
-                "channel:sms_inbound",
-                `confidence:${match.confidence}`,
-                match.matchedInquiryId ? `inquiry:${match.matchedInquiryId}` : (match.matchedReferralId ? `referral:${match.matchedReferralId}` : "inquiry:none"),
-              ],
-            },
-          } as any);
-          trustEventId = event.id;
-          await storage.updateInboundSmsMatch(saved.id, { trustEventId });
-        } catch (evtErr: any) {
-          console.error("[SMS Inbound] Trust event write failed (continuing):", evtErr?.message);
-        }
+      if (result.outcome === "ignored_missing_fields") {
+        console.warn("[SMS Inbound] Missing MessageSid or From; ignoring.");
+      } else if (result.outcome === "duplicate") {
+        console.log(`[SMS Inbound] Duplicate MessageSid ignored (existing=${result.savedId || "?"}).`);
       } else {
-        console.log(`[SMS Inbound] ${match.status} reply from ${fromNumber} (conf=${match.confidence}, suggestions=${match.suggestions.length}) — stored, no trust event.`);
+        console.log(`[SMS Inbound] Stored ${result.savedId} (status=${result.matchStatus}, conf=${result.matchConfidence}, trustEvent=${result.trustEventId || "none"})`);
       }
-
-      console.log(`[SMS Inbound] Stored ${saved.id} (sid=${messageSid}, status=${match.status}, conf=${match.confidence}, trustEvent=${trustEventId || "none"})`);
       return sendOk();
     } catch (error: any) {
       console.error("[SMS Inbound] Handler error:", error?.message, error?.stack);
@@ -3306,6 +3228,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("[SMS Inbound] Manual match error:", error?.message);
       res.status(500).json({ error: error?.message || "Match failed" });
+    }
+  });
+
+  // ===== ADMIN-ONLY SMS INBOUND TEST TOOL =====
+  // A safe simulator that pushes a FAKE inbound payload through the exact same
+  // internal path as the real Twilio webhook (server/inboundProcessor.ts):
+  // matching, storage, idempotency, and the trust-event write. It does NOT touch
+  // the real /api/sms/inbound route or its Twilio signature validation, and it
+  // is gated behind BOTH an admin role AND the ENABLE_SMS_TEST_TOOLS env flag.
+  const smsTestToolsEnabled = () => process.env.ENABLE_SMS_TEST_TOOLS === "true";
+
+  // Lets the admin UI know whether to render the test panel at all.
+  app.get("/api/admin/sms-test/status", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = await storage.getUser(getAuthUserId(req));
+      if (user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      res.json({ enabled: smsTestToolsEnabled() });
+    } catch (error: any) {
+      res.status(500).json({ error: error?.message || "Failed" });
+    }
+  });
+
+  app.post("/api/admin/sms-test/simulate", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      // When the flag is off, behave as if the route does not exist.
+      if (!smsTestToolsEnabled()) {
+        return res.status(404).json({ error: "Not found" });
+      }
+      const user = await storage.getUser(getAuthUserId(req));
+      if (user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { from, body, messageSid, to } = req.body || {};
+      if (!from || typeof from !== "string") {
+        return res.status(400).json({ error: "A 'from' phone number is required." });
+      }
+
+      // Reuse a provided MessageSid (so the duplicate-delivery case can be
+      // tested) or generate a clearly-marked simulated one.
+      const sid = (messageSid && String(messageSid).trim())
+        || `SIMTEST-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      const toNumber = to ? String(to) : (process.env.TWILIO_PHONE_NUMBER || "+10000000000");
+
+      const result = await processInboundSms(storage, {
+        messageSid: sid,
+        fromRaw: String(from),
+        toRaw: toNumber,
+        text: body ? String(body) : "",
+        rawPayload: { From: String(from), To: toNumber, Body: body ? String(body) : "", MessageSid: sid, _simulated: true },
+      });
+
+      const enriched = result.savedId ? await storage.getInboundSmsEnrichedById(result.savedId) : null;
+      console.log(`[SMS Test] Simulated inbound (sid=${sid}, outcome=${result.outcome}, status=${result.matchStatus}, trustEvent=${result.trustEventId || "none"})`);
+      res.json({ simulated: true, messageSid: sid, result, message: enriched });
+    } catch (error: any) {
+      console.error("[SMS Test] Simulate error:", error?.message);
+      res.status(500).json({ error: error?.message || "Simulation failed" });
     }
   });
 

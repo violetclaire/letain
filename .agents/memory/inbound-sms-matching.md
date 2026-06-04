@@ -5,9 +5,24 @@ description: How inbound replies are attributed to inquiries/referrals and when 
 
 # Inbound reply matching (context-based)
 
-Inbound replies are attributed by INQUIRY CONTEXT, not phone alone. Logic lives in
-`server/inboundMatcher.ts` (`resolveInboundMatch`), wired into the inbound webhook
-in `server/routes.ts`.
+Inbound replies are attributed by INQUIRY CONTEXT, not phone alone. Matching logic
+lives in `server/inboundMatcher.ts` (`resolveInboundMatch`). The whole inbound
+pipeline (match + store + idempotency + trust-event) is in ONE shared function
+`processInboundSms` in `server/inboundProcessor.ts`. Both the real Twilio webhook
+(`POST /api/sms/inbound`, after signature validation) AND the admin test simulator
+call it — there is intentionally no second copy. If you change inbound behavior,
+change it there, not in a route.
+
+**Why:** an admin-only SMS test simulator was added that must exercise the EXACT
+real path. Duplicating the logic would let the simulator and production drift.
+
+## Admin SMS test simulator
+`POST /api/admin/sms-test/simulate` (+ `GET /api/admin/sms-test/status`) push a fake
+inbound payload through `processInboundSms`. Double-gated: admin role AND env flag
+`ENABLE_SMS_TEST_TOOLS=true`. When the flag is off, simulate returns 404 and status
+returns `{enabled:false}` so the UI panel (in `AdminInboundReplies.tsx`) stays
+hidden. Never relax the Twilio signature check on the real webhook to enable testing
+— the simulator is the supported way to test without a signed request.
 
 ## The gating rule (product intent)
 A CDI trust event (`response_received`) may ONLY be written when the reply is
