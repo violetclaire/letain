@@ -10043,7 +10043,38 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
           }
         });
       }
-      
+
+      // Headless assistant prompt — record an actionable prompt in the operator's
+      // unified queue and deliver it over their preferred channel (SMS/email).
+      // Fire-and-forget: never block or fail the inquiry submission. Delivery is
+      // OFF by default (operator opts in via assistant preferences), so this does
+      // not change existing DateInquiry email behavior.
+      import('./assistantService').then(async (assistant) => {
+        try {
+          const availability = await assistant.getOperatorAvailabilityLabel(
+            data.vendorId,
+            data.eventDate ? new Date(data.eventDate) : null,
+          );
+          const eventDateLabel = data.eventDate
+            ? new Date(data.eventDate).toLocaleDateString('en-US', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+              })
+            : 'a date to be confirmed';
+          const service = data.serviceType || 'services';
+          const location = data.eventLocation || 'an unspecified location';
+          await assistant.createAssistantPromptAndDeliver({
+            operatorId: data.vendorId,
+            inquiryId: inquiry.id,
+            promptType: 'new_inquiry',
+            title: `New inquiry from ${data.clientName}`,
+            body: `New inquiry for ${service} on ${eventDateLabel} in ${location}. You appear ${availability}. Reply ACCEPT, ROUTE, or REVIEW.`,
+            recommendedActions: ['ACCEPT', 'ROUTE', 'REVIEW'],
+          });
+        } catch (err) {
+          console.error('[Assistant] Failed to create new-inquiry prompt:', err);
+        }
+      });
+
       res.json(inquiry);
     } catch (error: any) {
       console.error("[Inquiry] Error creating inquiry:", error);

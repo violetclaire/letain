@@ -202,6 +202,18 @@ export const artistProfiles = pgTable("artist_profiles", {
   // Magic link login
   loginCode: varchar("login_code").unique(),
   loginCodeExpiresAt: timestamp("login_code_expires_at"),
+  // --- Assistant delivery preferences (headless prompt queue) ---
+  // How the operator wants business prompts pushed to them. Delivery is OFF by
+  // default (both channel switches false) so existing DateInquiry behavior is
+  // unchanged until the operator opts in. The prompt is always recorded in the
+  // queue regardless of these switches.
+  preferredDeliveryChannel: text("preferred_delivery_channel").default("email"), // 'sms' | 'email' | 'both'
+  assistantPhoneEnabled: boolean("assistant_phone_enabled").default(false),
+  assistantEmailEnabled: boolean("assistant_email_enabled").default(false),
+  assistantQuietHoursStart: integer("assistant_quiet_hours_start"), // 0-23 local hour, null = no quiet hours
+  assistantQuietHoursEnd: integer("assistant_quiet_hours_end"), // 0-23 local hour
+  assistantTimezone: text("assistant_timezone"), // IANA tz, e.g. 'America/New_York'
+  assistantPromptMode: text("assistant_prompt_mode").default("immediate"), // 'immediate' | 'digest'
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -2410,6 +2422,39 @@ export const insertInboundSmsMessageSchema = createInsertSchema(inboundSmsMessag
 });
 export type InsertInboundSmsMessage = z.infer<typeof insertInboundSmsMessageSchema>;
 export type InboundSmsMessage = typeof inboundSmsMessages.$inferSelect;
+
+// Assistant prompts — the unified prompt queue. When a business event happens
+// (new inquiry, reply, schedule needed, etc) Briarwood records an actionable
+// prompt for the operator here and, per their delivery preferences, pushes it
+// over SMS/email. The queue persists every prompt regardless of delivery so it
+// can be listed, digested, or re-delivered later. Additive; never mutated by
+// existing DateInquiry flows.
+export const assistantPrompts = pgTable("assistant_prompts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  operatorId: varchar("operator_id").notNull(), // users.id of the operator/artist
+  inquiryId: varchar("inquiry_id"), // inquiries.id, if relevant
+  referralId: varchar("referral_id"), // thread_referrals.id, if relevant
+  contactId: varchar("contact_id"), // client/contact id, if relevant
+  promptType: text("prompt_type").notNull(), // e.g. 'new_inquiry'
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  recommendedActions: jsonb("recommended_actions").$type<string[]>(), // e.g. ['ACCEPT','ROUTE','REVIEW']
+  deliveryChannel: text("delivery_channel"), // resolved channel: 'sms'|'email'|'both'|'none'
+  deliveryStatus: text("delivery_status").notNull().default("pending"), // 'pending'|'sent'|'failed'|'skipped'|'queued'
+  deliveryError: text("delivery_error"), // failure detail for debugging
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  sentAt: timestamp("sent_at"),
+  actedOnAt: timestamp("acted_on_at"),
+});
+
+export const insertAssistantPromptSchema = createInsertSchema(assistantPrompts).omit({
+  id: true,
+  createdAt: true,
+  sentAt: true,
+  actedOnAt: true,
+});
+export type InsertAssistantPrompt = z.infer<typeof insertAssistantPromptSchema>;
+export type AssistantPrompt = typeof assistantPrompts.$inferSelect;
 
 // A single enriched trust event for display in the inquiry/referral "Trust
 // Timeline". Built server-side (see storage.getTrustTimeline) so the admin UI

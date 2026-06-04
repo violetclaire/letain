@@ -62,6 +62,32 @@ async function ensureDatabaseSchema() {
     // Context-based matching (additive — safe on tables that already exist)
     { name: 'inbound_sms_messages.match_confidence', sql: sql`ALTER TABLE inbound_sms_messages ADD COLUMN IF NOT EXISTS match_confidence integer` },
     { name: 'inbound_sms_messages.suggested_matches', sql: sql`ALTER TABLE inbound_sms_messages ADD COLUMN IF NOT EXISTS suggested_matches jsonb` },
+
+    // --- Assistant delivery preferences + unified prompt queue (headless layer) ---
+    { name: 'artist_profiles.preferred_delivery_channel', sql: sql`ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS preferred_delivery_channel text DEFAULT 'email'` },
+    { name: 'artist_profiles.assistant_phone_enabled', sql: sql`ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS assistant_phone_enabled boolean DEFAULT false` },
+    { name: 'artist_profiles.assistant_email_enabled', sql: sql`ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS assistant_email_enabled boolean DEFAULT false` },
+    { name: 'artist_profiles.assistant_quiet_hours_start', sql: sql`ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS assistant_quiet_hours_start integer` },
+    { name: 'artist_profiles.assistant_quiet_hours_end', sql: sql`ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS assistant_quiet_hours_end integer` },
+    { name: 'artist_profiles.assistant_timezone', sql: sql`ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS assistant_timezone text` },
+    { name: 'artist_profiles.assistant_prompt_mode', sql: sql`ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS assistant_prompt_mode text DEFAULT 'immediate'` },
+    { name: 'assistant_prompts.table', sql: sql`CREATE TABLE IF NOT EXISTS assistant_prompts (
+      id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+      operator_id varchar NOT NULL,
+      inquiry_id varchar,
+      referral_id varchar,
+      contact_id varchar,
+      prompt_type text NOT NULL,
+      title text NOT NULL,
+      body text NOT NULL,
+      recommended_actions jsonb,
+      delivery_channel text,
+      delivery_status text NOT NULL DEFAULT 'pending',
+      delivery_error text,
+      created_at timestamp NOT NULL DEFAULT now(),
+      sent_at timestamp,
+      acted_on_at timestamp
+    )` },
   ];
   
   for (const migration of migrations) {

@@ -127,6 +127,9 @@ import {
   type InboundSmsMessage,
   type InsertInboundSmsMessage,
   type TrustTimelineEntry,
+  assistantPrompts,
+  type AssistantPrompt,
+  type InsertAssistantPrompt,
   type CdiDimensionScore,
   type InsertCdiDimensionScore,
   type CdiCompositeScore,
@@ -429,6 +432,12 @@ export interface IStorage {
   getCdiBehavioralEventsByBooking(bookingId: string): Promise<CdiBehavioralEvent[]>;
   // Trust timeline: enriched trust events for an inquiry/referral context
   getTrustTimeline(opts: { inquiryId?: string; referralId?: string }): Promise<TrustTimelineEntry[]>;
+
+  // Assistant prompt queue (headless delivery layer)
+  createAssistantPrompt(prompt: InsertAssistantPrompt): Promise<AssistantPrompt>;
+  updateAssistantPrompt(id: string, updates: Partial<AssistantPrompt>): Promise<AssistantPrompt | undefined>;
+  getAssistantPrompt(id: string): Promise<AssistantPrompt | undefined>;
+  getAssistantPromptsByOperator(operatorId: string, limit?: number): Promise<AssistantPrompt[]>;
   // Inbound SMS (Step 1: headless coordination)
   getInboundSmsByMessageSid(messageSid: string): Promise<InboundSmsMessage | undefined>;
   getInboundSmsByInquiryId(inquiryId: string): Promise<InboundSmsMessage[]>;
@@ -2200,6 +2209,34 @@ export class DatabaseStorage implements IStorage {
   async getRecentInboundSms(limit: number = 50): Promise<InboundSmsMessage[]> {
     return await db.select().from(inboundSmsMessages)
       .orderBy(desc(inboundSmsMessages.receivedAt))
+      .limit(limit);
+  }
+
+  // --- Assistant prompt queue ---
+  async createAssistantPrompt(prompt: InsertAssistantPrompt): Promise<AssistantPrompt> {
+    const [row] = await db.insert(assistantPrompts).values(prompt as any).returning();
+    return row;
+  }
+
+  async updateAssistantPrompt(id: string, updates: Partial<AssistantPrompt>): Promise<AssistantPrompt | undefined> {
+    const [row] = await db.update(assistantPrompts)
+      .set(updates)
+      .where(eq(assistantPrompts.id, id))
+      .returning();
+    return row || undefined;
+  }
+
+  async getAssistantPrompt(id: string): Promise<AssistantPrompt | undefined> {
+    const [row] = await db.select().from(assistantPrompts)
+      .where(eq(assistantPrompts.id, id))
+      .limit(1);
+    return row || undefined;
+  }
+
+  async getAssistantPromptsByOperator(operatorId: string, limit: number = 50): Promise<AssistantPrompt[]> {
+    return await db.select().from(assistantPrompts)
+      .where(eq(assistantPrompts.operatorId, operatorId))
+      .orderBy(desc(assistantPrompts.createdAt))
       .limit(limit);
   }
 
