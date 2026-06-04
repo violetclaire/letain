@@ -193,7 +193,7 @@ import {
   type TrustedCircle,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, lte, lt, desc, asc, or, sql, inArray } from "drizzle-orm";
+import { eq, and, gte, lte, lt, desc, asc, or, sql, inArray, ilike } from "drizzle-orm";
 
 export interface IStorage {
   // Users (including Replit Auth)
@@ -431,9 +431,25 @@ export interface IStorage {
   createInboundSms(msg: InsertInboundSmsMessage): Promise<InboundSmsMessage>;
   getRecentInboundSms(limit?: number): Promise<InboundSmsMessage[]>;
   getRecentInboundSmsEnriched(limit?: number): Promise<any[]>;
+  getInboundSmsById(id: string): Promise<InboundSmsMessage | undefined>;
+  getInboundSmsEnrichedById(id: string): Promise<any | undefined>;
+  updateInboundSmsMatch(id: string, fields: Partial<InsertInboundSmsMessage> & { trustEventId?: string | null }): Promise<InboundSmsMessage | undefined>;
   findUserIdByPhone(phone: string): Promise<string | undefined>;
   findClientContactByPhone(phone: string): Promise<{ id: string; artistId: string } | undefined>;
   findActiveInquiryByClientPhone(phone: string): Promise<{ id: string } | undefined>;
+  // Admin search helpers for manual matching
+  searchUsersForMatch(q: string, limit?: number): Promise<Array<{ id: string; name: string; email: string | null; role: string | null; phone: string | null }>>;
+  searchClientContactsForMatch(q: string, limit?: number): Promise<Array<{ id: string; name: string; email: string; phone: string | null; artistId: string }>>;
+  searchInquiriesForMatch(q: string, limit?: number): Promise<Array<{ id: string; clientName: string; clientPhone: string | null; status: string; eventDate: Date | null; vendorId: string }>>;
+  searchThreadReferralsForMatch(q: string, limit?: number): Promise<Array<{ id: string; referredArtistId: string; status: string | null; scopeSummary: string | null }>>;
+  getThreadReferralById(id: string): Promise<ThreadReferral | undefined>;
+  matchInboundSmsAtomic(params: {
+    id: string;
+    links: { matchedUserId?: string | null; matchedContactId?: string | null; matchedInquiryId?: string | null; matchedReferralId?: string | null };
+    trustUserId?: string;
+    evidenceText: string;
+    contextualFactors: string[];
+  }): Promise<{ found: boolean; createdNewEvent: boolean; trustEventId: string | null }>;
   createCdiDimensionScore(score: InsertCdiDimensionScore): Promise<CdiDimensionScore>;
   getCdiDimensionScoresByUser(userId: string): Promise<CdiDimensionScore[]>;
   getLatestCdiDimensionScores(userId: string): Promise<CdiDimensionScore[]>;
@@ -2060,6 +2076,10 @@ export class DatabaseStorage implements IStorage {
   // CDI trust event each one created. Used by the admin "Inbound Replies" view.
   async getRecentInboundSmsEnriched(limit: number = 50): Promise<any[]> {
     const rows = await this.getRecentInboundSms(limit);
+    return this.enrichInboundRows(rows);
+  }
+
+  private async enrichInboundRows(rows: InboundSmsMessage[]): Promise<any[]> {
     if (rows.length === 0) return [];
 
     const userIds = Array.from(new Set(rows.map(r => r.matchedUserId).filter(Boolean))) as string[];
@@ -2069,7 +2089,7 @@ export class DatabaseStorage implements IStorage {
 
     const [userRows, contactRows, inquiryRows, eventRows] = await Promise.all([
       userIds.length
-        ? db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email, businessName: users.businessName })
+        ? db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email, username: users.username })
             .from(users).where(inArray(users.id, userIds))
         : Promise.resolve([] as any[]),
       contactIds.length
@@ -2092,7 +2112,7 @@ export class DatabaseStorage implements IStorage {
     const eventMap = new Map(eventRows.map((e: any) => [e.id, e]));
 
     const fullName = (u: any) =>
-      u ? (u.businessName || [u.firstName, u.lastName].filter(Boolean).join(" ") || u.email || null) : null;
+      u ? ([u.firstName, u.lastName].filter(Boolean).join(" ") || u.username || u.email || null) : null;
 
     return rows.map(r => {
       const u = r.matchedUserId ? userMap.get(r.matchedUserId) : undefined;
@@ -2135,6 +2155,162 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(inquiries.createdAt))
       .limit(1);
     return row;
+  }
+
+  async getInboundSmsById(id: string): Promise<InboundSmsMessage | undefined> {
+    const [row] = await db.select().from(inboundSmsMessages)
+      .where(eq(inboundSmsMessages.id, id))
+      .limit(1);
+    return row;
+  }
+
+  async getInboundSmsEnrichedById(id: string): Promise<any | undefined> {
+    const row = await this.getInboundSmsById(id);
+    if (!row) return undefined;
+    const [enriched] = await this.enrichInboundRows([row]);
+    return enriched;
+  }
+
+  async updateInboundSmsMatch(
+    id: string,
+    fields: Partial<InsertInboundSmsMessage> & { trustEventId?: string | null },
+  ): Promise<InboundSmsMessage | undefined> {
+    const [row] = await db.update(inboundSmsMessages)
+      .set(fields as any)
+      .where(eq(inboundSmsMessages.id, id))
+      .returning();
+    return row;
+  }
+
+  async searchUsersForMatch(q: string, limit: number = 10): Promise<Array<{ id: string; name: string; email: string | null; role: string | null; phone: string | null }>> {
+    const term = `%${q}%`;
+    const rows = await db.select({
+      id: users.id, firstName: users.firstName, lastName: users.lastName,
+      email: users.email, username: users.username, role: users.role, phone: users.phone,
+    }).from(users)
+      .where(or(
+        ilike(users.firstName, term),
+        ilike(users.lastName, term),
+        ilike(users.email, term),
+        ilike(users.username, term),
+        ilike(users.phone, term),
+      ))
+      .limit(limit);
+    return rows.map((u: any) => ({
+      id: u.id,
+      name: [u.firstName, u.lastName].filter(Boolean).join(" ") || u.username || u.email || u.id,
+      email: u.email,
+      role: u.role,
+      phone: u.phone,
+    }));
+  }
+
+  async searchClientContactsForMatch(q: string, limit: number = 10): Promise<Array<{ id: string; name: string; email: string; phone: string | null; artistId: string }>> {
+    const term = `%${q}%`;
+    return await db.select({
+      id: clientContacts.id, name: clientContacts.name, email: clientContacts.email,
+      phone: clientContacts.phone, artistId: clientContacts.artistId,
+    }).from(clientContacts)
+      .where(or(
+        ilike(clientContacts.name, term),
+        ilike(clientContacts.email, term),
+        ilike(clientContacts.phone, term),
+      ))
+      .limit(limit);
+  }
+
+  async searchInquiriesForMatch(q: string, limit: number = 10): Promise<Array<{ id: string; clientName: string; clientPhone: string | null; status: string; eventDate: Date | null; vendorId: string }>> {
+    const term = `%${q}%`;
+    return await db.select({
+      id: inquiries.id, clientName: inquiries.clientName, clientPhone: inquiries.clientPhone,
+      status: inquiries.status, eventDate: inquiries.eventDate, vendorId: inquiries.vendorId,
+    }).from(inquiries)
+      .where(or(
+        ilike(inquiries.clientName, term),
+        ilike(inquiries.clientPhone, term),
+      ))
+      .orderBy(desc(inquiries.createdAt))
+      .limit(limit);
+  }
+
+  async searchThreadReferralsForMatch(q: string, limit: number = 10): Promise<Array<{ id: string; referredArtistId: string; status: string | null; scopeSummary: string | null }>> {
+    const term = `%${q}%`;
+    return await db.select({
+      id: threadReferrals.id, referredArtistId: threadReferrals.referredArtistId,
+      status: threadReferrals.status, scopeSummary: threadReferrals.scopeSummary,
+    }).from(threadReferrals)
+      .where(or(
+        ilike(threadReferrals.scopeSummary, term),
+        ilike(threadReferrals.referredArtistId, term),
+        ilike(threadReferrals.id, term),
+      ))
+      .orderBy(desc(threadReferrals.createdAt))
+      .limit(limit);
+  }
+
+  async getThreadReferralById(id: string): Promise<ThreadReferral | undefined> {
+    const [row] = await db.select().from(threadReferrals)
+      .where(eq(threadReferrals.id, id))
+      .limit(1);
+    return row;
+  }
+
+  // Atomically link an inbound reply and (idempotently) create its
+  // response_received trust event. Runs inside a transaction with a row lock so
+  // two concurrent matches can never create duplicate trust events.
+  async matchInboundSmsAtomic(params: {
+    id: string;
+    links: {
+      matchedUserId?: string | null;
+      matchedContactId?: string | null;
+      matchedInquiryId?: string | null;
+      matchedReferralId?: string | null;
+    };
+    trustUserId?: string;
+    evidenceText: string;
+    contextualFactors: string[];
+  }): Promise<{ found: boolean; createdNewEvent: boolean; trustEventId: string | null }> {
+    return await db.transaction(async (tx) => {
+      const [row] = await tx.select().from(inboundSmsMessages)
+        .where(eq(inboundSmsMessages.id, params.id))
+        .for("update")
+        .limit(1);
+
+      if (!row) {
+        return { found: false, createdNewEvent: false, trustEventId: null };
+      }
+
+      let trustEventId: string | null = row.trustEventId ?? null;
+      let createdNewEvent = false;
+
+      if (!trustEventId && params.trustUserId) {
+        const [event] = await tx.insert(cdiBehavioralEvents).values({
+          userId: params.trustUserId,
+          actorRole: "client",
+          eventCategory: "communication",
+          eventType: "response_received",
+          dimension: "emotional_fidelity",
+          signalStrength: 10,
+          metadata: {
+            evidenceText: params.evidenceText,
+            contextualFactors: params.contextualFactors,
+          },
+        } as any).returning();
+        trustEventId = event.id;
+        createdNewEvent = true;
+      }
+
+      await tx.update(inboundSmsMessages).set({
+        matchedUserId: params.links.matchedUserId ?? row.matchedUserId ?? null,
+        matchedContactId: params.links.matchedContactId ?? row.matchedContactId ?? null,
+        matchedInquiryId: params.links.matchedInquiryId ?? row.matchedInquiryId ?? null,
+        matchedReferralId: params.links.matchedReferralId ?? row.matchedReferralId ?? null,
+        matchStatus: "manual",
+        trustEventId,
+      } as any).where(eq(inboundSmsMessages.id, params.id));
+
+      return { found: true, createdNewEvent, trustEventId };
+    });
   }
 
   async createCdiDimensionScore(score: InsertCdiDimensionScore): Promise<CdiDimensionScore> {

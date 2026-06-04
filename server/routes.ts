@@ -3197,6 +3197,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin search to help manually match an unmatched inbound reply.
+  // type = user | contact | inquiry | referral
+  app.get("/api/sms/inbound/match-search", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = await storage.getUser(getAuthUserId(req));
+      if (user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const type = String(req.query.type || "");
+      const q = String(req.query.q || "").trim();
+      if (!q) return res.json({ results: [] });
+
+      let results: any[] = [];
+      switch (type) {
+        case "user":
+          results = await storage.searchUsersForMatch(q);
+          break;
+        case "contact":
+          results = await storage.searchClientContactsForMatch(q);
+          break;
+        case "inquiry":
+          results = await storage.searchInquiriesForMatch(q);
+          break;
+        case "referral":
+          results = await storage.searchThreadReferralsForMatch(q);
+          break;
+        default:
+          return res.status(400).json({ error: "Invalid search type" });
+      }
+      res.json({ results });
+    } catch (error: any) {
+      res.status(500).json({ error: error?.message || "Search failed" });
+    }
+  });
+
+  // Admin: manually match an inbound reply to a person/contact/inquiry/referral.
+  // Idempotent: if the message already has a trust event, it will not create another.
+  app.post("/api/sms/inbound/:id/match", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = await storage.getUser(getAuthUserId(req));
+      if (user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const { matchedUserId, matchedContactId, matchedInquiryId, matchedReferralId } = req.body || {};
+
+      if (!matchedUserId && !matchedContactId && !matchedInquiryId && !matchedReferralId) {
+        return res.status(400).json({ error: "Select at least one person, contact, inquiry, or referral to match." });
+      }
+
+      const row = await storage.getInboundSmsById(id);
+      if (!row) {
+        return res.status(404).json({ error: "Inbound reply not found" });
+      }
+
+      // Resolve the user this trust event should attribute to. Prefer an
+      // explicitly selected user, then fall back through contact -> inquiry ->
+      // referral owners so the response_received event always has a real userId.
+      let trustUserId: string | undefined = matchedUserId || undefined;
+      if (!trustUserId && matchedContactId) {
+        const contact = await storage.getClientContact(matchedContactId);
+        trustUserId = contact?.linkedUserId || contact?.artistId || undefined;
+      }
+      if (!trustUserId && matchedInquiryId) {
+        const inquiry = await storage.getInquiry(matchedInquiryId);
+        trustUserId = inquiry?.vendorId || undefined;
+      }
+      if (!trustUserId && matchedReferralId) {
+        const referral = await storage.getThreadReferralById(matchedReferralId);
+        trustUserId = referral?.referredArtistId || undefined;
+      }
+
+      // Atomic + idempotent: link IDs + (at most one) trust event, under a row lock.
+      const result = await storage.matchInboundSmsAtomic({
+        id,
+        links: { matchedUserId, matchedContactId, matchedInquiryId, matchedReferralId },
+        trustUserId,
+        evidenceText: (row.body || "").slice(0, 280),
+        contextualFactors: [
+          "channel:sms_inbound",
+          "match:manual",
+          matchedInquiryId ? `inquiry:${matchedInquiryId}` : "inquiry:none",
+        ],
+      });
+
+      if (!result.found) {
+        return res.status(404).json({ error: "Inbound reply not found" });
+      }
+
+      const enriched = await storage.getInboundSmsEnrichedById(id);
+      console.log(`[SMS Inbound] Manual match on ${id} (trustEvent=${result.trustEventId || "none"}, created=${result.createdNewEvent})`);
+      res.json({ message: enriched, createdNewEvent: result.createdNewEvent });
+    } catch (error: any) {
+      console.error("[SMS Inbound] Manual match error:", error?.message);
+      res.status(500).json({ error: error?.message || "Match failed" });
+    }
+  });
+
   app.post("/api/sms/send", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { to, message } = req.body;
