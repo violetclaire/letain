@@ -2,7 +2,7 @@ import { storage } from "./storage";
 import * as smsService from "./smsService";
 import { sendEmail } from "./emailService";
 import * as cdiEngine from "./cdiEngine";
-import type { AssistantPrompt } from "@shared/schema";
+import type { AssistantPrompt, AssistantPromptMetadata } from "@shared/schema";
 
 // The headless assistant delivery layer.
 //
@@ -22,6 +22,7 @@ export interface CreateAssistantPromptParams {
   title: string;
   body: string;
   recommendedActions?: string[];
+  metadata?: AssistantPromptMetadata | null; // structured snapshot (availability, etc.)
 }
 
 type EffectivePrefs = {
@@ -143,6 +144,7 @@ export async function createAssistantPromptAndDeliver(
     title: params.title,
     body: params.body,
     recommendedActions: params.recommendedActions ?? null,
+    metadata: params.metadata ?? null,
     deliveryChannel: resolvedChannel,
     deliveryStatus: "pending",
     deliveryError: null,
@@ -597,6 +599,7 @@ export interface BuiltInquiryPrompt {
   availabilityStatus: AvailabilityStatus; // final status (may be possible_network_route)
   analysis: AvailabilityAnalysis; // the raw operator-level read, before route escalation
   suggestions: RoutingSuggestion[];
+  metadata: AssistantPromptMetadata; // machine-readable snapshot persisted on the prompt
 }
 
 // The operator-level statuses that mean "you probably cannot take this", which
@@ -708,6 +711,36 @@ export async function buildInquiryAssistantPrompt(
   }
   lines.push(`Suggested: ${recommendedActions.join(", ")}.`);
 
+  // Machine-readable snapshot persisted alongside the prompt. The body above is
+  // for the human; this is what future actions read to know WHY the assistant
+  // recommended ACCEPT / SEND_PRICING / ROUTE / REVIEW / DECLINE.
+  const metadata: AssistantPromptMetadata = {
+    availability: {
+      availabilityStatus: finalStatus,
+      availabilityReason: analysis.reason,
+      evidenceSource: analysis.evidenceSource,
+      conflictingRecordIds: analysis.conflictingRecordIds,
+      confidence: analysis.confidence,
+      suggestedNextActions: recommendedActions,
+      possibleRoutes: suggestions.map((s) => ({
+        name: s.name,
+        source: s.source,
+        availability: s.availability,
+      })),
+      context: {
+        clientName: input.clientName,
+        serviceType: input.serviceType ?? null,
+        eventDate:
+          input.eventDate && !isNaN(input.eventDate.getTime())
+            ? input.eventDate.toISOString()
+            : null,
+        eventLocation: input.eventLocation ?? null,
+        partySize: input.partySize ?? null,
+        referralSourceName: input.referralSourceName ?? null,
+      },
+    },
+  };
+
   return {
     title: `New inquiry from ${input.clientName}`,
     body: lines.join("\n"),
@@ -715,6 +748,7 @@ export async function buildInquiryAssistantPrompt(
     availabilityStatus: finalStatus,
     analysis,
     suggestions,
+    metadata,
   };
 }
 

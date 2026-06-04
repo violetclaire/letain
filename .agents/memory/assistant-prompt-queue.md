@@ -83,3 +83,20 @@ behavioral log but NEVER move CDI. They are operator-level (userId=vendorId); th
 NOT surface in the inquiry trust timeline because that timeline only links events via
 booking or inbound-SMS, and a fresh inquiry has neither - adding an inquiry-direct link
 would require schema/query changes (not additive-safe), so intentionally left out.
+
+## Structured availability snapshot on assistant_prompts.metadata
+assistant_prompts now has a nullable typed jsonb `metadata` column (types
+AssistantPromptMetadata / AssistantPromptAvailability in shared/schema.ts). The
+prompt BODY is the human copy; metadata.availability is the machine-readable record
+future action buttons read to know WHY a recommendation was made. Holds:
+availabilityStatus, availabilityReason, evidenceSource, conflictingRecordIds,
+confidence, suggestedNextActions, possibleRoutes, and a context snapshot
+(client/service/eventDate-ISO/location/partySize/referral). Built in
+buildInquiryAssistantPrompt (returned on BuiltInquiryPrompt.metadata), persisted via
+createAssistantPromptAndDeliver -> storage.createAssistantPrompt; routes passes
+built.metadata. Does NOT touch CDI.
+**Migration quirk:** drizzle.config.ts points at DATABASE_URL but the app runs on a
+DIFFERENT NEON_DATABASE_URL (server/db.ts prefers NEON_DATABASE_URL), so `db:push`
+targets the WRONG database. Added the column manually via `ALTER TABLE
+assistant_prompts ADD COLUMN IF NOT EXISTS metadata jsonb` run through `npx tsx`
+importing server/db. **Production deploy must apply the same ALTER on the prod DB.**

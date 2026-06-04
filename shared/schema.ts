@@ -2429,6 +2429,32 @@ export type InboundSmsMessage = typeof inboundSmsMessages.$inferSelect;
 // over SMS/email. The queue persists every prompt regardless of delivery so it
 // can be listed, digested, or re-delivered later. Additive; never mutated by
 // existing DateInquiry flows.
+// The structured availability snapshot stored alongside an assistant prompt.
+// The prompt body is for the human; this is the machine-readable record so
+// future actions (ACCEPT/SEND_PRICING/ROUTE/REVIEW/DECLINE) know WHY the
+// assistant recommended what it did, without re-parsing the prose body.
+export type AssistantPromptAvailability = {
+  availabilityStatus: string; // final status, e.g. 'operator_available' | 'possible_network_route'
+  availabilityReason: string | null; // short human-readable reason
+  evidenceSource: string; // 'contract'|'calendar'|'inquiry'|'booking'|'trusted_circle'|'unknown'
+  conflictingRecordIds: string[]; // IDs of conflicting contracts/bookings/inquiries
+  confidence: string; // 'high'|'medium'|'low'
+  suggestedNextActions: string[]; // ordered, e.g. ['ROUTE','REVIEW']
+  possibleRoutes: { name: string; source: string; availability: string }[]; // trusted-circle/team options
+  context: {
+    clientName: string;
+    serviceType: string | null;
+    eventDate: string | null; // ISO string snapshot
+    eventLocation: string | null;
+    partySize: number | null;
+    referralSourceName: string | null;
+  };
+};
+
+export type AssistantPromptMetadata = {
+  availability?: AssistantPromptAvailability;
+};
+
 export const assistantPrompts = pgTable("assistant_prompts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   operatorId: varchar("operator_id").notNull(), // users.id of the operator/artist
@@ -2439,6 +2465,7 @@ export const assistantPrompts = pgTable("assistant_prompts", {
   title: text("title").notNull(),
   body: text("body").notNull(),
   recommendedActions: jsonb("recommended_actions").$type<string[]>(), // e.g. ['ACCEPT','ROUTE','REVIEW']
+  metadata: jsonb("metadata").$type<AssistantPromptMetadata>(), // structured availability snapshot
   deliveryChannel: text("delivery_channel"), // resolved channel: 'sms'|'email'|'both'|'none'
   deliveryStatus: text("delivery_status").notNull().default("pending"), // 'pending'|'sent'|'failed'|'skipped'|'queued'
   deliveryError: text("delivery_error"), // failure detail for debugging

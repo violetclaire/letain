@@ -10184,6 +10184,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
             title: built.title,
             body: built.body,
             recommendedActions: built.recommendedActions,
+            metadata: built.metadata,
           });
 
           // Record score-neutral trust events (availability_checked, fit_evaluated,
