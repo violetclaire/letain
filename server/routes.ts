@@ -74,7 +74,8 @@ import {
   insertInquiryRouteSchema,
   insertInquiryResponseSchema,
   threadReferrals,
-  threads
+  threads,
+  type DeliveryPreview
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, sql, inArray, isNotNull } from "drizzle-orm";
@@ -1648,6 +1649,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       assistantQuietHoursStart: profile.assistantQuietHoursStart ?? null,
       assistantQuietHoursEnd: profile.assistantQuietHoursEnd ?? null,
       assistantTimezone: profile.assistantTimezone ?? null,
+      assistantDryRun: profile.assistantDryRun ?? false,
     };
   }
 
@@ -1659,6 +1661,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     assistantQuietHoursStart: z.number().int().min(0).max(23).nullable().optional(),
     assistantQuietHoursEnd: z.number().int().min(0).max(23).nullable().optional(),
     assistantTimezone: z.string().max(64).nullable().optional(),
+    assistantDryRun: z.boolean().optional(),
   }).strict();
 
   app.get("/api/assistant/settings", async (req: Request, res: Response) => {
@@ -1840,6 +1843,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const routes = await storage.getInquiryRoutesByInquiry(inquiry.id);
       const responses = await storage.getInquiryResponsesByInquiry(inquiry.id);
       const targets = await storage.getRouteTargetsByOperator(userId);
+      // Seed the composer's dry-run toggle from the operator's saved preference.
+      const profile = await storage.getArtistProfile(userId);
       const acceptedNames: string[] = [];
       for (const r of routes) {
         if (r.status === "accepted") {
@@ -1849,7 +1854,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json({
-        context: ctx,
+        context: { ...ctx, dryRun: profile?.assistantDryRun ?? false },
         defaults: {
           pricing: routing.buildPricingDraft(ctx),
           decline: routing.buildDeclineDraft(ctx),
@@ -1986,6 +1991,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // --- Composer: DRY RUN preview of a client send (sends nothing, writes nothing) ---
+  // Mirrors the /send path's recipient/subject/body logic but stops before any
+  // email is sent or any record is created/updated. Safe to call any number of
+  // times. Operator-authenticated and scoped to their own inquiry.
+  app.post("/api/inquiries/:id/responses/preview", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const inquiry = await storage.getInquiry(req.params.id);
+      if (!inquiry) return res.status(404).json({ error: "Inquiry not found" });
+      if (inquiry.vendorId !== userId) return res.status(403).json({ error: "Access denied" });
+
+      const responseType = String(req.body?.responseType || "");
+      if (!["pricing", "decline", "referral"].includes(responseType)) {
+        return res.status(400).json({ error: "Invalid response type" });
+      }
+
+      const routing = await import("./routingService");
+      const ctx = await buildComposerContextFor(inquiry, userId);
+      const finalBody = routing.applyPersonalNote(
+        (req.body?.body ?? "") as string,
+        (req.body?.personalNote ?? null) as string | null,
+      );
+      const subjectMap: Record<string, string> = {
+        pricing: `Information from ${ctx.operatorName}`,
+        decline: `Thank you from ${ctx.operatorName}`,
+        referral: `A few trusted recommendations from ${ctx.operatorName}`,
+      };
+
+      // Reflect the server-side referral gate so the preview is honest.
+      let blockedReason: string | null = null;
+      if (responseType === "referral") {
+        const existingRoutes = await storage.getInquiryRoutesByInquiry(inquiry.id);
+        const hasAccepted = existingRoutes.some((r) => r.status === "accepted");
+        if (!hasAccepted) {
+          blockedReason = "At least one routed person must accept before this referral can be sent.";
+        }
+      }
+
+      const preview: DeliveryPreview = {
+        dryRun: true,
+        action: `Send ${responseType} response to client`,
+        channel: "email",
+        recipientName: inquiry.clientName ?? null,
+        recipientEmail: inquiry.clientEmail ?? null,
+        recipientPhone: null,
+        subject: subjectMap[responseType] || `Message from ${ctx.operatorName}`,
+        body: finalBody,
+        inquiry: {
+          id: inquiry.id,
+          clientName: inquiry.clientName ?? null,
+          eventDate: ctx.eventDate ?? null,
+          serviceType: inquiry.serviceType ?? null,
+        },
+        routeTarget: null,
+        recordEffect: blockedReason
+          ? "Nothing. In real mode this send would be refused (see reason below)."
+          : "In real mode: marks the response as sent, records a score-neutral routing event, and (for referrals) marks accepted routes as sent to client.",
+        blockedReason,
+      };
+      res.json({ dryRun: true, preview });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // --- Routing: create routes (select one or more targets) ---
   app.post("/api/inquiries/:id/routes", isAuthenticated, async (req: Request, res: Response) => {
     try {
@@ -2090,6 +2161,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ route: updated, delivered });
     } catch (error: any) {
       console.error("[Routing] Preflight error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // --- Routing: DRY RUN preview of a preflight (sends nothing, writes nothing) ---
+  // Mirrors the /preflight path's channel + message logic but stops before any
+  // email/SMS is sent or the route is marked pending. Safe to call repeatedly.
+  app.post("/api/inquiry-routes/:id/preflight/preview", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const route = await storage.getInquiryRoute(req.params.id);
+      if (!route) return res.status(404).json({ error: "Route not found" });
+      if (route.operatorId !== userId) return res.status(403).json({ error: "Access denied" });
+      const target = await storage.getRouteTarget(route.routeTargetId);
+      if (!target) return res.status(404).json({ error: "Route target not found" });
+
+      const inquiry = route.inquiryId ? await storage.getInquiry(route.inquiryId) : null;
+      const ctx = inquiry ? await buildComposerContextFor(inquiry, userId) : null;
+      const routing = await import("./routingService");
+      const message = routing.buildPreflightMessage({
+        operatorName: ctx?.operatorName || "Your colleague",
+        targetName: target.name,
+        serviceType: inquiry?.serviceType,
+        eventDate: ctx?.eventDate,
+        eventLocation: inquiry?.eventLocation,
+        routeType: route.routeType as any,
+      });
+
+      const wantChannel = (req.body?.channel as string) || (target.phone ? "sms" : "email");
+      const usedChannel: "sms" | "email" =
+        wantChannel === "sms" && target.phone ? "sms" : target.email ? "email" : (target.phone ? "sms" : "email");
+
+      let blockedReason: string | null = null;
+      if (!target.email && !target.phone) {
+        blockedReason = "This route target has no email or phone to preflight.";
+      }
+
+      const preview: DeliveryPreview = {
+        dryRun: true,
+        action: `Send ${route.routeType} preflight to route target`,
+        channel: usedChannel,
+        recipientName: target.name ?? null,
+        recipientEmail: usedChannel === "email" ? (target.email ?? null) : null,
+        recipientPhone: usedChannel === "sms" ? (target.phone ?? null) : null,
+        subject: usedChannel === "email"
+          ? `${ctx?.operatorName || "A colleague"} would like to send you an inquiry`
+          : null,
+        body: message,
+        inquiry: inquiry
+          ? {
+              id: inquiry.id,
+              clientName: inquiry.clientName ?? null,
+              eventDate: ctx?.eventDate ?? null,
+              serviceType: inquiry.serviceType ?? null,
+            }
+          : null,
+        routeTarget: { id: target.id, name: target.name ?? null },
+        recordEffect: blockedReason
+          ? "Nothing. In real mode this preflight would be refused (see reason below)."
+          : "In real mode: marks this route as pending, saves the preflight message, and records a score-neutral routing event.",
+        blockedReason,
+      };
+      res.json({ dryRun: true, preview });
+    } catch (error: any) {
+      console.error("[Routing] Preflight preview error:", error);
       res.status(500).json({ error: error.message });
     }
   });

@@ -131,3 +131,4 @@ Live source for real data: Makeup Dolls.
 Build a delivery preview / dry-run mode for the composer, preflight, and assistant prompts: a toggle that shows exactly what would be sent and to whom, without sending. 
 - Why this first: it makes every future demo and every operator's first run safe by default, it removes the "real email might fire" risk noted above, and it touches only the send layer (no payments, no AI, no contracts, no inbound email, no refactor).
 - Close second: a flush job for queued quiet-hours/digest prompts, so that the one visible gap in the assistant queue is closed.
+

@@ -157,6 +157,15 @@ export async function createAssistantPromptAndDeliver(
     );
   }
 
+  // Dry-run / delivery preview: the prompt is recorded in the queue with the
+  // channel it WOULD have used, but no email/SMS is actually sent. Marked clearly
+  // as 'dry_run' so it never looks like a real send.
+  if (profile?.assistantDryRun) {
+    return (
+      (await storage.updateAssistantPrompt(prompt.id, { deliveryStatus: "dry_run" })) || prompt
+    );
+  }
+
   // Held for later: digest mode or inside quiet hours. Remains in the queue for
   // a future digest pass to deliver (digest delivery not built yet).
   if (prefs.mode === "digest" || isWithinQuietHours(prefs)) {

@@ -214,6 +214,11 @@ export const artistProfiles = pgTable("artist_profiles", {
   assistantQuietHoursEnd: integer("assistant_quiet_hours_end"), // 0-23 local hour
   assistantTimezone: text("assistant_timezone"), // IANA tz, e.g. 'America/New_York'
   assistantPromptMode: text("assistant_prompt_mode").default("immediate"), // 'immediate' | 'digest'
+  // Delivery preview / dry-run. When ON, automatic assistant prompt delivery is
+  // computed and queued but no email/SMS is actually sent (status 'dry_run'). It
+  // also seeds the default state of the dry-run toggle in the composer/preflight
+  // UI. OFF by default so existing behavior is unchanged until the operator opts in.
+  assistantDryRun: boolean("assistant_dry_run").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -2506,6 +2511,29 @@ export type TrustTimelineEntry = {
   routeTargetName?: string | null; // linked route target name, if resolved
   responseId?: string | null; // linked inquiry response id, if this is a composer row
   responseType?: string | null; // 'pricing' | 'decline' | 'referral', if applicable
+};
+
+// Delivery preview / dry-run. A read-only description of exactly what a send
+// WOULD do, returned by the *-preview endpoints. Building one never sends an
+// email/SMS and never writes a record, so it is always safe to request.
+export type DeliveryPreview = {
+  dryRun: true; // always true; makes the safe-mode obvious to the UI and callers
+  action: string; // what action this previews, e.g. 'Send pricing response to client'
+  channel: "email" | "sms"; // how it would go out
+  recipientName: string | null; // recipient name if known
+  recipientEmail: string | null; // recipient email if the channel is email
+  recipientPhone: string | null; // recipient phone if the channel is sms
+  subject: string | null; // email subject (null for SMS)
+  body: string; // the exact message body that would be sent
+  inquiry: {
+    id: string;
+    clientName: string | null;
+    eventDate: string | null;
+    serviceType: string | null;
+  } | null; // linked inquiry context, if any
+  routeTarget: { id: string; name: string | null } | null; // linked route target, if any
+  recordEffect: string; // plain-language note of what would be created/updated in real mode
+  blockedReason: string | null; // why a real send would be refused right now, if applicable
 };
 
 // ---------------------------------------------------------------------------
