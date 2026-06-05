@@ -204,3 +204,9 @@ id = "1mGunasDif5vUJgXOKpqB"
 uri = "file://docs/briarwood-build-map.md"
 type = "text"
 title = "Briarwood Current Build Map"
+
+[[outputs]]
+id = "1_Sx6_GcI0ITqYBtXvyFW"
+uri = "file://DEMO_READINESS_MAP.md"
+type = "text"
+title = "Briarwood Demo Readiness Map"
