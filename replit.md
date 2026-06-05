@@ -15,6 +15,18 @@ Beauvette Secretary is a completely white-label booking system where bridal arti
 - Typography: Fraunces for headlines, Inter for body
 - No em dashes, minimal UI, editorial single-column layout, underlined links
 
+## Standing Database Rule (permanent)
+
+The live app uses NEON_DATABASE_URL, NOT DATABASE_URL. Before any schema change, migration, database check, or verification:
+
+1. Confirm the live app DB host/provider first, without exposing secrets.
+2. Apply changes only to the same DB the running app uses (Neon).
+3. Avoid db:push if it targets DATABASE_URL or proposes destructive rename/drop changes.
+4. Use additive/idempotent SQL only: CREATE TABLE IF NOT EXISTS, ALTER TABLE ... ADD COLUMN IF NOT EXISTS.
+5. Restart the app and verify it can read/write the new table/column.
+6. Add or update startup self-healing migrations (server/index.ts) when appropriate.
+7. Never rename or drop tables without explicit approval.
+
 ## The Secretary Architecture
 
 ### Core Flow
