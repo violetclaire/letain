@@ -1362,9 +1362,9 @@ function TrustTimeline({ threadToken }: { threadToken: string }) {
 
   return (
     <section className="border-t border-[#E8E2D9] pt-8 mt-10" data-testid="section-trust-timeline">
-      <p className="text-[10px] tracking-[0.2em] uppercase text-[#666] mb-1">Trust Timeline</p>
+      <p className="text-[10px] tracking-[0.2em] uppercase text-[#666] mb-1">Coordination Timeline</p>
       <p className="text-xs text-[#888] mb-6">
-        Coordination signals recorded for this inquiry.
+        Shows the real steps taken on this inquiry — drafts, sends, routing, replies, accepted referrals, and other coordination activity.
       </p>
 
       {isLoading ? (
