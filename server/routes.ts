@@ -1920,6 +1920,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const inquiry = await storage.getInquiry(response.inquiryId);
       if (!inquiry) return res.status(404).json({ error: "Inquiry not found" });
 
+      // Server-enforced dry run: if the operator has assistant dry run ON, never
+      // send and never write. This protects the core composer loop even if this
+      // route is hit directly (not just through the UI's preview path).
+      const dryRunProfile = await storage.getArtistProfile(userId);
+      if (dryRunProfile?.assistantDryRun) {
+        const routing = await import("./routingService");
+        const ctx = await buildComposerContextFor(inquiry, userId);
+        const finalBody = routing.applyPersonalNote(
+          (req.body?.body ?? response.body) as string,
+          (req.body?.personalNote ?? response.personalNote) as string | null,
+        );
+        const subjectMap: Record<string, string> = {
+          pricing: `Information from ${ctx.operatorName}`,
+          decline: `Thank you from ${ctx.operatorName}`,
+          referral: `A few trusted recommendations from ${ctx.operatorName}`,
+        };
+        let blockedReason: string | null = null;
+        if (response.responseType === "referral") {
+          const existingRoutes = await storage.getInquiryRoutesByInquiry(inquiry.id);
+          const hasAccepted = existingRoutes.some((r) => r.status === "accepted");
+          if (!hasAccepted) {
+            blockedReason = "At least one routed person must accept before this referral can be sent.";
+          }
+        }
+        const preview: DeliveryPreview = {
+          dryRun: true,
+          action: `Send ${response.responseType} response to client`,
+          channel: "email",
+          recipientName: inquiry.clientName ?? null,
+          recipientEmail: inquiry.clientEmail ?? null,
+          recipientPhone: null,
+          subject: subjectMap[response.responseType] || `Message from ${ctx.operatorName}`,
+          body: finalBody,
+          inquiry: {
+            id: inquiry.id,
+            clientName: inquiry.clientName ?? null,
+            eventDate: ctx.eventDate ?? null,
+            serviceType: inquiry.serviceType ?? null,
+          },
+          routeTarget: null,
+          recordEffect: "Nothing was sent or saved. Dry run is on, so no email was sent, the response was not marked sent, and no events were recorded.",
+          blockedReason,
+        };
+        return res.json({
+          dryRun: true,
+          blocked: true,
+          message: "Dry run is on. Nothing was sent and no records were changed.",
+          preview,
+        });
+      }
+
       // Referral messages may only go out once at least one routed person has
       // accepted. Enforced server-side so a direct API call cannot bypass the UI.
       if (response.responseType === "referral") {
@@ -2122,6 +2173,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         eventLocation: inquiry?.eventLocation,
         routeType: route.routeType as any,
       });
+
+      // Server-enforced dry run: if the operator has assistant dry run ON, never
+      // send (no Resend, no Twilio) and never mark the route pending. Protects the
+      // core routing loop even if this route is hit directly.
+      const dryRunProfile = await storage.getArtistProfile(userId);
+      if (dryRunProfile?.assistantDryRun) {
+        const wantChannel = (req.body?.channel as string) || (target.phone ? "sms" : "email");
+        const usedChannel: "sms" | "email" =
+          wantChannel === "sms" && target.phone ? "sms" : target.email ? "email" : (target.phone ? "sms" : "email");
+        let blockedReason: string | null = null;
+        if (!target.email && !target.phone) {
+          blockedReason = "This route target has no email or phone to preflight.";
+        }
+        const preview: DeliveryPreview = {
+          dryRun: true,
+          action: `Send ${route.routeType} preflight to route target`,
+          channel: usedChannel,
+          recipientName: target.name ?? null,
+          recipientEmail: usedChannel === "email" ? (target.email ?? null) : null,
+          recipientPhone: usedChannel === "sms" ? (target.phone ?? null) : null,
+          subject: usedChannel === "email"
+            ? `${ctx?.operatorName || "A colleague"} would like to send you an inquiry`
+            : null,
+          body: message,
+          inquiry: inquiry
+            ? {
+                id: inquiry.id,
+                clientName: inquiry.clientName ?? null,
+                eventDate: ctx?.eventDate ?? null,
+                serviceType: inquiry.serviceType ?? null,
+              }
+            : null,
+          routeTarget: { id: target.id, name: target.name ?? null },
+          recordEffect: "Nothing was sent or saved. Dry run is on, so no email or text was sent, the route was not marked pending, and no events were recorded.",
+          blockedReason,
+        };
+        return res.json({
+          dryRun: true,
+          blocked: true,
+          message: "Dry run is on. Nothing was sent and no records were changed.",
+          preview,
+        });
+      }
 
       // Choose channel by available contact info (operator can prefer one).
       const wantChannel = (req.body?.channel as string) || (target.phone ? "sms" : "email");
