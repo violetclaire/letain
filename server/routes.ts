@@ -4555,6 +4555,135 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // =====================================================================
+  // Contract Vault: READ-ONLY detail + safe metadata edit. Operator-scoped
+  // (own contracts only; admin role may view/edit all). No emails, no
+  // signing flows, no payments, no deletes. Edits are an additive metadata
+  // whitelist only - it never touches signing tokens, amounts, or signatures.
+  //
+  // toVaultContractDto: explicit allow-list of display-safe fields. Never
+  // includes signing tokens, signatures, OpenSign ids/urls, contract HTML, or
+  // payment handles - those must not leak to the client.
+  // =====================================================================
+  const toVaultContractDto = (c: any) => ({
+    id: c.id,
+    clientName: c.clientName ?? null,
+    clientContact: c.clientContact ?? null,
+    eventDates: c.eventDates ?? null,
+    eventLocation: c.eventLocation ?? null,
+    packageDetails: c.packageDetails ?? null,
+    status: c.status ?? null,
+    totalAmount: c.totalAmount ?? null,
+    depositAmount: c.depositAmount ?? null,
+    remainingAmount: c.remainingAmount ?? null,
+    depositPaidAt: c.depositPaidAt ?? null,
+    contractUrl: c.contractUrl ?? null,
+    contractSource: c.contractSource ?? null,
+    contractNotes: c.contractNotes ?? null,
+    fileUrl: c.fileUrl ?? null,
+    serviceItems: c.serviceItems ?? null,
+    bookingId: c.bookingId ?? null,
+    inquiryId: c.inquiryId ?? null,
+  });
+
+  // Vault status edits are metadata only and must NOT cross into send/signing
+  // flow states (sent/signed/completed). Only these non-flow values are allowed.
+  const VAULT_EDITABLE_STATUSES = ["draft", "cancelled"];
+
+  app.get("/api/vault/contracts/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const contract = await storage.getContract(req.params.id);
+      if (!contract) return res.status(404).json({ error: "Contract not found" });
+      const user = await storage.getUser(userId);
+      const isAdmin = user?.role === "admin";
+      if (contract.artistId !== userId && !isAdmin) {
+        return res.status(403).json({ error: "You can only view your own contracts" });
+      }
+      // Read-only enrichment from linked records (no writes)
+      const booking = contract.bookingId ? await storage.getBooking(contract.bookingId) : undefined;
+      const inquiry = contract.inquiryId ? await storage.getInquiry(contract.inquiryId) : undefined;
+      res.json({
+        contract: toVaultContractDto(contract),
+        linked: {
+          inquiry: inquiry
+            ? {
+                id: inquiry.id,
+                threadToken: inquiry.threadToken,
+                clientName: inquiry.clientName,
+                clientEmail: inquiry.clientEmail,
+                clientPhone: inquiry.clientPhone,
+                eventDate: inquiry.eventDate,
+                eventLocation: inquiry.eventLocation,
+                partySize: inquiry.partySize,
+                status: inquiry.status,
+              }
+            : null,
+          booking: booking
+            ? {
+                id: booking.id,
+                eventDate: booking.eventDate,
+                location: booking.location,
+                serviceType: booking.serviceType,
+                status: booking.status,
+                paymentStatus: booking.paymentStatus,
+              }
+            : null,
+        },
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("[vault] get contract error:", message);
+      res.status(500).json({ error: "Failed to load contract" });
+    }
+  });
+
+  app.patch("/api/vault/contracts/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const contract = await storage.getContract(req.params.id);
+      if (!contract) return res.status(404).json({ error: "Contract not found" });
+      const user = await storage.getUser(userId);
+      const isAdmin = user?.role === "admin";
+      if (contract.artistId !== userId && !isAdmin) {
+        return res.status(403).json({ error: "You can only edit your own contracts" });
+      }
+      // Whitelist of safe, editable metadata fields only. Everything else
+      // (amounts, signing tokens, signatures, openSign ids) is ignored.
+      const body = req.body ?? {};
+      const updates: Record<string, unknown> = {};
+      const textFields = [
+        "clientName",
+        "clientContact",
+        "eventDates",
+        "eventLocation",
+        "packageDetails",
+        "contractUrl",
+        "contractSource",
+        "contractNotes",
+      ];
+      for (const f of textFields) {
+        if (typeof body[f] === "string") updates[f] = body[f];
+      }
+      // Status is metadata only here - it does NOT send or trigger signing, and
+      // flow states (sent/signed/completed) are intentionally NOT accepted here.
+      if (typeof body.status === "string" && VAULT_EDITABLE_STATUSES.includes(body.status)) {
+        updates.status = body.status;
+      }
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ error: "No editable fields provided" });
+      }
+      const updated = await storage.updateContract(req.params.id, updates as any);
+      res.json(updated ? toVaultContractDto(updated) : updated);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("[vault] update contract error:", message);
+      res.status(500).json({ error: "Failed to update contract" });
+    }
+  });
+
   // Send contract via email
   app.post("/api/contracts/:id/send-email", isAuthenticated, async (req: Request, res: Response) => {
     try {

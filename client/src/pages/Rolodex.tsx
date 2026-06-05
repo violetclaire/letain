@@ -28,7 +28,10 @@ function quickLink(r: RolodexResult, slug: string, authParam: string): string | 
   if (r.type === "route_target") {
     return `/admin/${slug}/network${authParam}`;
   }
-  if (r.type === "contract" || r.type === "booking") {
+  if (r.type === "contract") {
+    return `/admin/${slug}/contracts/${r.recordId ?? r.id}${authParam}`;
+  }
+  if (r.type === "booking") {
     return `/admin/${slug}/archive${authParam}`;
   }
   if (r.type === "assistant_prompt") {

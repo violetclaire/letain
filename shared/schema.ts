@@ -424,6 +424,10 @@ export const contracts = pgTable("contracts", {
   venmoHandle: text("venmo_handle"),
   paypalEmail: text("paypal_email"),
   balanceDueDate: text("balance_due_date"),
+  // Contract Vault: operator-managed metadata (additive; no signing side effects)
+  contractUrl: text("contract_url"), // external/pasted contract or PDF link
+  contractSource: text("contract_source"), // where the contract came from (e.g. 'uploaded', 'external')
+  contractNotes: text("contract_notes"), // operator-only notes
   // Built-in e-signature fields (like Dubsado)
   signingToken: text("signing_token").unique(), // Unique token for signing link
   clientSignature: text("client_signature"), // Typed signature text
