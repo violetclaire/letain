@@ -519,6 +519,15 @@ export default function ArtistAdmin() {
                 Assistant
               </Link>
               <Link
+                href={`/admin/${getActualSlug()}/network${authParam}`}
+                className="flex items-center gap-3 px-4 py-3 text-sm text-ink/80 hover:bg-ink/10 transition-colors border-b border-ink/10"
+                onClick={() => setMenuOpen(false)}
+                data-testid="nav-network"
+              >
+                <Users className="w-4 h-4" />
+                Routing network
+              </Link>
+              <Link
                 href={`/admin/${getActualSlug()}/archive${authParam}`}
                 className="flex items-center gap-3 px-4 py-3 text-sm text-ink/80 hover:bg-ink/10 transition-colors border-b border-ink/10"
                 onClick={() => setMenuOpen(false)}
