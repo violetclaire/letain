@@ -67,6 +67,12 @@ async function ensureDatabaseSchema() {
     { name: 'contracts.contract_url', sql: sql`ALTER TABLE contracts ADD COLUMN IF NOT EXISTS contract_url text` },
     { name: 'contracts.contract_source', sql: sql`ALTER TABLE contracts ADD COLUMN IF NOT EXISTS contract_source text` },
     { name: 'contracts.contract_notes', sql: sql`ALTER TABLE contracts ADD COLUMN IF NOT EXISTS contract_notes text` },
+    { name: 'contracts.payment_status', sql: sql`ALTER TABLE contracts ADD COLUMN IF NOT EXISTS payment_status text DEFAULT 'payment_not_requested'` },
+    { name: 'contracts.payment_method', sql: sql`ALTER TABLE contracts ADD COLUMN IF NOT EXISTS payment_method text` },
+    { name: 'contracts.amount_paid', sql: sql`ALTER TABLE contracts ADD COLUMN IF NOT EXISTS amount_paid integer` },
+    { name: 'contracts.payment_due_date', sql: sql`ALTER TABLE contracts ADD COLUMN IF NOT EXISTS payment_due_date text` },
+    { name: 'contracts.payment_link', sql: sql`ALTER TABLE contracts ADD COLUMN IF NOT EXISTS payment_link text` },
+    { name: 'contracts.payment_notes', sql: sql`ALTER TABLE contracts ADD COLUMN IF NOT EXISTS payment_notes text` },
 
     // --- Assistant delivery preferences + unified prompt queue (headless layer) ---
     { name: 'artist_profiles.preferred_delivery_channel', sql: sql`ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS preferred_delivery_channel text DEFAULT 'email'` },

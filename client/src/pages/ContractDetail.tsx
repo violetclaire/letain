@@ -24,6 +24,12 @@ interface ContractRecord {
   bookingId?: string | null;
   inquiryId?: string | null;
   serviceItems?: Array<{ clientType: string; qty: number; service: string; price: number; total: number }> | null;
+  paymentStatus?: string | null;
+  paymentMethod?: string | null;
+  amountPaid?: number | null;
+  paymentDueDate?: string | null;
+  paymentLink?: string | null;
+  paymentNotes?: string | null;
 }
 
 interface LinkedInquiry {
@@ -56,9 +62,49 @@ interface VaultResponse {
 // are set by the real send/signing flows, never from the Vault.
 const EDITABLE_STATUSES = ["draft", "cancelled"];
 
+// Payment tracking is business state only. No money is processed on this page.
+const PAYMENT_STATUS_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "payment_not_requested", label: "Not requested yet" },
+  { value: "payment_requested", label: "Payment requested" },
+  { value: "deposit_due", label: "Deposit due" },
+  { value: "deposit_paid", label: "Deposit paid" },
+  { value: "balance_due", label: "Balance due" },
+  { value: "balance_paid", label: "Balance paid" },
+  { value: "overdue", label: "Overdue" },
+  { value: "manually_confirmed_paid", label: "Manually confirmed paid" },
+];
+const PAYMENT_METHOD_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "square", label: "Square" },
+  { value: "zelle", label: "Zelle" },
+  { value: "venmo", label: "Venmo" },
+  { value: "paypal", label: "PayPal" },
+  { value: "stripe", label: "Stripe" },
+  { value: "check", label: "Check" },
+  { value: "cash", label: "Cash" },
+  { value: "bank_transfer", label: "Bank transfer" },
+  { value: "other", label: "Other" },
+];
+const paymentStatusLabel = (v?: string | null) =>
+  PAYMENT_STATUS_OPTIONS.find((o) => o.value === v)?.label ?? null;
+const paymentMethodLabel = (v?: string | null) =>
+  PAYMENT_METHOD_OPTIONS.find((o) => o.value === v)?.label ?? null;
+
 function money(cents?: number | null): string | null {
   if (cents === null || cents === undefined) return null;
   return `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+// Convert a dollar string from an input into integer cents (or null when blank).
+function dollarsToCents(value: string): number | null {
+  const trimmed = value.trim();
+  if (trimmed === "") return null;
+  const n = Number(trimmed.replace(/[$,]/g, ""));
+  if (!isFinite(n) || n < 0) return null;
+  return Math.round(n * 100);
+}
+function centsToDollarString(cents?: number | null): string {
+  if (cents === null || cents === undefined) return "";
+  return (cents / 100).toString();
 }
 
 function formatDate(value?: string | null): string | null {
@@ -91,6 +137,12 @@ export default function ContractDetail() {
 
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<Partial<ContractRecord>>({});
+  // Amount inputs are kept as dollar strings while editing, converted to cents on save.
+  const [amountForm, setAmountForm] = useState<{ depositAmount: string; remainingAmount: string; amountPaid: string }>({
+    depositAmount: "",
+    remainingAmount: "",
+    amountPaid: "",
+  });
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -126,6 +178,16 @@ export default function ContractDetail() {
       contractUrl: contract.contractUrl ?? "",
       contractSource: contract.contractSource ?? "",
       contractNotes: contract.contractNotes ?? "",
+      paymentStatus: contract.paymentStatus ?? "payment_not_requested",
+      paymentMethod: contract.paymentMethod ?? "",
+      paymentDueDate: contract.paymentDueDate ?? "",
+      paymentLink: contract.paymentLink ?? "",
+      paymentNotes: contract.paymentNotes ?? "",
+    });
+    setAmountForm({
+      depositAmount: centsToDollarString(contract.depositAmount),
+      remainingAmount: centsToDollarString(contract.remainingAmount),
+      amountPaid: centsToDollarString(contract.amountPaid),
     });
     setEditing(true);
   };
@@ -251,18 +313,36 @@ export default function ContractDetail() {
                 <Field label="Total" value={money(contract.totalAmount)} testId="text-total" />
                 <Field label="Deposit" value={money(contract.depositAmount)} testId="text-deposit" />
                 <Field label="Balance" value={money(contract.remainingAmount)} testId="text-balance" />
-                <Field
-                  label="Payment status"
-                  value={
-                    contract.depositPaidAt
-                      ? `Deposit paid ${formatDate(contract.depositPaidAt)}`
-                      : linked?.booking?.paymentStatus ?? null
-                  }
-                  testId="text-payment-status"
-                />
+                <Field label="Amount paid" value={money(contract.amountPaid)} testId="text-amount-paid" />
+                <Field label="Payment status" value={paymentStatusLabel(contract.paymentStatus)} testId="text-payment-status" />
+                <Field label="Payment method" value={paymentMethodLabel(contract.paymentMethod)} testId="text-payment-method" />
+                <Field label="Payment due" value={contract.paymentDueDate} testId="text-payment-due" />
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-ink/50">Payment link / instructions</div>
+                  <div className="text-ink mt-0.5" data-testid="text-payment-link">
+                    {contract.paymentLink && contract.paymentLink.trim() ? (
+                      /^https?:\/\//i.test(contract.paymentLink.trim()) ? (
+                        <a href={contract.paymentLink} target="_blank" rel="noopener noreferrer" className="underline text-ink break-all">
+                          {contract.paymentLink}
+                        </a>
+                      ) : (
+                        <span className="whitespace-pre-wrap break-words">{contract.paymentLink}</span>
+                      )
+                    ) : (
+                      <span className="text-ink/40">Not set</span>
+                    )}
+                  </div>
+                </div>
               </div>
+              {contract.paymentNotes && contract.paymentNotes.trim() && (
+                <div className="border border-hairline bg-surface p-6 mt-4 text-sm whitespace-pre-wrap" data-testid="text-payment-notes">
+                  <div className="text-xs uppercase tracking-wide text-ink/50 mb-1">Payment notes</div>
+                  {contract.paymentNotes}
+                </div>
+              )}
               <p className="text-xs text-ink/50 mt-2">
-                Amounts and payments are read-only here. This page does not process payments.
+                This is business tracking only. Briarwood does not process payments, send invoices,
+                or charge cards. Paste an external payment link or instructions if you use one.
               </p>
             </section>
 
@@ -340,7 +420,12 @@ export default function ContractDetail() {
             className="space-y-5 max-w-[70ch]"
             onSubmit={(e) => {
               e.preventDefault();
-              saveMutation.mutate(form);
+              saveMutation.mutate({
+                ...form,
+                depositAmount: dollarsToCents(amountForm.depositAmount),
+                remainingAmount: dollarsToCents(amountForm.remainingAmount),
+                amountPaid: dollarsToCents(amountForm.amountPaid),
+              });
             }}
             data-testid="form-edit"
           >
@@ -374,6 +459,36 @@ export default function ContractDetail() {
             <EditText label="Contract link / PDF URL" value={form.contractUrl ?? ""} onChange={(v) => setForm({ ...form, contractUrl: v })} testId="input-contract-url" placeholder="Paste a link to the contract or PDF" />
             <EditText label="Contract source" value={form.contractSource ?? ""} onChange={(v) => setForm({ ...form, contractSource: v })} testId="input-contract-source" placeholder="e.g. uploaded, external, Dubsado" />
             <EditTextarea label="Notes" value={form.contractNotes ?? ""} onChange={(v) => setForm({ ...form, contractNotes: v })} testId="input-contract-notes" />
+
+            <div className="border-t border-hairline pt-5 mt-1">
+              <h2 className="font-serif text-lg tracking-tight mb-1">Payment tracking</h2>
+              <p className="text-xs text-ink/50 mb-4 max-w-[60ch]">
+                Tracking only. This never charges a card, sends an invoice, or moves money.
+                Paste an external payment link or instructions if you use one.
+              </p>
+              <div className="space-y-5">
+                <EditSelect
+                  label="Payment status"
+                  value={form.paymentStatus ?? "payment_not_requested"}
+                  onChange={(v) => setForm({ ...form, paymentStatus: v })}
+                  options={PAYMENT_STATUS_OPTIONS}
+                  testId="select-payment-status"
+                />
+                <EditSelect
+                  label="Payment method"
+                  value={form.paymentMethod ?? ""}
+                  onChange={(v) => setForm({ ...form, paymentMethod: v })}
+                  options={[{ value: "", label: "Not set" }, ...PAYMENT_METHOD_OPTIONS]}
+                  testId="select-payment-method"
+                />
+                <EditText label="Deposit amount ($)" value={amountForm.depositAmount} onChange={(v) => setAmountForm({ ...amountForm, depositAmount: v })} testId="input-deposit-amount" placeholder="e.g. 250" />
+                <EditText label="Balance amount ($)" value={amountForm.remainingAmount} onChange={(v) => setAmountForm({ ...amountForm, remainingAmount: v })} testId="input-balance-amount" placeholder="e.g. 750" />
+                <EditText label="Amount paid ($)" value={amountForm.amountPaid} onChange={(v) => setAmountForm({ ...amountForm, amountPaid: v })} testId="input-amount-paid" placeholder="e.g. 250" />
+                <EditText label="Payment due date" value={form.paymentDueDate ?? ""} onChange={(v) => setForm({ ...form, paymentDueDate: v })} testId="input-payment-due-date" placeholder="e.g. 30 days before event" />
+                <EditText label="Payment link / instructions" value={form.paymentLink ?? ""} onChange={(v) => setForm({ ...form, paymentLink: v })} testId="input-payment-link" placeholder="Paste a Square/PayPal link or Venmo/Zelle instructions" />
+                <EditTextarea label="Payment notes" value={form.paymentNotes ?? ""} onChange={(v) => setForm({ ...form, paymentNotes: v })} testId="input-payment-notes" />
+              </div>
+            </div>
 
             <div className="flex items-center gap-3 pt-2">
               <button
@@ -416,6 +531,26 @@ function EditText({
         className="w-full border border-hairline bg-bg px-3 py-2 focus-visible:ring-1 focus-visible:ring-oxblood/70 outline-none placeholder:text-ink/40"
         data-testid={testId}
       />
+    </div>
+  );
+}
+
+function EditSelect({
+  label, value, onChange, options, testId,
+}: { label: string; value: string; onChange: (v: string) => void; options: Array<{ value: string; label: string }>; testId: string }) {
+  return (
+    <div>
+      <label className="text-xs uppercase tracking-wide text-ink/50 block mb-1">{label}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full border border-hairline bg-bg px-3 py-2 focus-visible:ring-1 focus-visible:ring-oxblood/70 outline-none"
+        data-testid={testId}
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
     </div>
   );
 }

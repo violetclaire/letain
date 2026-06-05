@@ -4645,11 +4645,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     serviceItems: c.serviceItems ?? null,
     bookingId: c.bookingId ?? null,
     inquiryId: c.inquiryId ?? null,
+    // Payment status tracking (business state only; no money is processed here)
+    paymentStatus: c.paymentStatus ?? null,
+    paymentMethod: c.paymentMethod ?? null,
+    amountPaid: c.amountPaid ?? null,
+    paymentDueDate: c.paymentDueDate ?? null,
+    paymentLink: c.paymentLink ?? null,
+    paymentNotes: c.paymentNotes ?? null,
   });
 
   // Vault status edits are metadata only and must NOT cross into send/signing
   // flow states (sent/signed/completed). Only these non-flow values are allowed.
   const VAULT_EDITABLE_STATUSES = ["draft", "cancelled"];
+
+  // Payment tracking is observational business state only - it never moves money,
+  // calls a payment API, or sends anything. Values are validated against these
+  // allow-lists; anything else is ignored.
+  const PAYMENT_STATUSES = [
+    "payment_not_requested",
+    "payment_requested",
+    "deposit_due",
+    "deposit_paid",
+    "balance_due",
+    "balance_paid",
+    "overdue",
+    "manually_confirmed_paid",
+  ];
+  const PAYMENT_METHODS = [
+    "square",
+    "zelle",
+    "venmo",
+    "paypal",
+    "stripe",
+    "check",
+    "cash",
+    "bank_transfer",
+    "other",
+  ];
 
   app.get("/api/vault/contracts/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
@@ -4724,6 +4756,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "contractUrl",
         "contractSource",
         "contractNotes",
+        // Payment tracking metadata (external links/notes only, no processing)
+        "paymentDueDate",
+        "paymentLink",
+        "paymentNotes",
       ];
       for (const f of textFields) {
         if (typeof body[f] === "string") updates[f] = body[f];
@@ -4732,6 +4768,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // flow states (sent/signed/completed) are intentionally NOT accepted here.
       if (typeof body.status === "string" && VAULT_EDITABLE_STATUSES.includes(body.status)) {
         updates.status = body.status;
+      }
+      // Payment status / method: validated against allow-lists. Empty string
+      // clears the value. Invalid values are ignored, never written.
+      if (typeof body.paymentStatus === "string" && PAYMENT_STATUSES.includes(body.paymentStatus)) {
+        updates.paymentStatus = body.paymentStatus;
+      }
+      if (typeof body.paymentMethod === "string") {
+        if (body.paymentMethod === "") updates.paymentMethod = null;
+        else if (PAYMENT_METHODS.includes(body.paymentMethod)) updates.paymentMethod = body.paymentMethod;
+      }
+      // Money amounts are operator-tracked business state in cents. Accept only
+      // non-negative integers; null clears. No payment is processed.
+      const amountFields = ["depositAmount", "remainingAmount", "amountPaid"];
+      for (const f of amountFields) {
+        if (!(f in body)) continue;
+        const v = body[f];
+        if (v === null || v === "") {
+          updates[f] = null;
+        } else if (typeof v === "number" && Number.isInteger(v) && v >= 0) {
+          updates[f] = v;
+        }
       }
       if (Object.keys(updates).length === 0) {
         return res.status(400).json({ error: "No editable fields provided" });

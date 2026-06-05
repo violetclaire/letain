@@ -5,5 +5,6 @@
 - [Assistant prompt queue](assistant-prompt-queue.md) — headless prompt layer; delivery OFF by default; queued status has no flush job yet; new-inquiry event wired with availability analysis + circle/team routing suggestions.
 - [Briarwood vs DateInquiry vs Makeup Dolls](briarwood-architecture.md) — Briarwood=permanent infra; DateInquiry=temp intake bridge (do not name permanent concepts after it); Makeup Dolls=live source. Design new logic channel-agnostic.
 - [Briarwood composer + routing](briarwood-composer-routing.md) — operator approves every send; referral acceptance gate enforced server-side (UI-only is bypassable); events CDI-neutral (signalStrength 0); generic route targets.
+- [Contract payment tracking](contract-payment-tracking.md) — Vault tracks payment business state only; never process money/APIs/invoices; edits via owner-scoped Vault PATCH whitelist.
 - [Network-free demo routes](briarwood-demo-routes.md) — global InviteRedirectHandler fires /api/auth/user on every route; demo/public pages need `enabled: !location.startsWith("/demo")` to stay truly network-free.
 - [Contract endpoints must sanitize](contracts-sensitive-fields.md) — contracts row holds signingToken/signatures/openSign* ; any operator-facing contract API must return a display DTO, not the raw row, and never set flow statuses (sent/signed/completed).

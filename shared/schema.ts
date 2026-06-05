@@ -428,6 +428,14 @@ export const contracts = pgTable("contracts", {
   contractUrl: text("contract_url"), // external/pasted contract or PDF link
   contractSource: text("contract_source"), // where the contract came from (e.g. 'uploaded', 'external')
   contractNotes: text("contract_notes"), // operator-only notes
+  // Payment status tracking (business state only; no payment processing, no APIs).
+  // External links/instructions only. These never move money or trigger sends.
+  paymentStatus: text("payment_status").default("payment_not_requested"), // see PAYMENT_STATUSES
+  paymentMethod: text("payment_method"), // see PAYMENT_METHODS (square/zelle/venmo/...)
+  amountPaid: integer("amount_paid"), // in cents - operator-tracked total received
+  paymentDueDate: text("payment_due_date"), // operator-entered due date (free text)
+  paymentLink: text("payment_link"), // pasted Square/PayPal/etc payment URL or instructions
+  paymentNotes: text("payment_notes"), // operator-only payment notes
   // Built-in e-signature fields (like Dubsado)
   signingToken: text("signing_token").unique(), // Unique token for signing link
   clientSignature: text("client_signature"), // Typed signature text
