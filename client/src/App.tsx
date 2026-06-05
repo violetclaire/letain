@@ -82,6 +82,7 @@ import PlannerView from "@/pages/PlannerView";
 import SecretaryOnboarding from "@/pages/SecretaryOnboarding";
 import InquirePage from "@/pages/InquirePage";
 import InquiryThread from "@/pages/InquiryThread";
+import OperatorDemo from "@/pages/OperatorDemo";
 import ClientThread from "@/pages/ClientThread";
 import SetupSquare from "@/pages/SetupSquare";
 import SetupContract from "@/pages/SetupContract";
@@ -118,6 +119,7 @@ function InviteRedirectHandler() {
   const [location, setLocation] = useLocation();
   const { data: user } = useQuery({
     queryKey: ["/api/auth/user"],
+    enabled: !location.startsWith("/demo"),
     queryFn: async () => {
       const res = await fetch("/api/auth/user");
       if (!res.ok) return null;
@@ -163,6 +165,7 @@ function Router() {
       <Route path="/privacy" component={Privacy} />
       <Route path="/about" component={About} />
       <Route path="/demo-landing" component={DemoLandingPreview} />
+      <Route path="/demo/operator" component={OperatorDemo} />
       <Route path="/spec" component={BriarwoodSpec} />
       <Route path="/oracle" component={Oracle} />
       <Route path="/branding" component={Branding} />
