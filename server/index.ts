@@ -71,6 +71,7 @@ async function ensureDatabaseSchema() {
     { name: 'artist_profiles.assistant_quiet_hours_end', sql: sql`ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS assistant_quiet_hours_end integer` },
     { name: 'artist_profiles.assistant_timezone', sql: sql`ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS assistant_timezone text` },
     { name: 'artist_profiles.assistant_prompt_mode', sql: sql`ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS assistant_prompt_mode text DEFAULT 'immediate'` },
+    { name: 'artist_profiles.assistant_dry_run', sql: sql`ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS assistant_dry_run boolean DEFAULT false` },
     { name: 'assistant_prompts.table', sql: sql`CREATE TABLE IF NOT EXISTS assistant_prompts (
       id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
       operator_id varchar NOT NULL,
@@ -87,6 +88,55 @@ async function ensureDatabaseSchema() {
       created_at timestamp NOT NULL DEFAULT now(),
       sent_at timestamp,
       acted_on_at timestamp
+    )` },
+    { name: 'route_targets.table', sql: sql`CREATE TABLE IF NOT EXISTS route_targets (
+      id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+      operator_id varchar NOT NULL,
+      name text NOT NULL,
+      email text,
+      phone text,
+      role_label text,
+      tags text[],
+      capabilities text[],
+      is_internal boolean DEFAULT false,
+      is_agent boolean DEFAULT false,
+      active boolean DEFAULT true,
+      preferred boolean DEFAULT false,
+      availability_source text,
+      trusted_circle_id varchar,
+      linked_user_id varchar,
+      notes text,
+      created_at timestamp NOT NULL DEFAULT now(),
+      updated_at timestamp DEFAULT now()
+    )` },
+    { name: 'inquiry_routes.table', sql: sql`CREATE TABLE IF NOT EXISTS inquiry_routes (
+      id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+      operator_id varchar NOT NULL,
+      inquiry_id varchar,
+      route_target_id varchar NOT NULL,
+      route_type text NOT NULL DEFAULT 'referral',
+      status text NOT NULL DEFAULT 'draft',
+      target_label_snapshot text,
+      preflight_channel text,
+      preflight_message text,
+      preflight_sent_at timestamp,
+      response_raw text,
+      responded_at timestamp,
+      created_at timestamp NOT NULL DEFAULT now(),
+      updated_at timestamp DEFAULT now()
+    )` },
+    { name: 'inquiry_responses.table', sql: sql`CREATE TABLE IF NOT EXISTS inquiry_responses (
+      id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+      operator_id varchar NOT NULL,
+      inquiry_id varchar NOT NULL,
+      response_type text NOT NULL,
+      channel text DEFAULT 'email',
+      personal_note text,
+      body text NOT NULL,
+      status text NOT NULL DEFAULT 'draft',
+      sent_at timestamp,
+      created_at timestamp NOT NULL DEFAULT now(),
+      updated_at timestamp DEFAULT now()
     )` },
   ];
   

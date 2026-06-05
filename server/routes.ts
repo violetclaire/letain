@@ -16936,36 +16936,49 @@ Rules:
       // Use production URL for notifications
       const prodUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
       
+      // Dry-run: when the operator has assistant dry-run enabled, suppress the
+      // real operator alert SMS/email so nothing leaves the system during a demo.
+      // The inquiry is still created above; only delivery is skipped and logged.
+      const operatorDryRun = !!artistProfile?.assistantDryRun;
+
       // Try to send SMS notification
       if (artist?.phone) {
-        try {
-          await smsService.sendSms(
-            artist.phone,
-            `${clientName} wants to chat about booking ${new Date(eventDate).toLocaleDateString()}. Respond here: ${prodUrl}/artist`
-          );
-        } catch (smsError) {
-          console.error("[Public Inquiry] SMS send failed:", smsError);
+        if (operatorDryRun) {
+          console.log(`[Public Inquiry] Dry-run: skipped operator SMS alert to ${artist.phone}`);
+        } else {
+          try {
+            await smsService.sendSms(
+              artist.phone,
+              `${clientName} wants to chat about booking ${new Date(eventDate).toLocaleDateString()}. Respond here: ${prodUrl}/artist`
+            );
+          } catch (smsError) {
+            console.error("[Public Inquiry] SMS send failed:", smsError);
+          }
         }
       }
       
       // Send email notification to artist
       if (artist?.email) {
-        try {
-          const { sendInquiryNotificationEmail } = await import('./emailService');
-          await sendInquiryNotificationEmail({
-            toEmail: artist.email,
-            vendorName: artistProfile?.businessName || artist.firstName || 'Artist',
-            clientName,
-            clientEmail,
-            eventDate: new Date(eventDate).toLocaleDateString('en-US', { 
-              weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
-            }),
-            location: location || undefined,
-            message: message || 'No message provided',
-            inquiryLink: `${prodUrl}/inquiry/${inquiry.threadToken}`
-          });
-        } catch (emailError) {
-          console.error("[Public Inquiry] Email send failed:", emailError);
+        if (operatorDryRun) {
+          console.log(`[Public Inquiry] Dry-run: skipped operator email alert to ${artist.email}`);
+        } else {
+          try {
+            const { sendInquiryNotificationEmail } = await import('./emailService');
+            await sendInquiryNotificationEmail({
+              toEmail: artist.email,
+              vendorName: artistProfile?.businessName || artist.firstName || 'Artist',
+              clientName,
+              clientEmail,
+              eventDate: new Date(eventDate).toLocaleDateString('en-US', { 
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+              }),
+              location: location || undefined,
+              message: message || 'No message provided',
+              inquiryLink: `${prodUrl}/inquiry/${inquiry.threadToken}`
+            });
+          } catch (emailError) {
+            console.error("[Public Inquiry] Email send failed:", emailError);
+          }
         }
       }
       
@@ -17088,34 +17101,47 @@ Rules:
       const artistProfile = await storage.getArtistProfile(profile.userId);
       const prodUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
       
+      // Dry-run: when the operator has assistant dry-run enabled, suppress the
+      // real operator alert SMS/email so nothing leaves the system during a demo.
+      // The inquiry is still created above; only delivery is skipped and logged.
+      const operatorDryRun = !!artistProfile?.assistantDryRun;
+
       if (artist?.phone) {
-        try {
-          await smsService.sendSms(
-            artist.phone,
-            `${clientName} wants to chat about booking ${new Date(eventDate).toLocaleDateString()}. Respond here: ${prodUrl}/artist`
-          );
-        } catch (smsError) {
-          console.error("[External Form] SMS send failed:", smsError);
+        if (operatorDryRun) {
+          console.log(`[External Form] Dry-run: skipped operator SMS alert to ${artist.phone}`);
+        } else {
+          try {
+            await smsService.sendSms(
+              artist.phone,
+              `${clientName} wants to chat about booking ${new Date(eventDate).toLocaleDateString()}. Respond here: ${prodUrl}/artist`
+            );
+          } catch (smsError) {
+            console.error("[External Form] SMS send failed:", smsError);
+          }
         }
       }
       
       if (artist?.email) {
-        try {
-          const { sendInquiryNotificationEmail } = await import('./emailService');
-          await sendInquiryNotificationEmail({
-            toEmail: artist.email,
-            vendorName: artistProfile?.businessName || artist.firstName || 'Artist',
-            clientName,
-            clientEmail,
-            eventDate: new Date(eventDate).toLocaleDateString('en-US', { 
-              weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
-            }),
-            location: eventLocation || undefined,
-            message: message || 'No message provided',
-            inquiryLink: `${prodUrl}/inquiry/${inquiry.threadToken}`
-          });
-        } catch (emailError) {
-          console.error("[External Form] Email send failed:", emailError);
+        if (operatorDryRun) {
+          console.log(`[External Form] Dry-run: skipped operator email alert to ${artist.email}`);
+        } else {
+          try {
+            const { sendInquiryNotificationEmail } = await import('./emailService');
+            await sendInquiryNotificationEmail({
+              toEmail: artist.email,
+              vendorName: artistProfile?.businessName || artist.firstName || 'Artist',
+              clientName,
+              clientEmail,
+              eventDate: new Date(eventDate).toLocaleDateString('en-US', { 
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+              }),
+              location: eventLocation || undefined,
+              message: message || 'No message provided',
+              inquiryLink: `${prodUrl}/inquiry/${inquiry.threadToken}`
+            });
+          } catch (emailError) {
+            console.error("[External Form] Email send failed:", emailError);
+          }
         }
       }
       
@@ -17780,28 +17806,37 @@ Rules:
         });
       }
       
+      // Dry-run: when the operator has assistant dry-run enabled, suppress the
+      // real operator alert SMS/email so nothing leaves the system during a demo.
+      // The inquiry is still created above; only delivery is skipped and logged.
+      const operatorDryRun = !!artistProfile?.assistantDryRun;
+
       // Send email notification to artist
       if (artist?.email) {
-        console.log(`[Public Webhook] Sending email notification to ${artist.email}`);
-        try {
-          const { sendInquiryNotificationEmail } = await import('./emailService');
-          // Always use dateinquiry.com for white-label links
-          const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
-          
-          const emailResult = await sendInquiryNotificationEmail({
-            toEmail: artist.email,
-            vendorName: artist.firstName || artistProfile.businessName || 'Artist',
-            clientName,
-            clientEmail,
-            eventDate: parsedEventDate?.toLocaleDateString('en-US', { 
-              weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
-            }) || 'Date TBD',
-            message: message || `New ${serviceType || 'beauty'} inquiry from ${source || 'external form'}`,
-            inquiryLink: `${baseUrl}/inquiry/${inquiry.threadToken}`
-          });
-          console.log(`[Public Webhook] Email result:`, JSON.stringify(emailResult));
-        } catch (emailErr: any) {
-          console.error('[Public Webhook] Email notification error:', emailErr.message, emailErr.stack);
+        if (operatorDryRun) {
+          console.log(`[Public Webhook] Dry-run: skipped operator email alert to ${artist.email}`);
+        } else {
+          console.log(`[Public Webhook] Sending email notification to ${artist.email}`);
+          try {
+            const { sendInquiryNotificationEmail } = await import('./emailService');
+            // Always use dateinquiry.com for white-label links
+            const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
+            
+            const emailResult = await sendInquiryNotificationEmail({
+              toEmail: artist.email,
+              vendorName: artist.firstName || artistProfile.businessName || 'Artist',
+              clientName,
+              clientEmail,
+              eventDate: parsedEventDate?.toLocaleDateString('en-US', { 
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+              }) || 'Date TBD',
+              message: message || `New ${serviceType || 'beauty'} inquiry from ${source || 'external form'}`,
+              inquiryLink: `${baseUrl}/inquiry/${inquiry.threadToken}`
+            });
+            console.log(`[Public Webhook] Email result:`, JSON.stringify(emailResult));
+          } catch (emailErr: any) {
+            console.error('[Public Webhook] Email notification error:', emailErr.message, emailErr.stack);
+          }
         }
       } else {
         console.log(`[Public Webhook] No email found for artist ${artistSlug}`);
@@ -17809,13 +17844,17 @@ Rules:
       
       // Send SMS notification if artist has phone
       if (artist?.phone) {
-        try {
-          await smsService.sendSMS(
-            artist.phone,
-            `New inquiry from ${clientName} (${source || 'external form'}) for ${parsedEventDate ? new Date(parsedEventDate).toLocaleDateString() : 'TBD'}. Check your dashboard!`
-          );
-        } catch (smsError) {
-          console.error('[Public Webhook] SMS notification error:', smsError);
+        if (operatorDryRun) {
+          console.log(`[Public Webhook] Dry-run: skipped operator SMS alert to ${artist.phone}`);
+        } else {
+          try {
+            await smsService.sendSMS(
+              artist.phone,
+              `New inquiry from ${clientName} (${source || 'external form'}) for ${parsedEventDate ? new Date(parsedEventDate).toLocaleDateString() : 'TBD'}. Check your dashboard!`
+            );
+          } catch (smsError) {
+            console.error('[Public Webhook] SMS notification error:', smsError);
+          }
         }
       }
       
@@ -18016,22 +18055,30 @@ Rules:
         body: 'Inquiry received. The artist will respond shortly.',
       });
       
-      // Send notification email to artist
+      // Send notification email to artist. Dry-run: when the operator has assistant
+      // dry-run enabled, suppress the real operator alert so nothing leaves the
+      // system during a demo. The thread is still created above; only delivery is
+      // skipped and logged.
       try {
+        const operatorDryRun = !!(artistProfile as any)?.assistantDryRun;
         const artistUser = await storage.getUser(artistProfile.userId);
         if (artistUser?.email) {
-          const { sendInquiryNotificationEmail } = await import('./emailService');
-          const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
-          await sendInquiryNotificationEmail({
-            toEmail: artistUser.email,
-            vendorName: artistProfile.businessName || 'Artist',
-            clientName,
-            clientEmail,
-            eventDate: eventDate ? new Date(eventDate).toLocaleDateString() : 'Not specified',
-            message: message || 'No message provided',
-            inquiryLink: `${baseUrl}/t/${threadPublicToken}`,
-          });
-          console.log(`[Intake] Sent notification email to ${artistUser.email}`);
+          if (operatorDryRun) {
+            console.log(`[Intake] Dry-run: skipped operator email alert to ${artistUser.email}`);
+          } else {
+            const { sendInquiryNotificationEmail } = await import('./emailService');
+            const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';
+            await sendInquiryNotificationEmail({
+              toEmail: artistUser.email,
+              vendorName: artistProfile.businessName || 'Artist',
+              clientName,
+              clientEmail,
+              eventDate: eventDate ? new Date(eventDate).toLocaleDateString() : 'Not specified',
+              message: message || 'No message provided',
+              inquiryLink: `${baseUrl}/t/${threadPublicToken}`,
+            });
+            console.log(`[Intake] Sent notification email to ${artistUser.email}`);
+          }
         }
       } catch (emailError) {
         console.error('[Intake] Failed to send notification email:', emailError);

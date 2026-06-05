@@ -32,7 +32,11 @@ NEON is preferred, DATABASE_URL is only a fallback). They are DIFFERENT database
 with different rows and different schema. Do NOT use executeSql to verify app data
 or migrations — it will show a stale/empty picture (e.g. new tables appear missing).
 To verify against the real app DB, run a one-off `npx tsx` script that imports
-`server/db` so it uses the same NEON connection.
+`server/db` so it uses the same NEON connection. Alternatively, query it directly:
+`NU=$(echo "$NEON_DATABASE_URL" | sed -E 's#^psql ##; s#^["'"'"' ]+##; s#["'"'"' ]+$##'); psql "$NU" -c '...'`
+(the env value can carry a `psql ` prefix/quotes that must be stripped first, same
+as server/db.ts cleanDatabaseUrl). Schema changes applied to the helium DATABASE_URL
+have NO effect on the running app.
 
 ## blocked_dates table is missing created_at (schema/DB drift)
 The live `blocked_dates` table has only: id, artist_id, blocked_date (text YYYY-MM-DD),
