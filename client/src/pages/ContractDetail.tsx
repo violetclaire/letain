@@ -192,6 +192,47 @@ export default function ContractDetail() {
     setEditing(true);
   };
 
+  // Schedule draft linked to this contract (foundation: builder only, no sending).
+  const scheduleQuery = useQuery<{ id: string } | null>({
+    queryKey: ["/api/schedule-drafts/by-contract", contractId],
+    queryFn: async () => {
+      const res = await fetch(`/api/schedule-drafts/by-contract/${contractId}`, { credentials: "include" });
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error("Failed to load schedule");
+      return res.json();
+    },
+    enabled: !!contractId && isAuthenticated,
+    retry: false,
+  });
+
+  const createScheduleMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/schedule-drafts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          contractId,
+          inquiryId: contract?.inquiryId ?? undefined,
+          bookingId: contract?.bookingId ?? undefined,
+          title: contract?.clientName ? `${contract.clientName} schedule` : "Untitled schedule",
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to create schedule");
+      }
+      return res.json();
+    },
+    onSuccess: (draft: { id: string }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/schedule-drafts/by-contract", contractId] });
+      window.location.href = `/admin/${slug}/schedules/${draft.id}${authParam}`;
+    },
+    onError: (err: Error) => {
+      toast({ title: "Could not create schedule", description: err.message, variant: "destructive" });
+    },
+  });
+
   const saveMutation = useMutation({
     mutationFn: async (payload: Partial<ContractRecord>) => {
       const res = await fetch(`/api/vault/contracts/${contractId}`, {
@@ -401,6 +442,40 @@ export default function ContractDetail() {
                     <span className="text-ink/40">None</span>
                   )}
                 </div>
+              </div>
+            </section>
+
+            <section data-testid="section-schedule">
+              <h2 className="font-serif text-xl tracking-tight mb-3">Schedule</h2>
+              <div className="border border-hairline bg-surface p-6 text-sm">
+                <p className="text-ink/70 mb-4 max-w-[70ch]">
+                  Build a day-of schedule as an editable table, like a document. Nothing
+                  is sent and there is no client link. It is just for you to plan.
+                </p>
+                {scheduleQuery.isLoading ? (
+                  <div className="flex items-center gap-2 text-ink/60" data-testid="status-schedule-loading">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Checking
+                  </div>
+                ) : scheduleQuery.data?.id ? (
+                  <Link
+                    href={`/admin/${slug}/schedules/${scheduleQuery.data.id}${authParam}`}
+                    className="inline-flex items-center gap-2 border border-hairline px-3 py-2 hover:bg-surface-2"
+                    data-testid="link-open-schedule"
+                  >
+                    Open Schedule
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => createScheduleMutation.mutate()}
+                    disabled={createScheduleMutation.isPending}
+                    className="inline-flex items-center gap-2 bg-ink text-bg px-3 py-2 disabled:opacity-60"
+                    data-testid="button-create-schedule"
+                  >
+                    {createScheduleMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                    Create Schedule Draft
+                  </button>
+                )}
               </div>
             </section>
 

@@ -149,6 +149,26 @@ async function ensureDatabaseSchema() {
       created_at timestamp NOT NULL DEFAULT now(),
       updated_at timestamp DEFAULT now()
     )` },
+
+    // --- Schedule Drafts: Google-Docs-style editable table builder (additive, isolated) ---
+    { name: 'schedule_drafts.table', sql: sql`CREATE TABLE IF NOT EXISTS schedule_drafts (
+      id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+      artist_id varchar NOT NULL,
+      inquiry_id varchar,
+      contract_id varchar,
+      booking_id varchar,
+      title text,
+      event_date text,
+      location text,
+      notes text,
+      columns jsonb DEFAULT '[]'::jsonb,
+      rows jsonb DEFAULT '[]'::jsonb,
+      service_defaults jsonb DEFAULT '[]'::jsonb,
+      providers jsonb DEFAULT '[]'::jsonb,
+      status text DEFAULT 'draft',
+      created_at timestamp NOT NULL DEFAULT now(),
+      updated_at timestamp DEFAULT now()
+    )` },
   ];
   
   for (const migration of migrations) {

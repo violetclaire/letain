@@ -95,6 +95,7 @@ import AssistantControl from "@/pages/AssistantControl";
 import RouteTargets from "@/pages/RouteTargets";
 import Rolodex from "@/pages/Rolodex";
 import ContractDetail from "@/pages/ContractDetail";
+import ScheduleDraftBuilder from "@/pages/ScheduleDraftBuilder";
 import ArtistArchive from "@/pages/ArtistArchive";
 import ArtistClientInbox from "@/pages/ArtistClientInbox";
 import ArtistLogin from "@/pages/ArtistLogin";
@@ -266,6 +267,7 @@ function Router() {
       <Route path="/admin/:slug/network" component={RouteTargets} />
       <Route path="/admin/:slug/rolodex" component={Rolodex} />
       <Route path="/admin/:slug/contracts/:contractId" component={ContractDetail} />
+      <Route path="/admin/:slug/schedules/:scheduleId" component={ScheduleDraftBuilder} />
       <Route path="/admin/:slug" component={ArtistAdmin} />
       
       {/* Inquiry Thread (artist view of individual inquiry) */}

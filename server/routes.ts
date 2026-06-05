@@ -6804,6 +6804,296 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     }
   });
 
+  // ========== SCHEDULE DRAFTS (Google-Docs-style editable table builder) ==========
+  // Foundation only: operator-only, owner-scoped editable table tied to an
+  // inquiry/contract/booking. NO public access, NO sending, NO emails/SMS, NO
+  // payments, NO signing/CDI changes. Isolated from the legacy eventDaySchedules
+  // appointment-grid + public-share system above.
+
+  // Default table shape for a brand new draft. Columns use stable ids so cells map.
+  function defaultScheduleColumns() {
+    return [
+      { id: "name", label: "Name", type: "name" },
+      { id: "service", label: "Service", type: "service" },
+      { id: "provider", label: "Provider", type: "provider" },
+      { id: "start", label: "Start", type: "time" },
+      { id: "end", label: "End", type: "time" },
+      { id: "duration", label: "Duration", type: "duration" },
+      { id: "notes", label: "Notes", type: "notes" },
+    ];
+  }
+
+  // Editable defaults (not hard-coded into logic — operator can change them later).
+  function defaultServiceDefaults() {
+    return [
+      { id: "makeup", label: "Makeup", durationMinutes: 30 },
+      { id: "hair", label: "Hair", durationMinutes: 30 },
+      { id: "hairmakeup", label: "Hair + Makeup", durationMinutes: 60 },
+      { id: "bride", label: "Bride Hair + Makeup", durationMinutes: 120 },
+    ];
+  }
+
+  // Always start with a few placeholder rows so a draft is never empty / never
+  // fails because names were not provided.
+  function placeholderRows(count: number) {
+    const n = Math.max(1, Math.min(count || 3, 50));
+    const rows = [];
+    for (let i = 0; i < n; i++) {
+      rows.push({
+        id: `row_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 7)}`,
+        sortOrder: i,
+        cells: { name: `Guest ${i + 1}`, service: "", provider: "", start: "", end: "", duration: "", notes: "" },
+      });
+    }
+    return rows;
+  }
+
+  // Generic owner/admin guard for a draft id.
+  async function loadOwnedScheduleDraft(req: Request, res: Response) {
+    const draft = await storage.getScheduleDraft(req.params.id);
+    if (!draft) {
+      res.status(404).json({ error: "Schedule not found" });
+      return null;
+    }
+    const userId = getAuthUserId(req);
+    if (!userId) {
+      res.status(401).json({ error: "Not authenticated" });
+      return null;
+    }
+    const requester = await storage.getUser(userId);
+    const isAdmin = requester?.role === "admin";
+    if (draft.artistId !== userId && !isAdmin) {
+      res.status(403).json({ error: "You can only access your own schedules" });
+      return null;
+    }
+    return draft;
+  }
+
+  // Create a new schedule draft (owner = current user). Optional links to
+  // inquiry/contract/booking. Starts as a usable placeholder table.
+  app.post("/api/schedule-drafts", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const body = req.body || {};
+
+      // Optional links are stored as-is (loose coupling). We do not verify the
+      // linked records here beyond a contract ownership check when provided, so
+      // an operator cannot attach a draft to someone else's contract.
+      let contractId: string | null = typeof body.contractId === "string" ? body.contractId : null;
+      let inquiryId: string | null = typeof body.inquiryId === "string" ? body.inquiryId : null;
+      let bookingId: string | null = typeof body.bookingId === "string" ? body.bookingId : null;
+
+      const requester = await storage.getUser(userId);
+      const isAdmin = requester?.role === "admin";
+
+      if (contractId) {
+        const contract = await storage.getContract(contractId);
+        if (!contract) {
+          return res.status(404).json({ error: "Linked contract not found" });
+        }
+        if (contract.artistId !== userId && !isAdmin) {
+          return res.status(403).json({ error: "You can only link your own contracts" });
+        }
+        if (!bookingId && contract.bookingId) bookingId = contract.bookingId;
+      }
+
+      // Validate any directly-supplied links belong to the operator. Prevents
+      // cross-tenant poisoning (attaching a draft to a victim's inquiry/booking).
+      if (inquiryId) {
+        const inquiry = await storage.getInquiry(inquiryId);
+        if (!inquiry || (inquiry.vendorId !== userId && !isAdmin)) {
+          return res.status(403).json({ error: "You can only link your own inquiries" });
+        }
+      }
+      if (bookingId) {
+        const booking = await storage.getBooking(bookingId);
+        if (!booking || (booking.artistId !== userId && !isAdmin)) {
+          return res.status(403).json({ error: "You can only link your own bookings" });
+        }
+      }
+
+      const title = typeof body.title === "string" && body.title.trim() ? body.title.trim() : "Untitled schedule";
+
+      const draft = await storage.createScheduleDraft({
+        artistId: userId,
+        inquiryId,
+        contractId,
+        bookingId,
+        title,
+        eventDate: typeof body.eventDate === "string" ? body.eventDate : null,
+        location: typeof body.location === "string" ? body.location : null,
+        notes: typeof body.notes === "string" ? body.notes : null,
+        columns: defaultScheduleColumns(),
+        rows: placeholderRows(3),
+        serviceDefaults: defaultServiceDefaults(),
+        providers: [],
+        status: "draft",
+      } as any);
+
+      res.json(draft);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
+    }
+  });
+
+  // List the current operator's schedule drafts.
+  app.get("/api/schedule-drafts", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const drafts = await storage.getScheduleDraftsByArtist(userId);
+      res.json(drafts);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
+    }
+  });
+
+  // Find a draft linked to a contract (owner-scoped). Returns 404 if none, so the
+  // UI can decide between "Create Schedule Draft" and "Open Schedule".
+  app.get("/api/schedule-drafts/by-contract/:contractId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      // Owner-scoped at query time: a non-owner simply gets 404 (no existence leak).
+      const draft = await storage.getScheduleDraftByContract(req.params.contractId, userId);
+      if (!draft) {
+        return res.status(404).json({ error: "No schedule linked to this contract" });
+      }
+      res.json(draft);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
+    }
+  });
+
+  // Find a draft linked to an inquiry (owner-scoped).
+  app.get("/api/schedule-drafts/by-inquiry/:inquiryId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      // Owner-scoped at query time: a non-owner simply gets 404 (no existence leak).
+      const draft = await storage.getScheduleDraftByInquiry(req.params.inquiryId, userId);
+      if (!draft) {
+        return res.status(404).json({ error: "No schedule linked to this inquiry" });
+      }
+      res.json(draft);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
+    }
+  });
+
+  // Read a single draft (owner/admin only).
+  app.get("/api/schedule-drafts/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const draft = await loadOwnedScheduleDraft(req, res);
+      if (!draft) return;
+      res.json(draft);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
+    }
+  });
+
+  // Update a draft (owner/admin only). Strict whitelist + light validation.
+  // Never accepts artistId/links/timestamps. status limited to 'draft' (no
+  // sending state exists in this foundation).
+  app.patch("/api/schedule-drafts/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const draft = await loadOwnedScheduleDraft(req, res);
+      if (!draft) return;
+
+      const body = req.body || {};
+      const update: Record<string, any> = {};
+
+      if (typeof body.title === "string") update.title = body.title.slice(0, 300);
+      if (body.eventDate === null || typeof body.eventDate === "string") update.eventDate = body.eventDate;
+      if (body.location === null || typeof body.location === "string") update.location = body.location;
+      if (body.notes === null || typeof body.notes === "string") update.notes = body.notes;
+
+      // Table data: accept arrays only; sanitize each item to the known shape.
+      if (Array.isArray(body.columns)) {
+        update.columns = body.columns
+          .filter((c: any) => c && typeof c === "object")
+          .map((c: any) => ({
+            id: String(c.id ?? "").slice(0, 64) || `col_${Math.random().toString(36).slice(2, 9)}`,
+            label: String(c.label ?? "").slice(0, 120),
+            type: String(c.type ?? "text").slice(0, 32),
+          }));
+      }
+
+      if (Array.isArray(body.rows)) {
+        update.rows = body.rows
+          .filter((r: any) => r && typeof r === "object")
+          .map((r: any, idx: number) => {
+            const cells: Record<string, string> = {};
+            if (r.cells && typeof r.cells === "object") {
+              for (const [k, v] of Object.entries(r.cells)) {
+                cells[String(k).slice(0, 64)] = v == null ? "" : String(v).slice(0, 2000);
+              }
+            }
+            return {
+              id: String(r.id ?? "").slice(0, 64) || `row_${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 7)}`,
+              sortOrder: Number.isFinite(r.sortOrder) ? Number(r.sortOrder) : idx,
+              cells,
+            };
+          });
+      }
+
+      if (Array.isArray(body.serviceDefaults)) {
+        update.serviceDefaults = body.serviceDefaults
+          .filter((s: any) => s && typeof s === "object")
+          .map((s: any) => {
+            const minutes = Number(s.durationMinutes);
+            return {
+              id: String(s.id ?? "").slice(0, 64) || `svc_${Math.random().toString(36).slice(2, 9)}`,
+              label: String(s.label ?? "").slice(0, 120),
+              durationMinutes: Number.isFinite(minutes) && minutes >= 0 ? Math.floor(minutes) : 0,
+            };
+          });
+      }
+
+      if (Array.isArray(body.providers)) {
+        update.providers = body.providers
+          .filter((p: any) => p && typeof p === "object")
+          .map((p: any) => ({
+            id: String(p.id ?? "").slice(0, 64) || `prov_${Math.random().toString(36).slice(2, 9)}`,
+            name: String(p.name ?? "").slice(0, 120),
+          }));
+      }
+
+      // status: foundation only supports 'draft'. Reject anything that looks like
+      // a sending/published state to keep this surface non-sending.
+      if (typeof body.status === "string") {
+        if (body.status !== "draft") {
+          return res.status(400).json({ error: "Only 'draft' status is supported" });
+        }
+        update.status = "draft";
+      }
+
+      if (Object.keys(update).length === 0) {
+        return res.json(draft);
+      }
+
+      const updated = await storage.updateScheduleDraft(draft.id, update as any);
+      res.json(updated);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
+    }
+  });
+
   // ========== ARTIST NETWORK (Your Network / Rolodex) ==========
   
   // Get artist's network contacts - CDI-powered ranking (invisible to vendor)

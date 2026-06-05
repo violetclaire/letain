@@ -8,3 +8,4 @@
 - [Contract payment tracking](contract-payment-tracking.md) — Vault tracks payment business state only; never process money/APIs/invoices; edits via owner-scoped Vault PATCH whitelist.
 - [Network-free demo routes](briarwood-demo-routes.md) — global InviteRedirectHandler fires /api/auth/user on every route; demo/public pages need `enabled: !location.startsWith("/demo")` to stay truly network-free.
 - [Contract endpoints must sanitize](contracts-sensitive-fields.md) — contracts row holds signingToken/signatures/openSign* ; any operator-facing contract API must return a display DTO, not the raw row, and never set flow statuses (sent/signed/completed).
+- [Schedule Drafts foundation](schedule-drafts-foundation.md) — Google-Docs table builder lives on isolated `schedule_drafts` (JSONB), NOT legacy eventDaySchedules; no sending/public link; owner-scope by-link lookups at query time.

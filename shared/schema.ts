@@ -591,6 +591,33 @@ export const scheduleChatMessages = pgTable("schedule_chat_messages", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Schedule Drafts - Google-Docs-style editable schedule TABLE builder.
+// Intentionally separate from eventDaySchedules/scheduleAppointments (the
+// appointment-grid + public-share system) so it never touches live sending or
+// public schedule links. Columns/rows are stored as flexible JSONB so the
+// operator can edit the table like a document. No public access, no sending.
+export const scheduleDrafts = pgTable("schedule_drafts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  artistId: varchar("artist_id").notNull().references(() => users.id), // owner/operator
+  inquiryId: varchar("inquiry_id"), // optional link (loose, no FK constraint)
+  contractId: varchar("contract_id"), // optional link
+  bookingId: varchar("booking_id"), // optional link
+  title: text("title"),
+  eventDate: text("event_date"), // free text to stay simple
+  location: text("location"),
+  notes: text("notes"),
+  // Flexible table definition (Google-Docs style)
+  columns: jsonb("columns").$type<Array<{ id: string; label: string; type: string }>>().default([]),
+  rows: jsonb("rows").$type<Array<{ id: string; sortOrder: number; cells: Record<string, string> }>>().default([]),
+  // Editable default durations per service (not hard-coded)
+  serviceDefaults: jsonb("service_defaults").$type<Array<{ id: string; label: string; durationMinutes: number }>>().default([]),
+  // Optional providers/artists for assignment
+  providers: jsonb("providers").$type<Array<{ id: string; name: string }>>().default([]),
+  status: text("status").default("draft"), // 'draft' only for now (no sending)
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Chat invites - for inviting people to chat
 export const chatInvites = pgTable("chat_invites", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1314,6 +1341,12 @@ export const insertEventDayScheduleSchema = createInsertSchema(eventDaySchedules
   updatedAt: true,
 });
 
+export const insertScheduleDraftSchema = createInsertSchema(scheduleDrafts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertScheduleTeamMemberSchema = createInsertSchema(scheduleTeamMembers).omit({
   id: true,
   createdAt: true,
@@ -2025,6 +2058,13 @@ export type Schedule = typeof schedules.$inferSelect;
 
 export type InsertEventDaySchedule = z.infer<typeof insertEventDayScheduleSchema>;
 export type EventDaySchedule = typeof eventDaySchedules.$inferSelect;
+
+export type InsertScheduleDraft = z.infer<typeof insertScheduleDraftSchema>;
+export type ScheduleDraft = typeof scheduleDrafts.$inferSelect;
+export type ScheduleColumn = { id: string; label: string; type: string };
+export type ScheduleRow = { id: string; sortOrder: number; cells: Record<string, string> };
+export type ScheduleServiceDefault = { id: string; label: string; durationMinutes: number };
+export type ScheduleProvider = { id: string; name: string };
 
 export type InsertScheduleTeamMember = z.infer<typeof insertScheduleTeamMemberSchema>;
 export type ScheduleTeamMember = typeof scheduleTeamMembers.$inferSelect;

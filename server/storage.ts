@@ -11,6 +11,7 @@ import {
   payments,
   availability,
   schedules,
+  scheduleDrafts,
   eventDaySchedules,
   scheduleTeamMembers,
   scheduleAppointments,
@@ -77,6 +78,8 @@ import {
   type InsertAvailability,
   type Schedule,
   type InsertSchedule,
+  type ScheduleDraft,
+  type InsertScheduleDraft,
   type EventDaySchedule,
   type InsertEventDaySchedule,
   type ScheduleTeamMember,
@@ -318,6 +321,14 @@ export interface IStorage {
   getScheduleByBooking(bookingId: string): Promise<Schedule | undefined>;
   createSchedule(schedule: InsertSchedule): Promise<Schedule>;
   updateSchedule(id: string, schedule: Partial<InsertSchedule>): Promise<Schedule | undefined>;
+
+  // Schedule Drafts (Google-Docs-style table builder, owner-scoped)
+  getScheduleDraft(id: string): Promise<ScheduleDraft | undefined>;
+  getScheduleDraftsByArtist(artistId: string): Promise<ScheduleDraft[]>;
+  getScheduleDraftByContract(contractId: string, artistId: string): Promise<ScheduleDraft | undefined>;
+  getScheduleDraftByInquiry(inquiryId: string, artistId: string): Promise<ScheduleDraft | undefined>;
+  createScheduleDraft(draft: InsertScheduleDraft): Promise<ScheduleDraft>;
+  updateScheduleDraft(id: string, draft: Partial<InsertScheduleDraft>): Promise<ScheduleDraft | undefined>;
   
   // Event Day Schedules (smart scheduling grid)
   getEventDaySchedule(id: string): Promise<EventDaySchedule | undefined>;
@@ -1455,6 +1466,54 @@ export class DatabaseStorage implements IStorage {
       .update(schedules)
       .set(schedule as any)
       .where(eq(schedules.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  // --- Schedule Drafts (Google-Docs-style table builder, owner-scoped) ---
+  async getScheduleDraft(id: string): Promise<ScheduleDraft | undefined> {
+    const [draft] = await db.select().from(scheduleDrafts).where(eq(scheduleDrafts.id, id));
+    return draft || undefined;
+  }
+
+  async getScheduleDraftsByArtist(artistId: string): Promise<ScheduleDraft[]> {
+    return await db
+      .select()
+      .from(scheduleDrafts)
+      .where(eq(scheduleDrafts.artistId, artistId))
+      .orderBy(desc(scheduleDrafts.createdAt));
+  }
+
+  async getScheduleDraftByContract(contractId: string, artistId: string): Promise<ScheduleDraft | undefined> {
+    // Owner-scoped at query time: removes the existence oracle and prevents one
+    // operator from seeing/colliding with another's draft via a shared link id.
+    const [draft] = await db
+      .select()
+      .from(scheduleDrafts)
+      .where(and(eq(scheduleDrafts.contractId, contractId), eq(scheduleDrafts.artistId, artistId)))
+      .orderBy(desc(scheduleDrafts.createdAt));
+    return draft || undefined;
+  }
+
+  async getScheduleDraftByInquiry(inquiryId: string, artistId: string): Promise<ScheduleDraft | undefined> {
+    const [draft] = await db
+      .select()
+      .from(scheduleDrafts)
+      .where(and(eq(scheduleDrafts.inquiryId, inquiryId), eq(scheduleDrafts.artistId, artistId)))
+      .orderBy(desc(scheduleDrafts.createdAt));
+    return draft || undefined;
+  }
+
+  async createScheduleDraft(draft: InsertScheduleDraft): Promise<ScheduleDraft> {
+    const [created] = await db.insert(scheduleDrafts).values(draft as any).returning();
+    return created;
+  }
+
+  async updateScheduleDraft(id: string, draft: Partial<InsertScheduleDraft>): Promise<ScheduleDraft | undefined> {
+    const [updated] = await db
+      .update(scheduleDrafts)
+      .set({ ...draft, updatedAt: new Date() } as any)
+      .where(eq(scheduleDrafts.id, id))
       .returning();
     return updated || undefined;
   }
