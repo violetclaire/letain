@@ -4515,7 +4515,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!contract) {
         return res.status(404).json({ error: "Contract not found" });
       }
-      
+
+      // Ownership/admin scoping: only the owning artist (or an admin) may read a
+      // contract by id. Closes an IDOR where any logged-in artist could fetch
+      // another artist's contract. Response shape is intentionally unchanged.
+      // The public signing/countersign flows use separate token routes and are
+      // not affected by this check.
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const requester = await storage.getUser(userId);
+      const isAdmin = requester?.role === "admin";
+      if (contract.artistId !== userId && !isAdmin) {
+        return res.status(403).json({ error: "You can only view your own contracts" });
+      }
+
       const booking = await storage.getBooking(contract.bookingId);
       let clientName = "";
       let eventDate = null;
