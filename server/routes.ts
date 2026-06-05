@@ -1733,6 +1733,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // =====================================================================
+  // Rolodex / Universal Search: READ-ONLY, operator-scoped, authenticated.
+  // Lets an operator find their own people and records (clients, network,
+  // inquiries, contracts, bookings, assistant prompts). Not public. Scopes
+  // strictly by the session user id (getAuthUserId) - the URL slug is never
+  // trusted for data access. Performs no writes.
+  // =====================================================================
+  app.get("/api/rolodex/search", async (req: Request, res: Response) => {
+    try {
+      const operatorId = getAuthUserId(req);
+      if (!operatorId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const q = typeof req.query.q === "string" ? req.query.q : "";
+      if (!q.trim()) {
+        return res.json({ query: "", groups: [], total: 0 });
+      }
+      const results = await storage.searchRolodex(operatorId, q);
+      const groupDefs = [
+        { type: "contact", label: "Clients & contacts" },
+        { type: "route_target", label: "Routing network" },
+        { type: "inquiry", label: "Inquiries" },
+        { type: "contract", label: "Contracts" },
+        { type: "booking", label: "Bookings" },
+        { type: "assistant_prompt", label: "Assistant prompts" },
+      ] as const;
+      const groups = groupDefs
+        .map((g) => ({
+          type: g.type,
+          label: g.label,
+          results: results.filter((r) => r.type === g.type),
+        }))
+        .filter((g) => g.results.length > 0);
+      res.json({ query: q.trim(), groups, total: results.length });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("[rolodex] search error:", message);
+      res.status(500).json({ error: "Search failed" });
+    }
+  });
+
+  // =====================================================================
   // Briarwood core: Response Composer + generic Routing / Delegation layer.
   //
   // All endpoints below are operator-authenticated (session, getAuthUserId).

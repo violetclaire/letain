@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, useSearch, Link, useLocation } from "wouter";
 import { format } from "date-fns";
-import { Loader2, Settings, Calendar, Users, Copy, Check, Mail, CheckCircle, LogOut, FileText, DollarSign, Clock, ChevronDown, ChevronUp, Menu, X, HelpCircle, Trash2, AlertTriangle, MessageSquare, Send, CalendarDays, Moon, Sun } from "lucide-react";
+import { Loader2, Settings, Calendar, Users, Copy, Check, Mail, CheckCircle, LogOut, FileText, DollarSign, Clock, ChevronDown, ChevronUp, Menu, X, HelpCircle, Trash2, AlertTriangle, MessageSquare, Send, CalendarDays, Moon, Sun, Search } from "lucide-react";
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -535,6 +535,15 @@ export default function ArtistAdmin() {
               >
                 <FileText className="w-4 h-4" />
                 Clients & Contracts
+              </Link>
+              <Link
+                href={`/admin/${getActualSlug()}/rolodex${authParam}`}
+                className="flex items-center gap-3 px-4 py-3 text-sm text-ink/80 hover:bg-ink/10 transition-colors border-b border-ink/10"
+                onClick={() => setMenuOpen(false)}
+                data-testid="nav-rolodex"
+              >
+                <Search className="w-4 h-4" />
+                Rolodex
               </Link>
               <Link 
                 href={`/${getActualSlug()}/settings${authParam}`}

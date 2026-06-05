@@ -2578,6 +2578,42 @@ export const insertRouteTargetSchema = createInsertSchema(routeTargets).omit({
 export type InsertRouteTarget = z.infer<typeof insertRouteTargetSchema>;
 export type RouteTarget = typeof routeTargets.$inferSelect;
 
+// Rolodex / Universal Search - read-only result shapes (no table; DTO only).
+export type RolodexResultType =
+  | "contact"
+  | "route_target"
+  | "inquiry"
+  | "contract"
+  | "booking"
+  | "assistant_prompt";
+
+export interface RolodexResult {
+  id: string;
+  type: RolodexResultType;
+  title: string;
+  subtitle?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  roleLabel?: string | null;
+  tags?: string[] | null;
+  date?: string | null; // ISO string or free-form date text
+  status?: string | null;
+  threadToken?: string | null; // for inquiry quick-link
+  recordId?: string | null;
+}
+
+export interface RolodexGroup {
+  type: RolodexResultType;
+  label: string;
+  results: RolodexResult[];
+}
+
+export interface RolodexSearchResponse {
+  query: string;
+  groups: RolodexGroup[];
+  total: number;
+}
+
 // A routing record: one decision to send an inquiry/task to one route target.
 // routeType distinguishes referral vs delegation vs review vs scheduling vs
 // agent handoff vs follow-up. status tracks the preflight handshake and where

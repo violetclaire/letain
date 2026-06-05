@@ -133,6 +133,7 @@ import {
   routeTargets,
   type RouteTarget,
   type InsertRouteTarget,
+  type RolodexResult,
   inquiryRoutes,
   type InquiryRoute,
   type InsertInquiryRoute,
@@ -457,6 +458,7 @@ export interface IStorage {
   createRouteTarget(data: InsertRouteTarget): Promise<RouteTarget>;
   getRouteTarget(id: string): Promise<RouteTarget | undefined>;
   getRouteTargetsByOperator(operatorId: string): Promise<RouteTarget[]>;
+  searchRolodex(operatorId: string, q: string): Promise<RolodexResult[]>;
   updateRouteTarget(id: string, updates: Partial<RouteTarget>): Promise<RouteTarget | undefined>;
   // Briarwood routing layer: per-inquiry routes / delegation / preflight
   createInquiryRoute(data: InsertInquiryRoute): Promise<InquiryRoute>;
@@ -2466,6 +2468,155 @@ export class DatabaseStorage implements IStorage {
       .where(eq(routeTargets.id, id))
       .returning();
     return row || undefined;
+  }
+
+  // Rolodex / Universal Search: READ-ONLY, operator-scoped search across the
+  // records an operator works with. Every query is filtered to the operator's
+  // own owner column. Nothing here writes. Used by GET /api/rolodex/search.
+  async searchRolodex(operatorId: string, q: string): Promise<RolodexResult[]> {
+    const term = q.trim();
+    if (!term) return [];
+    const p = `%${term}%`;
+    const PER_TYPE = 25;
+    const results: RolodexResult[] = [];
+
+    // Clients / contacts (owned via artistId)
+    const contacts = await db.select().from(clientContacts)
+      .where(and(
+        eq(clientContacts.artistId, operatorId),
+        or(
+          ilike(clientContacts.name, p),
+          ilike(clientContacts.email, p),
+          ilike(clientContacts.phone, p),
+          ilike(clientContacts.notes, p),
+        ),
+      ))
+      .orderBy(desc(clientContacts.createdAt))
+      .limit(PER_TYPE);
+    for (const c of contacts) {
+      results.push({
+        id: c.id, type: "contact", title: c.name,
+        subtitle: c.notes ?? null, email: c.email, phone: c.phone ?? null,
+        recordId: c.id,
+      });
+    }
+
+    // Route targets / trusted network (owned via operatorId)
+    const targets = await db.select().from(routeTargets)
+      .where(and(
+        eq(routeTargets.operatorId, operatorId),
+        or(
+          ilike(routeTargets.name, p),
+          ilike(routeTargets.email, p),
+          ilike(routeTargets.phone, p),
+          ilike(routeTargets.roleLabel, p),
+          ilike(routeTargets.notes, p),
+          sql`array_to_string(${routeTargets.tags}, ',') ilike ${p}`,
+        ),
+      ))
+      .orderBy(desc(routeTargets.createdAt))
+      .limit(PER_TYPE);
+    for (const t of targets) {
+      results.push({
+        id: t.id, type: "route_target", title: t.name,
+        email: t.email ?? null, phone: t.phone ?? null,
+        roleLabel: t.roleLabel ?? null, tags: t.tags ?? null,
+        status: t.active === false ? "inactive" : "active",
+        recordId: t.id,
+      });
+    }
+
+    // Inquiries (owned via vendorId) - does not modify any inquiry state
+    const inq = await db.select().from(inquiries)
+      .where(and(
+        eq(inquiries.vendorId, operatorId),
+        or(
+          ilike(inquiries.clientName, p),
+          ilike(inquiries.clientEmail, p),
+          ilike(inquiries.clientPhone, p),
+          ilike(inquiries.eventLocation, p),
+          ilike(inquiries.serviceType, p),
+          ilike(inquiries.eventType, p),
+          sql`to_char(${inquiries.eventDate}, 'YYYY-MM-DD Month') ilike ${p}`,
+        ),
+      ))
+      .orderBy(desc(inquiries.createdAt))
+      .limit(PER_TYPE);
+    for (const i of inq) {
+      results.push({
+        id: i.id, type: "inquiry", title: i.clientName,
+        subtitle: i.serviceType ?? null, email: i.clientEmail, phone: i.clientPhone ?? null,
+        date: i.eventDate ? i.eventDate.toISOString() : null,
+        status: i.status ?? null, threadToken: i.threadToken ?? null, recordId: i.id,
+      });
+    }
+
+    // Contracts (owned via artistId)
+    const con = await db.select().from(contracts)
+      .where(and(
+        eq(contracts.artistId, operatorId),
+        or(
+          ilike(contracts.clientName, p),
+          ilike(contracts.clientContact, p),
+          ilike(contracts.eventLocation, p),
+          ilike(contracts.eventDates, p),
+          ilike(contracts.packageDetails, p),
+        ),
+      ))
+      .orderBy(desc(contracts.createdAt))
+      .limit(PER_TYPE);
+    for (const c of con) {
+      results.push({
+        id: c.id, type: "contract", title: c.clientName ?? "Contract",
+        subtitle: c.eventLocation ?? null, email: c.clientContact ?? null,
+        date: c.eventDates ?? null, status: c.status ?? null, recordId: c.id,
+      });
+    }
+
+    // Bookings (owned via artistId)
+    const bk = await db.select().from(bookings)
+      .where(and(
+        eq(bookings.artistId, operatorId),
+        or(
+          ilike(bookings.location, p),
+          ilike(bookings.serviceType, p),
+          ilike(bookings.notes, p),
+          sql`to_char(${bookings.eventDate}, 'YYYY-MM-DD Month') ilike ${p}`,
+        ),
+      ))
+      .orderBy(desc(bookings.createdAt))
+      .limit(PER_TYPE);
+    for (const b of bk) {
+      results.push({
+        id: b.id, type: "booking", title: b.serviceType,
+        subtitle: b.location ?? null,
+        date: b.eventDate ? b.eventDate.toISOString() : null,
+        status: b.status ?? null, recordId: b.id,
+      });
+    }
+
+    // Assistant prompts (owned via operatorId)
+    const prompts = await db.select().from(assistantPrompts)
+      .where(and(
+        eq(assistantPrompts.operatorId, operatorId),
+        or(
+          ilike(assistantPrompts.title, p),
+          ilike(assistantPrompts.body, p),
+          ilike(assistantPrompts.promptType, p),
+        ),
+      ))
+      .orderBy(desc(assistantPrompts.createdAt))
+      .limit(PER_TYPE);
+    for (const pr of prompts) {
+      results.push({
+        id: pr.id, type: "assistant_prompt", title: pr.title,
+        subtitle: pr.promptType ?? null,
+        date: pr.createdAt ? pr.createdAt.toISOString() : null,
+        status: pr.deliveryStatus ?? null, recordId: pr.inquiryId ?? null,
+      });
+    }
+
+    return results;
   }
 
   // --- Briarwood routing layer: per-inquiry routes / delegation / preflight ---
