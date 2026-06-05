@@ -8,6 +8,7 @@ import type { DeliveryPreview } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { DemoModeBanner } from "@/components/DemoModeBanner";
 import {
   Select,
   SelectContent,
@@ -291,6 +292,11 @@ function InquiryComposer({ inquiryId }: { inquiryId: string }) {
         <div><span className="text-ink/50">Service:</span> {ctx.serviceType || "—"}</div>
         <div><span className="text-ink/50">Date:</span> {ctx.eventDate || "—"}</div>
         <div><span className="text-ink/50">Location:</span> {ctx.eventLocation || "—"}</div>
+      </div>
+
+      {/* DEMO MODE INDICATOR (account dry-run setting) */}
+      <div className="mb-4">
+        <DemoModeBanner variant="compact" />
       </div>
 
       {/* DRY-RUN TOGGLE */}
@@ -696,6 +702,8 @@ export default function AssistantControl() {
             replies to clients on its own.
           </p>
         </header>
+
+        <DemoModeBanner />
 
         {loading && (
           <div className="flex items-center gap-2 text-ink/60" data-testid="status-loading">
