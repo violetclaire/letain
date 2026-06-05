@@ -4559,14 +4559,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/contracts/:id", isAuthenticated, async (req, res) => {
     try {
-      const contract = await storage.updateContract(req.params.id, req.body);
+      // Owner/admin scoping: fetch first, then authorize. Closes a write-side
+      // IDOR + mass-assignment. Sensitive fields (signingToken, signatures,
+      // openSign*, amounts, ids, timestamps, contractHtml) are never accepted.
+      // Public token signing/countersign routes are separate and untouched.
+      const contract = await storage.getContract(req.params.id);
       if (!contract) {
         return res.status(404).json({ error: "Contract not found" });
       }
-      res.json(contract);
+      const userId = getAuthUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const requester = await storage.getUser(userId);
+      const isAdmin = requester?.role === "admin";
+      if (contract.artistId !== userId && !isAdmin) {
+        return res.status(403).json({ error: "You can only edit your own contracts" });
+      }
+
+      // Strict whitelist of safe, editable metadata fields. Anything else in the
+      // request body is ignored (no raw req.body pass-through).
+      const body = req.body ?? {};
+      const updates: Record<string, unknown> = {};
+      const textFields = [
+        "clientName",
+        "clientContact",
+        "eventDates",
+        "eventLocation",
+        "packageDetails",
+        "contractUrl",
+        "contractSource",
+        "contractNotes",
+      ];
+      for (const f of textFields) {
+        if (typeof body[f] === "string") updates[f] = body[f];
+      }
+      // Status is metadata only here. Flow states (sent/signed/completed/paid)
+      // are reached only through the real send/sign/payment flows, never here.
+      if (typeof body.status === "string" && VAULT_EDITABLE_STATUSES.includes(body.status)) {
+        updates.status = body.status;
+      }
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ error: "No editable fields provided" });
+      }
+
+      const updated = await storage.updateContract(req.params.id, updates as any);
+      if (!updated) {
+        return res.status(404).json({ error: "Contract not found" });
+      }
+      // Sanitized response (no signing tokens, signatures, or openSign fields).
+      res.json(toVaultContractDto(updated));
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      res.status(400).json({ error: message });
+      console.error("[contracts] patch error:", message);
+      res.status(500).json({ error: "Failed to update contract" });
     }
   });
 
