@@ -1354,6 +1354,8 @@ function TrustTimeline({ threadToken }: { threadToken: string }) {
     test_tool: "Test tool",
     manual_match: "Manual match",
     system: "System action",
+    composer: "Composer",
+    routing: "Routing",
   };
 
   const items = data?.timeline ?? [];
@@ -1369,7 +1371,7 @@ function TrustTimeline({ threadToken }: { threadToken: string }) {
         <p className="text-sm text-[#888]" data-testid="text-timeline-loading">Loading...</p>
       ) : items.length === 0 ? (
         <p className="text-sm text-[#888]" data-testid="text-timeline-empty">
-          No trust events yet. When a matched reply comes in, it will appear here.
+          No trust events yet. Composer and routing activity will appear here as it happens.
         </p>
       ) : (
         <ol className="space-y-4" data-testid="list-trust-events">
@@ -1397,6 +1399,21 @@ function TrustTimeline({ threadToken }: { threadToken: string }) {
                   <p data-testid={`text-event-person-${ev.id}`}>
                     <span className="text-[#888]">Person: </span>{ev.personName}
                     {ev.personType ? ` (${ev.personType})` : ""}
+                  </p>
+                )}
+                {ev.routeTargetName && (
+                  <p data-testid={`text-event-target-${ev.id}`}>
+                    <span className="text-[#888]">Route target: </span>{ev.routeTargetName}
+                  </p>
+                )}
+                {ev.responseType && (
+                  <p data-testid={`text-event-response-${ev.id}`}>
+                    <span className="text-[#888]">Response: </span>{ev.responseType}
+                  </p>
+                )}
+                {ev.status && (
+                  <p data-testid={`text-event-status-${ev.id}`}>
+                    <span className="text-[#888]">Status: </span>{ev.status.replace(/_/g, " ")}
                   </p>
                 )}
                 {(ev.matchStatus || typeof ev.matchConfidence === "number") && (

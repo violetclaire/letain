@@ -2487,19 +2487,25 @@ export type AssistantPrompt = typeof assistantPrompts.$inferSelect;
 // Timeline". Built server-side (see storage.getTrustTimeline) so the admin UI
 // needs no extra lookups. Read-only/derived; not a table.
 export type TrustTimelineEntry = {
-  id: string; // cdi_behavioral_events.id
+  id: string; // cdi_behavioral_events.id, or a derived id for composer/routing rows
   eventType: string; // e.g. 'response_received'
   eventCategory: string; // e.g. 'communication'
   dimension: string; // CDI dimension
   signalStrength: number; // -100..+100
   createdAt: string; // ISO timestamp
-  source: "sms" | "test_tool" | "manual_match" | "system"; // where the event came from
+  source: "sms" | "test_tool" | "manual_match" | "system" | "composer" | "routing"; // where the event came from
   personName: string | null; // linked person/contact, if resolved
-  personType: "user" | "contact" | "phone" | null;
+  personType: "user" | "contact" | "phone" | "route_target" | null;
   matchStatus: string | null; // inbound match status if event came from an SMS reply
   matchConfidence: number | null; // 0-100 if available
   matchReason: string | null; // human-readable factors behind the match
   evidenceText: string | null; // short excerpt of the reply, if any
+  // Optional links for composer/routing-derived rows (read-only, never guessed).
+  status?: string | null; // route/response status if available
+  routeTargetId?: string | null; // linked route target id, if this is a routing row
+  routeTargetName?: string | null; // linked route target name, if resolved
+  responseId?: string | null; // linked inquiry response id, if this is a composer row
+  responseType?: string | null; // 'pricing' | 'decline' | 'referral', if applicable
 };
 
 // ---------------------------------------------------------------------------

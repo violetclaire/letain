@@ -2227,6 +2227,149 @@ export class DatabaseStorage implements IStorage {
       });
     }
 
+    // Surface composer + routing/delegation activity for this inquiry. These
+    // events are recorded score-neutral (signalStrength 0) and live on the
+    // inquiry-scoped inquiry_responses / inquiry_routes records. We DERIVE
+    // read-only timeline rows from those records (we do not read or guess at the
+    // operator-scoped cdi_behavioral_events, which are not inquiry-keyed). No
+    // writes, no new events, no CDI impact.
+    if (opts.inquiryId) {
+      const toIso = (d: unknown) =>
+        d instanceof Date ? d.toISOString() : (d ? String(d) : null);
+
+      // Composer: drafted + sent responses.
+      const responses = await this.getInquiryResponsesByInquiry(opts.inquiryId);
+      for (const r of responses) {
+        entries.push({
+          id: `resp:${r.id}:drafted`,
+          eventType: "response_drafted",
+          eventCategory: "coordination",
+          dimension: "choreography_awareness",
+          signalStrength: 0,
+          createdAt: toIso(r.createdAt) || new Date(0).toISOString(),
+          source: "composer",
+          personName: null,
+          personType: null,
+          matchStatus: null,
+          matchConfidence: null,
+          matchReason: null,
+          evidenceText: `Drafted ${r.responseType} response`,
+          status: r.status ?? null,
+          responseId: r.id,
+          responseType: r.responseType ?? null,
+        });
+        if (r.status === "sent") {
+          const sentTypeMap: Record<string, string> = {
+            pricing: "pricing_sent",
+            decline: "declined",
+            referral: "referral_sent_to_client",
+          };
+          entries.push({
+            id: `resp:${r.id}:sent`,
+            eventType: sentTypeMap[r.responseType] || "response_sent",
+            eventCategory: "coordination",
+            dimension: "choreography_awareness",
+            signalStrength: 0,
+            createdAt: toIso(r.sentAt) || toIso(r.updatedAt) || toIso(r.createdAt) || new Date(0).toISOString(),
+            source: "composer",
+            personName: null,
+            personType: null,
+            matchStatus: null,
+            matchConfidence: null,
+            matchReason: null,
+            evidenceText: `Sent ${r.responseType} response to client`,
+            status: r.status ?? null,
+            responseId: r.id,
+            responseType: r.responseType ?? null,
+          });
+        }
+      }
+
+      // Routing/delegation: route created, preflight sent, and the target's reply.
+      const routes = await this.getInquiryRoutesByInquiry(opts.inquiryId);
+      const targetNameCache = new Map<string, string | null>();
+      const resolveTargetName = async (id: string) => {
+        if (!targetNameCache.has(id)) {
+          const t = await this.getRouteTarget(id);
+          targetNameCache.set(id, t?.name ?? null);
+        }
+        return targetNameCache.get(id) ?? null;
+      };
+      for (const r of routes) {
+        const targetName = r.routeTargetId ? await resolveTargetName(r.routeTargetId) : null;
+        const who = targetName || "a route target";
+
+        // Created (routed for referral-type, delegated otherwise).
+        entries.push({
+          id: `route:${r.id}:created`,
+          eventType: r.routeType === "delegation" ? "delegated" : "routed",
+          eventCategory: "coordination",
+          dimension: "choreography_awareness",
+          signalStrength: 0,
+          createdAt: toIso(r.createdAt) || new Date(0).toISOString(),
+          source: "routing",
+          personName: null,
+          personType: "route_target",
+          matchStatus: null,
+          matchConfidence: null,
+          matchReason: null,
+          evidenceText: `Created ${r.routeType} route to ${who}`,
+          status: r.status ?? null,
+          routeTargetId: r.routeTargetId ?? null,
+          routeTargetName: targetName,
+        });
+
+        // Preflight sent (channel-aware source).
+        if (r.preflightSentAt) {
+          entries.push({
+            id: `route:${r.id}:preflight`,
+            eventType: "route_preflight_sent",
+            eventCategory: "coordination",
+            dimension: "choreography_awareness",
+            signalStrength: 0,
+            createdAt: toIso(r.preflightSentAt) || new Date(0).toISOString(),
+            source: r.preflightChannel === "sms" ? "sms" : "routing",
+            personName: null,
+            personType: "route_target",
+            matchStatus: null,
+            matchConfidence: null,
+            matchReason: null,
+            evidenceText: `Preflighted to ${who}${r.preflightChannel ? ` via ${r.preflightChannel}` : ""}`,
+            status: r.status ?? null,
+            routeTargetId: r.routeTargetId ?? null,
+            routeTargetName: targetName,
+          });
+        }
+
+        // The target's reply, captured by the operator.
+        if (r.respondedAt && (r.status === "accepted" || r.status === "declined" || r.status === "needs_review")) {
+          const replyTypeMap: Record<string, string> = {
+            accepted: "route_preflight_accepted",
+            declined: "route_preflight_declined",
+            needs_review: "response_received",
+          };
+          entries.push({
+            id: `route:${r.id}:responded`,
+            eventType: replyTypeMap[r.status] || "response_received",
+            eventCategory: "coordination",
+            dimension: "choreography_awareness",
+            signalStrength: 0,
+            createdAt: toIso(r.respondedAt) || new Date(0).toISOString(),
+            source: "routing",
+            personName: null,
+            personType: "route_target",
+            matchStatus: null,
+            matchConfidence: null,
+            matchReason: null,
+            evidenceText: `${who} marked ${r.status.replace(/_/g, " ")}`,
+            status: r.status ?? null,
+            routeTargetId: r.routeTargetId ?? null,
+            routeTargetName: targetName,
+          });
+        }
+      }
+    }
+
     entries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return entries;
   }

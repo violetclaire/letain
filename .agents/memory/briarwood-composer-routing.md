@@ -36,3 +36,13 @@ assistant prompt that has an inquiryId, behind a "Respond" toggle).
 route_type and the targets are channel/role-agnostic (referral, delegation, review,
 scheduling, agent, follow_up; targets can be internal team, trusted circle, or
 agents). Keep new routing logic channel-agnostic per the Briarwood architecture rule.
+
+## Trust Timeline visibility (read-only)
+Composer/routing activity is surfaced on the inquiry Trust Timeline by DERIVING
+entries from the inquiry-scoped inquiry_responses + inquiry_routes records inside
+storage.getTrustTimeline, NOT from cdi_behavioral_events.
+**Why:** routing/composer behavioral events are operator-scoped (recordRoutingEvent
+passes operatorId only, no inquiryId/bookingId), so they cannot be reliably linked
+to one inquiry. The route/response tables are inquiry-keyed, so derivation is exact
+with no guessing. Derived rows are read-only and hardcode signalStrength 0 to match
+how the system records them.
