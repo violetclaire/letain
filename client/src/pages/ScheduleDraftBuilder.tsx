@@ -541,6 +541,15 @@ export default function ScheduleDraftBuilder() {
       { id: uid("row"), sortOrder: prev.length, cells: { ...emptyCells, [providerColId]: providerName } },
     ]);
 
+  // Assign a person from the "People to assign" pool into a block's Name field.
+  // Replaces any existing name, keeps the block editable, and removes that person
+  // from the pool. Operator-driven only, never automatic.
+  const assignPerson = (rowId: string, name: string) => {
+    if (!name) return;
+    setCell(rowId, "name", name);
+    setPeopleToAssign(peopleToAssign.filter((n) => n !== name));
+  };
+
   const applyPaste = () => {
     const built = buildScheduleFromInput(pasteText, serviceDefaults);
     const { providers: laneDefs, blocks, personRows, namePool } = built;
@@ -894,6 +903,23 @@ export default function ScheduleDraftBuilder() {
                                 data-testid={`label-bride-${row.id}`}
                               >
                                 Bridal
+                              </div>
+                            )}
+                            {peopleToAssign.length > 0 && (
+                              <div className="mb-2">
+                                <select
+                                  value=""
+                                  onChange={(e) => assignPerson(row.id, e.target.value)}
+                                  className="w-full bg-bg border border-hairline rounded-sm px-2 py-1.5 text-xs text-ink/70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70"
+                                  data-testid={`select-assign-${row.id}`}
+                                >
+                                  <option value="">Assign person...</option>
+                                  {peopleToAssign.map((p, i) => (
+                                    <option key={`${p}-${i}`} value={p}>
+                                      {p}
+                                    </option>
+                                  ))}
+                                </select>
                               </div>
                             )}
                             <div className="grid grid-cols-2 gap-x-3 gap-y-2">
