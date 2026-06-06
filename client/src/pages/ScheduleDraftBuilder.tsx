@@ -43,42 +43,57 @@ function normalizeService(raw: string): string {
   return "";
 }
 
-// Combine assigned service atoms into a single readable label. "Makeup" + "Hair"
-// collapses to the canonical "Hair + Makeup"; otherwise joined with " + ".
-function combineServiceLabels(list: string[]): string {
-  const set = Array.from(new Set(list.filter(Boolean)));
-  if (set.length === 0) return "";
-  if (set.length === 1) return set[0];
-  if (set.length === 2 && set.includes("Hair") && set.includes("Makeup")) {
-    return "Hair + Makeup";
+// Decide how many provider lanes do makeup vs hair, proportional to how many
+// blocks each kind has. When both kinds exist on a single artist, that one lane
+// is "combined" (does both). Never leaves a needed kind without a lane.
+function buildLanes(
+  providerCount: number,
+  makeupBlocks: number,
+  hairBlocks: number,
+): { makeupLanes: number; hairLanes: number; combined: boolean } {
+  if (providerCount <= 0) return { makeupLanes: 0, hairLanes: 0, combined: false };
+  const hasM = makeupBlocks > 0;
+  const hasH = hairBlocks > 0;
+  if (hasM && hasH) {
+    if (providerCount === 1) return { makeupLanes: 0, hairLanes: 0, combined: true };
+    let hairLanes = Math.round((hairBlocks / (makeupBlocks + hairBlocks)) * providerCount);
+    hairLanes = Math.max(1, Math.min(hairLanes, providerCount - 1));
+    return { makeupLanes: providerCount - hairLanes, hairLanes, combined: false };
   }
-  return set.join(" + ");
+  if (hasM) return { makeupLanes: providerCount, hairLanes: 0, combined: false };
+  if (hasH) return { makeupLanes: 0, hairLanes: providerCount, combined: false };
+  return { makeupLanes: providerCount, hairLanes: 0, combined: false };
 }
 
-// Forgiving parser using the product model: people are rows, services are
-// assignments, providers/artists are resources. Handles
-// "Bride, MOB, MOG, 5 bridesmaids, 8 makeup, 5 hair, 3 artists". Never throws.
-//
-// Approach:
-// 1. Plain tokens ("Bride") and groups ("5 bridesmaids") become PEOPLE rows.
-// 2. "3 artists/providers/stylists" become a provider COUNT (resources).
-// 3. Service counts ("8 makeup", "5 hair") are ASSIGNED to existing people
-//    first (combining e.g. Makeup + Hair into "Hair + Makeup"). Only if there
-//    are not enough people do we add editable "Guest" placeholder rows for the
-//    shortfall. Nothing is ever rejected.
-function parseInput(
+// Build a PROVIDER-LANE schedule, not flat person rows. The core model:
+//   - artists/providers are lanes (the Provider column on each row)
+//   - services are appointment blocks placed inside those lanes
+//   - people are a NAME POOL the operator assigns into blocks later
+// Handles "Bride, MOB, MOG, 5 bridesmaids, 8 makeup, 5 hair, 3 artists":
+//   - 3 artists -> 3 provider lanes (split makeup vs hair by demand)
+//   - 8 makeup / 5 hair -> service blocks, NOT extra people
+//   - Bride present + services -> one special "Bride Hair + Makeup" block
+//   - people stay a name pool (added to notes); only Bride is auto-placed
+// Never throws. Service counts are never turned into people.
+function buildScheduleFromInput(
   text: string,
   serviceDefaults: ServiceDefault[],
-): { rows: Array<{ name: string; service: string; duration: string }>; providerCount: number } {
-  let providerCount = 0;
-
+): {
+  providers: Array<{ name: string }>;
+  blocks: Array<{ name: string; service: string; provider: string; duration: string }>;
+  personRows: Array<{ name: string }>;
+  namePoolNote: string | null;
+} {
   const durationFor = (label: string): string => {
     const sd = serviceDefaults.find((s) => s.label.toLowerCase() === label.toLowerCase());
     return sd ? String(sd.durationMinutes) : "";
   };
 
-  const people: Array<{ name: string; services: string[] }> = [];
-  const serviceCounts: Array<{ service: string; count: number }> = [];
+  let providerCount = 0;
+  let makeupCount = 0;
+  let hairCount = 0;
+  const otherServices: Array<{ service: string; count: number }> = [];
+  const people: string[] = [];
 
   const tokens = text
     .split(/[,\n]+/)
@@ -86,62 +101,140 @@ function parseInput(
     .filter(Boolean);
 
   for (const token of tokens) {
-    // "3 artists" / "3 providers" / "3 stylists" -> provider count, not rows
+    // "3 artists" / "3 providers" / "3 stylists" -> a lane count, not people.
     const providerMatch = token.match(/^(\d+)\s*(artists?|providers?|stylists?)$/i);
     if (providerMatch) {
       providerCount += parseInt(providerMatch[1], 10);
       continue;
     }
 
-    // "<n> <something>" -> either a service count or a named group of people.
+    // "<n> <something>" -> either a service count (blocks) or a named group.
     const countMatch = token.match(/^(\d+)\s+(.+)$/);
     if (countMatch) {
       const n = Math.min(parseInt(countMatch[1], 10), 100);
       const rest = countMatch[2].trim();
       const svc = normalizeService(rest);
-      if (svc) {
-        // service count -> assigned later to people
-        serviceCounts.push({ service: svc, count: n });
+      if (svc === "Makeup") {
+        makeupCount += n;
+      } else if (svc === "Hair") {
+        hairCount += n;
+      } else if (svc) {
+        otherServices.push({ service: svc, count: n });
       } else {
-        // group name like "bridesmaids" -> "Bridesmaid 1".."Bridesmaid n"
+        // group name like "bridesmaids" -> "Bridesmaid 1".."Bridesmaid n" (people)
         const singular = rest.replace(/s$/i, "");
         const labelBase = singular.charAt(0).toUpperCase() + singular.slice(1);
-        for (let i = 0; i < n; i++) {
-          people.push({ name: `${labelBase} ${i + 1}`, services: [] });
-        }
+        for (let i = 0; i < n; i++) people.push(`${labelBase} ${i + 1}`);
       }
       continue;
     }
 
-    // Plain token: treat as a person name (Bride, MOB, MOG, a real name, etc.)
-    people.push({ name: token, services: [] });
+    // Plain token: a person name (Bride, MOB, MOG, a real name, etc.)
+    people.push(token);
   }
 
-  // Assign service counts. Prefer existing people who do not already have that
-  // service; only create placeholder Guest rows when there are not enough.
-  let guestCounter = 0;
-  for (const { service, count } of serviceCounts) {
-    let remaining = count;
-    for (const p of people) {
-      if (remaining <= 0) break;
-      if (!p.services.includes(service)) {
-        p.services.push(service);
-        remaining -= 1;
+  const hasBride = people.some((p) => /^bride$/i.test(p.trim()));
+
+  // Bride present + any hair/makeup demand -> one special bridal block. It
+  // consumes one makeup slot (bride's own makeup) so counts stay honest.
+  let brideBlock = false;
+  if (hasBride && (makeupCount > 0 || hairCount > 0)) {
+    brideBlock = true;
+    if (makeupCount > 0) makeupCount -= 1;
+  }
+
+  const otherTotal = otherServices.reduce((s, o) => s + o.count, 0);
+  const totalServiceDemand = (brideBlock ? 1 : 0) + makeupCount + hairCount + otherTotal;
+
+  // No services at all -> just a roster of people (names in the Name column).
+  if (totalServiceDemand === 0) {
+    const provs: Array<{ name: string }> = [];
+    for (let i = 0; i < providerCount; i++) provs.push({ name: `Artist ${i + 1}` });
+    return {
+      providers: provs,
+      blocks: [],
+      personRows: people.map((name) => ({ name })),
+      namePoolNote: null,
+    };
+  }
+
+  // Makeup-type blocks (bride is done by a makeup artist) and hair blocks.
+  type Block = { name: string; service: string; isBride?: boolean; provider: string };
+  const makeupGroup: Block[] = [];
+  if (brideBlock) makeupGroup.push({ name: "Bride", service: "Bride Hair + Makeup", isBride: true, provider: "" });
+  for (let i = 0; i < makeupCount; i++) makeupGroup.push({ name: `Makeup ${i + 1}`, service: "Makeup", provider: "" });
+  for (const os of otherServices) {
+    for (let i = 0; i < os.count; i++) makeupGroup.push({ name: `${os.service} ${i + 1}`, service: os.service, provider: "" });
+  }
+  const hairGroup: Block[] = [];
+  for (let i = 0; i < hairCount; i++) hairGroup.push({ name: `Hair ${i + 1}`, service: "Hair", provider: "" });
+
+  // Create lane records, makeup lanes first then hair lanes (Artist 1..N).
+  type Lane = { role: "makeup" | "hair" | "both"; artistNum: number; holdsBride: boolean };
+  const { makeupLanes, hairLanes, combined } = buildLanes(providerCount, makeupGroup.length, hairGroup.length);
+  const laneRecords: Lane[] = [];
+  const makeupTargets: Lane[] = [];
+  const hairTargets: Lane[] = [];
+  let artistNum = 1;
+  if (providerCount > 0) {
+    if (combined) {
+      const rec: Lane = { role: "both", artistNum: artistNum++, holdsBride: false };
+      laneRecords.push(rec);
+      makeupTargets.push(rec);
+      hairTargets.push(rec);
+    } else {
+      for (let i = 0; i < makeupLanes; i++) {
+        const rec: Lane = { role: "makeup", artistNum: artistNum++, holdsBride: false };
+        laneRecords.push(rec);
+        makeupTargets.push(rec);
+      }
+      for (let i = 0; i < hairLanes; i++) {
+        const rec: Lane = { role: "hair", artistNum: artistNum++, holdsBride: false };
+        laneRecords.push(rec);
+        hairTargets.push(rec);
       }
     }
-    while (remaining > 0) {
-      guestCounter += 1;
-      people.push({ name: `Guest ${guestCounter}`, services: [service] });
-      remaining -= 1;
-    }
   }
 
-  const result = people.map((p) => {
-    const label = combineServiceLabels(p.services);
-    return { name: p.name, service: label, duration: label ? durationFor(label) : "" };
+  const laneLabel = (rec: Lane): string => {
+    let svc: string;
+    if (rec.role === "both") svc = rec.holdsBride ? "Makeup / Hair / Bride" : "Makeup / Hair";
+    else if (rec.role === "makeup") svc = rec.holdsBride ? "Makeup / Bride" : "Makeup";
+    else svc = "Hair";
+    return `Artist ${rec.artistNum} - ${svc}`;
+  };
+
+  // Distribute blocks across their lanes round-robin (balanced). The lane that
+  // gets the bride block is flagged so its label reads "/ Bride".
+  const blockLane = new Map<Block, Lane>();
+  makeupGroup.forEach((b, k) => {
+    if (makeupTargets.length === 0) return;
+    const lane = makeupTargets[k % makeupTargets.length];
+    blockLane.set(b, lane);
+    if (b.isBride) lane.holdsBride = true;
+  });
+  hairGroup.forEach((b, k) => {
+    if (hairTargets.length === 0) return;
+    blockLane.set(b, hairTargets[k % hairTargets.length]);
   });
 
-  return { rows: result, providerCount };
+  const blocks = [...makeupGroup, ...hairGroup].map((b) => {
+    const lane = blockLane.get(b);
+    return {
+      name: b.name,
+      service: b.service,
+      provider: lane ? laneLabel(lane) : "",
+      duration: durationFor(b.service),
+    };
+  });
+
+  const providers = laneRecords.map((rec) => ({ name: laneLabel(rec) }));
+  // Bride is auto-placed into her block, so drop her from the editable pool to
+  // avoid a duplicate assignment. The rest stay as the name pool.
+  const poolPeople = brideBlock ? people.filter((p) => !/^bride$/i.test(p.trim())) : people;
+  const namePoolNote = poolPeople.length > 0 ? `People to schedule: ${poolPeople.join(", ")}` : null;
+
+  return { providers, blocks, personRows: [], namePoolNote };
 }
 
 // Parse a start time into minutes-since-midnight. Tolerant of common formats:
@@ -445,31 +538,41 @@ export default function ScheduleDraftBuilder() {
   };
 
   const applyPaste = () => {
-    const { rows: parsed, providerCount } = parseInput(pasteText, serviceDefaults);
-    if (parsed.length === 0 && providerCount === 0) {
-      toast({ title: "Nothing to add", description: "Try something like: 8 makeup, 5 hair" });
+    const built = buildScheduleFromInput(pasteText, serviceDefaults);
+    const { providers: laneDefs, blocks, personRows, namePoolNote } = built;
+    if (laneDefs.length === 0 && blocks.length === 0 && personRows.length === 0) {
+      toast({ title: "Nothing to add", description: "Try something like: Bride, 8 makeup, 5 hair, 3 artists" });
       return;
     }
-    if (parsed.length > 0) {
-      const newRows: Row[] = parsed.map((p, i) => {
+    // Provider lanes (Artist 1 - Makeup, Artist 2 - Hair, etc.).
+    if (laneDefs.length > 0) {
+      const newProviders: Provider[] = laneDefs.map((l) => ({ id: uid("prov"), name: l.name }));
+      setProviders((prev) => [...prev, ...newProviders]);
+    }
+    // Rows are service blocks placed in lanes; if there were no services, fall
+    // back to a plain roster of people in the Name column.
+    const source =
+      blocks.length > 0
+        ? blocks
+        : personRows.map((p) => ({ name: p.name, service: "", provider: "", duration: "" }));
+    if (source.length > 0) {
+      const baseLen = rows.length;
+      const newRows: Row[] = source.map((b, i) => {
         const cells: Record<string, string> = { ...emptyCells };
-        cells["name"] = p.name;
-        cells["service"] = p.service;
-        cells["duration"] = p.duration;
-        return { id: uid("row"), sortOrder: rows.length + i, cells };
+        cells["name"] = b.name;
+        cells["service"] = b.service;
+        cells["provider"] = b.provider;
+        cells["duration"] = b.duration;
+        return { id: uid("row"), sortOrder: baseLen + i, cells };
       });
       setRows((prev) => [...prev, ...newRows]);
     }
-    if (providerCount > 0) {
-      const existing = providers.length;
-      const newProviders: Provider[] = [];
-      for (let i = 0; i < providerCount; i++) {
-        newProviders.push({ id: uid("prov"), name: `Artist ${existing + i + 1}` });
-      }
-      setProviders((prev) => [...prev, ...newProviders]);
+    // Keep the people as an editable name pool the operator assigns into blocks.
+    if (namePoolNote) {
+      setNotes((prev) => (prev && prev.trim() ? `${prev}\n${namePoolNote}` : namePoolNote));
     }
     setPasteText("");
-    toast({ title: "Added to table", description: "Edit names, times, and providers as needed." });
+    toast({ title: "Schedule drafted", description: "Edit lanes, blocks, names, and times as needed." });
   };
 
   // Service defaults editing
@@ -617,11 +720,12 @@ export default function ScheduleDraftBuilder() {
               <h2 className="font-serif text-xl tracking-tight mb-3">Quick add</h2>
               <div className="border border-hairline bg-surface p-6">
                 <p className="text-ink/70 text-sm mb-3 max-w-[70ch]">
-                  Paste people and counts. People become rows: "Bride, MOB, MOG, 5 bridesmaids"
-                  makes named rows. Service counts get assigned to those people: "8 makeup, 5 hair"
-                  marks 8 rows for makeup and 5 for hair (combined into Hair + Makeup where they
-                  overlap). "3 artists" adds providers. Extra services with no one to assign become
-                  editable Guest rows. Everything stays editable.
+                  Paste counts and people. "3 artists" makes 3 provider lanes, split between makeup
+                  and hair by demand. Service counts become appointment blocks in those lanes: "8
+                  makeup, 5 hair" makes 8 makeup blocks and 5 hair blocks (not extra people). If
+                  Bride is listed, she gets her own bridal block. People like "Bride, MOB, MOG, 5
+                  bridesmaids" become a name pool added to Notes, ready to assign into blocks.
+                  Everything stays editable.
                 </p>
                 <textarea
                   value={pasteText}
