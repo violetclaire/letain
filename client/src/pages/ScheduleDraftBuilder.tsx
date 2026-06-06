@@ -178,6 +178,14 @@ function serializeScheduleState(s: {
   });
 }
 
+// A name "looks like a placeholder" if it is one or more words followed by a
+// trailing number, e.g. "Guest 1", "Bridesmaid 2", "Artist 1", "Person 1",
+// "Client 1", "Flower Girl 1". Real names ("Jane Doe") have no trailing number,
+// so they style normally. Purely a visual cue, never blocks saving.
+function isPlaceholderName(value: string): boolean {
+  return /^[A-Za-z][A-Za-z .'+/&-]*\s+\d+$/.test(value.trim());
+}
+
 export default function ScheduleDraftBuilder() {
   const [, params] = useRoute("/admin/:slug/schedules/:scheduleId");
   const slug = params?.slug ?? "";
@@ -676,7 +684,11 @@ export default function ScheduleDraftBuilder() {
                               value={row.cells[col.id] ?? ""}
                               onChange={(e) => setCell(row.id, col.id, e.target.value)}
                               list={col.type === "service" ? "service-options" : col.type === "provider" ? "provider-options" : undefined}
-                              className="w-full bg-bg border border-hairline px-2 py-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70"
+                              className={`w-full bg-bg border border-hairline px-2 py-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70 ${
+                                col.id === "name" && isPlaceholderName(row.cells[col.id] ?? "")
+                                  ? "italic text-ink/40"
+                                  : ""
+                              }`}
                               data-testid={`input-cell-${row.id}-${col.id}`}
                             />
                           </td>
