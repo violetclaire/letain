@@ -153,6 +153,31 @@ function formatClockTime(totalMinutes: number): string {
   return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
 }
 
+// Canonical serialization of the editable schedule state. Used to detect unsaved
+// changes by comparing the current form against the last-saved snapshot. Rows are
+// normalized with their index as sortOrder so it matches what Save sends.
+function serializeScheduleState(s: {
+  title: string;
+  eventDate: string;
+  location: string;
+  notes: string;
+  columns: Column[];
+  rows: Row[];
+  serviceDefaults: ServiceDefault[];
+  providers: Provider[];
+}): string {
+  return JSON.stringify({
+    title: s.title,
+    eventDate: s.eventDate,
+    location: s.location,
+    notes: s.notes,
+    columns: s.columns,
+    rows: s.rows.map((r, i) => ({ ...r, sortOrder: i })),
+    serviceDefaults: s.serviceDefaults,
+    providers: s.providers,
+  });
+}
+
 export default function ScheduleDraftBuilder() {
   const [, params] = useRoute("/admin/:slug/schedules/:scheduleId");
   const slug = params?.slug ?? "";
@@ -173,6 +198,7 @@ export default function ScheduleDraftBuilder() {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [pasteText, setPasteText] = useState("");
   const [loaded, setLoaded] = useState(false);
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -197,17 +223,58 @@ export default function ScheduleDraftBuilder() {
   useEffect(() => {
     const d = draftQuery.data;
     if (d && !loaded) {
+      const sortedRows = [...(d.rows ?? [])].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
       setTitle(d.title ?? "");
       setEventDate(d.eventDate ?? "");
       setLocation(d.location ?? "");
       setNotes(d.notes ?? "");
       setColumns(d.columns ?? []);
-      setRows([...(d.rows ?? [])].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)));
+      setRows(sortedRows);
       setServiceDefaults(d.serviceDefaults ?? []);
       setProviders(d.providers ?? []);
+      // Capture the baseline so we can detect unsaved edits from here on.
+      setSavedSnapshot(
+        serializeScheduleState({
+          title: d.title ?? "",
+          eventDate: d.eventDate ?? "",
+          location: d.location ?? "",
+          notes: d.notes ?? "",
+          columns: d.columns ?? [],
+          rows: sortedRows,
+          serviceDefaults: d.serviceDefaults ?? [],
+          providers: d.providers ?? [],
+        }),
+      );
       setLoaded(true);
     }
   }, [draftQuery.data, loaded]);
+
+  // Current editable state, serialized. Compared against savedSnapshot for dirty.
+  const currentSnapshot = useMemo(
+    () => serializeScheduleState({ title, eventDate, location, notes, columns, rows, serviceDefaults, providers }),
+    [title, eventDate, location, notes, columns, rows, serviceDefaults, providers],
+  );
+
+  const isDirty = loaded && savedSnapshot !== null && currentSnapshot !== savedSnapshot;
+
+  // Warn on browser refresh / tab close / external navigation while there are
+  // unsaved edits. The browser shows its own generic confirmation dialog.
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
+
+  // Confirm before following an in-app link while there are unsaved edits.
+  const confirmLeaveIfDirty = (e: React.MouseEvent) => {
+    if (isDirty && !window.confirm("You have unsaved changes. Leave without saving?")) {
+      e.preventDefault();
+    }
+  };
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -221,6 +288,8 @@ export default function ScheduleDraftBuilder() {
         serviceDefaults,
         providers,
       };
+      // Snapshot exactly what we are sending so the dirty baseline matches.
+      const snapshot = serializeScheduleState({ title, eventDate, location, notes, columns, rows, serviceDefaults, providers });
       const res = await fetch(`/api/schedule-drafts/${scheduleId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -231,9 +300,11 @@ export default function ScheduleDraftBuilder() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Failed to save");
       }
-      return res.json();
+      const data = await res.json();
+      return { data, snapshot };
     },
-    onSuccess: () => {
+    onSuccess: ({ snapshot }) => {
+      setSavedSnapshot(snapshot);
       queryClient.invalidateQueries({ queryKey: ["/api/schedule-drafts", scheduleId] });
       toast({ title: "Schedule saved" });
     },
@@ -381,6 +452,7 @@ export default function ScheduleDraftBuilder() {
       <div className="max-w-[1100px] mx-auto px-6 sm:px-10 py-10">
         <Link
           href={`/admin/${slug}/rolodex${authParam}`}
+          onClick={confirmLeaveIfDirty}
           className="inline-flex items-center gap-2 text-sm text-ink/70 hover:text-ink mb-6"
           data-testid="link-back-rolodex"
         >
@@ -398,15 +470,26 @@ export default function ScheduleDraftBuilder() {
               is no client link. Add rows, edit names and times, and save when ready.
             </p>
           </div>
-          <button
-            onClick={() => saveMutation.mutate()}
-            disabled={saveMutation.isPending}
-            className="inline-flex items-center gap-2 bg-ink text-bg px-4 py-2 shrink-0 disabled:opacity-60"
-            data-testid="button-save"
-          >
-            {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Save draft
-          </button>
+          <div className="flex flex-col items-end gap-2 shrink-0">
+            <button
+              onClick={() => saveMutation.mutate()}
+              disabled={saveMutation.isPending}
+              className="inline-flex items-center gap-2 bg-ink text-bg px-4 py-2 disabled:opacity-60"
+              data-testid="button-save"
+            >
+              {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              Save draft
+            </button>
+            {isDirty ? (
+              <span className="text-xs text-oxblood" data-testid="status-unsaved">
+                Unsaved changes
+              </span>
+            ) : (
+              <span className="text-xs text-ink/45" data-testid="status-saved">
+                All changes saved
+              </span>
+            )}
+          </div>
         </header>
 
         {draftQuery.isLoading && (
