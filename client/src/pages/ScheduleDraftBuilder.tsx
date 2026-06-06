@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRoute, useSearch, Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, Plus, Trash2, Copy, X, Save } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, Trash2, Copy, X, Save, Eye, Printer } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -363,6 +363,7 @@ export default function ScheduleDraftBuilder() {
   const [serviceDefaults, setServiceDefaults] = useState<ServiceDefault[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [pasteText, setPasteText] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
 
@@ -693,15 +694,25 @@ export default function ScheduleDraftBuilder() {
             </p>
           </div>
           <div className="flex flex-col items-end gap-2 shrink-0">
-            <button
-              onClick={() => saveMutation.mutate()}
-              disabled={saveMutation.isPending}
-              className="inline-flex items-center gap-2 bg-ink text-bg px-4 py-2 disabled:opacity-60"
-              data-testid="button-save"
-            >
-              {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              Save draft
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowPreview(true)}
+                className="inline-flex items-center gap-2 border border-hairline px-4 py-2 hover:bg-surface"
+                data-testid="button-preview"
+              >
+                <Eye className="w-4 h-4" />
+                Preview
+              </button>
+              <button
+                onClick={() => saveMutation.mutate()}
+                disabled={saveMutation.isPending}
+                className="inline-flex items-center gap-2 bg-ink text-bg px-4 py-2 disabled:opacity-60"
+                data-testid="button-save"
+              >
+                {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Save draft
+              </button>
+            </div>
             {isDirty ? (
               <span className="text-xs text-oxblood" data-testid="status-unsaved">
                 Unsaved changes
@@ -1115,6 +1126,173 @@ export default function ScheduleDraftBuilder() {
           </div>
         )}
       </div>
+
+      {showPreview && (
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-ink/40 backdrop-blur-sm print:bg-bg print:static print:overflow-visible"
+          data-testid="overlay-preview"
+        >
+          <style>{`
+            @media print {
+              body * { visibility: hidden !important; }
+              #schedule-print, #schedule-print * { visibility: visible !important; }
+              #schedule-print { position: absolute !important; left: 0; top: 0; width: 100%; }
+              .no-print { display: none !important; }
+            }
+          `}</style>
+
+          <div className="min-h-screen flex items-start justify-center p-4 sm:p-8">
+            <div
+              id="schedule-print"
+              className="w-full max-w-[820px] bg-bg border border-hairline rounded-sm shadow-sm"
+            >
+              <div className="no-print flex items-center justify-between gap-2 px-6 py-3 border-b border-hairline">
+                <span className="text-xs uppercase tracking-wide text-ink/45">Read-only preview</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => window.print()}
+                    className="inline-flex items-center gap-2 border border-hairline px-3 py-1.5 text-sm hover:bg-surface"
+                    data-testid="button-print"
+                  >
+                    <Printer className="w-4 h-4" />
+                    Print
+                  </button>
+                  <button
+                    onClick={() => setShowPreview(false)}
+                    className="inline-flex items-center gap-2 border border-hairline px-3 py-1.5 text-sm hover:bg-surface"
+                    data-testid="button-close-preview"
+                  >
+                    <X className="w-4 h-4" />
+                    Close
+                  </button>
+                </div>
+              </div>
+
+              <div className="px-8 py-10 sm:px-12">
+                <h1
+                  className="font-serif tracking-tight text-3xl text-ink"
+                  data-testid="text-preview-title"
+                >
+                  {title.trim() || "Untitled schedule"}
+                </h1>
+                {(eventDate.trim() || location.trim()) && (
+                  <div className="mt-2 text-ink/70 space-y-0.5">
+                    {eventDate.trim() && (
+                      <div data-testid="text-preview-date">{eventDate.trim()}</div>
+                    )}
+                    {location.trim() && (
+                      <div data-testid="text-preview-location">{location.trim()}</div>
+                    )}
+                  </div>
+                )}
+
+                {notesBody.trim() && (
+                  <p className="mt-5 text-ink/80 whitespace-pre-wrap max-w-[70ch]" data-testid="text-preview-notes">
+                    {notesBody.trim()}
+                  </p>
+                )}
+
+                <div className="mt-8 space-y-8">
+                  {laneList.length === 0 && (
+                    <p className="text-ink/50 italic" data-testid="text-preview-empty">
+                      No appointment blocks yet.
+                    </p>
+                  )}
+                  {laneList.map((lane) => (
+                    <section key={lane.key} data-testid={`preview-lane-${lane.key}`}>
+                      <h2 className="font-serif tracking-tight text-lg text-ink border-b border-hairline pb-1.5">
+                        {lane.label}
+                      </h2>
+                      <div className="mt-3 space-y-2.5">
+                        {lane.rows.map((row) => {
+                          const cv = (id: string) => (row.cells[id] ?? "").trim();
+                          const isBride = /bride/i.test(cv("service"));
+                          const name = cv("name");
+                          const namePlaceholder = isPlaceholderName(name);
+                          const start = cv("start");
+                          const end = cv("end");
+                          const duration = cv("duration");
+                          const service = cv("service");
+                          const blockNotes = cv("notes");
+                          const timeParts = [start, end].filter(Boolean).join(" - ");
+                          const extras = laneFields.filter(
+                            (c) =>
+                              !["name", "service", "start", "end", "duration", "notes"].includes(c.id) &&
+                              cv(c.id),
+                          );
+                          return (
+                            <div
+                              key={row.id}
+                              className={`rounded-sm px-4 py-3 ${
+                                isBride ? "border border-brass bg-surface" : "border border-hairline"
+                              }`}
+                              data-testid={`preview-block-${row.id}`}
+                            >
+                              {isBride && (
+                                <div className="text-[10px] uppercase tracking-wide text-brass mb-1.5">
+                                  Bridal
+                                </div>
+                              )}
+                              <div className="flex items-baseline justify-between gap-3">
+                                <span
+                                  className={`text-base ${
+                                    name
+                                      ? namePlaceholder
+                                        ? "italic text-ink/40"
+                                        : "text-ink font-medium"
+                                      : "italic text-ink/40"
+                                  }`}
+                                >
+                                  {name || "Unfinished"}
+                                </span>
+                                {(timeParts || duration) && (
+                                  <span className="text-sm text-ink/60 whitespace-nowrap">
+                                    {timeParts}
+                                    {timeParts && duration ? "  " : ""}
+                                    {duration ? `(${duration} min)` : ""}
+                                  </span>
+                                )}
+                              </div>
+                              {service && <div className="text-sm text-ink/70 mt-0.5">{service}</div>}
+                              {blockNotes && (
+                                <div className="text-sm text-ink/55 mt-1 whitespace-pre-wrap">{blockNotes}</div>
+                              )}
+                              {extras.map((c) => (
+                                <div key={c.id} className="text-xs text-ink/55 mt-1">
+                                  <span className="uppercase tracking-wide text-ink/40">{c.label}: </span>
+                                  {cv(c.id)}
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  ))}
+
+                  {peopleToAssign.length > 0 && (
+                    <section data-testid="preview-unassigned">
+                      <h2 className="font-serif tracking-tight text-lg text-oxblood border-b border-hairline pb-1.5">
+                        Still unassigned
+                      </h2>
+                      <ul className="mt-3 flex flex-wrap gap-2">
+                        {peopleToAssign.map((p, i) => (
+                          <li
+                            key={`${p}-${i}`}
+                            className="border border-hairline rounded-sm px-2.5 py-1 text-sm text-ink/70"
+                          >
+                            {p}
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
