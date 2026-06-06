@@ -99,6 +99,60 @@ function parseInput(
   return { rows: result, providerCount };
 }
 
+// Parse a start time into minutes-since-midnight. Tolerant of common formats:
+// "9", "9am", "9:00", "9:00 AM", "14:00". Returns null if it cannot parse.
+function parseClockTime(raw: string): number | null {
+  if (!raw) return null;
+  const s = raw.trim().toLowerCase();
+  const m = s.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/);
+  if (!m) return null;
+  let hours = parseInt(m[1], 10);
+  const minutes = m[2] ? parseInt(m[2], 10) : 0;
+  const ampm = m[3];
+  if (minutes > 59) return null;
+  if (ampm) {
+    if (hours < 1 || hours > 12) return null;
+    if (ampm === "pm" && hours !== 12) hours += 12;
+    if (ampm === "am" && hours === 12) hours = 0;
+  } else {
+    if (hours > 23) return null;
+  }
+  return hours * 60 + minutes;
+}
+
+// Parse a duration into minutes. Tolerant: "30", "45", "30 min", "1 hour",
+// "2 hours", "1 hour 30 min". Returns null if it cannot parse.
+function parseDurationMinutes(raw: string): number | null {
+  if (!raw) return null;
+  const s = raw.trim().toLowerCase();
+  if (/^\d+$/.test(s)) return parseInt(s, 10);
+  let total = 0;
+  let matched = false;
+  const h = s.match(/(\d+(?:\.\d+)?)\s*(h|hr|hrs|hour|hours)\b/);
+  if (h) {
+    total += parseFloat(h[1]) * 60;
+    matched = true;
+  }
+  const mm = s.match(/(\d+)\s*(m|min|mins|minute|minutes)\b/);
+  if (mm) {
+    total += parseInt(mm[1], 10);
+    matched = true;
+  }
+  return matched ? Math.round(total) : null;
+}
+
+// Format minutes-since-midnight back into a readable "9:30 AM". Wraps past
+// midnight so a late start + long duration still shows a valid clock time.
+function formatClockTime(totalMinutes: number): string {
+  const mins = ((totalMinutes % 1440) + 1440) % 1440;
+  const h24 = Math.floor(mins / 60);
+  const m = mins % 60;
+  const ampm = h24 >= 12 ? "PM" : "AM";
+  let h12 = h24 % 12;
+  if (h12 === 0) h12 = 12;
+  return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+}
+
 export default function ScheduleDraftBuilder() {
   const [, params] = useRoute("/admin/:slug/schedules/:scheduleId");
   const slug = params?.slug ?? "";
@@ -211,8 +265,26 @@ export default function ScheduleDraftBuilder() {
     });
   };
 
+  const hasEndColumn = useMemo(() => columns.some((c) => c.id === "end"), [columns]);
+
   const setCell = (rowId: string, colId: string, value: string) => {
-    setRows((prev) => prev.map((r) => (r.id === rowId ? { ...r, cells: { ...r.cells, [colId]: value } } : r)));
+    setRows((prev) =>
+      prev.map((r) => {
+        if (r.id !== rowId) return r;
+        const cells = { ...r.cells, [colId]: value };
+        // Auto-fill End from Start + Duration. Only when Start or Duration was the
+        // edited field, both parse cleanly, and an End column exists. If parsing
+        // fails we leave End untouched (no error, no blocking). End stays editable.
+        if ((colId === "start" || colId === "duration") && hasEndColumn) {
+          const startMin = parseClockTime(cells["start"] ?? "");
+          const durMin = parseDurationMinutes(cells["duration"] ?? "");
+          if (startMin !== null && durMin !== null) {
+            cells["end"] = formatClockTime(startMin + durMin);
+          }
+        }
+        return { ...r, cells };
+      }),
+    );
   };
 
   const addColumn = () => {
@@ -442,6 +514,10 @@ export default function ScheduleDraftBuilder() {
                   </button>
                 </div>
               </div>
+
+              <p className="text-xs text-ink/50 mb-2" data-testid="text-end-time-hint">
+                Tip: enter a start time and duration to auto-fill the end time. You can still edit it manually.
+              </p>
 
               <div className="border border-hairline bg-surface overflow-x-auto">
                 <table className="w-full text-sm border-collapse" data-testid="table-schedule">
