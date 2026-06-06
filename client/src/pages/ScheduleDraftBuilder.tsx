@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRoute, useSearch, Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, Plus, Trash2, ChevronUp, ChevronDown, Save } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, Trash2, Copy, ChevronUp, ChevronDown, Save } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -325,6 +325,19 @@ export default function ScheduleDraftBuilder() {
   };
 
   const deleteRow = (id: string) => setRows((prev) => prev.filter((r) => r.id !== id));
+
+  // Insert a copy of a row immediately below it. Keeps the same cell values
+  // (including Name) so the operator can tweak the copy. New id, fresh sortOrder.
+  const duplicateRow = (id: string) => {
+    setRows((prev) => {
+      const index = prev.findIndex((r) => r.id === id);
+      if (index === -1) return prev;
+      const copy: Row = { id: uid("row"), sortOrder: index + 1, cells: { ...prev[index].cells } };
+      const next = [...prev];
+      next.splice(index + 1, 0, copy);
+      return next;
+    });
+  };
 
   const moveRow = (index: number, dir: -1 | 1) => {
     setRows((prev) => {
@@ -669,13 +682,24 @@ export default function ScheduleDraftBuilder() {
                           </td>
                         ))}
                         <td className="px-1 py-1 align-top">
-                          <button
-                            onClick={() => deleteRow(row.id)}
-                            className="text-ink/40 hover:text-oxblood"
-                            data-testid={`button-delete-row-${row.id}`}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => duplicateRow(row.id)}
+                              className="text-ink/40 hover:text-ink"
+                              title="Duplicate row"
+                              data-testid={`button-duplicate-row-${row.id}`}
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => deleteRow(row.id)}
+                              className="text-ink/40 hover:text-oxblood"
+                              title="Delete row"
+                              data-testid={`button-delete-row-${row.id}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
