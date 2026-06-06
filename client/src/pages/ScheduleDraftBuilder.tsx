@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRoute, useSearch, Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, Plus, Trash2, Copy, ChevronUp, ChevronDown, Save } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, Trash2, Copy, X, Save } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -82,7 +82,7 @@ function buildScheduleFromInput(
   providers: Array<{ name: string }>;
   blocks: Array<{ name: string; service: string; provider: string; duration: string }>;
   personRows: Array<{ name: string }>;
-  namePoolNote: string | null;
+  namePool: string[];
 } {
   const durationFor = (label: string): string => {
     const sd = serviceDefaults.find((s) => s.label.toLowerCase() === label.toLowerCase());
@@ -154,7 +154,7 @@ function buildScheduleFromInput(
       providers: provs,
       blocks: [],
       personRows: people.map((name) => ({ name })),
-      namePoolNote: null,
+      namePool: [],
     };
   }
 
@@ -232,9 +232,8 @@ function buildScheduleFromInput(
   // Bride is auto-placed into her block, so drop her from the editable pool to
   // avoid a duplicate assignment. The rest stay as the name pool.
   const poolPeople = brideBlock ? people.filter((p) => !/^bride$/i.test(p.trim())) : people;
-  const namePoolNote = poolPeople.length > 0 ? `People to schedule: ${poolPeople.join(", ")}` : null;
 
-  return { providers, blocks, personRows: [], namePoolNote };
+  return { providers, blocks, personRows: [], namePool: poolPeople };
 }
 
 // Parse a start time into minutes-since-midnight. Tolerant of common formats:
@@ -322,6 +321,27 @@ function serializeScheduleState(s: {
 // so they style normally. Purely a visual cue, never blocks saving.
 function isPlaceholderName(value: string): boolean {
   return /^[A-Za-z][A-Za-z .'+/&-]*\s+\d+$/.test(value.trim());
+}
+
+// The "People to assign" pool is persisted inside the notes string as one
+// delimited line (no schema change). These helpers read/write that line so the
+// pool can be surfaced as its own section while the rest of the notes stay clean.
+const POOL_PREFIX = "People to assign:";
+const POOL_LINE_RE = /^[ \t]*People to assign:[ \t]*(.*)$/im;
+
+function parsePeoplePool(notes: string): string[] {
+  const m = notes.match(POOL_LINE_RE);
+  return m ? m[1].split(",").map((s) => s.trim()).filter(Boolean) : [];
+}
+
+function stripPeoplePool(notes: string): string {
+  return notes.replace(POOL_LINE_RE, "").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+function composeNotes(body: string, names: string[]): string {
+  const clean = stripPeoplePool(body);
+  const line = names.length > 0 ? `${POOL_PREFIX} ${names.join(", ")}` : "";
+  return [clean, line].filter(Boolean).join("\n\n");
 }
 
 export default function ScheduleDraftBuilder() {
@@ -466,10 +486,6 @@ export default function ScheduleDraftBuilder() {
     return c;
   }, [columns]);
 
-  const addRow = () => {
-    setRows((prev) => [...prev, { id: uid("row"), sortOrder: prev.length, cells: { ...emptyCells } }]);
-  };
-
   const deleteRow = (id: string) => setRows((prev) => prev.filter((r) => r.id !== id));
 
   // Insert a copy of a row immediately below it. Keeps the same cell values
@@ -481,16 +497,6 @@ export default function ScheduleDraftBuilder() {
       const copy: Row = { id: uid("row"), sortOrder: index + 1, cells: { ...prev[index].cells } };
       const next = [...prev];
       next.splice(index + 1, 0, copy);
-      return next;
-    });
-  };
-
-  const moveRow = (index: number, dir: -1 | 1) => {
-    setRows((prev) => {
-      const next = [...prev];
-      const target = index + dir;
-      if (target < 0 || target >= next.length) return prev;
-      [next[index], next[target]] = [next[target], next[index]];
       return next;
     });
   };
@@ -517,29 +523,27 @@ export default function ScheduleDraftBuilder() {
     );
   };
 
-  const addColumn = () => {
-    const id = uid("col");
-    setColumns((prev) => [...prev, { id, label: "New column", type: "text" }]);
-    setRows((prev) => prev.map((r) => ({ ...r, cells: { ...r.cells, [id]: "" } })));
-  };
+  // Provider column id used to group rows (blocks) into provider lanes.
+  const providerColId = columns.find((c) => c.type === "provider")?.id ?? "provider";
 
-  const renameColumn = (id: string, label: string) =>
-    setColumns((prev) => prev.map((c) => (c.id === id ? { ...c, label } : c)));
+  // Name pool ("People to assign") lives inside notes as one delimited line so
+  // no schema changes are needed. Parse it out for its own section and keep the
+  // rest of the notes clean in the Notes box.
+  const peopleToAssign = parsePeoplePool(notes);
+  const notesBody = stripPeoplePool(notes);
+  const setNotesBody = (body: string) => setNotes(composeNotes(body, peopleToAssign));
+  const setPeopleToAssign = (names: string[]) => setNotes(composeNotes(notesBody, names));
 
-  const deleteColumn = (id: string) => {
-    setColumns((prev) => prev.filter((c) => c.id !== id));
-    setRows((prev) =>
-      prev.map((r) => {
-        const cells = { ...r.cells };
-        delete cells[id];
-        return { ...r, cells };
-      }),
-    );
-  };
+  // Add an empty block already assigned to a given lane (provider value).
+  const addBlock = (providerName: string) =>
+    setRows((prev) => [
+      ...prev,
+      { id: uid("row"), sortOrder: prev.length, cells: { ...emptyCells, [providerColId]: providerName } },
+    ]);
 
   const applyPaste = () => {
     const built = buildScheduleFromInput(pasteText, serviceDefaults);
-    const { providers: laneDefs, blocks, personRows, namePoolNote } = built;
+    const { providers: laneDefs, blocks, personRows, namePool } = built;
     if (laneDefs.length === 0 && blocks.length === 0 && personRows.length === 0) {
       toast({ title: "Nothing to add", description: "Try something like: Bride, 8 makeup, 5 hair, 3 artists" });
       return;
@@ -568,8 +572,14 @@ export default function ScheduleDraftBuilder() {
       setRows((prev) => [...prev, ...newRows]);
     }
     // Keep the people as an editable name pool the operator assigns into blocks.
-    if (namePoolNote) {
-      setNotes((prev) => (prev && prev.trim() ? `${prev}\n${namePoolNote}` : namePoolNote));
+    // Persisted inside notes as one delimited line (no schema change) and shown
+    // as the "People to assign" section. Merge with any existing pool, dedupe.
+    if (namePool.length > 0) {
+      setNotes((prev) => {
+        const merged = [...parsePeoplePool(prev)];
+        for (const n of namePool) if (!merged.includes(n)) merged.push(n);
+        return composeNotes(prev, merged);
+      });
     }
     setPasteText("");
     toast({ title: "Schedule drafted", description: "Edit lanes, blocks, names, and times as needed." });
@@ -616,6 +626,40 @@ export default function ScheduleDraftBuilder() {
     );
   }
 
+  // Group rows into provider lanes. Order: providers list first, then any extra
+  // provider values seen on rows, then an "Unassigned" lane for blocks with no
+  // provider. Fields shown per block are all columns except the provider column
+  // (the provider is the lane itself, edited via the block's Lane field).
+  const laneFields = columns.filter((c) => c.id !== providerColId);
+  const laneSlug = (s: string) =>
+    s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "lane";
+  const laneNames: string[] = [];
+  const laneSeen = new Set<string>();
+  for (const p of providers) {
+    const n = p.name.trim();
+    if (n && !laneSeen.has(n)) {
+      laneNames.push(n);
+      laneSeen.add(n);
+    }
+  }
+  for (const r of rows) {
+    const v = (r.cells[providerColId] ?? "").trim();
+    if (v && !laneSeen.has(v)) {
+      laneNames.push(v);
+      laneSeen.add(v);
+    }
+  }
+  const laneList = laneNames.map((name) => ({
+    key: laneSlug(name),
+    label: name,
+    provider: name,
+    rows: rows.filter((r) => (r.cells[providerColId] ?? "").trim() === name),
+  }));
+  const unassignedRows = rows.filter((r) => !(r.cells[providerColId] ?? "").trim());
+  if (unassignedRows.length > 0) {
+    laneList.push({ key: "unassigned", label: "Unassigned", provider: "", rows: unassignedRows });
+  }
+
   return (
     <div className="min-h-screen bg-bg text-ink">
       <div className="max-w-[1100px] mx-auto px-6 sm:px-10 py-10">
@@ -635,8 +679,8 @@ export default function ScheduleDraftBuilder() {
               Schedule builder
             </h1>
             <p className="text-ink/70 max-w-[70ch]">
-              Plan the day as an editable table, like a document. Nothing is sent and there
-              is no client link. Add rows, edit names and times, and save when ready.
+              Plan the day as editable provider lanes, like a document. Nothing is sent and
+              there is no client link. Add blocks, edit names and times, and save when ready.
             </p>
           </div>
           <div className="flex flex-col items-end gap-2 shrink-0">
@@ -705,8 +749,8 @@ export default function ScheduleDraftBuilder() {
                 <label className="block sm:col-span-2">
                   <span className="text-xs uppercase tracking-wide text-ink/50">Notes (parking, playlist link, etc.)</span>
                   <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
+                    value={notesBody}
+                    onChange={(e) => setNotesBody(e.target.value)}
                     rows={3}
                     className="mt-1 w-full border border-hairline bg-bg px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70"
                     data-testid="input-notes"
@@ -746,128 +790,184 @@ export default function ScheduleDraftBuilder() {
               </div>
             </section>
 
-            {/* The table */}
-            <section data-testid="section-table">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="font-serif text-xl tracking-tight">Schedule table</h2>
-                <div className="flex items-center gap-2">
+            {/* People to assign */}
+            {peopleToAssign.length > 0 && (
+              <section data-testid="section-people-pool">
+                <h2 className="font-serif text-xl tracking-tight mb-3">People to assign</h2>
+                <div className="border border-hairline bg-surface p-6">
+                  <p className="text-ink/70 text-sm mb-4 max-w-[70ch]">
+                    These guests still need a provider and a time. Type a name into any block
+                    below to place them, then remove the name here once it is assigned.
+                  </p>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {peopleToAssign.map((name, i) => (
+                      <span
+                        key={`${name}-${i}`}
+                        className="inline-flex items-center gap-1.5 border border-hairline bg-bg px-2.5 py-1 text-sm"
+                        data-testid={`chip-person-${i}`}
+                      >
+                        {name}
+                        <button
+                          onClick={() => setPeopleToAssign(peopleToAssign.filter((_, idx) => idx !== i))}
+                          className="text-ink/40 hover:text-oxblood"
+                          title="Remove from list"
+                          data-testid={`button-remove-person-${i}`}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
                   <button
-                    onClick={addColumn}
-                    className="inline-flex items-center gap-1 text-sm border border-hairline px-2.5 py-1.5 hover:bg-surface"
-                    data-testid="button-add-column"
+                    onClick={() => navigator.clipboard?.writeText(peopleToAssign.join(", "))}
+                    className="inline-flex items-center gap-2 border border-hairline px-3 py-2 text-sm hover:bg-surface"
+                    data-testid="button-copy-pool"
                   >
-                    <Plus className="w-3.5 h-3.5" />
-                    Column
-                  </button>
-                  <button
-                    onClick={addRow}
-                    className="inline-flex items-center gap-1 text-sm border border-hairline px-2.5 py-1.5 hover:bg-surface"
-                    data-testid="button-add-row"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Row
+                    <Copy className="w-4 h-4" />
+                    Copy list
                   </button>
                 </div>
-              </div>
+              </section>
+            )}
 
-              <p className="text-xs text-ink/50 mb-2" data-testid="text-end-time-hint">
-                Tip: enter a start time and duration to auto-fill the end time. You can still edit it manually.
+            {/* Provider lanes */}
+            <section data-testid="section-lanes">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-serif text-xl tracking-tight">Schedule</h2>
+                <button
+                  onClick={() => addBlock("")}
+                  className="inline-flex items-center gap-1 text-sm border border-hairline px-2.5 py-1.5 hover:bg-surface"
+                  data-testid="button-add-block"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Block
+                </button>
+              </div>
+              <p className="text-xs text-ink/50 mb-3" data-testid="text-lane-hint">
+                Grouped by provider. Enter a start time and duration to auto-fill the end time.
+                Change a block's Lane field to move it to another provider.
               </p>
 
-              <div className="border border-hairline bg-bg shadow-sm rounded-sm overflow-x-auto">
-                <table className="w-full text-sm border-collapse" data-testid="table-schedule">
-                  <thead>
-                    <tr className="border-b-2 border-hairline bg-surface/60">
-                      <th className="w-8 px-2 py-2.5"></th>
-                      {columns.map((col) => (
-                        <th key={col.id} className="px-3 py-2.5 text-left align-bottom min-w-[120px] group">
-                          <input
-                            value={col.label}
-                            onChange={(e) => renameColumn(col.id, e.target.value)}
-                            className="w-full bg-transparent font-medium text-ink/70 text-xs uppercase tracking-wide border-b border-transparent focus:border-hairline focus-visible:outline-none"
-                            data-testid={`input-column-${col.id}`}
-                          />
-                          <button
-                            onClick={() => deleteColumn(col.id)}
-                            className="text-ink/30 hover:text-oxblood text-xs mt-1 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
-                            data-testid={`button-delete-column-${col.id}`}
+              {laneList.length === 0 && (
+                <div
+                  className="border border-hairline bg-bg px-4 py-6 text-center text-ink/40"
+                  data-testid="text-empty"
+                >
+                  No schedule yet. Use Quick add above to create provider lanes and blocks.
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5 items-start">
+                {laneList.map((lane) => (
+                  <div
+                    key={lane.key}
+                    className="border border-hairline bg-surface rounded-sm flex flex-col"
+                    data-testid={`lane-${lane.key}`}
+                  >
+                    <div className="px-4 py-3 border-b border-hairline">
+                      <h3
+                        className="font-serif text-lg tracking-tight"
+                        data-testid={`lane-title-${lane.key}`}
+                      >
+                        {lane.label}
+                      </h3>
+                      <span className="text-xs text-ink/50">
+                        {lane.rows.length} block{lane.rows.length === 1 ? "" : "s"}
+                      </span>
+                    </div>
+
+                    <div className="p-3 space-y-3 flex-1">
+                      {lane.rows.length === 0 && (
+                        <p className="text-ink/40 text-sm px-1 py-2">No blocks yet.</p>
+                      )}
+                      {lane.rows.map((row) => {
+                        const isBride = /bride/i.test(row.cells["service"] ?? "");
+                        return (
+                          <div
+                            key={row.id}
+                            className={`rounded-sm p-3 bg-bg border ${isBride ? "border-brass" : "border-hairline"}`}
+                            data-testid={`block-${row.id}`}
                           >
-                            remove
-                          </button>
-                        </th>
-                      ))}
-                      <th className="w-10 px-2 py-2.5"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.length === 0 && (
-                      <tr>
-                        <td colSpan={columns.length + 2} className="px-3 py-6 text-center text-ink/40" data-testid="text-empty">
-                          No rows yet. Use "Quick add" or the Row button.
-                        </td>
-                      </tr>
-                    )}
-                    {rows.map((row, index) => (
-                      <tr key={row.id} className="border-b border-hairline/60 last:border-0 hover:bg-surface/30 group" data-testid={`row-${row.id}`}>
-                        <td className="px-1 py-1 align-top">
-                          <div className="flex flex-col">
-                            <button
-                              onClick={() => moveRow(index, -1)}
-                              disabled={index === 0}
-                              className="text-ink/40 hover:text-ink disabled:opacity-30"
-                              data-testid={`button-up-${row.id}`}
-                            >
-                              <ChevronUp className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => moveRow(index, 1)}
-                              disabled={index === rows.length - 1}
-                              className="text-ink/40 hover:text-ink disabled:opacity-30"
-                              data-testid={`button-down-${row.id}`}
-                            >
-                              <ChevronDown className="w-4 h-4" />
-                            </button>
+                            {isBride && (
+                              <div
+                                className="text-[10px] uppercase tracking-wide text-brass mb-2"
+                                data-testid={`label-bride-${row.id}`}
+                              >
+                                Bridal
+                              </div>
+                            )}
+                            <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+                              {laneFields.map((col) => {
+                                const wide =
+                                  col.id === "name" || col.id === "service" || col.id === "notes";
+                                return (
+                                  <label key={col.id} className={wide ? "col-span-2 block" : "block"}>
+                                    <span className="text-[10px] uppercase tracking-wide text-ink/45">
+                                      {col.label}
+                                    </span>
+                                    <input
+                                      value={row.cells[col.id] ?? ""}
+                                      onChange={(e) => setCell(row.id, col.id, e.target.value)}
+                                      list={col.type === "service" ? "service-options" : undefined}
+                                      className={`mt-0.5 w-full bg-transparent border border-hairline rounded-sm px-2 py-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70 focus-visible:bg-bg ${
+                                        col.id === "name" && isPlaceholderName(row.cells[col.id] ?? "")
+                                          ? "italic text-ink/40"
+                                          : ""
+                                      }`}
+                                      data-testid={`input-cell-${row.id}-${col.id}`}
+                                    />
+                                  </label>
+                                );
+                              })}
+                            </div>
+                            <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-hairline/60">
+                              <label className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-ink/45">
+                                Lane
+                                <input
+                                  value={row.cells[providerColId] ?? ""}
+                                  onChange={(e) => setCell(row.id, providerColId, e.target.value)}
+                                  list="provider-options"
+                                  placeholder="Unassigned"
+                                  className="bg-transparent border border-hairline rounded-sm px-2 py-1 text-xs normal-case tracking-normal text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70"
+                                  data-testid={`input-cell-${row.id}-${providerColId}`}
+                                />
+                              </label>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => duplicateRow(row.id)}
+                                  className="text-ink/50 hover:text-ink"
+                                  title="Duplicate block"
+                                  data-testid={`button-duplicate-row-${row.id}`}
+                                >
+                                  <Copy className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => deleteRow(row.id)}
+                                  className="text-ink/50 hover:text-oxblood"
+                                  title="Delete block"
+                                  data-testid={`button-delete-row-${row.id}`}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
                           </div>
-                        </td>
-                        {columns.map((col) => (
-                          <td key={col.id} className="px-2 py-0.5 align-top">
-                            <input
-                              value={row.cells[col.id] ?? ""}
-                              onChange={(e) => setCell(row.id, col.id, e.target.value)}
-                              list={col.type === "service" ? "service-options" : col.type === "provider" ? "provider-options" : undefined}
-                              className={`w-full bg-transparent border border-transparent rounded-sm px-1.5 py-1.5 hover:border-hairline/70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70 focus-visible:bg-bg ${
-                                col.id === "name" && isPlaceholderName(row.cells[col.id] ?? "")
-                                  ? "italic text-ink/40"
-                                  : ""
-                              }`}
-                              data-testid={`input-cell-${row.id}-${col.id}`}
-                            />
-                          </td>
-                        ))}
-                        <td className="px-1 py-1 align-top">
-                          <div className="flex items-center gap-1 opacity-40 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => duplicateRow(row.id)}
-                              className="text-ink/50 hover:text-ink"
-                              title="Duplicate row"
-                              data-testid={`button-duplicate-row-${row.id}`}
-                            >
-                              <Copy className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => deleteRow(row.id)}
-                              className="text-ink/50 hover:text-oxblood"
-                              title="Delete row"
-                              data-testid={`button-delete-row-${row.id}`}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        );
+                      })}
+                    </div>
+
+                    <div className="px-3 pb-3">
+                      <button
+                        onClick={() => addBlock(lane.provider)}
+                        className="w-full inline-flex items-center justify-center gap-1 text-sm border border-dashed border-hairline px-2.5 py-2 hover:bg-surface"
+                        data-testid={`button-add-block-${lane.key}`}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Add block
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
 
               {/* datalists offer service + provider suggestions while editing cells */}
