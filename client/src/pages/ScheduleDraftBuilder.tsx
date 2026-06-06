@@ -623,29 +623,29 @@ export default function ScheduleDraftBuilder() {
                 Tip: enter a start time and duration to auto-fill the end time. You can still edit it manually.
               </p>
 
-              <div className="border border-hairline bg-surface overflow-x-auto">
+              <div className="border border-hairline bg-bg shadow-sm rounded-sm overflow-x-auto">
                 <table className="w-full text-sm border-collapse" data-testid="table-schedule">
                   <thead>
-                    <tr className="border-b border-hairline">
-                      <th className="w-8 px-2 py-2"></th>
+                    <tr className="border-b-2 border-hairline bg-surface/60">
+                      <th className="w-8 px-2 py-2.5"></th>
                       {columns.map((col) => (
-                        <th key={col.id} className="px-2 py-2 text-left align-bottom min-w-[120px]">
+                        <th key={col.id} className="px-3 py-2.5 text-left align-bottom min-w-[120px] group">
                           <input
                             value={col.label}
                             onChange={(e) => renameColumn(col.id, e.target.value)}
-                            className="w-full bg-transparent font-medium text-ink/80 border-b border-transparent focus:border-hairline focus-visible:outline-none"
+                            className="w-full bg-transparent font-medium text-ink/70 text-xs uppercase tracking-wide border-b border-transparent focus:border-hairline focus-visible:outline-none"
                             data-testid={`input-column-${col.id}`}
                           />
                           <button
                             onClick={() => deleteColumn(col.id)}
-                            className="text-ink/40 hover:text-oxblood text-xs mt-1"
+                            className="text-ink/30 hover:text-oxblood text-xs mt-1 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
                             data-testid={`button-delete-column-${col.id}`}
                           >
                             remove
                           </button>
                         </th>
                       ))}
-                      <th className="w-10 px-2 py-2"></th>
+                      <th className="w-10 px-2 py-2.5"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -657,7 +657,7 @@ export default function ScheduleDraftBuilder() {
                       </tr>
                     )}
                     {rows.map((row, index) => (
-                      <tr key={row.id} className="border-b border-hairline last:border-0" data-testid={`row-${row.id}`}>
+                      <tr key={row.id} className="border-b border-hairline/60 last:border-0 hover:bg-surface/30 group" data-testid={`row-${row.id}`}>
                         <td className="px-1 py-1 align-top">
                           <div className="flex flex-col">
                             <button
@@ -679,12 +679,12 @@ export default function ScheduleDraftBuilder() {
                           </div>
                         </td>
                         {columns.map((col) => (
-                          <td key={col.id} className="px-1 py-1 align-top">
+                          <td key={col.id} className="px-2 py-0.5 align-top">
                             <input
                               value={row.cells[col.id] ?? ""}
                               onChange={(e) => setCell(row.id, col.id, e.target.value)}
                               list={col.type === "service" ? "service-options" : col.type === "provider" ? "provider-options" : undefined}
-                              className={`w-full bg-bg border border-hairline px-2 py-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70 ${
+                              className={`w-full bg-transparent border border-transparent rounded-sm px-1.5 py-1.5 hover:border-hairline/70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70 focus-visible:bg-bg ${
                                 col.id === "name" && isPlaceholderName(row.cells[col.id] ?? "")
                                   ? "italic text-ink/40"
                                   : ""
@@ -694,10 +694,10 @@ export default function ScheduleDraftBuilder() {
                           </td>
                         ))}
                         <td className="px-1 py-1 align-top">
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 opacity-40 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                             <button
                               onClick={() => duplicateRow(row.id)}
-                              className="text-ink/40 hover:text-ink"
+                              className="text-ink/50 hover:text-ink"
                               title="Duplicate row"
                               data-testid={`button-duplicate-row-${row.id}`}
                             >
@@ -705,7 +705,7 @@ export default function ScheduleDraftBuilder() {
                             </button>
                             <button
                               onClick={() => deleteRow(row.id)}
-                              className="text-ink/40 hover:text-oxblood"
+                              className="text-ink/50 hover:text-oxblood"
                               title="Delete row"
                               data-testid={`button-delete-row-${row.id}`}
                             >
