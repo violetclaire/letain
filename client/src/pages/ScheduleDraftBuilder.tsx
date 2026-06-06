@@ -28,7 +28,9 @@ function uid(prefix: string): string {
 }
 
 const SERVICE_ALIASES: Array<{ match: RegExp; label: string }> = [
-  { match: /bride/i, label: "Bride Hair + Makeup" },
+  // Only "bride" as its own word matches the Bride service. "bridesmaid(s)"
+  // must NOT match here, so it can be treated as a named group instead.
+  { match: /\bbride\b/i, label: "Bride Hair + Makeup" },
   { match: /hair\s*(\+|and|&|\/)\s*makeup|makeup\s*(\+|and|&|\/)\s*hair|h\s*\+?\s*m\b/i, label: "Hair + Makeup" },
   { match: /makeup|mua|\bmu\b/i, label: "Makeup" },
   { match: /hair\b/i, label: "Hair" },
@@ -41,20 +43,42 @@ function normalizeService(raw: string): string {
   return "";
 }
 
-// Forgiving parser. Handles "8 makeup, 5 hair", "Bride, MOB, MOG, 5 bridesmaids",
-// "3 artists". Never throws; falls back to placeholder rows if nothing parses.
+// Combine assigned service atoms into a single readable label. "Makeup" + "Hair"
+// collapses to the canonical "Hair + Makeup"; otherwise joined with " + ".
+function combineServiceLabels(list: string[]): string {
+  const set = Array.from(new Set(list.filter(Boolean)));
+  if (set.length === 0) return "";
+  if (set.length === 1) return set[0];
+  if (set.length === 2 && set.includes("Hair") && set.includes("Makeup")) {
+    return "Hair + Makeup";
+  }
+  return set.join(" + ");
+}
+
+// Forgiving parser using the product model: people are rows, services are
+// assignments, providers/artists are resources. Handles
+// "Bride, MOB, MOG, 5 bridesmaids, 8 makeup, 5 hair, 3 artists". Never throws.
+//
+// Approach:
+// 1. Plain tokens ("Bride") and groups ("5 bridesmaids") become PEOPLE rows.
+// 2. "3 artists/providers/stylists" become a provider COUNT (resources).
+// 3. Service counts ("8 makeup", "5 hair") are ASSIGNED to existing people
+//    first (combining e.g. Makeup + Hair into "Hair + Makeup"). Only if there
+//    are not enough people do we add editable "Guest" placeholder rows for the
+//    shortfall. Nothing is ever rejected.
 function parseInput(
   text: string,
   serviceDefaults: ServiceDefault[],
 ): { rows: Array<{ name: string; service: string; duration: string }>; providerCount: number } {
-  const result: Array<{ name: string; service: string; duration: string }> = [];
   let providerCount = 0;
-  let guestCounter = 0;
 
   const durationFor = (label: string): string => {
     const sd = serviceDefaults.find((s) => s.label.toLowerCase() === label.toLowerCase());
     return sd ? String(sd.durationMinutes) : "";
   };
+
+  const people: Array<{ name: string; services: string[] }> = [];
+  const serviceCounts: Array<{ service: string; count: number }> = [];
 
   const tokens = text
     .split(/[,\n]+/)
@@ -69,32 +93,53 @@ function parseInput(
       continue;
     }
 
-    // "<n> <something>" -> n entries. If <something> looks like a service, set
-    // service. Otherwise treat <something> as a group name (e.g. bridesmaids).
+    // "<n> <something>" -> either a service count or a named group of people.
     const countMatch = token.match(/^(\d+)\s+(.+)$/);
     if (countMatch) {
       const n = Math.min(parseInt(countMatch[1], 10), 100);
       const rest = countMatch[2].trim();
       const svc = normalizeService(rest);
       if (svc) {
-        for (let i = 0; i < n; i++) {
-          guestCounter += 1;
-          result.push({ name: `Guest ${guestCounter}`, service: svc, duration: durationFor(svc) });
-        }
+        // service count -> assigned later to people
+        serviceCounts.push({ service: svc, count: n });
       } else {
         // group name like "bridesmaids" -> "Bridesmaid 1".."Bridesmaid n"
         const singular = rest.replace(/s$/i, "");
         const labelBase = singular.charAt(0).toUpperCase() + singular.slice(1);
         for (let i = 0; i < n; i++) {
-          result.push({ name: `${labelBase} ${i + 1}`, service: "", duration: "" });
+          people.push({ name: `${labelBase} ${i + 1}`, services: [] });
         }
       }
       continue;
     }
 
     // Plain token: treat as a person name (Bride, MOB, MOG, a real name, etc.)
-    result.push({ name: token, service: "", duration: "" });
+    people.push({ name: token, services: [] });
   }
+
+  // Assign service counts. Prefer existing people who do not already have that
+  // service; only create placeholder Guest rows when there are not enough.
+  let guestCounter = 0;
+  for (const { service, count } of serviceCounts) {
+    let remaining = count;
+    for (const p of people) {
+      if (remaining <= 0) break;
+      if (!p.services.includes(service)) {
+        p.services.push(service);
+        remaining -= 1;
+      }
+    }
+    while (remaining > 0) {
+      guestCounter += 1;
+      people.push({ name: `Guest ${guestCounter}`, services: [service] });
+      remaining -= 1;
+    }
+  }
+
+  const result = people.map((p) => {
+    const label = combineServiceLabels(p.services);
+    return { name: p.name, service: label, duration: label ? durationFor(label) : "" };
+  });
 
   return { rows: result, providerCount };
 }
@@ -572,9 +617,11 @@ export default function ScheduleDraftBuilder() {
               <h2 className="font-serif text-xl tracking-tight mb-3">Quick add</h2>
               <div className="border border-hairline bg-surface p-6">
                 <p className="text-ink/70 text-sm mb-3 max-w-[70ch]">
-                  Paste names or counts and we will create rows. Examples: "8 makeup, 5 hair"
-                  or "Bride, MOB, MOG, 5 bridesmaids". Missing names become placeholders you
-                  can rename. "3 artists" adds providers.
+                  Paste people and counts. People become rows: "Bride, MOB, MOG, 5 bridesmaids"
+                  makes named rows. Service counts get assigned to those people: "8 makeup, 5 hair"
+                  marks 8 rows for makeup and 5 for hair (combined into Hair + Makeup where they
+                  overlap). "3 artists" adds providers. Extra services with no one to assign become
+                  editable Guest rows. Everything stays editable.
                 </p>
                 <textarea
                   value={pasteText}
