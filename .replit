@@ -51,4 +51,4 @@ integrations = ["javascript_database:1.0.0", "javascript_gemini_ai_integrations:
 
 [userenv.shared]
 SQUARE_LOCATION_ID = "F77FQXFR9EBFX"
-PUBLIC_BASE_URL = "https://dateinquiry.com"
+PUBLIC_BASE_URL = "https://atbriarwood.com"
