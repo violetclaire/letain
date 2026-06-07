@@ -94,8 +94,8 @@ document.getElementById('inquiry-form').addEventListener('submit', async (e) => 
 });
 <\/script>`;
       
-      const inviteLink = `https://dateinquiry.com/${data.artistSlug}`;
-      const adminLink = `https://dateinquiry.com/${data.artistSlug}/settings?token=${data.editToken}`;
+      const inviteLink = `https://atbriarwood.com/${data.artistSlug}`;
+      const adminLink = `https://atbriarwood.com/${data.artistSlug}/settings?token=${data.editToken}`;
       
       setResult({
         adminLink,
@@ -277,7 +277,7 @@ document.getElementById('inquiry-form').addEventListener('submit', async (e) => 
               data-testid="input-password"
             />
             <p className="text-[10px] text-[#2D2D2D]/40 mt-3">
-              Use this to log in at dateinquiry.com/login
+              Use this to log in at atbriarwood.com/login
             </p>
           </div>
 

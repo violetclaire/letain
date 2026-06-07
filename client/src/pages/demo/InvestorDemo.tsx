@@ -107,7 +107,7 @@ export default function InvestorDemo() {
                 Investor Preview · Bessemer
               </p>
               <h1 className="font-serif text-xl text-stone-900 tracking-tight">
-                Beauvette Secretary
+                Briarwood
               </h1>
             </div>
             <div className="flex items-center gap-3">
@@ -399,14 +399,14 @@ export default function InvestorDemo() {
         <section className="bg-gradient-to-r from-stone-900 to-stone-800 rounded-xl p-8 text-white mb-8">
           <h2 className="font-serif text-2xl mb-6">Key Value Props</h2>
           <div className="grid grid-cols-2 gap-6">
-            <Explainer tip="All client-facing emails, forms, and communications show ONLY the artist's brand. Beauvette is invisible infrastructure." position="right">
+            <Explainer tip="All client-facing emails, forms, and communications show ONLY the artist's brand. Briarwood is invisible infrastructure." position="right">
               <div className="flex items-start gap-4 cursor-help">
                 <div className="p-2 bg-white/10 rounded-lg shrink-0">
                   <Eye size={20} className="text-amber-400" />
                 </div>
                 <div>
                   <h4 className="font-medium mb-1">100% White-Label</h4>
-                  <p className="text-sm text-stone-400">Clients never see Beauvette. Artists own the relationship.</p>
+                  <p className="text-sm text-stone-400">Clients never see Briarwood. Artists own the relationship.</p>
                 </div>
               </div>
             </Explainer>
@@ -451,7 +451,7 @@ export default function InvestorDemo() {
 
         <footer className="flex justify-between items-center pt-6 border-t border-stone-200">
           <p className="text-sm text-stone-500">
-            Questions? <a href="mailto:maya@beauvette.app" className="underline">maya@beauvette.app</a>
+            Questions? <span className="underline">Contact support</span>
           </p>
           <button
             onClick={() => setLocation("/demo")}

@@ -185,12 +185,12 @@ export function registerAgentRoutes(app: Express) {
       "@type": "SoftwareApplication",
       name: "Toile Coordination Engine",
       description: "Agentic commerce gateway for high-trust service coordination. Provides real-time availability, trust verification (CDI), booking orchestration, and proof-of-service for the beauty and events industry.",
-      url: "https://dateinquiry.com",
+      url: "https://atbriarwood.com",
       version: "1.0.0",
       provider: {
         "@type": "Organization",
         name: "Toile",
-        url: "https://dateinquiry.com",
+        url: "https://atbriarwood.com",
       },
       capabilities: [
         {

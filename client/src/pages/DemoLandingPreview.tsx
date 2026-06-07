@@ -48,7 +48,7 @@ function LandingPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
               className="text-xs tracking-[0.18em] uppercase text-[#f5f3ef]/40 mb-6"
               {...fade(0)}
             >
-              Briarwood / dateinquiry.com
+              Briarwood / atbriarwood.com
             </motion.p>
             <motion.h1
               className="text-4xl sm:text-5xl md:text-6xl leading-[1.05] tracking-tight text-[#f5f3ef] mb-8"

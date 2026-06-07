@@ -289,7 +289,7 @@ export default function ArtistLogin() {
                   data-testid="input-artist-slug"
                 />
                 <p className="text-xs text-[#1A1A1A]/40">
-                  This is the part after dateinquiry.com/ in your profile URL
+                  This is the part after atbriarwood.com/ in your profile URL
                 </p>
               </div>
 

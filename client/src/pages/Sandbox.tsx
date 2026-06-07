@@ -362,7 +362,7 @@ export default function Sandbox() {
         <div style={{ border: `1px solid ${HAIR}`, background: SURF,
           padding: "10px 16px", marginBottom: 16, fontFamily: "'Courier New', monospace",
           fontSize: "0.64rem", color: MUTED }}>
-          Base URL: <strong style={{ color: INK }}>https://dateinquiry.com/api/agent</strong>
+          Base URL: <strong style={{ color: INK }}>https://atbriarwood.com/api/agent</strong>
           &nbsp;·&nbsp;Bearer token required&nbsp;·&nbsp;All responses JSON
         </div>
 
@@ -462,7 +462,7 @@ def verify_before_booking(node_id: str, min_cdi: int = 70) -> dict:
     CDI trust gate. Call before deploying capital to any human node.
     """
     resp = requests.get(
-        f"https://dateinquiry.com/api/agent/cdi/{node_id}",
+        f"https://atbriarwood.com/api/agent/cdi/{node_id}",
         headers={"Authorization": f"Bearer {BRIARWOOD_API_KEY}"}
     )
     data = resp.json()
@@ -487,7 +487,7 @@ export const verifyCDI = tool({
   parameters: z.object({ nodeId: z.string(), minScore: z.number().default(70) }),
   execute: async ({ nodeId, minScore }) => {
     const res = await fetch(
-      \`https://dateinquiry.com/api/agent/cdi/\${nodeId}\`,
+      \`https://atbriarwood.com/api/agent/cdi/\${nodeId}\`,
       { headers: { Authorization: \`Bearer \${process.env.BRIARWOOD_API_KEY}\` } }
     );
     const data = await res.json();

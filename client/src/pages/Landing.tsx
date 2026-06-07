@@ -307,7 +307,7 @@ export default function Landing() {
       <footer className="relative z-10 border-t border-hairline">
         <div className="estate-container py-10 flex flex-wrap items-center justify-between gap-4">
           <div className="font-mono text-[0.7rem] uppercase tracking-[0.22em] text-faintink">
-            Briarwood AI · dateinquiry.com
+            Briarwood AI · atbriarwood.com
           </div>
           <div className="font-mono text-[0.7rem] uppercase tracking-[0.22em] text-faintink">
             CDI™ Patent Pending · 2026

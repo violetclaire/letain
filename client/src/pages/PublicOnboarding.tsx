@@ -271,7 +271,7 @@ export default function PublicOnboarding() {
             <div>
               <label className="text-xs text-[#666] mb-1 block">Your personal link (you can customize this)</label>
               <div className="flex items-center border border-[#2C2C2C] bg-[#FAF9F7]">
-                <span className="px-3 py-3 text-[#999] text-sm border-r border-[#2C2C2C]">dateinquiry.com/</span>
+                <span className="px-3 py-3 text-[#999] text-sm border-r border-[#2C2C2C]">atbriarwood.com/</span>
                 <input
                   type="text"
                   value={data.customSlug}

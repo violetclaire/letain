@@ -116,7 +116,7 @@ export default function ProfileSettings() {
       const data = await res.json();
       if (res.ok) {
         queryClient.invalidateQueries({ queryKey: ["user"] });
-        toast({ title: "Username Saved!", description: `Your profile link is now dateinquiry.com/${usernameData.username.toLowerCase()}` });
+        toast({ title: "Username Saved!", description: `Your profile link is now atbriarwood.com/${usernameData.username.toLowerCase()}` });
         setUsernameData(prev => ({ ...prev, isSaving: false, isAvailable: null }));
       } else {
         setUsernameData(prev => ({ ...prev, isSaving: false, error: data.error || "Failed to save username" }));
@@ -993,7 +993,7 @@ export default function ProfileSettings() {
               <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">Username</label>
               <div className="flex items-center gap-2">
                 <div className="flex-1 flex items-center border border-black/20 bg-white rounded overflow-hidden">
-                  <span className="px-3 py-2 bg-gray-100 text-sm text-black/50 border-r border-black/10">dateinquiry.com/</span>
+                  <span className="px-3 py-2 bg-gray-100 text-sm text-black/50 border-r border-black/10">atbriarwood.com/</span>
                   <input
                     type="text"
                     value={usernameData.username}

@@ -43,7 +43,7 @@ export default function DemoLanding() {
           <div className="text-center mb-8">
             <p className="text-xs uppercase tracking-widest text-black/50 mb-2">Demo Mode</p>
             <h1 className="font-script text-5xl text-black mb-3">
-              Beauvette
+              Briarwood
             </h1>
             <p className="text-sm text-black/60 max-w-md mx-auto">
               Preview the full experience for each user type. 

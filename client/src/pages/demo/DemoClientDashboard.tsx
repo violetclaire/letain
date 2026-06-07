@@ -27,7 +27,7 @@ export default function DemoClientDashboard() {
               </button>
               <div>
                 <p className="text-xs text-pink uppercase tracking-widest">Demo Mode</p>
-                <h1 className="font-script text-2xl">Beauvette</h1>
+                <h1 className="font-script text-2xl">Briarwood</h1>
               </div>
             </div>
             <div className="flex items-center gap-4">

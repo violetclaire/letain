@@ -26,7 +26,7 @@ export default function DemoAdminDashboard() {
               </button>
               <div>
                 <p className="text-xs text-white/50 uppercase tracking-widest">Demo Mode - Admin</p>
-                <h1 className="font-script text-2xl">Beauvette Admin</h1>
+                <h1 className="font-script text-2xl">Briarwood Admin</h1>
               </div>
             </div>
             <div className="flex items-center gap-4">

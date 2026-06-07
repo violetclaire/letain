@@ -16,7 +16,7 @@ export default function SetupComplete() {
     enabled: !!artistSlug
   });
 
-  const secretaryLink = `https://dateinquiry.com/${artistSlug}`;
+  const secretaryLink = `https://atbriarwood.com/${artistSlug}`;
 
   if (isLoading) {
     return (

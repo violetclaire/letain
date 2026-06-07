@@ -31,7 +31,7 @@ export default function DemoArtistDashboard() {
               </button>
               <div>
                 <p className="text-xs text-gold uppercase tracking-widest">Demo Mode - Vendor</p>
-                <h1 className="font-script text-2xl">Beauvette</h1>
+                <h1 className="font-script text-2xl">Briarwood</h1>
               </div>
             </div>
             <div className="flex items-center gap-4">

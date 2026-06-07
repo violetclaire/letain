@@ -184,13 +184,13 @@ export default function ArtistAdmin() {
   };
 
   const handleCopyInquiryLink = () => {
-    navigator.clipboard.writeText(`https://dateinquiry.com/${getActualSlug()}`);
+    navigator.clipboard.writeText(`https://atbriarwood.com/${getActualSlug()}`);
     setLinkCopied(true);
     setTimeout(() => setLinkCopied(false), 2000);
   };
   
   const handleCopyLink = () => {
-    const link = `https://dateinquiry.com/${getActualSlug()}`;
+    const link = `https://atbriarwood.com/${getActualSlug()}`;
     navigator.clipboard.writeText(link);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -398,12 +398,12 @@ export default function ArtistAdmin() {
                 <p className="text-[10px] uppercase tracking-wide text-ink/50 mb-2">Your Inquiry Link</p>
                 <div className="flex gap-2">
                   <div className="flex-1 bg-[#F5F0E8]/5 px-3 py-2 text-xs text-ink/70 rounded truncate">
-                    dateinquiry.com/{slug}
+                    atbriarwood.com/{slug}
                   </div>
                   <button
                     type="button"
                     onClick={() => {
-                      navigator.clipboard.writeText(`https://dateinquiry.com/${slug}`);
+                      navigator.clipboard.writeText(`https://atbriarwood.com/${slug}`);
                       setLinkCopied(true);
                       setTimeout(() => setLinkCopied(false), 2000);
                     }}
@@ -554,15 +554,15 @@ export default function ArtistAdmin() {
                 <Settings className="w-4 h-4" />
                 Update Settings
               </Link>
-              <a 
-                href="mailto:violet@beauvette.com"
-                className="flex items-center gap-3 px-4 py-3 text-sm text-ink/80 hover:bg-ink/10 transition-colors border-b border-ink/10"
+              <button
+                type="button"
+                className="flex items-center gap-3 px-4 py-3 text-sm text-ink/80 hover:bg-ink/10 transition-colors border-b border-ink/10 w-full text-left"
                 onClick={() => setMenuOpen(false)}
                 data-testid="nav-help"
               >
                 <HelpCircle className="w-4 h-4" />
-                Help
-              </a>
+                Contact support
+              </button>
               {useSessionAuth && (
                 <button
                   onClick={() => { setMenuOpen(false); handleLogout(); }}
@@ -887,7 +887,7 @@ export default function ArtistAdmin() {
         <div className="mt-12 p-6 border border-dashed border-ink/20 text-center bg-surface">
           <p className="text-[10px] tracking-[0.2em] uppercase text-ink/40 mb-2">Your Form Link</p>
           <div className="flex items-center justify-center gap-3">
-            <p className="text-sm text-ink/70 font-mono">dateinquiry.com/{artist.artistSlug}</p>
+            <p className="text-sm text-ink/70 font-mono">atbriarwood.com/{artist.artistSlug}</p>
             <button
               onClick={handleCopyLink}
               className="p-2 rounded hover:bg-ink/5 transition-colors"

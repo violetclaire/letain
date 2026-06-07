@@ -18997,7 +18997,7 @@ Rules:
 
       res.json({
         exportDate: new Date().toISOString(),
-        platform: "Briarwood / dateinquiry.com",
+        platform: "Briarwood / atbriarwood.com",
         description: "CDI Context Graph Export - Decision Traces with Behavioral Signals",
         summary,
         traces: contextTraces,

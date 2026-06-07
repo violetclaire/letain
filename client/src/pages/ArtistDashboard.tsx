@@ -2394,12 +2394,12 @@ export default function ArtistDashboard() {
                   </h2>
                   <p className="text-xs ink-soft mt-1">Share this link so clients can book with you directly</p>
                   <p className="text-xs font-mono bg-white px-2 py-1 rounded mt-2 border border-[#e5e8f2] inline-block" data-testid="text-schedule-url">
-                    dateinquiry.com/{user?.artistSlug || user?.id}
+                    atbriarwood.com/{user?.artistSlug || user?.id}
                   </p>
                 </div>
                 <button
                   onClick={() => {
-                    const url = `https://dateinquiry.com/${user?.artistSlug || user?.id}`;
+                    const url = `https://atbriarwood.com/${user?.artistSlug || user?.id}`;
                     navigator.clipboard.writeText(url);
                     toast({
                       title: "Link Copied!",
