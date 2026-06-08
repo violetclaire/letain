@@ -105,9 +105,9 @@ export default function InquiryWorkspace() {
   const isOperator = typeof user?.role === "string" && OPERATOR_ROLES.has(user.role);
 
   const inquiriesQuery = useQuery<InquiryWorkspaceResponse>({
-    queryKey: ["/api/artist/inquiries"],
+    queryKey: ["/api/vendor/inquiries"],
     queryFn: async () => {
-      const res = await fetch("/api/artist/inquiries", { credentials: "include" });
+      const res = await fetch("/api/vendor/inquiries", { credentials: "include" });
       if (res.status === 401) throw new Error("401");
       if (!res.ok) throw new Error("Failed to load inquiries");
       const payload = await res.json();
