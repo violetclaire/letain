@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -88,7 +88,7 @@ function EmptyValue({ children }: { children?: string | null }) {
   return <span className={children ? "text-ink" : "text-ink/40"}>{children || "Not provided"}</span>;
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="border-t border-hairline py-3 first:border-t-0">
       <dt className="text-xs uppercase tracking-wide text-ink/45 mb-1">{label}</dt>
@@ -108,7 +108,9 @@ export default function InquiryWorkspace() {
       if (res.status === 401) throw new Error("401");
       if (!res.ok) throw new Error("Failed to load inquiries");
       const payload = await res.json();
-      return { inquiries: Array.isArray(payload) ? payload : payload.inquiries ?? [] };
+      return {
+        inquiries: Array.isArray(payload) ? payload : Array.isArray(payload?.inquiries) ? payload.inquiries : [],
+      };
     },
     enabled: isAuthenticated,
     retry: false,
