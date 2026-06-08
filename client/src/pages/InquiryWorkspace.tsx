@@ -43,6 +43,8 @@ interface InquiryWorkspaceResponse {
   inquiries: InquiryWorkspaceInquiry[];
 }
 
+const OPERATOR_ROLES = new Set(["artist"]);
+
 const MODULE_PLACEHOLDERS = [
   { title: "Client/contact", description: "Read-only placeholder for linked client records.", icon: User },
   { title: "Trusted network/routing", description: "Read-only placeholder for future routing candidates.", icon: Users },
@@ -98,8 +100,9 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 }
 
 export default function InquiryWorkspace() {
-  const { isLoading: authLoading, isAuthenticated } = useAuth();
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const isOperator = typeof user?.role === "string" && OPERATOR_ROLES.has(user.role);
 
   const inquiriesQuery = useQuery<InquiryWorkspaceResponse>({
     queryKey: ["/api/artist/inquiries"],
@@ -112,7 +115,7 @@ export default function InquiryWorkspace() {
         inquiries: Array.isArray(payload) ? payload : Array.isArray(payload?.inquiries) ? payload.inquiries : [],
       };
     },
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && isOperator,
     retry: false,
   });
 
@@ -155,6 +158,20 @@ export default function InquiryWorkspace() {
           >
             Go to sign in
           </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isOperator) {
+    return (
+      <div className="min-h-screen bg-bg text-ink flex items-center justify-center px-6">
+        <div className="max-w-md text-center" data-testid="text-operator-required">
+          <AlertCircle className="w-8 h-8 mx-auto mb-4 text-ink/45" />
+          <h1 className="font-serif text-2xl tracking-tight mb-3">Operator access required</h1>
+          <p className="text-ink/70">
+            Inquiry Workspace is limited to owner-scoped operator accounts.
+          </p>
         </div>
       </div>
     );
