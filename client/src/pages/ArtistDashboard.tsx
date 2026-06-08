@@ -2465,6 +2465,14 @@ export default function ArtistDashboard() {
                             <Send size={10} />
                             Send Info
                           </Link>
+                          <Link 
+                            href="/inquiry-workspace" 
+                            className="px-2.5 py-1 bg-white border border-gray-200 text-gray-600 text-[0.6rem] rounded hover:bg-gray-50 transition-colors flex items-center gap-1"
+                            data-testid="link-inquiry-workspace"
+                          >
+                            <Mail size={10} />
+                            Inquiry Workspace
+                          </Link>
                         </div>
 
                         {inquiriesLoading ? (
