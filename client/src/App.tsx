@@ -82,6 +82,7 @@ import PlannerView from "@/pages/PlannerView";
 import SecretaryOnboarding from "@/pages/SecretaryOnboarding";
 import InquirePage from "@/pages/InquirePage";
 import InquiryThread from "@/pages/InquiryThread";
+import InquiryWorkspace from "@/pages/InquiryWorkspace";
 import OperatorDemo from "@/pages/OperatorDemo";
 import ClientThread from "@/pages/ClientThread";
 import SetupSquare from "@/pages/SetupSquare";
@@ -161,6 +162,7 @@ function Router() {
       <Route path="/client" component={ClientDashboard} />
       <Route path="/artist" component={ArtistDashboard} />
       <Route path="/artist/inbox" component={ArtistClientInbox} />
+      <Route path="/inquiry-workspace" component={InquiryWorkspace} />
       <Route path="/planner" component={PlannerDashboard} />
       <Route path="/browse" component={Waitlist} />
       <Route path="/waitlist" component={Waitlist} />
