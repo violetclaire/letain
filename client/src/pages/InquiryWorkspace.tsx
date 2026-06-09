@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
   CalendarDays,
+  CheckCircle2,
   Clock3,
   CreditCard,
   FileText,
@@ -12,6 +13,7 @@ import {
   Mail,
   MapPin,
   Phone,
+  PlusCircle,
   Search,
   StickyNote,
   User,
@@ -89,6 +91,23 @@ interface RouteTargetsResponse {
   targets: RouteTarget[];
 }
 
+interface DraftRouteCandidate {
+  id: string;
+  inquiryId: string;
+  routeTargetId: string;
+  status: string;
+  matchScore: number | null;
+  matchReasons: string[] | null;
+  matchedCapabilities: string[] | null;
+  matchedTags: string[] | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+interface DraftRouteCandidatesResponse {
+  candidates: DraftRouteCandidate[];
+}
+
 type SortMode = "newest" | "oldest" | "requestedDateAsc" | "requestedDateDesc";
 
 interface NetworkMatch {
@@ -113,6 +132,10 @@ const MODULE_PLACEHOLDERS = [
   { title: "Payment state", description: "Read-only placeholder for payment-state metadata.", icon: CreditCard },
   { title: "Schedule draft", description: "Read-only placeholder for private schedule drafts.", icon: CalendarDays },
 ];
+
+function draftRouteCandidatesQueryKey(inquiryId?: string | null) {
+  return ["/api/inquiries", inquiryId, "draft-route-candidates"] as const;
+}
 
 function formatDate(value?: string | null): string {
   if (!value) return "Not set";
@@ -447,6 +470,7 @@ function Pill({ children }: { children: ReactNode }) {
 
 export default function InquiryWorkspace() {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -520,6 +544,27 @@ export default function InquiryWorkspace() {
     () => filteredInquiries.find((inquiry) => inquiry.id === selectedId) ?? filteredInquiries[0] ?? null,
     [filteredInquiries, selectedId],
   );
+  const selectedInquiryId = selectedInquiry?.id ?? null;
+  const draftCandidatesQuery = useQuery<DraftRouteCandidatesResponse>({
+    queryKey: draftRouteCandidatesQueryKey(selectedInquiryId),
+    queryFn: async () => {
+      if (!selectedInquiryId) return { candidates: [] };
+      const res = await fetch(`/api/inquiries/${selectedInquiryId}/draft-route-candidates`, { credentials: "include" });
+      if (res.status === 401) throw new Error("401");
+      if (!res.ok) throw new Error("Failed to load draft route candidates");
+      const payload = await res.json();
+      return {
+        candidates: Array.isArray(payload?.candidates) ? payload.candidates : [],
+      };
+    },
+    enabled: isAuthenticated && isOperator && Boolean(selectedInquiryId),
+    retry: false,
+  });
+  const draftCandidates = draftCandidatesQuery.data?.candidates ?? [];
+  const savedDraftTargetIds = useMemo(
+    () => new Set(draftCandidates.map((candidate) => candidate.routeTargetId)),
+    [draftCandidates],
+  );
   const timelineEntries = useMemo(
     () => (selectedInquiry ? buildTimelineEntries(selectedInquiry) : []),
     [selectedInquiry],
@@ -528,6 +573,29 @@ export default function InquiryWorkspace() {
     () => (selectedInquiry ? buildNetworkMatches(routeTargets, selectedInquiry) : []),
     [routeTargets, selectedInquiry],
   );
+  const saveDraftCandidate = useMutation({
+    mutationFn: async ({ inquiryId, match }: { inquiryId: string; match: NetworkMatch }) => {
+      const res = await fetch(`/api/inquiries/${inquiryId}/draft-route-candidates`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          routeTargetId: match.target.id,
+          status: "draft",
+          matchScore: match.score,
+          matchReasons: match.reasons,
+          matchedCapabilities: match.matchedCapabilities,
+          matchedTags: match.matchedTags,
+        }),
+      });
+      if (res.status === 401) throw new Error("401");
+      if (!res.ok) throw new Error("Failed to save draft route candidate");
+      return res.json() as Promise<{ candidate: DraftRouteCandidate }>;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: draftRouteCandidatesQueryKey(variables.inquiryId) });
+    },
+  });
 
   useEffect(() => {
     if (filteredInquiries.length === 0) {
@@ -941,12 +1009,12 @@ export default function InquiryWorkspace() {
                       </div>
                       {!routeTargetsQuery.isLoading && !routeTargetsQuery.isError && (
                         <span className="text-xs text-ink/50">
-                          {networkMatches.slice(0, 3).length} draft{networkMatches.slice(0, 3).length === 1 ? "" : "s"}
+                          {draftCandidatesQuery.isLoading ? "Loading saved state" : `${draftCandidates.length} saved`}
                         </span>
                       )}
                     </div>
 
-                    {routeTargetsQuery.isLoading && (
+                    {(routeTargetsQuery.isLoading || draftCandidatesQuery.isLoading) && (
                       <div className="flex items-center gap-2 text-sm text-ink/60">
                         <Loader2 className="w-4 h-4 animate-spin" />
                         Loading candidates
@@ -956,6 +1024,18 @@ export default function InquiryWorkspace() {
                     {routeTargetsQuery.isError && (
                       <p className="text-sm text-ink/60">
                         Could not load draft candidates from the operator network.
+                      </p>
+                    )}
+
+                    {draftCandidatesQuery.isError && (
+                      <p className="text-sm text-ink/60">
+                        Could not load saved draft candidate state.
+                      </p>
+                    )}
+
+                    {saveDraftCandidate.isError && (
+                      <p className="text-sm text-ink/60">
+                        Could not save this draft candidate. Please try again.
                       </p>
                     )}
 
@@ -973,59 +1053,92 @@ export default function InquiryWorkspace() {
 
                     {!routeTargetsQuery.isLoading && !routeTargetsQuery.isError && networkMatches.length > 0 && (
                       <div className="space-y-3">
-                        {networkMatches.slice(0, 3).map(({ target, reasons, score, matchedCapabilities, matchedTags }) => (
-                          <div key={`draft-${target.id}`} className="border-t border-hairline pt-3 first:border-t-0 first:pt-0">
-                            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                              <div className="min-w-0">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <p className="text-sm font-medium text-ink break-words">{target.name}</p>
-                                  <Pill>Draft Candidate</Pill>
+                        {networkMatches.slice(0, 3).map((match) => {
+                          const { target, reasons, score, matchedCapabilities, matchedTags } = match;
+                          const isSaved = savedDraftTargetIds.has(target.id);
+                          const isSaving =
+                            saveDraftCandidate.isPending &&
+                            saveDraftCandidate.variables?.inquiryId === selectedInquiryId &&
+                            saveDraftCandidate.variables?.match.target.id === target.id;
+                          const saveDisabled = !selectedInquiryId || isSaved || isSaving || draftCandidatesQuery.isLoading;
+
+                          return (
+                            <div key={`draft-${target.id}`} className="border-t border-hairline pt-3 first:border-t-0 first:pt-0">
+                              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <p className="text-sm font-medium text-ink break-words">{target.name}</p>
+                                    <Pill>{isSaved ? "Saved draft" : "Draft Candidate"}</Pill>
+                                  </div>
+                                  <p className="text-xs text-ink/55 mt-0.5">{target.roleLabel || "Network contact"}</p>
                                 </div>
-                                <p className="text-xs text-ink/55 mt-0.5">{target.roleLabel || "Network contact"}</p>
+                                <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                                  <div className="text-xs text-ink/60 border border-hairline px-2 py-1 whitespace-nowrap">
+                                    {score}/100
+                                  </div>
+                                  <button
+                                    type="button"
+                                    className="inline-flex h-7 items-center gap-1 border border-hairline px-2 text-xs text-ink/70 transition hover:bg-bg disabled:cursor-not-allowed disabled:text-ink/35 disabled:hover:bg-transparent"
+                                    disabled={saveDisabled}
+                                    onClick={() => {
+                                      if (selectedInquiryId) {
+                                        saveDraftCandidate.mutate({ inquiryId: selectedInquiryId, match });
+                                      }
+                                    }}
+                                    data-testid={`button-save-draft-candidate-${target.id}`}
+                                    aria-label={`${isSaved ? "Saved" : "Save"} ${target.name} as draft candidate`}
+                                  >
+                                    {isSaving ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : isSaved ? (
+                                      <CheckCircle2 className="w-3.5 h-3.5" />
+                                    ) : (
+                                      <PlusCircle className="w-3.5 h-3.5" />
+                                    )}
+                                    {isSaving ? "Saving" : isSaved ? "Saved" : "Save draft"}
+                                  </button>
+                                </div>
                               </div>
-                              <div className="text-xs text-ink/60 border border-hairline px-2 py-1 whitespace-nowrap">
-                                {score}/100
+
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                {target.preferred && <Pill>Preferred</Pill>}
+                                {target.isInternal === true && <Pill>Internal</Pill>}
+                                {target.isInternal === false && <Pill>External</Pill>}
+                                {target.isAgent === true && <Pill>Agent/system</Pill>}
                               </div>
+
+                              {matchedCapabilities.length > 0 && (
+                                <div className="mt-2">
+                                  <p className="text-[11px] uppercase tracking-wide text-ink/45 mb-1">Matching capabilities</p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {matchedCapabilities.slice(0, 4).map((capability) => (
+                                      <Pill key={`draft-${target.id}-cap-${capability}`}>{capability}</Pill>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {matchedTags.length > 0 && (
+                                <div className="mt-2">
+                                  <p className="text-[11px] uppercase tracking-wide text-ink/45 mb-1">Matching tags</p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {matchedTags.slice(0, 4).map((tag) => (
+                                      <span key={`draft-${target.id}-tag-${tag}`} className="text-xs text-ink/55">
+                                        #{tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              <ul className="mt-2 space-y-1 text-xs text-ink/60">
+                                {reasons.map((reason) => (
+                                  <li key={`draft-${target.id}-${reason}`}>{reason}</li>
+                                ))}
+                              </ul>
                             </div>
-
-                            <div className="mt-2 flex flex-wrap gap-1">
-                              {target.preferred && <Pill>Preferred</Pill>}
-                              {target.isInternal === true && <Pill>Internal</Pill>}
-                              {target.isInternal === false && <Pill>External</Pill>}
-                              {target.isAgent === true && <Pill>Agent/system</Pill>}
-                            </div>
-
-                            {matchedCapabilities.length > 0 && (
-                              <div className="mt-2">
-                                <p className="text-[11px] uppercase tracking-wide text-ink/45 mb-1">Matching capabilities</p>
-                                <div className="flex flex-wrap gap-1">
-                                  {matchedCapabilities.slice(0, 4).map((capability) => (
-                                    <Pill key={`draft-${target.id}-cap-${capability}`}>{capability}</Pill>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {matchedTags.length > 0 && (
-                              <div className="mt-2">
-                                <p className="text-[11px] uppercase tracking-wide text-ink/45 mb-1">Matching tags</p>
-                                <div className="flex flex-wrap gap-1">
-                                  {matchedTags.slice(0, 4).map((tag) => (
-                                    <span key={`draft-${target.id}-tag-${tag}`} className="text-xs text-ink/55">
-                                      #{tag}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            <ul className="mt-2 space-y-1 text-xs text-ink/60">
-                              {reasons.map((reason) => (
-                                <li key={`draft-${target.id}-${reason}`}>{reason}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
