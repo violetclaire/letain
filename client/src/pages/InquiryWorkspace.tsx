@@ -71,7 +71,31 @@ interface InquiryWorkspaceResponse {
   inquiries: InquiryWorkspaceInquiry[];
 }
 
+interface RouteTarget {
+  id: string;
+  name: string;
+  roleLabel: string | null;
+  tags: string[] | null;
+  capabilities: string[] | null;
+  isInternal: boolean | null;
+  isAgent: boolean | null;
+  active: boolean | null;
+  preferred: boolean | null;
+  availabilitySource?: string | null;
+  notes?: string | null;
+}
+
+interface RouteTargetsResponse {
+  targets: RouteTarget[];
+}
+
 type SortMode = "newest" | "oldest" | "requestedDateAsc" | "requestedDateDesc";
+
+interface NetworkMatch {
+  target: RouteTarget;
+  reasons: string[];
+  score: number;
+}
 
 interface TimelineEntry {
   id: string;
@@ -83,7 +107,6 @@ interface TimelineEntry {
 const OPERATOR_ROLES = new Set(["artist"]);
 
 const MODULE_PLACEHOLDERS = [
-  { title: "Trusted network/routing", description: "Read-only placeholder for future routing candidates.", icon: Users },
   { title: "Contract", description: "Read-only placeholder for linked contract records.", icon: FileText },
   { title: "Payment state", description: "Read-only placeholder for payment-state metadata.", icon: CreditCard },
   { title: "Schedule draft", description: "Read-only placeholder for private schedule drafts.", icon: CalendarDays },
@@ -162,6 +185,74 @@ function timestamp(value?: string | null): number | null {
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date.getTime();
+}
+
+function textList(values?: string[] | null): string[] {
+  return Array.isArray(values) ? values.filter((value): value is string => typeof value === "string" && value.trim().length > 0) : [];
+}
+
+function textTokens(value?: string | null): string[] {
+  return valueLabel(value)
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((token) => token.length >= 3);
+}
+
+function matchesToken(value: string | null | undefined, tokens: string[]): boolean {
+  if (!value || tokens.length === 0) return false;
+  const normalized = valueLabel(value).toLowerCase();
+  return tokens.some((token) => normalized.includes(token));
+}
+
+function buildNetworkMatches(targets: RouteTarget[], inquiry: InquiryWorkspaceInquiry): NetworkMatch[] {
+  const serviceTokens = Array.from(new Set([...textTokens(inquiry.serviceType), ...textTokens(inquiry.eventType)]));
+  const locationTokens = Array.from(new Set(textTokens(inquiry.eventLocation)));
+
+  return targets
+    .filter((target) => target.active !== false)
+    .map((target) => {
+      const capabilities = textList(target.capabilities);
+      const tags = textList(target.tags);
+      const reasons: string[] = [];
+      let score = 0;
+
+      const capabilityMatches = capabilities.filter((capability) => matchesToken(capability, serviceTokens));
+      if (capabilityMatches.length > 0) {
+        score += 40;
+        reasons.push(`Capability match: ${capabilityMatches.slice(0, 2).join(", ")}`);
+      }
+
+      const serviceTagMatches = tags.filter((tag) => matchesToken(tag, serviceTokens));
+      if (serviceTagMatches.length > 0) {
+        score += 25;
+        reasons.push(`Service tag match: ${serviceTagMatches.slice(0, 2).join(", ")}`);
+      }
+
+      if (matchesToken(target.roleLabel, serviceTokens)) {
+        score += 20;
+        reasons.push(`Role matches ${valueLabel(inquiry.serviceType || inquiry.eventType)}`);
+      }
+
+      const locationMatches = [...tags, target.notes || ""].filter((value) => matchesToken(value, locationTokens));
+      if (locationMatches.length > 0) {
+        score += 15;
+        reasons.push(`Location cue matches ${inquiry.eventLocation}`);
+      }
+
+      if (inquiry.eventDate && target.availabilitySource) {
+        score += 5;
+        reasons.push(`${valueLabel(target.availabilitySource)} availability source listed for date review`);
+      }
+
+      if (target.preferred) {
+        score += 10;
+        reasons.unshift("Preferred contact");
+      }
+
+      return { target, reasons, score };
+    })
+    .filter((match) => match.reasons.length > 0)
+    .sort((a, b) => b.score - a.score || a.target.name.localeCompare(b.target.name));
 }
 
 function detailList(parts: Array<string | null | undefined>): string | undefined {
@@ -337,6 +428,14 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+function Pill({ children }: { children: ReactNode }) {
+  return (
+    <span className="inline-flex items-center border border-hairline px-1.5 py-0.5 text-[11px] uppercase tracking-wide text-ink/55">
+      {children}
+    </span>
+  );
+}
+
 export default function InquiryWorkspace() {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -362,6 +461,21 @@ export default function InquiryWorkspace() {
   });
 
   const inquiries = inquiriesQuery.data?.inquiries ?? [];
+  const routeTargetsQuery = useQuery<RouteTargetsResponse>({
+    queryKey: ["/api/route-targets"],
+    queryFn: async () => {
+      const res = await fetch("/api/route-targets", { credentials: "include" });
+      if (res.status === 401) throw new Error("401");
+      if (!res.ok) throw new Error("Failed to load route targets");
+      const payload = await res.json();
+      return {
+        targets: Array.isArray(payload?.targets) ? payload.targets : [],
+      };
+    },
+    enabled: isAuthenticated && isOperator && inquiries.length > 0,
+    retry: false,
+  });
+  const routeTargets = routeTargetsQuery.data?.targets ?? [];
   const statusOptions = useMemo(
     () => Array.from(new Set(inquiries.map((inquiry) => inquiry.status).filter((status): status is string => Boolean(status)))).sort(),
     [inquiries],
@@ -400,6 +514,10 @@ export default function InquiryWorkspace() {
   const timelineEntries = useMemo(
     () => (selectedInquiry ? buildTimelineEntries(selectedInquiry) : []),
     [selectedInquiry],
+  );
+  const networkMatches = useMemo(
+    () => (selectedInquiry ? buildNetworkMatches(routeTargets, selectedInquiry) : []),
+    [routeTargets, selectedInquiry],
   );
 
   useEffect(() => {
@@ -717,6 +835,94 @@ export default function InquiryWorkspace() {
                         </dd>
                       </div>
                     </dl>
+                  </div>
+                  <div className="border border-hairline bg-surface px-4 py-4 sm:col-span-2" data-testid="trusted-network-card">
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-ink/50" />
+                        <h3 className="font-serif text-base tracking-tight">Trusted network</h3>
+                      </div>
+                      {!routeTargetsQuery.isLoading && !routeTargetsQuery.isError && (
+                        <span className="text-xs text-ink/50">
+                          {networkMatches.length} match{networkMatches.length === 1 ? "" : "es"}
+                        </span>
+                      )}
+                    </div>
+
+                    {routeTargetsQuery.isLoading && (
+                      <div className="flex items-center gap-2 text-sm text-ink/60">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading network
+                      </div>
+                    )}
+
+                    {routeTargetsQuery.isError && (
+                      <p className="text-sm text-ink/60">
+                        Could not load the read-only network lookup.
+                      </p>
+                    )}
+
+                    {!routeTargetsQuery.isLoading && !routeTargetsQuery.isError && routeTargets.length === 0 && (
+                      <p className="text-sm text-ink/60">
+                        No route targets are available in this operator network yet.
+                      </p>
+                    )}
+
+                    {!routeTargetsQuery.isLoading && !routeTargetsQuery.isError && routeTargets.length > 0 && networkMatches.length === 0 && (
+                      <p className="text-sm text-ink/60">
+                        No active contacts match this inquiry's service, location, or date cues from existing network metadata.
+                      </p>
+                    )}
+
+                    {!routeTargetsQuery.isLoading && !routeTargetsQuery.isError && networkMatches.length > 0 && (
+                      <div className="space-y-3">
+                        {networkMatches.slice(0, 5).map(({ target, reasons }) => {
+                          const capabilities = textList(target.capabilities);
+                          const tags = textList(target.tags);
+
+                          return (
+                            <div key={target.id} className="border-t border-hairline pt-3 first:border-t-0 first:pt-0">
+                              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-ink break-words">{target.name}</p>
+                                  <p className="text-xs text-ink/55 mt-0.5">{target.roleLabel || "Network contact"}</p>
+                                </div>
+                                <div className="flex flex-wrap gap-1">
+                                  {target.preferred && <Pill>Preferred</Pill>}
+                                  {target.isInternal === true && <Pill>Internal</Pill>}
+                                  {target.isInternal === false && <Pill>External</Pill>}
+                                  {target.isAgent === true && <Pill>Agent/system</Pill>}
+                                </div>
+                              </div>
+
+                              {capabilities.length > 0 && (
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                  {capabilities.slice(0, 4).map((capability) => (
+                                    <Pill key={`${target.id}-cap-${capability}`}>{capability}</Pill>
+                                  ))}
+                                </div>
+                              )}
+
+                              {tags.length > 0 && (
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                  {tags.slice(0, 4).map((tag) => (
+                                    <span key={`${target.id}-tag-${tag}`} className="text-xs text-ink/55">
+                                      #{tag}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+
+                              <ul className="mt-2 space-y-1 text-xs text-ink/60">
+                                {reasons.map((reason) => (
+                                  <li key={`${target.id}-${reason}`}>{reason}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                   <div className="border border-hairline bg-surface px-4 py-4 sm:col-span-2" data-testid="coordination-timeline-card">
                     <div className="flex items-center gap-2 mb-3">
