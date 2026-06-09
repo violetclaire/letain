@@ -1868,6 +1868,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  const draftRouteCandidateSchema = z.object({
+    routeTargetId: z.string().min(1),
+    status: z.literal("draft").optional(),
+    matchScore: z.number().int().min(0).max(100).nullable().optional(),
+    matchReasons: z.array(z.string()).nullable().optional(),
+    matchedCapabilities: z.array(z.string()).nullable().optional(),
+    matchedTags: z.array(z.string()).nullable().optional(),
+  });
+
+  const loadDraftCandidateContext = async (req: Request, res: Response) => {
+    const userId = getAuthUserId(req);
+    if (!userId) {
+      res.status(401).json({ error: "Not authenticated" });
+      return null;
+    }
+
+    const user = await storage.getUser(userId);
+    if (!user || user.role !== "artist") {
+      res.status(403).json({ error: "Operator access required" });
+      return null;
+    }
+
+    const inquiry = await storage.getInquiry(req.params.id);
+    if (!inquiry) {
+      res.status(404).json({ error: "Inquiry not found" });
+      return null;
+    }
+
+    if (inquiry.vendorId !== userId) {
+      res.status(403).json({ error: "Access denied" });
+      return null;
+    }
+
+    return { userId, inquiry };
+  };
+
+  // --- Inquiry Workspace: internal draft route candidates (no route creation) ---
+  app.get("/api/inquiries/:id/draft-route-candidates", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const context = await loadDraftCandidateContext(req, res);
+      if (!context) return;
+
+      const candidates = await storage.listDraftRouteCandidates(context.userId, context.inquiry.id);
+      res.json({ candidates });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/inquiries/:id/draft-route-candidates", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const context = await loadDraftCandidateContext(req, res);
+      if (!context) return;
+
+      const parsed = draftRouteCandidateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0]?.message || "Invalid draft route candidate" });
+      }
+
+      const target = await storage.getRouteTarget(parsed.data.routeTargetId);
+      if (!target || target.operatorId !== context.userId) {
+        return res.status(400).json({ error: "Invalid route target" });
+      }
+
+      const candidate = await storage.upsertDraftRouteCandidate(
+        context.userId,
+        context.inquiry.id,
+        parsed.data.routeTargetId,
+        {
+          ...(parsed.data.matchScore !== undefined ? { matchScore: parsed.data.matchScore } : {}),
+          ...(parsed.data.matchReasons !== undefined ? { matchReasons: parsed.data.matchReasons } : {}),
+          ...(parsed.data.matchedCapabilities !== undefined ? { matchedCapabilities: parsed.data.matchedCapabilities } : {}),
+          ...(parsed.data.matchedTags !== undefined ? { matchedTags: parsed.data.matchedTags } : {}),
+        },
+      );
+
+      res.json({ candidate });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // --- Composer: one-stop context for an inquiry ---
   // Returns inquiry context, default drafts, existing routes + responses, and
   // the operator's route targets, so the UI can render the composer in one call.
