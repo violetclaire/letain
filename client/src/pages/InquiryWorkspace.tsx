@@ -122,6 +122,19 @@ interface InternalNoteResponse {
   note: InternalNote | null;
 }
 
+interface ScheduleDraft {
+  id: string;
+  inquiryId?: string | null;
+  contractId?: string | null;
+  bookingId?: string | null;
+  title?: string | null;
+  status?: string | null;
+  eventDate?: string | null;
+  location?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+
 interface TrustTimelineEntry {
   id: string;
   eventType: string;
@@ -169,7 +182,6 @@ const OPERATOR_ROLES = new Set(["artist"]);
 const MODULE_PLACEHOLDERS = [
   { title: "Contract", description: "Read-only placeholder for linked contract records.", icon: FileText },
   { title: "Payment state", description: "Read-only placeholder for payment-state metadata.", icon: CreditCard },
-  { title: "Schedule draft", description: "Read-only placeholder for private schedule drafts.", icon: CalendarDays },
 ];
 
 function draftRouteCandidatesQueryKey(inquiryId?: string | null) {
@@ -178,6 +190,10 @@ function draftRouteCandidatesQueryKey(inquiryId?: string | null) {
 
 function internalNoteQueryKey(inquiryId?: string | null) {
   return ["/api/inquiries", inquiryId, "internal-note"] as const;
+}
+
+function scheduleDraftQueryKey(inquiryId?: string | null) {
+  return ["/api/schedule-drafts/by-inquiry", inquiryId] as const;
 }
 
 function formatDate(value?: string | null): string {
@@ -554,6 +570,9 @@ export default function InquiryWorkspace() {
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [internalNoteBody, setInternalNoteBody] = useState("");
   const isOperator = typeof user?.role === "string" && OPERATOR_ROLES.has(user.role);
+  const artistSlug = typeof (user as { artistSlug?: unknown } | undefined)?.artistSlug === "string"
+    ? (user as { artistSlug?: string }).artistSlug || ""
+    : "";
 
   const inquiriesQuery = useQuery<InquiryWorkspaceResponse>({
     queryKey: ["/api/vendor/inquiries"],
@@ -654,6 +673,19 @@ export default function InquiryWorkspace() {
     enabled: isAuthenticated && isOperator && Boolean(selectedInquiryId),
     retry: false,
   });
+  const scheduleDraftQuery = useQuery<ScheduleDraft | null>({
+    queryKey: scheduleDraftQueryKey(selectedInquiryId),
+    queryFn: async () => {
+      if (!selectedInquiryId) return null;
+      const res = await fetch(`/api/schedule-drafts/by-inquiry/${encodeURIComponent(selectedInquiryId)}`, { credentials: "include" });
+      if (res.status === 404) return null;
+      if (res.status === 401) throw new Error("401");
+      if (!res.ok) throw new Error("Failed to load schedule draft");
+      return res.json() as Promise<ScheduleDraft>;
+    },
+    enabled: isAuthenticated && isOperator && Boolean(selectedInquiryId),
+    retry: false,
+  });
   const trustTimelineQuery = useQuery<TrustTimelineResponse>({
     queryKey: ["/api/inquiries", selectedThreadToken, "trust-timeline"],
     queryFn: async () => {
@@ -742,6 +774,10 @@ export default function InquiryWorkspace() {
   });
   const savedInternalNoteBody = internalNoteQuery.data?.note?.body ?? "";
   const internalNoteIsDirty = internalNoteBody !== savedInternalNoteBody;
+  const selectedScheduleDraft = scheduleDraftQuery.data ?? null;
+  const scheduleDraftHref = selectedScheduleDraft?.id && artistSlug
+    ? `/admin/${artistSlug}/schedules/${selectedScheduleDraft.id}`
+    : null;
 
   useEffect(() => {
     if (filteredInquiries.length === 0) {
@@ -1211,6 +1247,65 @@ export default function InquiryWorkspace() {
                       <p className="mt-3 text-sm text-ink/60">
                         Could not save this internal note. Please try again.
                       </p>
+                    )}
+                  </div>
+                  <div className="border border-hairline bg-surface px-4 py-4" data-testid="schedule-draft-card">
+                    <div className="flex items-center gap-2 mb-3">
+                      <CalendarDays className="w-4 h-4 text-ink/50" />
+                      <h3 className="font-serif text-base tracking-tight">Schedule draft</h3>
+                    </div>
+
+                    {scheduleDraftQuery.isLoading && (
+                      <div className="flex items-center gap-2 text-sm text-ink/60">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading schedule draft
+                      </div>
+                    )}
+
+                    {scheduleDraftQuery.isError && (
+                      <p className="text-sm text-ink/60">
+                        Could not load the linked schedule draft.
+                      </p>
+                    )}
+
+                    {!scheduleDraftQuery.isLoading && !scheduleDraftQuery.isError && !selectedScheduleDraft && (
+                      <p className="text-sm text-ink/60">
+                        No private schedule draft is linked to this inquiry yet.
+                      </p>
+                    )}
+
+                    {!scheduleDraftQuery.isLoading && !scheduleDraftQuery.isError && selectedScheduleDraft && (
+                      <div className="space-y-3">
+                        <dl className="space-y-2 text-sm">
+                          <div>
+                            <dt className="text-xs uppercase tracking-wide text-ink/45">Title</dt>
+                            <dd className="text-ink break-words">
+                              <EmptyValue>{selectedScheduleDraft.title}</EmptyValue>
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs uppercase tracking-wide text-ink/45">Status</dt>
+                            <dd className="text-ink break-words">{statusLabel(selectedScheduleDraft.status)}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs uppercase tracking-wide text-ink/45">Updated</dt>
+                            <dd className="text-ink break-words">{formatDateTime(selectedScheduleDraft.updatedAt || selectedScheduleDraft.createdAt)}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs uppercase tracking-wide text-ink/45">Draft ID</dt>
+                            <dd className="text-ink break-all">{selectedScheduleDraft.id}</dd>
+                          </div>
+                        </dl>
+                        {scheduleDraftHref && (
+                          <Link
+                            href={scheduleDraftHref}
+                            className="inline-flex h-8 w-fit items-center border border-hairline px-3 text-xs text-ink/70 transition hover:bg-bg"
+                            data-testid="link-open-schedule-draft"
+                          >
+                            Open schedule draft
+                          </Link>
+                        )}
+                      </div>
                     )}
                   </div>
                   <div className="border border-hairline bg-surface px-4 py-4 sm:col-span-2" data-testid="draft-routing-candidates-card">
