@@ -46,7 +46,6 @@ interface InquiryWorkspaceResponse {
 const OPERATOR_ROLES = new Set(["artist"]);
 
 const MODULE_PLACEHOLDERS = [
-  { title: "Client/contact", description: "Read-only placeholder for linked client records.", icon: User },
   { title: "Trusted network/routing", description: "Read-only placeholder for future routing candidates.", icon: Users },
   { title: "Contract", description: "Read-only placeholder for linked contract records.", icon: FileText },
   { title: "Payment state", description: "Read-only placeholder for payment-state metadata.", icon: CreditCard },
@@ -325,6 +324,48 @@ export default function InquiryWorkspace() {
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  <div className="border border-hairline bg-surface px-4 py-4" data-testid="contact-card">
+                    <div className="flex items-center gap-2 mb-3">
+                      <User className="w-4 h-4 text-ink/50" />
+                      <h3 className="font-serif text-base tracking-tight">Client/contact</h3>
+                    </div>
+                    <dl className="space-y-2 text-sm">
+                      <div>
+                        <dt className="text-xs uppercase tracking-wide text-ink/45">Client name</dt>
+                        <dd className="text-ink break-words">
+                          <EmptyValue>{selectedInquiry.clientName}</EmptyValue>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs uppercase tracking-wide text-ink/45">Email</dt>
+                        <dd className="text-ink break-words">
+                          <EmptyValue>{selectedInquiry.clientEmail}</EmptyValue>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs uppercase tracking-wide text-ink/45">Phone</dt>
+                        <dd className="text-ink break-words">
+                          <EmptyValue>{selectedInquiry.clientPhone}</EmptyValue>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs uppercase tracking-wide text-ink/45">Requested date</dt>
+                        <dd className="text-ink break-words">{formatDate(selectedInquiry.eventDate)}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs uppercase tracking-wide text-ink/45">Location</dt>
+                        <dd className="text-ink break-words">
+                          <EmptyValue>{selectedInquiry.eventLocation}</EmptyValue>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs uppercase tracking-wide text-ink/45">Source / status</dt>
+                        <dd className="text-ink break-words">
+                          {sourceLabel(selectedInquiry)} / {statusLabel(selectedInquiry.status)}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
                   {MODULE_PLACEHOLDERS.map(({ title, description, icon: Icon }) => (
                     <div key={title} className="border border-hairline bg-surface px-4 py-4" data-testid={`placeholder-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}>
                       <div className="flex items-center gap-2 mb-2">
