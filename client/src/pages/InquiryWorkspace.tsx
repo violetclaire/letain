@@ -13,6 +13,7 @@ import {
   MapPin,
   Phone,
   PlusCircle,
+  Save,
   Search,
   StickyNote,
   User,
@@ -109,6 +110,18 @@ interface DraftRouteCandidatesResponse {
   candidates: DraftRouteCandidate[];
 }
 
+interface InternalNote {
+  id: string;
+  inquiryId: string;
+  body: string;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+interface InternalNoteResponse {
+  note: InternalNote | null;
+}
+
 interface TrustTimelineEntry {
   id: string;
   eventType: string;
@@ -161,6 +174,10 @@ const MODULE_PLACEHOLDERS = [
 
 function draftRouteCandidatesQueryKey(inquiryId?: string | null) {
   return ["/api/inquiries", inquiryId, "draft-route-candidates"] as const;
+}
+
+function internalNoteQueryKey(inquiryId?: string | null) {
+  return ["/api/inquiries", inquiryId, "internal-note"] as const;
 }
 
 function formatDate(value?: string | null): string {
@@ -535,6 +552,7 @@ export default function InquiryWorkspace() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
   const [sortMode, setSortMode] = useState<SortMode>("newest");
+  const [internalNoteBody, setInternalNoteBody] = useState("");
   const isOperator = typeof user?.role === "string" && OPERATOR_ROLES.has(user.role);
 
   const inquiriesQuery = useQuery<InquiryWorkspaceResponse>({
@@ -621,6 +639,21 @@ export default function InquiryWorkspace() {
     retry: false,
   });
   const draftCandidates = draftCandidatesQuery.data?.candidates ?? [];
+  const internalNoteQuery = useQuery<InternalNoteResponse>({
+    queryKey: internalNoteQueryKey(selectedInquiryId),
+    queryFn: async () => {
+      if (!selectedInquiryId) return { note: null };
+      const res = await fetch(`/api/inquiries/${encodeURIComponent(selectedInquiryId)}/internal-note`, { credentials: "include" });
+      if (res.status === 401) throw new Error("401");
+      if (!res.ok) throw new Error("Failed to load internal note");
+      const payload = await res.json();
+      return {
+        note: payload?.note && typeof payload.note.body === "string" ? payload.note : null,
+      };
+    },
+    enabled: isAuthenticated && isOperator && Boolean(selectedInquiryId),
+    retry: false,
+  });
   const trustTimelineQuery = useQuery<TrustTimelineResponse>({
     queryKey: ["/api/inquiries", selectedThreadToken, "trust-timeline"],
     queryFn: async () => {
@@ -690,6 +723,25 @@ export default function InquiryWorkspace() {
       queryClient.invalidateQueries({ queryKey: draftRouteCandidatesQueryKey(variables.inquiryId) });
     },
   });
+  const saveInternalNote = useMutation({
+    mutationFn: async ({ inquiryId, body }: { inquiryId: string; body: string }) => {
+      const res = await fetch(`/api/inquiries/${encodeURIComponent(inquiryId)}/internal-note`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body }),
+      });
+      if (res.status === 401) throw new Error("401");
+      if (!res.ok) throw new Error("Failed to save internal note");
+      return res.json() as Promise<InternalNoteResponse>;
+    },
+    onSuccess: (data, variables) => {
+      setInternalNoteBody(data.note?.body ?? variables.body);
+      queryClient.invalidateQueries({ queryKey: internalNoteQueryKey(variables.inquiryId) });
+    },
+  });
+  const savedInternalNoteBody = internalNoteQuery.data?.note?.body ?? "";
+  const internalNoteIsDirty = internalNoteBody !== savedInternalNoteBody;
 
   useEffect(() => {
     if (filteredInquiries.length === 0) {
@@ -700,6 +752,10 @@ export default function InquiryWorkspace() {
       setSelectedId(filteredInquiries[0].id);
     }
   }, [filteredInquiries, selectedId]);
+
+  useEffect(() => {
+    setInternalNoteBody(internalNoteQuery.data?.note?.body ?? "");
+  }, [selectedInquiryId, internalNoteQuery.data?.note?.body]);
 
   if (authLoading) {
     return (
@@ -1093,6 +1149,68 @@ export default function InquiryWorkspace() {
                           );
                         })}
                       </div>
+                    )}
+                  </div>
+                  <div className="border border-hairline bg-surface px-4 py-4 sm:col-span-2" data-testid="internal-notes-card">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <StickyNote className="w-4 h-4 text-ink/50" />
+                        <h3 className="font-serif text-base tracking-tight">Internal notes</h3>
+                      </div>
+                      <Pill>Private/internal only</Pill>
+                    </div>
+
+                    {internalNoteQuery.isLoading ? (
+                      <div className="flex items-center gap-2 text-sm text-ink/60">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading internal note
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <textarea
+                          value={internalNoteBody}
+                          onChange={(event) => setInternalNoteBody(event.target.value)}
+                          placeholder="Add a private operator note"
+                          rows={5}
+                          className="w-full resize-y border border-hairline bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink/35 focus:outline-none focus:border-ink/40"
+                          data-testid="textarea-internal-note"
+                        />
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <p className="text-xs text-ink/50">
+                            {internalNoteQuery.data?.note?.updatedAt ? `Last saved ${formatDateTime(internalNoteQuery.data.note.updatedAt)}` : "Not saved yet"}
+                          </p>
+                          <button
+                            type="button"
+                            className="inline-flex h-8 w-fit items-center gap-1.5 border border-hairline px-3 text-xs text-ink/70 transition hover:bg-bg disabled:cursor-not-allowed disabled:text-ink/35 disabled:hover:bg-transparent"
+                            disabled={!selectedInquiryId || !internalNoteIsDirty || saveInternalNote.isPending}
+                            onClick={() => {
+                              if (selectedInquiryId) {
+                                saveInternalNote.mutate({ inquiryId: selectedInquiryId, body: internalNoteBody });
+                              }
+                            }}
+                            data-testid="button-save-internal-note"
+                          >
+                            {saveInternalNote.isPending ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Save className="w-3.5 h-3.5" />
+                            )}
+                            {saveInternalNote.isPending ? "Saving" : "Save note"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {internalNoteQuery.isError && (
+                      <p className="mt-3 text-sm text-ink/60">
+                        Could not load this internal note.
+                      </p>
+                    )}
+
+                    {saveInternalNote.isError && (
+                      <p className="mt-3 text-sm text-ink/60">
+                        Could not save this internal note. Please try again.
+                      </p>
                     )}
                   </div>
                   <div className="border border-hairline bg-surface px-4 py-4 sm:col-span-2" data-testid="draft-routing-candidates-card">
