@@ -487,6 +487,7 @@ export interface IStorage {
     routeTargetId: string,
     metadata?: Partial<Pick<InsertInquiryRouteCandidate, "matchScore" | "matchReasons" | "matchedCapabilities" | "matchedTags">>,
   ): Promise<InquiryRouteCandidate>;
+  deleteDraftRouteCandidate(operatorId: string, inquiryId: string, routeTargetId: string): Promise<void>;
   // Briarwood response composer: outgoing client-message drafts
   createInquiryResponse(data: InsertInquiryResponse): Promise<InquiryResponse>;
   getInquiryResponse(id: string): Promise<InquiryResponse | undefined>;
@@ -2762,6 +2763,16 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return row;
+  }
+
+  async deleteDraftRouteCandidate(operatorId: string, inquiryId: string, routeTargetId: string): Promise<void> {
+    await db.delete(inquiryRouteCandidates)
+      .where(and(
+        eq(inquiryRouteCandidates.operatorId, operatorId),
+        eq(inquiryRouteCandidates.inquiryId, inquiryId),
+        eq(inquiryRouteCandidates.routeTargetId, routeTargetId),
+        eq(inquiryRouteCandidates.status, "draft"),
+      ));
   }
 
   // --- Briarwood response composer: outgoing client-message drafts ---

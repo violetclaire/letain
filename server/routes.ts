@@ -1950,6 +1950,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/inquiries/:id/draft-route-candidates/:routeTargetId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const context = await loadDraftCandidateContext(req, res);
+      if (!context) return;
+
+      if (!req.params.routeTargetId) {
+        return res.status(400).json({ error: "Route target is required" });
+      }
+
+      await storage.deleteDraftRouteCandidate(context.userId, context.inquiry.id, req.params.routeTargetId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // --- Composer: one-stop context for an inquiry ---
   // Returns inquiry context, default drafts, existing routes + responses, and
   // the operator's route targets, so the UI can render the composer in one call.

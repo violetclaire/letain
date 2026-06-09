@@ -4,7 +4,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
   CalendarDays,
-  CheckCircle2,
   Clock3,
   CreditCard,
   FileText,
@@ -18,6 +17,7 @@ import {
   StickyNote,
   User,
   Users,
+  XCircle,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -596,6 +596,20 @@ export default function InquiryWorkspace() {
       queryClient.invalidateQueries({ queryKey: draftRouteCandidatesQueryKey(variables.inquiryId) });
     },
   });
+  const removeDraftCandidate = useMutation({
+    mutationFn: async ({ inquiryId, routeTargetId }: { inquiryId: string; routeTargetId: string }) => {
+      const res = await fetch(`/api/inquiries/${inquiryId}/draft-route-candidates/${routeTargetId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (res.status === 401) throw new Error("401");
+      if (!res.ok) throw new Error("Failed to remove draft route candidate");
+      return res.json() as Promise<{ success: boolean }>;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: draftRouteCandidatesQueryKey(variables.inquiryId) });
+    },
+  });
 
   useEffect(() => {
     if (filteredInquiries.length === 0) {
@@ -1039,6 +1053,12 @@ export default function InquiryWorkspace() {
                       </p>
                     )}
 
+                    {removeDraftCandidate.isError && (
+                      <p className="text-sm text-ink/60">
+                        Could not remove this draft candidate. Please try again.
+                      </p>
+                    )}
+
                     {!routeTargetsQuery.isLoading && !routeTargetsQuery.isError && routeTargets.length === 0 && (
                       <p className="text-sm text-ink/60">
                         No route targets are available for draft candidates yet.
@@ -1060,7 +1080,12 @@ export default function InquiryWorkspace() {
                             saveDraftCandidate.isPending &&
                             saveDraftCandidate.variables?.inquiryId === selectedInquiryId &&
                             saveDraftCandidate.variables?.match.target.id === target.id;
-                          const saveDisabled = !selectedInquiryId || isSaved || isSaving || draftCandidatesQuery.isLoading;
+                          const isRemoving =
+                            removeDraftCandidate.isPending &&
+                            removeDraftCandidate.variables?.inquiryId === selectedInquiryId &&
+                            removeDraftCandidate.variables?.routeTargetId === target.id;
+                          const saveDisabled = !selectedInquiryId || isSaved || isSaving || isRemoving || draftCandidatesQuery.isLoading;
+                          const removeDisabled = !selectedInquiryId || isSaving || isRemoving || draftCandidatesQuery.isLoading;
 
                           return (
                             <div key={`draft-${target.id}`} className="border-t border-hairline pt-3 first:border-t-0 first:pt-0">
@@ -1076,27 +1101,47 @@ export default function InquiryWorkspace() {
                                   <div className="text-xs text-ink/60 border border-hairline px-2 py-1 whitespace-nowrap">
                                     {score}/100
                                   </div>
-                                  <button
-                                    type="button"
-                                    className="inline-flex h-7 items-center gap-1 border border-hairline px-2 text-xs text-ink/70 transition hover:bg-bg disabled:cursor-not-allowed disabled:text-ink/35 disabled:hover:bg-transparent"
-                                    disabled={saveDisabled}
-                                    onClick={() => {
-                                      if (selectedInquiryId) {
-                                        saveDraftCandidate.mutate({ inquiryId: selectedInquiryId, match });
-                                      }
-                                    }}
-                                    data-testid={`button-save-draft-candidate-${target.id}`}
-                                    aria-label={`${isSaved ? "Saved" : "Save"} ${target.name} as draft candidate`}
-                                  >
-                                    {isSaving ? (
-                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                    ) : isSaved ? (
-                                      <CheckCircle2 className="w-3.5 h-3.5" />
-                                    ) : (
-                                      <PlusCircle className="w-3.5 h-3.5" />
-                                    )}
-                                    {isSaving ? "Saving" : isSaved ? "Saved" : "Save draft"}
-                                  </button>
+                                  {isSaved ? (
+                                    <button
+                                      type="button"
+                                      className="inline-flex h-7 items-center gap-1 border border-hairline px-2 text-xs text-ink/70 transition hover:bg-bg disabled:cursor-not-allowed disabled:text-ink/35 disabled:hover:bg-transparent"
+                                      disabled={removeDisabled}
+                                      onClick={() => {
+                                        if (selectedInquiryId) {
+                                          removeDraftCandidate.mutate({ inquiryId: selectedInquiryId, routeTargetId: target.id });
+                                        }
+                                      }}
+                                      data-testid={`button-remove-draft-candidate-${target.id}`}
+                                      aria-label={`Remove ${target.name} from draft candidates`}
+                                    >
+                                      {isRemoving ? (
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                      ) : (
+                                        <XCircle className="w-3.5 h-3.5" />
+                                      )}
+                                      {isRemoving ? "Removing" : "Remove"}
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      className="inline-flex h-7 items-center gap-1 border border-hairline px-2 text-xs text-ink/70 transition hover:bg-bg disabled:cursor-not-allowed disabled:text-ink/35 disabled:hover:bg-transparent"
+                                      disabled={saveDisabled}
+                                      onClick={() => {
+                                        if (selectedInquiryId) {
+                                          saveDraftCandidate.mutate({ inquiryId: selectedInquiryId, match });
+                                        }
+                                      }}
+                                      data-testid={`button-save-draft-candidate-${target.id}`}
+                                      aria-label={`Save ${target.name} as draft candidate`}
+                                    >
+                                      {isSaving ? (
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                      ) : (
+                                        <PlusCircle className="w-3.5 h-3.5" />
+                                      )}
+                                      {isSaving ? "Saving" : "Save draft"}
+                                    </button>
+                                  )}
                                 </div>
                               </div>
 

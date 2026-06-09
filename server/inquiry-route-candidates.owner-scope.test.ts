@@ -24,6 +24,7 @@ type TestCandidate = {
 
 let getDraftCandidatesHandler: Handler;
 let postDraftCandidateHandler: Handler;
+let deleteDraftCandidateHandler: Handler;
 let storage: any;
 
 function createRecordingApp(): Express & { routes: RouteRecord[] } {
@@ -92,6 +93,10 @@ before(async () => {
   const postRoute = app.routes.find((record) => record.method === "post" && record.path === "/api/inquiries/:id/draft-route-candidates");
   assert.ok(postRoute, "POST /api/inquiries/:id/draft-route-candidates should be registered");
   postDraftCandidateHandler = postRoute.handlers.at(-1) as Handler;
+
+  const deleteRoute = app.routes.find((record) => record.method === "delete" && record.path === "/api/inquiries/:id/draft-route-candidates/:routeTargetId");
+  assert.ok(deleteRoute, "DELETE /api/inquiries/:id/draft-route-candidates/:routeTargetId should be registered");
+  deleteDraftCandidateHandler = deleteRoute.handlers.at(-1) as Handler;
 });
 
 afterEach(() => {
@@ -160,6 +165,28 @@ function stubCandidateStorage() {
       matchedCapabilities: ["makeup"],
       matchedTags: ["wedding"],
     },
+    {
+      id: "candidate-b",
+      operatorId: "artist-b",
+      inquiryId: "inquiry-b",
+      routeTargetId: "target-b",
+      status: "draft",
+      matchScore: 70,
+      matchReasons: ["Planner match"],
+      matchedCapabilities: ["planning"],
+      matchedTags: ["venue"],
+    },
+    {
+      id: "candidate-archived",
+      operatorId: "artist-a",
+      inquiryId: "inquiry-a",
+      routeTargetId: "target-archived",
+      status: "archived",
+      matchScore: 50,
+      matchReasons: ["Old match"],
+      matchedCapabilities: ["hair"],
+      matchedTags: ["archive"],
+    },
   ];
   const calls = {
     getUser: [] as string[],
@@ -167,6 +194,7 @@ function stubCandidateStorage() {
     getRouteTarget: [] as string[],
     listDraftRouteCandidates: [] as Array<[string, string]>,
     upsertDraftRouteCandidate: [] as Array<[string, string, string]>,
+    deleteDraftRouteCandidate: [] as Array<[string, string, string]>,
     createInquiryRoute: 0,
     updateInquiryRoute: 0,
     updateInquiry: 0,
@@ -186,7 +214,7 @@ function stubCandidateStorage() {
   });
   mock.method(storage, "listDraftRouteCandidates", async (operatorId: string, inquiryId: string) => {
     calls.listDraftRouteCandidates.push([operatorId, inquiryId]);
-    return candidates.filter((candidate) => candidate.operatorId === operatorId && candidate.inquiryId === inquiryId);
+    return candidates.filter((candidate) => candidate.operatorId === operatorId && candidate.inquiryId === inquiryId && candidate.status === "draft");
   });
   mock.method(storage, "upsertDraftRouteCandidate", async (operatorId: string, inquiryId: string, routeTargetId: string, metadata: any) => {
     calls.upsertDraftRouteCandidate.push([operatorId, inquiryId, routeTargetId]);
@@ -219,6 +247,21 @@ function stubCandidateStorage() {
     candidates.push(created);
     return created;
   });
+  mock.method(storage, "deleteDraftRouteCandidate", async (operatorId: string, inquiryId: string, routeTargetId: string) => {
+    calls.deleteDraftRouteCandidate.push([operatorId, inquiryId, routeTargetId]);
+    for (let index = candidates.length - 1; index >= 0; index -= 1) {
+      const candidate = candidates[index];
+      if (!candidate) continue;
+      if (
+        candidate.operatorId === operatorId &&
+        candidate.inquiryId === inquiryId &&
+        candidate.routeTargetId === routeTargetId &&
+        candidate.status === "draft"
+      ) {
+        candidates.splice(index, 1);
+      }
+    }
+  });
   mock.method(storage, "createInquiryRoute", async () => {
     calls.createInquiryRoute += 1;
     throw new Error("createInquiryRoute should not be called by draft route candidate endpoints");
@@ -240,13 +283,16 @@ test("draft route candidate endpoints return 401 for logged-out requests", async
 
   const getResult = await invoke(getDraftCandidatesHandler);
   const postResult = await invoke(postDraftCandidateHandler, { body: { routeTargetId: "target-a" } });
+  const deleteResult = await invoke(deleteDraftCandidateHandler, { params: { id: "inquiry-a", routeTargetId: "target-a" } });
 
   assert.equal(getResult.statusCode, 401);
   assert.equal(postResult.statusCode, 401);
+  assert.equal(deleteResult.statusCode, 401);
   assert.deepEqual(calls.getUser, []);
   assert.deepEqual(calls.getInquiry, []);
   assert.deepEqual(calls.listDraftRouteCandidates, []);
   assert.deepEqual(calls.upsertDraftRouteCandidate, []);
+  assert.deepEqual(calls.deleteDraftRouteCandidate, []);
 });
 
 test("draft route candidate endpoints return 403 for authenticated non-artist users", async () => {
@@ -257,14 +303,21 @@ test("draft route candidate endpoints return 403 for authenticated non-artist us
     session: { userId: "client-user" },
     body: { routeTargetId: "target-a" },
   });
+  const deleteResult = await invoke(deleteDraftCandidateHandler, {
+    session: { userId: "client-user" },
+    params: { id: "inquiry-a", routeTargetId: "target-a" },
+  });
 
   assert.equal(getResult.statusCode, 403);
   assert.equal(postResult.statusCode, 403);
+  assert.equal(deleteResult.statusCode, 403);
   assert.deepEqual(getResult.body, { error: "Operator access required" });
   assert.deepEqual(postResult.body, { error: "Operator access required" });
+  assert.deepEqual(deleteResult.body, { error: "Operator access required" });
   assert.deepEqual(calls.getInquiry, []);
   assert.deepEqual(calls.listDraftRouteCandidates, []);
   assert.deepEqual(calls.upsertDraftRouteCandidate, []);
+  assert.deepEqual(calls.deleteDraftRouteCandidate, []);
 });
 
 test("draft route candidates cannot be read for another operator's inquiry", async () => {
@@ -295,6 +348,19 @@ test("draft route candidates cannot be written for another operator's inquiry", 
   assert.deepEqual(calls.upsertDraftRouteCandidate, []);
 });
 
+test("draft route candidates cannot be deleted for another operator's inquiry", async () => {
+  const { calls } = stubCandidateStorage();
+
+  const result = await invoke(deleteDraftCandidateHandler, {
+    session: { userId: "artist-a" },
+    params: { id: "inquiry-b", routeTargetId: "target-b" },
+  });
+
+  assert.equal(result.statusCode, 403);
+  assert.deepEqual(result.body, { error: "Access denied" });
+  assert.deepEqual(calls.deleteDraftRouteCandidate, []);
+});
+
 test("draft route candidates cannot use another operator's route target", async () => {
   const { calls } = stubCandidateStorage();
 
@@ -307,6 +373,58 @@ test("draft route candidates cannot use another operator's route target", async 
   assert.equal(result.statusCode, 400);
   assert.deepEqual(result.body, { error: "Invalid route target" });
   assert.deepEqual(calls.upsertDraftRouteCandidate, []);
+});
+
+test("draft route candidate DELETE cannot remove another operator's candidate", async () => {
+  const { calls, candidates } = stubCandidateStorage();
+
+  const result = await invoke(deleteDraftCandidateHandler, {
+    session: { userId: "artist-a" },
+    params: { id: "inquiry-a", routeTargetId: "target-b" },
+  });
+
+  assert.equal(result.statusCode, 200);
+  assert.deepEqual(result.body, { success: true });
+  assert.equal(candidates.some((candidate) => candidate.operatorId === "artist-b" && candidate.inquiryId === "inquiry-b" && candidate.routeTargetId === "target-b"), true);
+  assert.deepEqual(calls.deleteDraftRouteCandidate, [["artist-a", "inquiry-a", "target-b"]]);
+});
+
+test("draft route candidate DELETE is scoped and idempotent", async () => {
+  const { calls, candidates } = stubCandidateStorage();
+
+  const first = await invoke(deleteDraftCandidateHandler, {
+    session: { userId: "artist-a" },
+    params: { id: "inquiry-a", routeTargetId: "target-a" },
+  });
+  const second = await invoke(deleteDraftCandidateHandler, {
+    session: { userId: "artist-a" },
+    params: { id: "inquiry-a", routeTargetId: "target-a" },
+  });
+
+  assert.equal(first.statusCode, 200);
+  assert.equal(second.statusCode, 200);
+  assert.deepEqual(first.body, { success: true });
+  assert.deepEqual(second.body, { success: true });
+  assert.equal(candidates.some((candidate) => candidate.operatorId === "artist-a" && candidate.inquiryId === "inquiry-a" && candidate.routeTargetId === "target-a"), false);
+  assert.equal(candidates.some((candidate) => candidate.operatorId === "artist-b" && candidate.inquiryId === "inquiry-b" && candidate.routeTargetId === "target-b"), true);
+  assert.deepEqual(calls.deleteDraftRouteCandidate, [
+    ["artist-a", "inquiry-a", "target-a"],
+    ["artist-a", "inquiry-a", "target-a"],
+  ]);
+});
+
+test("draft route candidate DELETE removes only draft rows", async () => {
+  const { calls, candidates } = stubCandidateStorage();
+
+  const result = await invoke(deleteDraftCandidateHandler, {
+    session: { userId: "artist-a" },
+    params: { id: "inquiry-a", routeTargetId: "target-archived" },
+  });
+
+  assert.equal(result.statusCode, 200);
+  assert.deepEqual(result.body, { success: true });
+  assert.equal(candidates.some((candidate) => candidate.id === "candidate-archived"), true);
+  assert.deepEqual(calls.deleteDraftRouteCandidate, [["artist-a", "inquiry-a", "target-archived"]]);
 });
 
 test("draft route candidate POST is idempotent and stays draft", async () => {
@@ -351,13 +469,18 @@ test("draft route candidate POST is idempotent and stays draft", async () => {
 test("draft route candidate endpoints do not create routes, preflight, send, or change inquiry status", async () => {
   const { calls } = stubCandidateStorage();
 
-  const result = await invoke(postDraftCandidateHandler, {
+  const postResult = await invoke(postDraftCandidateHandler, {
     session: { userId: "artist-a" },
     params: { id: "inquiry-a" },
     body: { routeTargetId: "target-a", status: "draft" },
   });
+  const deleteResult = await invoke(deleteDraftCandidateHandler, {
+    session: { userId: "artist-a" },
+    params: { id: "inquiry-a", routeTargetId: "target-a" },
+  });
 
-  assert.equal(result.statusCode, 200);
+  assert.equal(postResult.statusCode, 200);
+  assert.equal(deleteResult.statusCode, 200);
   assert.equal(calls.createInquiryRoute, 0);
   assert.equal(calls.updateInquiryRoute, 0);
   assert.equal(calls.updateInquiry, 0);
