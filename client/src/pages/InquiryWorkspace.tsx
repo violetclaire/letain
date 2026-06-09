@@ -12,6 +12,7 @@ import {
   Mail,
   MapPin,
   Phone,
+  Search,
   StickyNote,
   User,
   Users,
@@ -43,6 +44,8 @@ interface InquiryWorkspaceResponse {
   inquiries: InquiryWorkspaceInquiry[];
 }
 
+type SortMode = "newest" | "oldest" | "requestedDateAsc" | "requestedDateDesc";
+
 const OPERATOR_ROLES = new Set(["artist"]);
 
 const MODULE_PLACEHOLDERS = [
@@ -64,10 +67,13 @@ function formatDate(value?: string | null): string {
   });
 }
 
-function sourceLabel(inquiry: InquiryWorkspaceInquiry): string {
-  const source = inquiry.metadata?.source;
+function sourceValueLabel(source?: string | null): string {
   if (!source || typeof source !== "string") return "Existing inquiry";
   return source.replace(/_/g, " ");
+}
+
+function sourceLabel(inquiry: InquiryWorkspaceInquiry): string {
+  return sourceValueLabel(inquiry.metadata?.source);
 }
 
 function statusLabel(status?: string | null): string {
@@ -83,6 +89,28 @@ function requestSummary(inquiry: InquiryWorkspaceInquiry): string {
     inquiry.budget ? `Budget: ${inquiry.budget}` : null,
   ].filter(Boolean);
   return parts.join(" / ") || "No request summary available";
+}
+
+function searchableText(inquiry: InquiryWorkspaceInquiry): string {
+  return [
+    inquiry.clientName,
+    inquiry.clientEmail,
+    inquiry.clientPhone,
+    inquiry.eventLocation,
+    inquiry.message,
+    requestSummary(inquiry),
+    sourceLabel(inquiry),
+    statusLabel(inquiry.status),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function timestamp(value?: string | null): number | null {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.getTime();
 }
 
 function EmptyValue({ children }: { children?: string | null }) {
@@ -101,6 +129,10 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 export default function InquiryWorkspace() {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
+  const [sortMode, setSortMode] = useState<SortMode>("newest");
   const isOperator = typeof user?.role === "string" && OPERATOR_ROLES.has(user.role);
 
   const inquiriesQuery = useQuery<InquiryWorkspaceResponse>({
@@ -119,16 +151,51 @@ export default function InquiryWorkspace() {
   });
 
   const inquiries = inquiriesQuery.data?.inquiries ?? [];
+  const statusOptions = useMemo(
+    () => Array.from(new Set(inquiries.map((inquiry) => inquiry.status).filter((status): status is string => Boolean(status)))).sort(),
+    [inquiries],
+  );
+  const sourceOptions = useMemo(
+    () => Array.from(new Set(inquiries.map((inquiry) => inquiry.metadata?.source).filter((source): source is string => typeof source === "string" && source.trim().length > 0))).sort(),
+    [inquiries],
+  );
+  const filteredInquiries = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    return inquiries
+      .filter((inquiry) => {
+        if (query && !searchableText(inquiry).includes(query)) return false;
+        if (statusFilter !== "all" && inquiry.status !== statusFilter) return false;
+        if (sourceFilter !== "all" && inquiry.metadata?.source !== sourceFilter) return false;
+        return true;
+      })
+      .map((inquiry, index) => ({ inquiry, index }))
+      .sort((a, b) => {
+        const createdA = timestamp(a.inquiry.createdAt) ?? timestamp(a.inquiry.updatedAt) ?? 0;
+        const createdB = timestamp(b.inquiry.createdAt) ?? timestamp(b.inquiry.updatedAt) ?? 0;
+        const eventA = timestamp(a.inquiry.eventDate);
+        const eventB = timestamp(b.inquiry.eventDate);
+
+        if (sortMode === "oldest") return createdA - createdB || a.index - b.index;
+        if (sortMode === "requestedDateAsc") return (eventA ?? Number.MAX_SAFE_INTEGER) - (eventB ?? Number.MAX_SAFE_INTEGER) || a.index - b.index;
+        if (sortMode === "requestedDateDesc") return (eventB ?? -1) - (eventA ?? -1) || a.index - b.index;
+        return createdB - createdA || a.index - b.index;
+      })
+      .map(({ inquiry }) => inquiry);
+  }, [inquiries, searchTerm, sortMode, sourceFilter, statusFilter]);
   const selectedInquiry = useMemo(
-    () => inquiries.find((inquiry) => inquiry.id === selectedId) ?? inquiries[0] ?? null,
-    [inquiries, selectedId],
+    () => filteredInquiries.find((inquiry) => inquiry.id === selectedId) ?? filteredInquiries[0] ?? null,
+    [filteredInquiries, selectedId],
   );
 
   useEffect(() => {
-    if (!selectedId && inquiries.length > 0) {
-      setSelectedId(inquiries[0].id);
+    if (filteredInquiries.length === 0) {
+      if (selectedId) setSelectedId(null);
+      return;
     }
-  }, [inquiries, selectedId]);
+    if (!selectedId || !filteredInquiries.some((inquiry) => inquiry.id === selectedId)) {
+      setSelectedId(filteredInquiries[0].id);
+    }
+  }, [filteredInquiries, selectedId]);
 
   if (authLoading) {
     return (
@@ -225,10 +292,80 @@ export default function InquiryWorkspace() {
             <section className="border border-hairline bg-surface h-fit">
               <div className="px-4 py-3 border-b border-hairline flex items-center justify-between gap-3">
                 <h2 className="font-serif text-lg tracking-tight">Inquiries</h2>
-                <span className="text-xs text-ink/50">{inquiries.length}</span>
+                <span className="text-xs text-ink/50">
+                  {filteredInquiries.length} / {inquiries.length}
+                </span>
+              </div>
+              <div className="px-4 py-3 border-b border-hairline space-y-3">
+                <label className="relative block">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink/35" />
+                  <input
+                    type="search"
+                    value={searchTerm}
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                    placeholder="Search inquiries"
+                    className="w-full border border-hairline bg-bg pl-9 pr-3 py-2 text-sm text-ink placeholder:text-ink/35 focus:outline-none focus:border-ink/40"
+                    data-testid="input-inquiry-search"
+                  />
+                </label>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {statusOptions.length > 0 && (
+                    <label>
+                      <span className="block text-[11px] uppercase tracking-wide text-ink/45 mb-1">Status</span>
+                      <select
+                        value={statusFilter}
+                        onChange={(event) => setStatusFilter(event.target.value)}
+                        className="w-full border border-hairline bg-bg px-2 py-2 text-sm text-ink focus:outline-none focus:border-ink/40"
+                        data-testid="select-status-filter"
+                      >
+                        <option value="all">All statuses</option>
+                        {statusOptions.map((status) => (
+                          <option key={status} value={status}>{statusLabel(status)}</option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  {sourceOptions.length > 0 && (
+                    <label>
+                      <span className="block text-[11px] uppercase tracking-wide text-ink/45 mb-1">Source</span>
+                      <select
+                        value={sourceFilter}
+                        onChange={(event) => setSourceFilter(event.target.value)}
+                        className="w-full border border-hairline bg-bg px-2 py-2 text-sm text-ink focus:outline-none focus:border-ink/40"
+                        data-testid="select-source-filter"
+                      >
+                        <option value="all">All sources</option>
+                        {sourceOptions.map((source) => (
+                          <option key={source} value={source}>{sourceValueLabel(source)}</option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  <label className={statusOptions.length > 0 && sourceOptions.length > 0 ? "sm:col-span-2" : undefined}>
+                    <span className="block text-[11px] uppercase tracking-wide text-ink/45 mb-1">Sort</span>
+                    <select
+                      value={sortMode}
+                      onChange={(event) => setSortMode(event.target.value as SortMode)}
+                      className="w-full border border-hairline bg-bg px-2 py-2 text-sm text-ink focus:outline-none focus:border-ink/40"
+                      data-testid="select-inquiry-sort"
+                    >
+                      <option value="newest">Newest created</option>
+                      <option value="oldest">Oldest created</option>
+                      <option value="requestedDateAsc">Requested date: soonest</option>
+                      <option value="requestedDateDesc">Requested date: latest</option>
+                    </select>
+                  </label>
+                </div>
               </div>
               <div className="divide-y divide-hairline max-h-[70vh] overflow-auto">
-                {inquiries.map((inquiry) => {
+                {filteredInquiries.length === 0 && (
+                  <div className="px-4 py-8 text-center" data-testid="text-filter-empty-state">
+                    <Inbox className="w-7 h-7 mx-auto mb-3 text-ink/35" />
+                    <h3 className="font-serif text-lg tracking-tight mb-1">No matching inquiries</h3>
+                    <p className="text-sm text-ink/60">Try a different search, filter, or sort option.</p>
+                  </div>
+                )}
+                {filteredInquiries.map((inquiry) => {
                   const active = selectedInquiry?.id === inquiry.id;
                   return (
                     <button
