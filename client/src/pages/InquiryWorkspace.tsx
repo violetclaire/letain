@@ -23,6 +23,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 interface InquiryWorkspaceInquiry {
   id: string;
+  threadToken?: string | null;
   clientName: string | null;
   clientEmail: string | null;
   clientPhone: string | null;
@@ -108,6 +109,31 @@ interface DraftRouteCandidatesResponse {
   candidates: DraftRouteCandidate[];
 }
 
+interface TrustTimelineEntry {
+  id: string;
+  eventType: string;
+  eventCategory?: string | null;
+  dimension?: string | null;
+  signalStrength?: number | null;
+  createdAt?: string | null;
+  source?: string | null;
+  personName?: string | null;
+  personType?: string | null;
+  matchStatus?: string | null;
+  matchConfidence?: number | null;
+  matchReason?: string | null;
+  evidenceText?: string | null;
+  status?: string | null;
+  routeTargetId?: string | null;
+  routeTargetName?: string | null;
+  responseId?: string | null;
+  responseType?: string | null;
+}
+
+interface TrustTimelineResponse {
+  timeline: TrustTimelineEntry[];
+}
+
 type SortMode = "newest" | "oldest" | "requestedDateAsc" | "requestedDateDesc";
 
 interface NetworkMatch {
@@ -164,6 +190,12 @@ function formatDateTime(value?: string | null): string {
 function valueLabel(value?: string | null): string {
   if (!value || typeof value !== "string") return "";
   return value.replace(/[_-]/g, " ");
+}
+
+function sentenceLabel(value?: string | null): string {
+  const label = valueLabel(value).trim();
+  if (!label) return "Timeline event";
+  return `${label.charAt(0).toUpperCase()}${label.slice(1)}`;
 }
 
 function sourceValueLabel(source?: string | null): string {
@@ -295,6 +327,33 @@ function detailList(parts: Array<string | null | undefined>): string | undefined
 function addTimelineEntry(entries: TimelineEntry[], entry: TimelineEntry) {
   if (entries.some((existing) => existing.id === entry.id)) return;
   entries.push(entry);
+}
+
+function buildTrustTimelineEntries(entries: TrustTimelineEntry[]): TimelineEntry[] {
+  return entries
+    .map((entry, index) => ({
+      id: `trust-${entry.id || index}`,
+      label: sentenceLabel(entry.eventType),
+      description: detailList([
+        entry.routeTargetName ? `Target: ${entry.routeTargetName}` : null,
+        entry.personName ? `${sentenceLabel(entry.personType || "person")}: ${entry.personName}` : null,
+        entry.responseType ? `Response: ${valueLabel(entry.responseType)}` : null,
+        entry.status ? `Status: ${valueLabel(entry.status)}` : null,
+        entry.matchStatus ? `Match: ${valueLabel(entry.matchStatus)}${typeof entry.matchConfidence === "number" ? ` (${entry.matchConfidence}%)` : ""}` : null,
+        entry.matchReason,
+        entry.evidenceText,
+        entry.source ? `Source: ${valueLabel(entry.source)}` : null,
+      ]),
+      at: entry.createdAt,
+    }))
+    .sort((a, b) => {
+      const timeA = timestamp(a.at);
+      const timeB = timestamp(b.at);
+      if (timeA === null && timeB === null) return 0;
+      if (timeA === null) return 1;
+      if (timeB === null) return -1;
+      return timeA - timeB;
+    });
 }
 
 function buildTimelineEntries(inquiry: InquiryWorkspaceInquiry): TimelineEntry[] {
@@ -545,6 +604,7 @@ export default function InquiryWorkspace() {
     [filteredInquiries, selectedId],
   );
   const selectedInquiryId = selectedInquiry?.id ?? null;
+  const selectedThreadToken = selectedInquiry?.threadToken ?? null;
   const draftCandidatesQuery = useQuery<DraftRouteCandidatesResponse>({
     queryKey: draftRouteCandidatesQueryKey(selectedInquiryId),
     queryFn: async () => {
@@ -561,14 +621,34 @@ export default function InquiryWorkspace() {
     retry: false,
   });
   const draftCandidates = draftCandidatesQuery.data?.candidates ?? [];
+  const trustTimelineQuery = useQuery<TrustTimelineResponse>({
+    queryKey: ["/api/inquiries", selectedThreadToken, "trust-timeline"],
+    queryFn: async () => {
+      if (!selectedThreadToken) return { timeline: [] };
+      const res = await fetch(`/api/inquiries/${encodeURIComponent(selectedThreadToken)}/trust-timeline`, { credentials: "include" });
+      if (res.status === 401) throw new Error("401");
+      if (!res.ok) throw new Error("Failed to load trust timeline");
+      const payload = await res.json();
+      return {
+        timeline: Array.isArray(payload?.timeline) ? payload.timeline : [],
+      };
+    },
+    enabled: isAuthenticated && isOperator && Boolean(selectedThreadToken),
+    retry: false,
+  });
   const savedDraftTargetIds = useMemo(
     () => new Set(draftCandidates.map((candidate) => candidate.routeTargetId)),
     [draftCandidates],
   );
-  const timelineEntries = useMemo(
+  const localTimelineEntries = useMemo(
     () => (selectedInquiry ? buildTimelineEntries(selectedInquiry) : []),
     [selectedInquiry],
   );
+  const trustTimelineEntries = useMemo(
+    () => buildTrustTimelineEntries(trustTimelineQuery.data?.timeline ?? []),
+    [trustTimelineQuery.data?.timeline],
+  );
+  const timelineEntries = trustTimelineEntries.length > 0 ? trustTimelineEntries : localTimelineEntries;
   const networkMatches = useMemo(
     () => (selectedInquiry ? buildNetworkMatches(routeTargets, selectedInquiry) : []),
     [routeTargets, selectedInquiry],
