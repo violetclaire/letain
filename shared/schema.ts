@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, boolean, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, boolean, jsonb, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -2694,6 +2694,37 @@ export const insertInquiryRouteSchema = createInsertSchema(inquiryRoutes).omit({
 });
 export type InsertInquiryRoute = z.infer<typeof insertInquiryRouteSchema>;
 export type InquiryRoute = typeof inquiryRoutes.$inferSelect;
+
+// Internal draft route candidates are operator-only planning state. They are not
+// real routes and never trigger preflight, sending, CDI, or client-visible state.
+export const inquiryRouteCandidates = pgTable(
+  "inquiry_route_candidates",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    operatorId: varchar("operator_id").notNull(),
+    inquiryId: varchar("inquiry_id").notNull(),
+    routeTargetId: varchar("route_target_id").notNull(),
+    status: text("status").notNull().default("draft"),
+    matchScore: integer("match_score"),
+    matchReasons: jsonb("match_reasons").$type<string[]>(),
+    matchedCapabilities: jsonb("matched_capabilities").$type<string[]>(),
+    matchedTags: jsonb("matched_tags").$type<string[]>(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("inquiry_route_candidates_operator_inquiry_target_unique")
+      .on(table.operatorId, table.inquiryId, table.routeTargetId),
+  ],
+);
+
+export const insertInquiryRouteCandidateSchema = createInsertSchema(inquiryRouteCandidates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertInquiryRouteCandidate = z.infer<typeof insertInquiryRouteCandidateSchema>;
+export type InquiryRouteCandidate = typeof inquiryRouteCandidates.$inferSelect;
 
 // An outgoing client-facing message draft from the response composer. Covers
 // the three client messages: pricing/available response, polite decline, and a

@@ -136,6 +136,21 @@ async function ensureDatabaseSchema() {
       created_at timestamp NOT NULL DEFAULT now(),
       updated_at timestamp DEFAULT now()
     )` },
+    { name: 'inquiry_route_candidates.table', sql: sql`CREATE TABLE IF NOT EXISTS inquiry_route_candidates (
+      id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+      operator_id varchar NOT NULL,
+      inquiry_id varchar NOT NULL,
+      route_target_id varchar NOT NULL,
+      status text NOT NULL DEFAULT 'draft',
+      match_score integer,
+      match_reasons jsonb,
+      matched_capabilities jsonb,
+      matched_tags jsonb,
+      created_at timestamp NOT NULL DEFAULT now(),
+      updated_at timestamp DEFAULT now()
+    )` },
+    { name: 'inquiry_route_candidates.unique', sql: sql`CREATE UNIQUE INDEX IF NOT EXISTS inquiry_route_candidates_operator_inquiry_target_unique
+      ON inquiry_route_candidates (operator_id, inquiry_id, route_target_id)` },
     { name: 'inquiry_responses.table', sql: sql`CREATE TABLE IF NOT EXISTS inquiry_responses (
       id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
       operator_id varchar NOT NULL,

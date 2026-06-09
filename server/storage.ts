@@ -140,6 +140,9 @@ import {
   inquiryRoutes,
   type InquiryRoute,
   type InsertInquiryRoute,
+  inquiryRouteCandidates,
+  type InquiryRouteCandidate,
+  type InsertInquiryRouteCandidate,
   inquiryResponses,
   type InquiryResponse,
   type InsertInquiryResponse,
@@ -476,6 +479,14 @@ export interface IStorage {
   getInquiryRoute(id: string): Promise<InquiryRoute | undefined>;
   getInquiryRoutesByInquiry(inquiryId: string): Promise<InquiryRoute[]>;
   updateInquiryRoute(id: string, updates: Partial<InquiryRoute>): Promise<InquiryRoute | undefined>;
+  // Inquiry Workspace: internal draft route candidate planning state
+  listDraftRouteCandidates(operatorId: string, inquiryId: string): Promise<InquiryRouteCandidate[]>;
+  upsertDraftRouteCandidate(
+    operatorId: string,
+    inquiryId: string,
+    routeTargetId: string,
+    metadata?: Partial<Pick<InsertInquiryRouteCandidate, "matchScore" | "matchReasons" | "matchedCapabilities" | "matchedTags">>,
+  ): Promise<InquiryRouteCandidate>;
   // Briarwood response composer: outgoing client-message drafts
   createInquiryResponse(data: InsertInquiryResponse): Promise<InquiryResponse>;
   getInquiryResponse(id: string): Promise<InquiryResponse | undefined>;
@@ -2703,6 +2714,54 @@ export class DatabaseStorage implements IStorage {
       .where(eq(inquiryRoutes.id, id))
       .returning();
     return row || undefined;
+  }
+
+  async listDraftRouteCandidates(operatorId: string, inquiryId: string): Promise<InquiryRouteCandidate[]> {
+    return await db.select().from(inquiryRouteCandidates)
+      .where(and(
+        eq(inquiryRouteCandidates.operatorId, operatorId),
+        eq(inquiryRouteCandidates.inquiryId, inquiryId),
+        eq(inquiryRouteCandidates.status, "draft"),
+      ))
+      .orderBy(desc(inquiryRouteCandidates.createdAt));
+  }
+
+  async upsertDraftRouteCandidate(
+    operatorId: string,
+    inquiryId: string,
+    routeTargetId: string,
+    metadata: Partial<Pick<InsertInquiryRouteCandidate, "matchScore" | "matchReasons" | "matchedCapabilities" | "matchedTags">> = {},
+  ): Promise<InquiryRouteCandidate> {
+    const values = {
+      operatorId,
+      inquiryId,
+      routeTargetId,
+      status: "draft",
+      ...(metadata.matchScore !== undefined ? { matchScore: metadata.matchScore } : {}),
+      ...(metadata.matchReasons !== undefined ? { matchReasons: metadata.matchReasons } : {}),
+      ...(metadata.matchedCapabilities !== undefined ? { matchedCapabilities: metadata.matchedCapabilities } : {}),
+      ...(metadata.matchedTags !== undefined ? { matchedTags: metadata.matchedTags } : {}),
+    };
+
+    const [row] = await db.insert(inquiryRouteCandidates)
+      .values(values)
+      .onConflictDoUpdate({
+        target: [
+          inquiryRouteCandidates.operatorId,
+          inquiryRouteCandidates.inquiryId,
+          inquiryRouteCandidates.routeTargetId,
+        ],
+        set: {
+          status: "draft",
+          ...(metadata.matchScore !== undefined ? { matchScore: metadata.matchScore } : {}),
+          ...(metadata.matchReasons !== undefined ? { matchReasons: metadata.matchReasons } : {}),
+          ...(metadata.matchedCapabilities !== undefined ? { matchedCapabilities: metadata.matchedCapabilities } : {}),
+          ...(metadata.matchedTags !== undefined ? { matchedTags: metadata.matchedTags } : {}),
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return row;
   }
 
   // --- Briarwood response composer: outgoing client-message drafts ---
