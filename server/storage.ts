@@ -143,6 +143,8 @@ import {
   inquiryRouteCandidates,
   type InquiryRouteCandidate,
   type InsertInquiryRouteCandidate,
+  inquiryInternalNotes,
+  type InquiryInternalNote,
   inquiryResponses,
   type InquiryResponse,
   type InsertInquiryResponse,
@@ -488,6 +490,9 @@ export interface IStorage {
     metadata?: Partial<Pick<InsertInquiryRouteCandidate, "matchScore" | "matchReasons" | "matchedCapabilities" | "matchedTags">>,
   ): Promise<InquiryRouteCandidate>;
   deleteDraftRouteCandidate(operatorId: string, inquiryId: string, routeTargetId: string): Promise<void>;
+  // Inquiry Workspace: private operator-only inquiry notes
+  getInquiryInternalNote(operatorId: string, inquiryId: string): Promise<InquiryInternalNote | undefined>;
+  upsertInquiryInternalNote(operatorId: string, inquiryId: string, body: string): Promise<InquiryInternalNote>;
   // Briarwood response composer: outgoing client-message drafts
   createInquiryResponse(data: InsertInquiryResponse): Promise<InquiryResponse>;
   getInquiryResponse(id: string): Promise<InquiryResponse | undefined>;
@@ -2773,6 +2778,37 @@ export class DatabaseStorage implements IStorage {
         eq(inquiryRouteCandidates.routeTargetId, routeTargetId),
         eq(inquiryRouteCandidates.status, "draft"),
       ));
+  }
+
+  async getInquiryInternalNote(operatorId: string, inquiryId: string): Promise<InquiryInternalNote | undefined> {
+    const [row] = await db.select().from(inquiryInternalNotes)
+      .where(and(
+        eq(inquiryInternalNotes.operatorId, operatorId),
+        eq(inquiryInternalNotes.inquiryId, inquiryId),
+      ))
+      .limit(1);
+    return row || undefined;
+  }
+
+  async upsertInquiryInternalNote(operatorId: string, inquiryId: string, body: string): Promise<InquiryInternalNote> {
+    const [row] = await db.insert(inquiryInternalNotes)
+      .values({
+        operatorId,
+        inquiryId,
+        body,
+      })
+      .onConflictDoUpdate({
+        target: [
+          inquiryInternalNotes.operatorId,
+          inquiryInternalNotes.inquiryId,
+        ],
+        set: {
+          body,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return row;
   }
 
   // --- Briarwood response composer: outgoing client-message drafts ---

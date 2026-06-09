@@ -1966,6 +1966,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  const internalNoteSchema = z.object({
+    body: z.string().max(20000),
+  }).strict();
+
+  const loadInternalNoteContext = async (req: Request, res: Response) => {
+    const userId = getAuthUserId(req);
+    if (!userId) {
+      res.status(401).json({ error: "Not authenticated" });
+      return null;
+    }
+
+    const user = await storage.getUser(userId);
+    if (!user || user.role !== "artist") {
+      res.status(403).json({ error: "Operator access required" });
+      return null;
+    }
+
+    const inquiry = await storage.getInquiry(req.params.id);
+    if (!inquiry) {
+      res.status(404).json({ error: "Inquiry not found" });
+      return null;
+    }
+
+    if (inquiry.vendorId !== userId) {
+      res.status(403).json({ error: "Access denied" });
+      return null;
+    }
+
+    return { userId, inquiry };
+  };
+
+  // --- Inquiry Workspace: private internal notes (no client-visible effects) ---
+  app.get("/api/inquiries/:id/internal-note", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const context = await loadInternalNoteContext(req, res);
+      if (!context) return;
+
+      const note = await storage.getInquiryInternalNote(context.userId, context.inquiry.id);
+      res.json({ note: note ?? null });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/inquiries/:id/internal-note", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const context = await loadInternalNoteContext(req, res);
+      if (!context) return;
+
+      const parsed = internalNoteSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0]?.message || "Invalid internal note" });
+      }
+
+      const note = await storage.upsertInquiryInternalNote(context.userId, context.inquiry.id, parsed.data.body);
+      res.json({ note });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // --- Composer: one-stop context for an inquiry ---
   // Returns inquiry context, default drafts, existing routes + responses, and
   // the operator's route targets, so the UI can render the composer in one call.

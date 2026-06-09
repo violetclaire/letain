@@ -2726,6 +2726,33 @@ export const insertInquiryRouteCandidateSchema = createInsertSchema(inquiryRoute
 export type InsertInquiryRouteCandidate = z.infer<typeof insertInquiryRouteCandidateSchema>;
 export type InquiryRouteCandidate = typeof inquiryRouteCandidates.$inferSelect;
 
+// Private operator-only note for an inquiry. This is intentionally separate
+// from the public inquiry row so internal notes are never exposed through
+// client/thread routes that serialize inquiry records.
+export const inquiryInternalNotes = pgTable(
+  "inquiry_internal_notes",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    operatorId: varchar("operator_id").notNull(),
+    inquiryId: varchar("inquiry_id").notNull(),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("inquiry_internal_notes_operator_inquiry_unique")
+      .on(table.operatorId, table.inquiryId),
+  ],
+);
+
+export const insertInquiryInternalNoteSchema = createInsertSchema(inquiryInternalNotes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertInquiryInternalNote = z.infer<typeof insertInquiryInternalNoteSchema>;
+export type InquiryInternalNote = typeof inquiryInternalNotes.$inferSelect;
+
 // An outgoing client-facing message draft from the response composer. Covers
 // the three client messages: pricing/available response, polite decline, and a
 // referral list. Always operator-approved before send: status starts 'draft'

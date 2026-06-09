@@ -151,6 +151,16 @@ async function ensureDatabaseSchema() {
     )` },
     { name: 'inquiry_route_candidates.unique', sql: sql`CREATE UNIQUE INDEX IF NOT EXISTS inquiry_route_candidates_operator_inquiry_target_unique
       ON inquiry_route_candidates (operator_id, inquiry_id, route_target_id)` },
+    { name: 'inquiry_internal_notes.table', sql: sql`CREATE TABLE IF NOT EXISTS inquiry_internal_notes (
+      id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+      operator_id varchar NOT NULL,
+      inquiry_id varchar NOT NULL,
+      body text NOT NULL,
+      created_at timestamp NOT NULL DEFAULT now(),
+      updated_at timestamp DEFAULT now()
+    )` },
+    { name: 'inquiry_internal_notes.unique', sql: sql`CREATE UNIQUE INDEX IF NOT EXISTS inquiry_internal_notes_operator_inquiry_unique
+      ON inquiry_internal_notes (operator_id, inquiry_id)` },
     { name: 'inquiry_responses.table', sql: sql`CREATE TABLE IF NOT EXISTS inquiry_responses (
       id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
       operator_id varchar NOT NULL,
