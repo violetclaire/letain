@@ -32,6 +32,33 @@ interface InquiryWorkspaceInquiry {
   message: string | null;
   budget: string | null;
   status: string | null;
+  statusReason?: string | null;
+  nextAction?: string | null;
+  nextActionDueAt?: string | null;
+  ownerName?: string | null;
+  hold?: {
+    placedAt?: string | null;
+    expiresAt?: string | null;
+    reason?: string | null;
+  } | null;
+  holdPlacedAt?: string | null;
+  holdExpiresAt?: string | null;
+  holdReason?: string | null;
+  firstResponseAt?: string | null;
+  lastActionAt?: string | null;
+  nextSlaDue?: string | null;
+  breachFlags?: string[] | null;
+  proposedDates?: string[] | null;
+  infoSheetSentAt?: string | null;
+  chatInviteSentAt?: string | null;
+  referralSentAt?: string | null;
+  depositPaidAt?: string | null;
+  bookingId?: string | null;
+  convertedToBookingId?: string | null;
+  convertedToContractId?: string | null;
+  proposalId?: string | null;
+  hasDateConflict?: boolean | null;
+  conflictSource?: string | null;
   metadata?: {
     source?: string;
     [key: string]: unknown;
@@ -46,6 +73,13 @@ interface InquiryWorkspaceResponse {
 
 type SortMode = "newest" | "oldest" | "requestedDateAsc" | "requestedDateDesc";
 
+interface TimelineEntry {
+  id: string;
+  label: string;
+  description?: string;
+  at?: string | null;
+}
+
 const OPERATOR_ROLES = new Set(["artist"]);
 
 const MODULE_PLACEHOLDERS = [
@@ -53,7 +87,6 @@ const MODULE_PLACEHOLDERS = [
   { title: "Contract", description: "Read-only placeholder for linked contract records.", icon: FileText },
   { title: "Payment state", description: "Read-only placeholder for payment-state metadata.", icon: CreditCard },
   { title: "Schedule draft", description: "Read-only placeholder for private schedule drafts.", icon: CalendarDays },
-  { title: "Coordination timeline", description: "Read-only placeholder for future inquiry activity.", icon: Clock3 },
 ];
 
 function formatDate(value?: string | null): string {
@@ -67,9 +100,27 @@ function formatDate(value?: string | null): string {
   });
 }
 
+function formatDateTime(value?: string | null): string {
+  if (!value) return "Date not available";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function valueLabel(value?: string | null): string {
+  if (!value || typeof value !== "string") return "";
+  return value.replace(/[_-]/g, " ");
+}
+
 function sourceValueLabel(source?: string | null): string {
   if (!source || typeof source !== "string") return "Existing inquiry";
-  return source.replace(/_/g, " ");
+  return valueLabel(source);
 }
 
 function sourceLabel(inquiry: InquiryWorkspaceInquiry): string {
@@ -78,7 +129,7 @@ function sourceLabel(inquiry: InquiryWorkspaceInquiry): string {
 
 function statusLabel(status?: string | null): string {
   if (!status) return "Unknown";
-  return status.replace(/_/g, " ");
+  return valueLabel(status);
 }
 
 function requestSummary(inquiry: InquiryWorkspaceInquiry): string {
@@ -111,6 +162,166 @@ function timestamp(value?: string | null): number | null {
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date.getTime();
+}
+
+function detailList(parts: Array<string | null | undefined>): string | undefined {
+  const details = parts.filter((part): part is string => Boolean(part && part.trim().length > 0));
+  return details.length > 0 ? details.join(" / ") : undefined;
+}
+
+function addTimelineEntry(entries: TimelineEntry[], entry: TimelineEntry) {
+  if (entries.some((existing) => existing.id === entry.id)) return;
+  entries.push(entry);
+}
+
+function buildTimelineEntries(inquiry: InquiryWorkspaceInquiry): TimelineEntry[] {
+  const entries: TimelineEntry[] = [];
+  const holdPlacedAt = inquiry.hold?.placedAt || inquiry.holdPlacedAt;
+  const holdExpiresAt = inquiry.hold?.expiresAt || inquiry.holdExpiresAt;
+  const holdReason = inquiry.hold?.reason || inquiry.holdReason;
+
+  addTimelineEntry(entries, {
+    id: "created",
+    label: "Inquiry received",
+    description: detailList([sourceLabel(inquiry), requestSummary(inquiry)]),
+    at: inquiry.createdAt,
+  });
+
+  if (inquiry.infoSheetSentAt) {
+    addTimelineEntry(entries, {
+      id: "info-sheet",
+      label: "Info sheet recorded as sent",
+      at: inquiry.infoSheetSentAt,
+    });
+  }
+
+  if (inquiry.chatInviteSentAt) {
+    addTimelineEntry(entries, {
+      id: "chat-invite",
+      label: "Chat invite recorded as sent",
+      at: inquiry.chatInviteSentAt,
+    });
+  }
+
+  if (inquiry.firstResponseAt) {
+    addTimelineEntry(entries, {
+      id: "first-response",
+      label: "First response recorded",
+      at: inquiry.firstResponseAt,
+    });
+  }
+
+  if (holdPlacedAt) {
+    addTimelineEntry(entries, {
+      id: "hold-placed",
+      label: "Hold placed",
+      description: holdReason || undefined,
+      at: holdPlacedAt,
+    });
+  }
+
+  if (holdExpiresAt) {
+    addTimelineEntry(entries, {
+      id: "hold-expires",
+      label: "Hold expiry recorded",
+      description: holdReason || undefined,
+      at: holdExpiresAt,
+    });
+  }
+
+  if (inquiry.referralSentAt) {
+    addTimelineEntry(entries, {
+      id: "referral",
+      label: "Referral recorded",
+      at: inquiry.referralSentAt,
+    });
+  }
+
+  if (Array.isArray(inquiry.proposedDates) && inquiry.proposedDates.length > 0) {
+    addTimelineEntry(entries, {
+      id: "proposed-dates",
+      label: "Alternative dates recorded",
+      description: `${inquiry.proposedDates.length} date${inquiry.proposedDates.length === 1 ? "" : "s"} proposed`,
+      at: inquiry.lastActionAt || inquiry.updatedAt,
+    });
+  }
+
+  if (inquiry.depositPaidAt) {
+    addTimelineEntry(entries, {
+      id: "deposit",
+      label: "Deposit status recorded",
+      at: inquiry.depositPaidAt,
+    });
+  }
+
+  if (inquiry.bookingId || inquiry.convertedToBookingId) {
+    addTimelineEntry(entries, {
+      id: "booking-reference",
+      label: "Booking reference present",
+      at: inquiry.updatedAt,
+    });
+  }
+
+  if (inquiry.convertedToContractId) {
+    addTimelineEntry(entries, {
+      id: "contract-reference",
+      label: "Contract reference present",
+      at: inquiry.updatedAt,
+    });
+  }
+
+  if (inquiry.proposalId) {
+    addTimelineEntry(entries, {
+      id: "proposal-reference",
+      label: "Proposal reference present",
+      at: inquiry.updatedAt,
+    });
+  }
+
+  if (inquiry.status) {
+    addTimelineEntry(entries, {
+      id: "status",
+      label: `Current status: ${statusLabel(inquiry.status)}`,
+      description: inquiry.statusReason || undefined,
+      at: inquiry.updatedAt || inquiry.createdAt,
+    });
+  }
+
+  if (inquiry.nextAction || inquiry.nextActionDueAt) {
+    addTimelineEntry(entries, {
+      id: "next-action",
+      label: "Next action tracked",
+      description: detailList([valueLabel(inquiry.nextAction), inquiry.ownerName ? `Owner: ${inquiry.ownerName}` : null]),
+      at: inquiry.nextActionDueAt || inquiry.nextSlaDue,
+    });
+  }
+
+  if (Array.isArray(inquiry.breachFlags) && inquiry.breachFlags.length > 0) {
+    addTimelineEntry(entries, {
+      id: "breach-flags",
+      label: "SLA flags recorded",
+      description: inquiry.breachFlags.map(valueLabel).join(", "),
+      at: inquiry.nextSlaDue || inquiry.updatedAt,
+    });
+  }
+
+  if (inquiry.hasDateConflict) {
+    addTimelineEntry(entries, {
+      id: "date-conflict",
+      label: "Date conflict detected",
+      description: inquiry.conflictSource || undefined,
+      at: inquiry.updatedAt,
+    });
+  }
+
+  return entries.sort((a, b) => {
+    const timeA = timestamp(a.at);
+    const timeB = timestamp(b.at);
+    if (timeA === null && timeB === null) return 0;
+    if (timeA === null) return 1;
+    if (timeB === null) return -1;
+    return timeA - timeB;
+  });
 }
 
 function EmptyValue({ children }: { children?: string | null }) {
@@ -185,6 +396,10 @@ export default function InquiryWorkspace() {
   const selectedInquiry = useMemo(
     () => filteredInquiries.find((inquiry) => inquiry.id === selectedId) ?? filteredInquiries[0] ?? null,
     [filteredInquiries, selectedId],
+  );
+  const timelineEntries = useMemo(
+    () => (selectedInquiry ? buildTimelineEntries(selectedInquiry) : []),
+    [selectedInquiry],
   );
 
   useEffect(() => {
@@ -502,6 +717,31 @@ export default function InquiryWorkspace() {
                         </dd>
                       </div>
                     </dl>
+                  </div>
+                  <div className="border border-hairline bg-surface px-4 py-4 sm:col-span-2" data-testid="coordination-timeline-card">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Clock3 className="w-4 h-4 text-ink/50" />
+                      <h3 className="font-serif text-base tracking-tight">Coordination timeline</h3>
+                    </div>
+                    {timelineEntries.length > 0 ? (
+                      <ol className="space-y-3">
+                        {timelineEntries.map((entry) => (
+                          <li key={entry.id} className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3 text-sm">
+                            <time className="text-xs text-ink/50 leading-5">{formatDateTime(entry.at)}</time>
+                            <div className="border-l border-hairline pl-3">
+                              <p className="text-ink font-medium">{entry.label}</p>
+                              {entry.description && (
+                                <p className="text-ink/60 mt-0.5 break-words">{entry.description}</p>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                      </ol>
+                    ) : (
+                      <p className="text-sm text-ink/60">
+                        No timeline activity is available from the loaded inquiry record yet.
+                      </p>
+                    )}
                   </div>
                   {MODULE_PLACEHOLDERS.map(({ title, description, icon: Icon }) => (
                     <div key={title} className="border border-hairline bg-surface px-4 py-4" data-testid={`placeholder-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}>
