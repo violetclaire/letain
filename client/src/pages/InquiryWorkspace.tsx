@@ -152,6 +152,26 @@ interface ComposerResponse {
   responses: ComposerResponseDraft[];
 }
 
+interface ContractSummary {
+  id: string;
+  clientName?: string | null;
+  eventDates?: string | null;
+  eventLocation?: string | null;
+  packageDetails?: string | null;
+  status?: string | null;
+  contractSource?: string | null;
+  contractUrl?: string | null;
+  fileUrl?: string | null;
+  bookingId?: string | null;
+  inquiryId?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+
+interface ContractSummaryResponse {
+  contract: ContractSummary;
+}
+
 interface TrustTimelineEntry {
   id: string;
   eventType: string;
@@ -197,7 +217,6 @@ interface TimelineEntry {
 const OPERATOR_ROLES = new Set(["artist"]);
 
 const MODULE_PLACEHOLDERS = [
-  { title: "Contract", description: "Read-only placeholder for linked contract records.", icon: FileText },
   { title: "Payment state", description: "Read-only placeholder for payment-state metadata.", icon: CreditCard },
 ];
 
@@ -215,6 +234,10 @@ function scheduleDraftQueryKey(inquiryId?: string | null) {
 
 function composerQueryKey(inquiryId?: string | null) {
   return ["/api/inquiries", inquiryId, "composer"] as const;
+}
+
+function contractSummaryQueryKey(contractId?: string | null) {
+  return ["/api/vault/contracts", contractId] as const;
 }
 
 function formatDate(value?: string | null): string {
@@ -673,6 +696,7 @@ export default function InquiryWorkspace() {
   );
   const selectedInquiryId = selectedInquiry?.id ?? null;
   const selectedThreadToken = selectedInquiry?.threadToken ?? null;
+  const selectedContractId = selectedInquiry?.convertedToContractId ?? null;
   const draftCandidatesQuery = useQuery<DraftRouteCandidatesResponse>({
     queryKey: draftRouteCandidatesQueryKey(selectedInquiryId),
     queryFn: async () => {
@@ -730,6 +754,19 @@ export default function InquiryWorkspace() {
       };
     },
     enabled: isAuthenticated && isOperator && Boolean(selectedInquiryId),
+    retry: false,
+  });
+  const contractSummaryQuery = useQuery<ContractSummaryResponse | null>({
+    queryKey: contractSummaryQueryKey(selectedContractId),
+    queryFn: async () => {
+      if (!selectedContractId) return null;
+      const res = await fetch(`/api/vault/contracts/${encodeURIComponent(selectedContractId)}`, { credentials: "include" });
+      if (res.status === 404) return null;
+      if (res.status === 401) throw new Error("401");
+      if (!res.ok) throw new Error("Failed to load linked contract");
+      return res.json() as Promise<ContractSummaryResponse>;
+    },
+    enabled: isAuthenticated && isOperator && Boolean(selectedContractId),
     retry: false,
   });
   const trustTimelineQuery = useQuery<TrustTimelineResponse>({
@@ -829,6 +866,10 @@ export default function InquiryWorkspace() {
     [composerQuery.data?.responses],
   );
   const latestComposerExcerpt = bodyExcerpt(latestComposerResponse?.body);
+  const selectedContract = contractSummaryQuery.data?.contract ?? null;
+  const contractHref = selectedContract?.id && artistSlug
+    ? `/admin/${artistSlug}/contracts/${selectedContract.id}`
+    : null;
 
   useEffect(() => {
     if (filteredInquiries.length === 0) {
@@ -1351,6 +1392,77 @@ export default function InquiryWorkspace() {
                             <EmptyValue>{latestComposerExcerpt}</EmptyValue>
                           </p>
                         </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="border border-hairline bg-surface px-4 py-4" data-testid="contract-summary-card">
+                    <div className="flex items-center gap-2 mb-3">
+                      <FileText className="w-4 h-4 text-ink/50" />
+                      <h3 className="font-serif text-base tracking-tight">Contract</h3>
+                    </div>
+
+                    {!selectedContractId && (
+                      <p className="text-sm text-ink/60">
+                        No contract is linked to this inquiry yet.
+                      </p>
+                    )}
+
+                    {selectedContractId && contractSummaryQuery.isLoading && (
+                      <div className="flex items-center gap-2 text-sm text-ink/60">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading linked contract
+                      </div>
+                    )}
+
+                    {selectedContractId && contractSummaryQuery.isError && (
+                      <p className="text-sm text-ink/60">
+                        Could not load the linked contract.
+                      </p>
+                    )}
+
+                    {selectedContractId && !contractSummaryQuery.isLoading && !contractSummaryQuery.isError && !selectedContract && (
+                      <p className="text-sm text-ink/60">
+                        No accessible contract record was found for this inquiry.
+                      </p>
+                    )}
+
+                    {selectedContractId && !contractSummaryQuery.isLoading && !contractSummaryQuery.isError && selectedContract && (
+                      <div className="space-y-3">
+                        <dl className="space-y-2 text-sm">
+                          <div>
+                            <dt className="text-xs uppercase tracking-wide text-ink/45">Package / type</dt>
+                            <dd className="text-ink break-words">
+                              <EmptyValue>{selectedContract.packageDetails}</EmptyValue>
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs uppercase tracking-wide text-ink/45">Status</dt>
+                            <dd className="text-ink break-words">{statusLabel(selectedContract.status)}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs uppercase tracking-wide text-ink/45">Source</dt>
+                            <dd className="text-ink break-words">
+                              <EmptyValue>{selectedContract.contractSource}</EmptyValue>
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs uppercase tracking-wide text-ink/45">Updated</dt>
+                            <dd className="text-ink break-words">{formatDateTime(selectedContract.updatedAt || selectedContract.createdAt)}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs uppercase tracking-wide text-ink/45">Contract ID</dt>
+                            <dd className="text-ink break-all">{selectedContract.id}</dd>
+                          </div>
+                        </dl>
+                        {contractHref && (
+                          <Link
+                            href={contractHref}
+                            className="inline-flex h-8 w-fit items-center border border-hairline px-3 text-xs text-ink/70 transition hover:bg-bg"
+                            data-testid="link-open-contract"
+                          >
+                            Open contract
+                          </Link>
+                        )}
                       </div>
                     )}
                   </div>
