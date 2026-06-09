@@ -95,6 +95,8 @@ interface NetworkMatch {
   target: RouteTarget;
   reasons: string[];
   score: number;
+  matchedCapabilities: string[];
+  matchedTags: string[];
 }
 
 interface TimelineEntry {
@@ -233,7 +235,8 @@ function buildNetworkMatches(targets: RouteTarget[], inquiry: InquiryWorkspaceIn
         reasons.push(`Role matches ${valueLabel(inquiry.serviceType || inquiry.eventType)}`);
       }
 
-      const locationMatches = [...tags, target.notes || ""].filter((value) => matchesToken(value, locationTokens));
+      const locationTagMatches = tags.filter((tag) => matchesToken(tag, locationTokens));
+      const locationMatches = [...locationTagMatches, target.notes || ""].filter((value) => matchesToken(value, locationTokens));
       if (locationMatches.length > 0) {
         score += 15;
         reasons.push(`Location cue matches ${inquiry.eventLocation}`);
@@ -249,7 +252,13 @@ function buildNetworkMatches(targets: RouteTarget[], inquiry: InquiryWorkspaceIn
         reasons.unshift("Preferred contact");
       }
 
-      return { target, reasons, score };
+      return {
+        target,
+        reasons,
+        score: Math.min(score, 100),
+        matchedCapabilities: capabilityMatches,
+        matchedTags: Array.from(new Set([...serviceTagMatches, ...locationTagMatches])),
+      };
     })
     .filter((match) => match.reasons.length > 0)
     .sort((a, b) => b.score - a.score || a.target.name.localeCompare(b.target.name));
@@ -921,6 +930,102 @@ export default function InquiryWorkspace() {
                             </div>
                           );
                         })}
+                      </div>
+                    )}
+                  </div>
+                  <div className="border border-hairline bg-surface px-4 py-4 sm:col-span-2" data-testid="draft-routing-candidates-card">
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-ink/50" />
+                        <h3 className="font-serif text-base tracking-tight">Draft routing candidates</h3>
+                      </div>
+                      {!routeTargetsQuery.isLoading && !routeTargetsQuery.isError && (
+                        <span className="text-xs text-ink/50">
+                          {networkMatches.slice(0, 3).length} draft{networkMatches.slice(0, 3).length === 1 ? "" : "s"}
+                        </span>
+                      )}
+                    </div>
+
+                    {routeTargetsQuery.isLoading && (
+                      <div className="flex items-center gap-2 text-sm text-ink/60">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading candidates
+                      </div>
+                    )}
+
+                    {routeTargetsQuery.isError && (
+                      <p className="text-sm text-ink/60">
+                        Could not load draft candidates from the operator network.
+                      </p>
+                    )}
+
+                    {!routeTargetsQuery.isLoading && !routeTargetsQuery.isError && routeTargets.length === 0 && (
+                      <p className="text-sm text-ink/60">
+                        No route targets are available for draft candidates yet.
+                      </p>
+                    )}
+
+                    {!routeTargetsQuery.isLoading && !routeTargetsQuery.isError && routeTargets.length > 0 && networkMatches.length === 0 && (
+                      <p className="text-sm text-ink/60">
+                        No draft candidates match this inquiry from existing route-target metadata.
+                      </p>
+                    )}
+
+                    {!routeTargetsQuery.isLoading && !routeTargetsQuery.isError && networkMatches.length > 0 && (
+                      <div className="space-y-3">
+                        {networkMatches.slice(0, 3).map(({ target, reasons, score, matchedCapabilities, matchedTags }) => (
+                          <div key={`draft-${target.id}`} className="border-t border-hairline pt-3 first:border-t-0 first:pt-0">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <p className="text-sm font-medium text-ink break-words">{target.name}</p>
+                                  <Pill>Draft Candidate</Pill>
+                                </div>
+                                <p className="text-xs text-ink/55 mt-0.5">{target.roleLabel || "Network contact"}</p>
+                              </div>
+                              <div className="text-xs text-ink/60 border border-hairline px-2 py-1 whitespace-nowrap">
+                                {score}/100
+                              </div>
+                            </div>
+
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {target.preferred && <Pill>Preferred</Pill>}
+                              {target.isInternal === true && <Pill>Internal</Pill>}
+                              {target.isInternal === false && <Pill>External</Pill>}
+                              {target.isAgent === true && <Pill>Agent/system</Pill>}
+                            </div>
+
+                            {matchedCapabilities.length > 0 && (
+                              <div className="mt-2">
+                                <p className="text-[11px] uppercase tracking-wide text-ink/45 mb-1">Matching capabilities</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {matchedCapabilities.slice(0, 4).map((capability) => (
+                                    <Pill key={`draft-${target.id}-cap-${capability}`}>{capability}</Pill>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {matchedTags.length > 0 && (
+                              <div className="mt-2">
+                                <p className="text-[11px] uppercase tracking-wide text-ink/45 mb-1">Matching tags</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {matchedTags.slice(0, 4).map((tag) => (
+                                    <span key={`draft-${target.id}-tag-${tag}`} className="text-xs text-ink/55">
+                                      #{tag}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            <ul className="mt-2 space-y-1 text-xs text-ink/60">
+                              {reasons.map((reason) => (
+                                <li key={`draft-${target.id}-${reason}`}>{reason}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
