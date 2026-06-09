@@ -135,6 +135,23 @@ interface ScheduleDraft {
   createdAt?: string | null;
 }
 
+interface ComposerResponseDraft {
+  id: string;
+  inquiryId: string;
+  responseType: string;
+  channel?: string | null;
+  personalNote?: string | null;
+  body: string;
+  status: string;
+  sentAt?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+interface ComposerResponse {
+  responses: ComposerResponseDraft[];
+}
+
 interface TrustTimelineEntry {
   id: string;
   eventType: string;
@@ -194,6 +211,10 @@ function internalNoteQueryKey(inquiryId?: string | null) {
 
 function scheduleDraftQueryKey(inquiryId?: string | null) {
   return ["/api/schedule-drafts/by-inquiry", inquiryId] as const;
+}
+
+function composerQueryKey(inquiryId?: string | null) {
+  return ["/api/inquiries", inquiryId, "composer"] as const;
 }
 
 function formatDate(value?: string | null): string {
@@ -275,6 +296,16 @@ function timestamp(value?: string | null): number | null {
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date.getTime();
+}
+
+function responseTimestamp(response: ComposerResponseDraft): number {
+  return timestamp(response.updatedAt) ?? timestamp(response.createdAt) ?? 0;
+}
+
+function bodyExcerpt(value?: string | null): string {
+  if (!value || !value.trim()) return "";
+  const compact = value.trim().replace(/\s+/g, " ");
+  return compact.length > 220 ? `${compact.slice(0, 217)}...` : compact;
 }
 
 function textList(values?: string[] | null): string[] {
@@ -686,6 +717,21 @@ export default function InquiryWorkspace() {
     enabled: isAuthenticated && isOperator && Boolean(selectedInquiryId),
     retry: false,
   });
+  const composerQuery = useQuery<ComposerResponse>({
+    queryKey: composerQueryKey(selectedInquiryId),
+    queryFn: async () => {
+      if (!selectedInquiryId) return { responses: [] };
+      const res = await fetch(`/api/inquiries/${encodeURIComponent(selectedInquiryId)}/composer`, { credentials: "include" });
+      if (res.status === 401) throw new Error("401");
+      if (!res.ok) throw new Error("Failed to load response drafts");
+      const payload = await res.json();
+      return {
+        responses: Array.isArray(payload?.responses) ? payload.responses : [],
+      };
+    },
+    enabled: isAuthenticated && isOperator && Boolean(selectedInquiryId),
+    retry: false,
+  });
   const trustTimelineQuery = useQuery<TrustTimelineResponse>({
     queryKey: ["/api/inquiries", selectedThreadToken, "trust-timeline"],
     queryFn: async () => {
@@ -778,6 +824,11 @@ export default function InquiryWorkspace() {
   const scheduleDraftHref = selectedScheduleDraft?.id && artistSlug
     ? `/admin/${artistSlug}/schedules/${selectedScheduleDraft.id}`
     : null;
+  const latestComposerResponse = useMemo(
+    () => [...(composerQuery.data?.responses ?? [])].sort((a, b) => responseTimestamp(b) - responseTimestamp(a))[0] ?? null,
+    [composerQuery.data?.responses],
+  );
+  const latestComposerExcerpt = bodyExcerpt(latestComposerResponse?.body);
 
   useEffect(() => {
     if (filteredInquiries.length === 0) {
@@ -1247,6 +1298,60 @@ export default function InquiryWorkspace() {
                       <p className="mt-3 text-sm text-ink/60">
                         Could not save this internal note. Please try again.
                       </p>
+                    )}
+                  </div>
+                  <div className="border border-hairline bg-surface px-4 py-4 sm:col-span-2" data-testid="composer-response-card">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Mail className="w-4 h-4 text-ink/50" />
+                      <h3 className="font-serif text-base tracking-tight">Response draft</h3>
+                    </div>
+
+                    {composerQuery.isLoading && (
+                      <div className="flex items-center gap-2 text-sm text-ink/60">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading response drafts
+                      </div>
+                    )}
+
+                    {composerQuery.isError && (
+                      <p className="text-sm text-ink/60">
+                        Could not load composer response drafts.
+                      </p>
+                    )}
+
+                    {!composerQuery.isLoading && !composerQuery.isError && !latestComposerResponse && (
+                      <p className="text-sm text-ink/60">
+                        No saved response draft exists for this inquiry yet.
+                      </p>
+                    )}
+
+                    {!composerQuery.isLoading && !composerQuery.isError && latestComposerResponse && (
+                      <div className="space-y-3">
+                        <dl className="grid gap-x-5 gap-y-2 text-sm sm:grid-cols-2">
+                          <div>
+                            <dt className="text-xs uppercase tracking-wide text-ink/45">Response type</dt>
+                            <dd className="text-ink break-words">{sentenceLabel(latestComposerResponse.responseType)}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs uppercase tracking-wide text-ink/45">Status</dt>
+                            <dd className="text-ink break-words">{statusLabel(latestComposerResponse.status)}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs uppercase tracking-wide text-ink/45">Channel</dt>
+                            <dd className="text-ink break-words">{sentenceLabel(latestComposerResponse.channel || "email")}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs uppercase tracking-wide text-ink/45">Updated</dt>
+                            <dd className="text-ink break-words">{formatDateTime(latestComposerResponse.updatedAt || latestComposerResponse.createdAt)}</dd>
+                          </div>
+                        </dl>
+                        <div>
+                          <p className="text-xs uppercase tracking-wide text-ink/45 mb-1">Body excerpt</p>
+                          <p className="border border-hairline bg-bg px-3 py-2 text-sm text-ink/70 break-words">
+                            <EmptyValue>{latestComposerExcerpt}</EmptyValue>
+                          </p>
+                        </div>
+                      </div>
                     )}
                   </div>
                   <div className="border border-hairline bg-surface px-4 py-4" data-testid="schedule-draft-card">
