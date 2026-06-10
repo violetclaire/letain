@@ -8,7 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 type Column = { id: string; label: string; type: string };
 type Row = { id: string; sortOrder: number; cells: Record<string, string> };
 type ServiceDefault = { id: string; label: string; durationMinutes: number };
-type Provider = { id: string; name: string };
+type ProviderCapability = "ALL" | "HAIR_ONLY" | "MAKEUP_ONLY";
+type Provider = { id: string; name: string; capability?: ProviderCapability | ""; isPrimary?: boolean };
 type AuditSeverity = "info" | "warning" | "critical";
 
 type ScheduleAuditIssue = {
@@ -40,6 +41,12 @@ const AUDIT_SEVERITY_STYLES: Record<AuditSeverity, string> = {
   info: "border-ink/20 bg-bg text-ink/60",
   warning: "border-brass/40 bg-brass/10 text-ink",
   critical: "border-oxblood/40 bg-oxblood/10 text-oxblood",
+};
+
+const PROVIDER_CAPABILITY_LABELS: Record<ProviderCapability, string> = {
+  ALL: "ALL",
+  HAIR_ONLY: "HAIR_ONLY",
+  MAKEUP_ONLY: "MAKEUP_ONLY",
 };
 
 const VIOLET_SERVICE_DEFAULTS: ServiceDefault[] = [
@@ -519,6 +526,22 @@ function composeNotes(body: string, names: string[]): string {
   return [clean, line].filter(Boolean).join("\n\n");
 }
 
+function normalizeProviderCapability(value: unknown): ProviderCapability | undefined {
+  return value === "ALL" || value === "HAIR_ONLY" || value === "MAKEUP_ONLY" ? value : undefined;
+}
+
+function normalizeProviders(providers?: Provider[] | null): Provider[] {
+  return (providers ?? []).map((provider) => {
+    const capability = normalizeProviderCapability(provider.capability);
+    return {
+      id: provider.id,
+      name: provider.name,
+      ...(capability ? { capability } : {}),
+      ...(provider.isPrimary ? { isPrimary: true } : {}),
+    };
+  });
+}
+
 function violetServiceDefaults(): ServiceDefault[] {
   return VIOLET_SERVICE_DEFAULTS.map((service) => ({ ...service }));
 }
@@ -553,6 +576,14 @@ function auditId(value: string): string {
 
 function hasAuditWord(text: string, pattern: RegExp): boolean {
   return pattern.test(text);
+}
+
+function auditHasHairService(text: string): boolean {
+  return hasAuditWord(text, /\bhair\b|\bupdo\b|\bstyling\b|\bstyle\b|\bh\b/);
+}
+
+function auditHasMakeupService(text: string): boolean {
+  return hasAuditWord(text, /\bmakeup\b|\bmua\b|\bmu\b|\bm\b/);
 }
 
 function auditNameKey(value: string): string {
@@ -634,22 +665,91 @@ function buildScheduleAudit(input: {
   const issues: ScheduleAuditIssue[] = [];
   const blocks = auditBlocksFromRows(input.rows, input.providerColId);
   const providerNames = new Set<string>();
+  const providersByName = new Map<string, Provider>();
+  const primaryProviderNames: string[] = [];
   for (const provider of input.providers) {
     const name = provider.name.trim();
-    if (name) providerNames.add(name);
+    if (name) {
+      providerNames.add(name);
+      providersByName.set(name, provider);
+      if (provider.isPrimary) primaryProviderNames.push(name);
+    }
   }
   for (const block of blocks) {
     if (block.provider) providerNames.add(block.provider);
   }
   const providerCount = providerNames.size;
+  const missingCapabilityWarnings = new Set<string>();
+  const addMissingCapabilityWarning = (providerName: string) => {
+    if (!providerName || missingCapabilityWarnings.has(providerName)) return;
+    missingCapabilityWarnings.add(providerName);
+    const knownProvider = providersByName.has(providerName);
+    issues.push({
+      id: `provider-capability-missing-${auditId(providerName)}`,
+      severity: "warning",
+      title: "Provider capability missing",
+      detail: knownProvider
+        ? `${providerName} has no capability selected. Choose ALL, HAIR_ONLY, or MAKEUP_ONLY.`
+        : `${providerName} is used on the schedule but is not in the provider list with a capability.`,
+    });
+  };
+
+  for (const [providerName, provider] of providersByName) {
+    if (!normalizeProviderCapability(provider.capability)) {
+      addMissingCapabilityWarning(providerName);
+    }
+  }
+
+  if (primaryProviderNames.length > 1) {
+    issues.push({
+      id: "multiple-primary-providers",
+      severity: "info",
+      title: "Multiple primary providers",
+      detail: `${primaryProviderNames.join(", ")} are marked primary.`,
+    });
+  }
 
   for (const block of blocks) {
-    const text = block.text;
+    const text = auditText([block.name, block.service, block.notes].join(" ")) || block.text;
     const isBride = hasAuditWord(text, /\bbride\b|\bbridal\b/);
     const isBridesmaid = hasAuditWord(text, /\bbridesmaid\b|\bmaid of honor\b|\bmoh\b|\battendant\b/);
     const isMother = hasAuditWord(text, /\bmother\b|\bmob\b|\bmog\b|mother of bride|mother of groom/);
-    const hasHair = hasAuditWord(text, /\bhair\b|\bupdo\b|\bstyling\b|\bstyle\b|\bh\b/);
-    const hasMakeup = hasAuditWord(text, /\bmakeup\b|\bmua\b|\bmu\b|\bm\b/);
+    const hasHair = auditHasHairService(text);
+    const hasMakeup = auditHasMakeupService(text);
+
+    if (isServiceBlock(block) && block.provider) {
+      const provider = providersByName.get(block.provider);
+      const capability = normalizeProviderCapability(provider?.capability);
+      if (!capability) {
+        addMissingCapabilityWarning(block.provider);
+      } else {
+        if (hasHair && capability === "MAKEUP_ONLY") {
+          issues.push({
+            id: `provider-capability-hair-${block.id}`,
+            severity: "critical",
+            title: "Hair service assigned to makeup-only provider",
+            detail: `${block.provider} is MAKEUP_ONLY, but ${auditBlockLabel(block)} includes hair.`,
+          });
+        }
+        if (hasMakeup && capability === "HAIR_ONLY") {
+          issues.push({
+            id: `provider-capability-makeup-${block.id}`,
+            severity: "critical",
+            title: "Makeup service assigned to hair-only provider",
+            detail: `${block.provider} is HAIR_ONLY, but ${auditBlockLabel(block)} includes makeup.`,
+          });
+        }
+      }
+
+      if (isBride && !provider?.isPrimary) {
+        issues.push({
+          id: `bride-non-primary-${block.id}`,
+          severity: "warning",
+          title: "Bride is not assigned to a primary provider",
+          detail: `${auditBlockLabel(block)} is assigned to ${block.provider}, which is not marked primary.`,
+        });
+      }
+    }
 
     if (isBride && hasHair && hasMakeup) {
       addDurationIssue(issues, block, 120, "Bride hair + makeup is under 120 minutes", "critical");
@@ -817,6 +917,7 @@ export default function ScheduleDraftBuilder() {
     if (d && !loaded) {
       const sortedRows = [...(d.rows ?? [])].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
       const normalizedDefaults = normalizeServiceDefaults(d.serviceDefaults);
+      const normalizedProviders = normalizeProviders(d.providers);
       setTitle(d.title ?? "");
       setEventDate(d.eventDate ?? "");
       setLocation(d.location ?? "");
@@ -824,7 +925,7 @@ export default function ScheduleDraftBuilder() {
       setColumns(d.columns ?? []);
       setRows(sortedRows);
       setServiceDefaults(normalizedDefaults);
-      setProviders(d.providers ?? []);
+      setProviders(normalizedProviders);
       // Capture the baseline so we can detect unsaved edits from here on.
       setSavedSnapshot(
         serializeScheduleState({
@@ -835,7 +936,7 @@ export default function ScheduleDraftBuilder() {
           columns: d.columns ?? [],
           rows: sortedRows,
           serviceDefaults: normalizedDefaults,
-          providers: d.providers ?? [],
+          providers: normalizedProviders,
         }),
       );
       setLoaded(true);
@@ -1031,9 +1132,9 @@ export default function ScheduleDraftBuilder() {
 
   // Providers editing
   const addProvider = () =>
-    setProviders((prev) => [...prev, { id: uid("prov"), name: `Artist ${prev.length + 1}` }]);
-  const updateProvider = (id: string, name: string) =>
-    setProviders((prev) => prev.map((p) => (p.id === id ? { ...p, name } : p)));
+    setProviders((prev) => [...prev, { id: uid("prov"), name: `Artist ${prev.length + 1}`, capability: "", isPrimary: false }]);
+  const updateProvider = (id: string, patch: Partial<Provider>) =>
+    setProviders((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
   const deleteProvider = (id: string) => setProviders((prev) => prev.filter((p) => p.id !== id));
 
   if (authLoading || !isAuthenticated) {
@@ -1551,16 +1652,49 @@ export default function ScheduleDraftBuilder() {
                   <div className="px-4 py-4 text-ink/40 text-sm">No providers yet.</div>
                 )}
                 {providers.map((p) => (
-                  <div key={p.id} className="px-4 py-3 flex items-center gap-3" data-testid={`row-provider-${p.id}`}>
-                    <input
-                      value={p.name}
-                      onChange={(e) => updateProvider(p.id, e.target.value)}
-                      className="flex-1 bg-bg border border-hairline px-2 py-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70"
-                      data-testid={`input-provider-${p.id}`}
-                    />
+                  <div
+                    key={p.id}
+                    className="px-4 py-3 grid grid-cols-1 md:grid-cols-[minmax(180px,1fr)_180px_auto_auto] gap-3 md:items-center"
+                    data-testid={`row-provider-${p.id}`}
+                  >
+                    <label className="block">
+                      <span className="text-[10px] uppercase tracking-wide text-ink/45">Name</span>
+                      <input
+                        value={p.name}
+                        onChange={(e) => updateProvider(p.id, { name: e.target.value })}
+                        className="mt-0.5 w-full bg-bg border border-hairline px-2 py-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70"
+                        data-testid={`input-provider-${p.id}`}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-[10px] uppercase tracking-wide text-ink/45">Capability</span>
+                      <select
+                        value={p.capability ?? ""}
+                        onChange={(e) => updateProvider(p.id, { capability: normalizeProviderCapability(e.target.value) ?? "" })}
+                        className="mt-0.5 w-full bg-bg border border-hairline px-2 py-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70"
+                        data-testid={`select-provider-capability-${p.id}`}
+                      >
+                        <option value="">Unknown</option>
+                        {Object.entries(PROVIDER_CAPABILITY_LABELS).map(([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="inline-flex items-center gap-2 text-sm text-ink/70 md:mt-4">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(p.isPrimary)}
+                        onChange={(e) => updateProvider(p.id, { isPrimary: e.target.checked })}
+                        className="h-4 w-4 accent-oxblood"
+                        data-testid={`checkbox-provider-primary-${p.id}`}
+                      />
+                      Primary
+                    </label>
                     <button
                       onClick={() => deleteProvider(p.id)}
-                      className="text-ink/40 hover:text-oxblood"
+                      className="text-ink/40 hover:text-oxblood md:mt-4 md:justify-self-end"
                       data-testid={`button-delete-provider-${p.id}`}
                     >
                       <Trash2 className="w-4 h-4" />
