@@ -16948,150 +16948,152 @@ Rules:
     }
   });
   
-  // Debug endpoint to check token lookup AND full admin flow (no auth required)
-  app.get("/api/debug/token-check", async (req, res) => {
-    try {
-      const token = req.query.token as string;
-      const slug = req.query.slug as string;
-      const fullTest = req.query.full === 'true';
-      
-      if (!token && !slug) {
-        return res.json({ error: "Provide ?token=xxx or ?slug=xxx. Add &full=true to test full flow." });
-      }
-      
-      let profileByToken = null;
-      let profileBySlug = null;
-      
-      if (token) {
-        profileByToken = await storage.getArtistProfileByEditToken(token);
-      }
-      if (slug) {
-        profileBySlug = await storage.getArtistProfileBySlug(slug);
-      }
-      
-      const result: any = {
-        tokenProvided: !!token,
-        slugProvided: !!slug,
-        foundByToken: profileByToken ? {
-          slug: profileByToken.artistSlug,
-          bizName: profileByToken.businessName,
-          hasUserId: !!profileByToken.userId,
-          userId: profileByToken.userId
-        } : null,
-        foundBySlug: profileBySlug ? {
-          slug: profileBySlug.artistSlug,
-          bizName: profileBySlug.businessName,
-          hasUserId: !!profileBySlug.userId,
-          storedTokenPrefix: profileBySlug.editToken?.substring(0, 8) + "...",
-          providedTokenPrefix: token?.substring(0, 8) + "...",
-          tokensMatch: profileBySlug.editToken === token
-        } : null
-      };
-      
-      // Full test: try to load inquiries and threads like the admin route does
-      if (fullTest && profileByToken) {
-        try {
-          const inquiries = await storage.getInquiriesByVendor(profileByToken.userId!);
-          result.inquiriesCount = inquiries?.length || 0;
-        } catch (e: any) {
-          result.inquiriesError = e.message;
-        }
-        
-        try {
-          const threads = await storage.getThreadsByArtist(profileByToken.id);
-          result.threadsCount = threads?.length || 0;
-        } catch (e: any) {
-          result.threadsError = e.message;
-        }
-        
-        result.fullTestPassed = !result.inquiriesError && !result.threadsError;
-      }
-      
-      res.json(result);
-    } catch (error: any) {
-      res.json({ error: error.message });
-    }
-  });
+  if (process.env.NODE_ENV !== "production") {
+    // Debug endpoint to check token lookup AND full admin flow (no auth required)
+    app.get("/api/debug/token-check", async (req, res) => {
+      try {
+        const token = req.query.token as string;
+        const slug = req.query.slug as string;
+        const fullTest = req.query.full === 'true';
 
-  // Debug endpoint to test admin-data directly - full flow
-  app.get("/api/debug/admin-test", async (req, res) => {
-    try {
-      const userId = (req.session as any)?.userId;
-      if (!userId) {
-        return res.json({ error: "NO SESSION", step: "session check" });
+        if (!token && !slug) {
+          return res.json({ error: "Provide ?token=xxx or ?slug=xxx. Add &full=true to test full flow." });
+        }
+
+        let profileByToken = null;
+        let profileBySlug = null;
+
+        if (token) {
+          profileByToken = await storage.getArtistProfileByEditToken(token);
+        }
+        if (slug) {
+          profileBySlug = await storage.getArtistProfileBySlug(slug);
+        }
+
+        const result: any = {
+          tokenProvided: !!token,
+          slugProvided: !!slug,
+          foundByToken: profileByToken ? {
+            slug: profileByToken.artistSlug,
+            bizName: profileByToken.businessName,
+            hasUserId: !!profileByToken.userId,
+            userId: profileByToken.userId
+          } : null,
+          foundBySlug: profileBySlug ? {
+            slug: profileBySlug.artistSlug,
+            bizName: profileBySlug.businessName,
+            hasUserId: !!profileBySlug.userId,
+            storedTokenPrefix: profileBySlug.editToken?.substring(0, 8) + "...",
+            providedTokenPrefix: token?.substring(0, 8) + "...",
+            tokensMatch: profileBySlug.editToken === token
+          } : null
+        };
+
+        // Full test: try to load inquiries and threads like the admin route does
+        if (fullTest && profileByToken) {
+          try {
+            const inquiries = await storage.getInquiriesByVendor(profileByToken.userId!);
+            result.inquiriesCount = inquiries?.length || 0;
+          } catch (e: any) {
+            result.inquiriesError = e.message;
+          }
+
+          try {
+            const threads = await storage.getThreadsByArtist(profileByToken.id);
+            result.threadsCount = threads?.length || 0;
+          } catch (e: any) {
+            result.threadsError = e.message;
+          }
+
+          result.fullTestPassed = !result.inquiriesError && !result.threadsError;
+        }
+
+        res.json(result);
+      } catch (error: any) {
+        res.json({ error: error.message });
       }
-      
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.json({ error: "USER NOT FOUND", userId, step: "user lookup" });
-      }
-      
-      const profile = await storage.getArtistProfile(userId);
-      if (!profile) {
-        const allProfiles = await db.select().from(artistProfiles);
+    });
+
+    // Debug endpoint to test admin-data directly - full flow
+    app.get("/api/debug/admin-test", async (req, res) => {
+      try {
+        const userId = (req.session as any)?.userId;
+        if (!userId) {
+          return res.json({ error: "NO SESSION", step: "session check" });
+        }
+
+        const user = await storage.getUser(userId);
+        if (!user) {
+          return res.json({ error: "USER NOT FOUND", userId, step: "user lookup" });
+        }
+
+        const profile = await storage.getArtistProfile(userId);
+        if (!profile) {
+          const allProfiles = await db.select().from(artistProfiles);
+          return res.json({
+            error: "NO PROFILE BY USERID",
+            userId,
+            userEmail: user.email,
+            step: "profile lookup",
+            allProfileUserIds: allProfiles.map(p => ({ slug: p.artistSlug, usrId: p.userId }))
+          });
+        }
+
+        // Try to get inquiries and threads like admin-data does
+        let inquiries, threads;
+        try {
+          inquiries = await storage.getInquiriesByVendor(userId);
+        } catch (e: any) {
+          return res.json({ error: e.message, step: "getInquiriesByVendor", userId });
+        }
+        
+        try {
+          threads = await storage.getThreadsByArtist(profile.id);
+        } catch (e: any) {
+          return res.json({ error: e.message, step: "getThreadsByArtist", profileId: profile.id });
+        }
+        
         return res.json({ 
-          error: "NO PROFILE BY USERID",
-          userId,
-          userEmail: user.email,
-          step: "profile lookup",
-          allProfileUserIds: allProfiles.map(p => ({ slug: p.artistSlug, usrId: p.userId }))
+          success: true,
+          step: "complete",
+          profile: { slug: profile.artistSlug, bizName: profile.businessName, userId: profile.userId },
+          inquiryCount: inquiries?.length || 0,
+          threadCount: threads?.length || 0
         });
+      } catch (error: any) {
+        res.json({ error: error.message, step: "exception", stack: error.stack?.substring(0, 500) });
       }
-      
-      // Try to get inquiries and threads like admin-data does
-      let inquiries, threads;
-      try {
-        inquiries = await storage.getInquiriesByVendor(userId);
-      } catch (e: any) {
-        return res.json({ error: e.message, step: "getInquiriesByVendor", userId });
-      }
-      
-      try {
-        threads = await storage.getThreadsByArtist(profile.id);
-      } catch (e: any) {
-        return res.json({ error: e.message, step: "getThreadsByArtist", profileId: profile.id });
-      }
-      
-      return res.json({ 
-        success: true, 
-        step: "complete",
-        profile: { slug: profile.artistSlug, bizName: profile.businessName, userId: profile.userId },
-        inquiryCount: inquiries?.length || 0,
-        threadCount: threads?.length || 0
-      });
-    } catch (error: any) {
-      res.json({ error: error.message, step: "exception", stack: error.stack?.substring(0, 500) });
-    }
-  });
+    });
 
-  // Debug endpoint to check database state (temporary)
-  app.get("/api/debug/db-state", async (req, res) => {
-    try {
-      const userId = (req.session as any)?.userId;
-      const allProfiles = await db.select({
-        id: artistProfiles.id,
-        slug: artistProfiles.artistSlug,
-        bizName: artistProfiles.businessName,
-        userId: artistProfiles.userId,
-        status: artistProfiles.verificationStatus
-      }).from(artistProfiles);
-      
-      const allUsers = await db.select({
-        id: users.id,
-        email: users.email,
-        role: users.role
-      }).from(users);
-      
-      res.json({
-        sessionUserId: userId || "NO SESSION",
-        profiles: allProfiles,
-        users: allUsers
-      });
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      res.status(500).json({ error: errorMessage });
-    }
-  });
+    // Debug endpoint to check database state (temporary)
+    app.get("/api/debug/db-state", async (req, res) => {
+      try {
+        const userId = (req.session as any)?.userId;
+        const allProfiles = await db.select({
+          id: artistProfiles.id,
+          slug: artistProfiles.artistSlug,
+          bizName: artistProfiles.businessName,
+          userId: artistProfiles.userId,
+          status: artistProfiles.verificationStatus
+        }).from(artistProfiles);
+
+        const allUsers = await db.select({
+          id: users.id,
+          email: users.email,
+          role: users.role
+        }).from(users);
+
+        res.json({
+          sessionUserId: userId || "NO SESSION",
+          profiles: allProfiles,
+          users: allUsers
+        });
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        res.status(500).json({ error: errorMessage });
+      }
+    });
+  }
 
   // Artist admin dashboard - session-based auth (for logged in artists)
   app.get("/api/artist/admin-data", async (req, res) => {

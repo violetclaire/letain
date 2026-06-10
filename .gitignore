@@ -4,6 +4,12 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+.env
+.env.*
+!.env.example
+.npmrc
+*.pem
+*.key
 ios/App/Pods/
 ios/App/build/
 ios/DerivedData/
