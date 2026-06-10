@@ -562,6 +562,62 @@ function isPlaceholderName(value: string): boolean {
   return /^[A-Za-z][A-Za-z .'+/&-]*\s+\d+$/.test(value.trim());
 }
 
+function isStarterScheduleName(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed || isPlaceholderName(trimmed)) return true;
+  return /^(bride|bridal|mob|mog|mother|mother of bride|mother of groom|flower girl|setup)$/i.test(trimmed);
+}
+
+function isEmptyOrPlaceholderOnlyRows(rows: Row[], providerColId: string): boolean {
+  if (rows.length === 0) return true;
+  const allowedStarterCells = new Set(["name", "service", "duration", providerColId]);
+  return rows.every((row) => {
+    const cells = row.cells ?? {};
+    const name = (cells.name ?? "").trim();
+    if (!isStarterScheduleName(name)) return false;
+    return Object.entries(cells).every(([key, value]) => {
+      const cellValue = (value ?? "").trim();
+      if (!cellValue) return true;
+      if (key === "name") return isStarterScheduleName(cellValue);
+      return allowedStarterCells.has(key);
+    });
+  });
+}
+
+function firstDraftHasMeaningfulServiceBlocks(preview: FirstDraftPreview): boolean {
+  return preview.lanes.some((lane) =>
+    lane.blocks.some((block) => !block.isSetup && isApplyableFirstDraftBlock(block)),
+  );
+}
+
+function isApplyableFirstDraftBlock(block: PreviewBlock): boolean {
+  return Boolean(block.isSetup || block.service.trim() || block.notes.trim() || (block.name.trim() && !isStarterScheduleName(block.name)));
+}
+
+function firstDraftPreviewToRows(preview: FirstDraftPreview, columns: Column[], providerColId: string): Row[] {
+  const rows: Row[] = [];
+  for (const lane of preview.lanes) {
+    for (const block of lane.blocks) {
+      if (!isApplyableFirstDraftBlock(block)) continue;
+      const cells: Record<string, string> = {};
+      for (const column of columns) cells[column.id] = "";
+      cells.name = block.name;
+      cells.service = block.service;
+      cells[providerColId] = block.provider;
+      cells.start = block.start === null ? "" : formatClockTime(block.start);
+      cells.end = block.end === null ? "" : formatClockTime(block.end);
+      cells.duration = String(block.duration);
+      cells.notes = block.notes;
+      rows.push({
+        id: uid("row"),
+        sortOrder: rows.length,
+        cells,
+      });
+    }
+  }
+  return rows;
+}
+
 // The "People to assign" pool is persisted inside the notes string as one
 // delimited line (no schema change). These helpers read/write that line so the
 // pool can be surfaced as its own section while the rest of the notes stay clean.
@@ -1390,6 +1446,17 @@ export default function ScheduleDraftBuilder() {
     () => buildFirstDraftPreview({ rows, providers, serviceDefaults, engineMetadata, providerColId }),
     [rows, providers, serviceDefaults, engineMetadata, providerColId],
   );
+  const hasFirstDraftPreview = firstDraftPreview.lanes.length > 0;
+  const hasFirstDraftServiceBlocks = firstDraftHasMeaningfulServiceBlocks(firstDraftPreview);
+  const rowsCanAcceptFirstDraftPreview = isEmptyOrPlaceholderOnlyRows(rows, providerColId);
+  const canApplyFirstDraftPreview = hasFirstDraftPreview && hasFirstDraftServiceBlocks && rowsCanAcceptFirstDraftPreview;
+  const firstDraftApplyMessage = !hasFirstDraftPreview
+    ? "Generate a preview before applying it."
+    : !hasFirstDraftServiceBlocks
+      ? "Add service blocks before applying a preview."
+      : !rowsCanAcceptFirstDraftPreview
+        ? "Apply is disabled once editable rows contain manual schedule details."
+        : "Preview can be applied to editable rows.";
 
   // Name pool ("People to assign") lives inside notes as one delimited line so
   // no schema changes are needed. Parse it out for its own section and keep the
@@ -1413,6 +1480,15 @@ export default function ScheduleDraftBuilder() {
     if (!name) return;
     setCell(rowId, "name", name);
     setPeopleToAssign(peopleToAssign.filter((n) => n !== name));
+  };
+
+  const applyFirstDraftPreviewToRows = () => {
+    if (!canApplyFirstDraftPreview) return;
+    if (!window.confirm("Apply this preview to editable rows? Review and save when ready.")) return;
+    const nextRows = firstDraftPreviewToRows(firstDraftPreview, columns, providerColId);
+    if (nextRows.length === 0) return;
+    setRows(nextRows);
+    toast({ title: "Preview applied", description: "Review and save when ready." });
   };
 
   const applyPaste = () => {
@@ -1717,6 +1793,21 @@ export default function ScheduleDraftBuilder() {
                     <span className="border border-hairline bg-bg px-2.5 py-1">
                       Setup: {firstDraftPreview.setupMinutes} min
                     </span>
+                  </div>
+
+                  <div className="flex flex-col gap-2 border border-hairline bg-bg px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm text-ink/60" data-testid="text-first-draft-apply-status">
+                      {firstDraftApplyMessage}
+                    </p>
+                    <button
+                      onClick={applyFirstDraftPreviewToRows}
+                      disabled={!canApplyFirstDraftPreview}
+                      className="inline-flex items-center justify-center gap-2 border border-hairline px-3 py-2 text-sm hover:bg-surface disabled:cursor-not-allowed disabled:opacity-50"
+                      data-testid="button-apply-first-draft-preview"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Apply preview to rows
+                    </button>
                   </div>
 
                   {firstDraftPreview.warnings.length > 0 && (
