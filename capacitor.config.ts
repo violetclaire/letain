@@ -1,13 +1,13 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.beauvette.app',
-  appName: 'Beauvette',
+  appId: 'com.atbriarwood.app',
+  appName: 'Briarwood',
   webDir: 'dist/public',
   server: {
     androidScheme: 'https',
     iosScheme: 'https',
-    url: 'https://dateinquiry.com',
+    url: 'https://atbriarwood.com',
     cleartext: false
   },
   ios: {
