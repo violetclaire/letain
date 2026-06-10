@@ -1004,7 +1004,7 @@ export default function InquiryWorkspace() {
               Inquiry Workspace
             </h1>
           </div>
-          <p className="text-sm text-ink/60">Read-only operator view</p>
+          <p className="text-sm text-ink/60">Private operator workspace. Internal saves only; summaries are visibility-only. Nothing is sent from here.</p>
         </header>
 
         {inquiriesQuery.isLoading && (
@@ -1031,7 +1031,7 @@ export default function InquiryWorkspace() {
             <Inbox className="w-8 h-8 mx-auto mb-4 text-ink/40" />
             <h2 className="font-serif text-xl tracking-tight mb-2">No inquiries yet</h2>
             <p className="text-sm text-ink/65 max-w-lg mx-auto">
-              When owner-scoped inquiries exist for your operator account, they will appear here without changing any routing, contract, payment, schedule, or sending behavior.
+              When owner-scoped inquiries exist for your operator account, they will appear here. Internal notes and draft candidates stay private; no routing, preflight, SMS, email, contract, payment, or schedule action happens from this workspace.
             </p>
           </div>
         )}
@@ -1348,6 +1348,9 @@ export default function InquiryWorkspace() {
                       </div>
                       <Pill>Private/internal only</Pill>
                     </div>
+                    <p className="mb-3 text-xs text-ink/55">
+                      Notes are saved only for the operator account and are never sent to the client.
+                    </p>
 
                     {internalNoteQuery.isLoading ? (
                       <div className="flex items-center gap-2 text-sm text-ink/60">
@@ -1366,7 +1369,7 @@ export default function InquiryWorkspace() {
                         />
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <p className="text-xs text-ink/50">
-                            {internalNoteQuery.data?.note?.updatedAt ? `Last saved ${formatDateTime(internalNoteQuery.data.note.updatedAt)}` : "Not saved yet"}
+                            {internalNoteQuery.data?.note?.updatedAt ? `Private note last saved ${formatDateTime(internalNoteQuery.data.note.updatedAt)}` : "Private note not saved yet"}
                           </p>
                           <button
                             type="button"
@@ -1423,7 +1426,7 @@ export default function InquiryWorkspace() {
 
                     {!composerQuery.isLoading && !composerQuery.isError && !latestComposerResponse && (
                       <p className="text-sm text-ink/60">
-                        No saved response draft exists for this inquiry yet.
+                        No saved response draft exists for this inquiry yet. This panel is visibility-only and cannot send messages.
                       </p>
                     )}
 
@@ -1682,14 +1685,17 @@ export default function InquiryWorkspace() {
                     <div className="flex items-center justify-between gap-3 mb-3">
                       <div className="flex items-center gap-2">
                         <Users className="w-4 h-4 text-ink/50" />
-                        <h3 className="font-serif text-base tracking-tight">Draft routing candidates</h3>
+                        <h3 className="font-serif text-base tracking-tight">Internal draft routing candidates</h3>
                       </div>
                       {!routeTargetsQuery.isLoading && !routeTargetsQuery.isError && (
                         <span className="text-xs text-ink/50">
-                          {draftCandidatesQuery.isLoading ? "Loading saved state" : `${draftCandidates.length} saved`}
+                          {draftCandidatesQuery.isLoading ? "Loading internal state" : `${draftCandidates.length} saved internally`}
                         </span>
                       )}
                     </div>
+                    <p className="mb-3 text-xs text-ink/55">
+                      Saving a candidate here does not create a route, run preflight, or send a message.
+                    </p>
 
                     {(routeTargetsQuery.isLoading || draftCandidatesQuery.isLoading) && (
                       <div className="flex items-center gap-2 text-sm text-ink/60">
@@ -1706,31 +1712,31 @@ export default function InquiryWorkspace() {
 
                     {draftCandidatesQuery.isError && (
                       <p className="text-sm text-ink/60">
-                        Could not load saved draft candidate state.
+                        Could not load saved internal candidate state.
                       </p>
                     )}
 
                     {saveDraftCandidate.isError && (
                       <p className="text-sm text-ink/60">
-                        Could not save this draft candidate. Please try again.
+                        Could not save this internal candidate. Please try again.
                       </p>
                     )}
 
                     {removeDraftCandidate.isError && (
                       <p className="text-sm text-ink/60">
-                        Could not remove this draft candidate. Please try again.
+                        Could not unsave this internal candidate. Please try again.
                       </p>
                     )}
 
                     {!routeTargetsQuery.isLoading && !routeTargetsQuery.isError && routeTargets.length === 0 && (
                       <p className="text-sm text-ink/60">
-                        No route targets are available for draft candidates yet.
+                        No route targets are available for internal draft candidates yet.
                       </p>
                     )}
 
                     {!routeTargetsQuery.isLoading && !routeTargetsQuery.isError && routeTargets.length > 0 && networkMatches.length === 0 && (
                       <p className="text-sm text-ink/60">
-                        No draft candidates match this inquiry from existing route-target metadata.
+                        No internal draft candidates match this inquiry from existing route-target metadata.
                       </p>
                     )}
 
@@ -1756,7 +1762,7 @@ export default function InquiryWorkspace() {
                                 <div className="min-w-0">
                                   <div className="flex flex-wrap items-center gap-2">
                                     <p className="text-sm font-medium text-ink break-words">{target.name}</p>
-                                    <Pill>{isSaved ? "Saved draft" : "Draft Candidate"}</Pill>
+                                    <Pill>{isSaved ? "Saved internal draft" : "Internal candidate"}</Pill>
                                   </div>
                                   <p className="text-xs text-ink/55 mt-0.5">{target.roleLabel || "Network contact"}</p>
                                 </div>
@@ -1775,14 +1781,14 @@ export default function InquiryWorkspace() {
                                         }
                                       }}
                                       data-testid={`button-remove-draft-candidate-${target.id}`}
-                                      aria-label={`Remove ${target.name} from draft candidates`}
+                                      aria-label={`Unsave ${target.name} from internal draft candidates`}
                                     >
                                       {isRemoving ? (
                                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                       ) : (
                                         <XCircle className="w-3.5 h-3.5" />
                                       )}
-                                      {isRemoving ? "Removing" : "Remove"}
+                                      {isRemoving ? "Unsaving" : "Unsave"}
                                     </button>
                                   ) : (
                                     <button
@@ -1795,14 +1801,14 @@ export default function InquiryWorkspace() {
                                         }
                                       }}
                                       data-testid={`button-save-draft-candidate-${target.id}`}
-                                      aria-label={`Save ${target.name} as draft candidate`}
+                                      aria-label={`Save ${target.name} as internal draft candidate`}
                                     >
                                       {isSaving ? (
                                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                       ) : (
                                         <PlusCircle className="w-3.5 h-3.5" />
                                       )}
-                                      {isSaving ? "Saving" : "Save draft"}
+                                      {isSaving ? "Saving" : "Save internal"}
                                     </button>
                                   )}
                                 </div>
