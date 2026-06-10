@@ -79,20 +79,61 @@ function uid(prefix: string): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-const SERVICE_ALIASES: Array<{ match: RegExp; label: string }> = [
-  // Only "bride" as its own word matches the Bride service. "bridesmaid(s)"
-  // must NOT match here, so it can be treated as a named group instead.
-  { match: /\bbride\b/i, label: "Bride Hair + Makeup" },
-  { match: /hair\s*(\+|and|&|\/)\s*makeup|makeup\s*(\+|and|&|\/)\s*hair|h\s*\+?\s*m\b/i, label: "Hair + Makeup" },
-  { match: /makeup|mua|\bmu\b/i, label: "Bridesmaid Makeup" },
-  { match: /hair\b/i, label: "Bridesmaid Hair" },
-];
+type QuickAddServiceKind = "makeup" | "hair" | "setup";
+type QuickAddBlock = {
+  name: string;
+  service: string;
+  kind: QuickAddServiceKind;
+  provider: string;
+  isBride?: boolean;
+  durationOverride?: string;
+};
 
-function normalizeService(raw: string): string {
-  for (const a of SERVICE_ALIASES) {
-    if (a.match.test(raw)) return a.label;
-  }
-  return "";
+function hasQuickAddWord(raw: string, pattern: RegExp): boolean {
+  return pattern.test(raw);
+}
+
+function hasMakeupScope(raw: string): boolean {
+  return hasQuickAddWord(raw, /\b(makeup|mua|mu)\b/i);
+}
+
+function hasHairScope(raw: string): boolean {
+  return hasQuickAddWord(raw, /\b(hair|styling|style|curls?|waves?)\b/i);
+}
+
+function hasCombinedScope(raw: string): boolean {
+  return hasQuickAddWord(raw, /\b(hair\s*(\+|and|&|\/)\s*makeup|makeup\s*(\+|and|&|\/)\s*hair|h\s*(\+|and|&|\/)?\s*m|hm)\b/i);
+}
+
+function isBrideToken(raw: string): boolean {
+  return hasQuickAddWord(raw, /\bbride\b/i);
+}
+
+function isMotherToken(raw: string): boolean {
+  return hasQuickAddWord(raw, /\b(mob|mog|mother|mother of bride|mother of groom)\b/i);
+}
+
+function isFlowerGirlToken(raw: string): boolean {
+  return hasQuickAddWord(raw, /\bflower\s*girls?\b/i);
+}
+
+function isSetupToken(raw: string): boolean {
+  return hasQuickAddWord(raw, /\b(setup|set up|station setup|stations setup)\b/i);
+}
+
+function explicitNameForService(raw: string): string | null {
+  if (hasQuickAddWord(raw, /\bmob\b/i)) return "MOB";
+  if (hasQuickAddWord(raw, /\bmog\b/i)) return "MOG";
+  if (isBrideToken(raw)) return "Bride";
+  if (isMotherToken(raw)) return "Mother";
+  if (isFlowerGirlToken(raw)) return "Flower Girl";
+  return null;
+}
+
+function quickAddBlockNameBase(service: string): string {
+  if (service === "Bridesmaid Makeup") return "Makeup";
+  if (service === "Bridesmaid Hair") return "Hair";
+  return service;
 }
 
 // Decide how many provider lanes do makeup vs hair, proportional to how many
@@ -142,10 +183,60 @@ function buildScheduleFromInput(
   };
 
   let providerCount = 0;
-  let makeupCount = 0;
-  let hairCount = 0;
-  const otherServices: Array<{ service: string; count: number }> = [];
+  const setupDurationFor = () => (providerCount >= 3 ? "30" : durationFor("Setup") || "15");
+  let brideAutoPlaced = false;
+  const serviceBlocks: QuickAddBlock[] = [];
   const people: string[] = [];
+
+  const serviceBlocksForToken = (raw: string, count: number): QuickAddBlock[] => {
+    if (isSetupToken(raw)) {
+      return Array.from({ length: count }, (_, i) => ({
+        name: count === 1 ? "Setup" : `Setup ${i + 1}`,
+        service: "Setup",
+        kind: "setup",
+        provider: "",
+      }));
+    }
+
+    const combined = hasCombinedScope(raw) || (hasHairScope(raw) && hasMakeupScope(raw));
+    const hasHair = combined || hasHairScope(raw);
+    const hasMakeup = combined || hasMakeupScope(raw);
+    const hasServiceScope = hasHair || hasMakeup;
+    const explicitName = explicitNameForService(raw);
+    const services: Array<{ service: string; kind: QuickAddServiceKind; isBride?: boolean }> = [];
+
+    if (isBrideToken(raw)) {
+      if (combined) services.push({ service: "Bride Hair + Makeup", kind: "makeup", isBride: true });
+      else if (hasMakeup) services.push({ service: "Bride Makeup", kind: "makeup", isBride: true });
+      else if (hasHair) services.push({ service: "Bride Hair", kind: "hair", isBride: true });
+    } else if (isMotherToken(raw)) {
+      if (combined) {
+        services.push({ service: "Mother Makeup", kind: "makeup" }, { service: "Mother Hair", kind: "hair" });
+      } else if (hasMakeup) services.push({ service: "Mother Makeup", kind: "makeup" });
+      else if (hasHair) services.push({ service: "Mother Hair", kind: "hair" });
+    } else if (isFlowerGirlToken(raw)) {
+      services.push({ service: "Flower Girl", kind: hasMakeup && !hasHair ? "makeup" : "hair" });
+    } else if (hasServiceScope) {
+      if (combined) {
+        services.push({ service: "Bridesmaid Makeup", kind: "makeup" }, { service: "Bridesmaid Hair", kind: "hair" });
+      } else if (hasMakeup) services.push({ service: "Bridesmaid Makeup", kind: "makeup" });
+      else if (hasHair) services.push({ service: "Bridesmaid Hair", kind: "hair" });
+    }
+
+    return services.flatMap((service) =>
+      Array.from({ length: count }, (_, i) => {
+        const base = explicitName ?? quickAddBlockNameBase(service.service);
+        const shouldNumber = count > 1 || !explicitName;
+        return {
+          name: shouldNumber ? `${base} ${i + 1}` : base,
+          service: service.service,
+          kind: service.kind,
+          provider: "",
+          ...(service.isBride ? { isBride: true } : {}),
+        };
+      }),
+    );
+  };
 
   const tokens = text
     .split(/[,\n]+/)
@@ -165,13 +256,9 @@ function buildScheduleFromInput(
     if (countMatch) {
       const n = Math.min(parseInt(countMatch[1], 10), 100);
       const rest = countMatch[2].trim();
-      const svc = normalizeService(rest);
-      if (svc === "Makeup" || svc === "Bridesmaid Makeup") {
-        makeupCount += n;
-      } else if (svc === "Hair" || svc === "Bridesmaid Hair") {
-        hairCount += n;
-      } else if (svc) {
-        otherServices.push({ service: svc, count: n });
+      const blocks = serviceBlocksForToken(rest, n);
+      if (blocks.length > 0) {
+        serviceBlocks.push(...blocks);
       } else {
         // group name like "bridesmaids" -> "Bridesmaid 1".."Bridesmaid n" (people)
         const singular = rest.replace(/s$/i, "");
@@ -181,25 +268,65 @@ function buildScheduleFromInput(
       continue;
     }
 
-    // Plain token: a person name (Bride, MOB, MOG, a real name, etc.)
-    people.push(token);
+    // Plain token: either an explicit service ("MOB makeup") or a person/name.
+    const blocks = serviceBlocksForToken(token, 1);
+    if (blocks.length > 0) {
+      serviceBlocks.push(...blocks);
+    } else {
+      people.push(token);
+    }
   }
 
   const hasBride = people.some((p) => /^bride$/i.test(p.trim()));
 
-  // Bride present + any hair/makeup demand -> one special bridal block. It
-  // consumes one makeup slot (bride's own makeup) so counts stay honest.
-  let brideBlock = false;
-  if (hasBride && (makeupCount > 0 || hairCount > 0)) {
-    brideBlock = true;
-    if (makeupCount > 0) makeupCount -= 1;
+  const removeServiceBlock = (service: string): boolean => {
+    const index = serviceBlocks.findIndex((block) => block.service === service && !block.isBride);
+    if (index === -1) return false;
+    serviceBlocks.splice(index, 1);
+    return true;
+  };
+  const renumberGeneratedBlocks = (service: string, base: string) => {
+    let index = 1;
+    for (const block of serviceBlocks) {
+      if (block.service === service && new RegExp(`^${base} \\d+$`).test(block.name)) {
+        block.name = `${base} ${index++}`;
+      }
+    }
+  };
+
+  // Bride present + generic hair/makeup demand becomes the correct Violet bride
+  // service. It consumes the matching generic service slots so counts stay honest.
+  if (hasBride && !serviceBlocks.some((block) => block.isBride)) {
+    const hasGenericMakeup = serviceBlocks.some((block) => block.service === "Bridesmaid Makeup");
+    const hasGenericHair = serviceBlocks.some((block) => block.service === "Bridesmaid Hair");
+    if (hasGenericMakeup && hasGenericHair) {
+      removeServiceBlock("Bridesmaid Makeup");
+      removeServiceBlock("Bridesmaid Hair");
+      serviceBlocks.unshift({ name: "Bride", service: "Bride Hair + Makeup", kind: "makeup", provider: "", isBride: true });
+      brideAutoPlaced = true;
+    } else if (hasGenericMakeup) {
+      removeServiceBlock("Bridesmaid Makeup");
+      serviceBlocks.unshift({ name: "Bride", service: "Bride Makeup", kind: "makeup", provider: "", isBride: true });
+      brideAutoPlaced = true;
+    } else if (hasGenericHair) {
+      removeServiceBlock("Bridesmaid Hair");
+      serviceBlocks.unshift({ name: "Bride", service: "Bride Hair", kind: "hair", provider: "", isBride: true });
+      brideAutoPlaced = true;
+    }
+    renumberGeneratedBlocks("Bridesmaid Makeup", "Makeup");
+    renumberGeneratedBlocks("Bridesmaid Hair", "Hair");
   }
 
-  const otherTotal = otherServices.reduce((s, o) => s + o.count, 0);
-  const totalServiceDemand = (brideBlock ? 1 : 0) + makeupCount + hairCount + otherTotal;
+  if (serviceBlocks.some((block) => block.isBride)) {
+    brideAutoPlaced = true;
+  }
+
+  if (serviceBlocks.length > 0 && !serviceBlocks.some((block) => block.service === "Setup")) {
+    serviceBlocks.unshift({ name: "Setup", service: "Setup", kind: "setup", provider: "", durationOverride: setupDurationFor() });
+  }
 
   // No services at all -> just a roster of people (names in the Name column).
-  if (totalServiceDemand === 0) {
+  if (serviceBlocks.length === 0) {
     const provs: Array<{ name: string }> = [];
     for (let i = 0; i < providerCount; i++) provs.push({ name: `Artist ${i + 1}` });
     return {
@@ -210,16 +337,9 @@ function buildScheduleFromInput(
     };
   }
 
-  // Makeup-type blocks (bride is done by a makeup artist) and hair blocks.
-  type Block = { name: string; service: string; isBride?: boolean; provider: string };
-  const makeupGroup: Block[] = [];
-  if (brideBlock) makeupGroup.push({ name: "Bride", service: "Bride Hair + Makeup", isBride: true, provider: "" });
-  for (let i = 0; i < makeupCount; i++) makeupGroup.push({ name: `Makeup ${i + 1}`, service: "Makeup", provider: "" });
-  for (const os of otherServices) {
-    for (let i = 0; i < os.count; i++) makeupGroup.push({ name: `${os.service} ${i + 1}`, service: os.service, provider: "" });
-  }
-  const hairGroup: Block[] = [];
-  for (let i = 0; i < hairCount; i++) hairGroup.push({ name: `Hair ${i + 1}`, service: "Hair", provider: "" });
+  const setupGroup = serviceBlocks.filter((block) => block.kind === "setup");
+  const makeupGroup = serviceBlocks.filter((block) => block.kind === "makeup");
+  const hairGroup = serviceBlocks.filter((block) => block.kind === "hair");
 
   // Create lane records, makeup lanes first then hair lanes (Artist 1..N).
   type Lane = { role: "makeup" | "hair" | "both"; artistNum: number; holdsBride: boolean };
@@ -258,7 +378,7 @@ function buildScheduleFromInput(
 
   // Distribute blocks across their lanes round-robin (balanced). The lane that
   // gets the bride block is flagged so its label reads "/ Bride".
-  const blockLane = new Map<Block, Lane>();
+  const blockLane = new Map<QuickAddBlock, Lane>();
   makeupGroup.forEach((b, k) => {
     if (makeupTargets.length === 0) return;
     const lane = makeupTargets[k % makeupTargets.length];
@@ -270,20 +390,23 @@ function buildScheduleFromInput(
     blockLane.set(b, hairTargets[k % hairTargets.length]);
   });
 
-  const blocks = [...makeupGroup, ...hairGroup].map((b) => {
+  setupGroup.forEach((b) => {
+    if (laneRecords.length > 0) blockLane.set(b, laneRecords[0]);
+  });
+
+  const providers = laneRecords.map((rec) => ({ name: laneLabel(rec) }));
+  const blocks = [...setupGroup, ...makeupGroup, ...hairGroup].map((b) => {
     const lane = blockLane.get(b);
     return {
       name: b.name,
       service: b.service,
       provider: lane ? laneLabel(lane) : "",
-      duration: durationFor(b.service),
+      duration: b.durationOverride ?? (b.service === "Setup" ? setupDurationFor() : durationFor(b.service)),
     };
   });
-
-  const providers = laneRecords.map((rec) => ({ name: laneLabel(rec) }));
   // Bride is auto-placed into her block, so drop her from the editable pool to
   // avoid a duplicate assignment. The rest stay as the name pool.
-  const poolPeople = brideBlock ? people.filter((p) => !/^bride$/i.test(p.trim())) : people;
+  const poolPeople = brideAutoPlaced ? people.filter((p) => !/^bride$/i.test(p.trim())) : people;
 
   return { providers, blocks, personRows: [], namePool: poolPeople };
 }
