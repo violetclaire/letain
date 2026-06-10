@@ -38,6 +38,42 @@ type AuditBlock = {
   duration: number | null;
 };
 
+type PreviewServiceKind = "hair" | "makeup" | "both" | "other";
+type PreviewCategory = "attendant" | "bride" | "mother" | "flower" | "other";
+
+type PreviewSourceBlock = {
+  id: string;
+  name: string;
+  service: string;
+  notes: string;
+  originalProvider: string;
+  kind: PreviewServiceKind;
+  category: PreviewCategory;
+  duration: number;
+  order: number;
+};
+
+type PreviewBlock = PreviewSourceBlock & {
+  provider: string;
+  start: number | null;
+  end: number | null;
+  isSetup?: boolean;
+};
+
+type PreviewLane = {
+  provider: string;
+  capability?: ProviderCapability;
+  isPrimary: boolean;
+  blocks: PreviewBlock[];
+};
+
+type FirstDraftPreview = {
+  lanes: PreviewLane[];
+  warnings: string[];
+  readyBy: number | null;
+  setupMinutes: number;
+};
+
 const AUDIT_SEVERITY_LABELS: Record<AuditSeverity, string> = {
   info: "Info",
   warning: "Warning",
@@ -632,6 +668,10 @@ function intervalsOverlap(a: AuditBlock, b: AuditBlock): boolean {
   return a.start !== null && a.end !== null && b.start !== null && b.end !== null && a.start < b.end && b.start < a.end;
 }
 
+function previewIntervalsOverlap(a: PreviewBlock, b: PreviewBlock): boolean {
+  return a.start !== null && a.end !== null && b.start !== null && b.end !== null && a.start < b.end && b.start < a.end;
+}
+
 function hasShortSimpleLabel(text: string): boolean {
   return hasAuditWord(text, /\b(short|simple|quick|soft|light|easy)\b/);
 }
@@ -684,6 +724,254 @@ function addDurationIssue(
       detail: `${auditBlockLabel(block)} is ${block.duration} min; Violet's rule expects at least ${min} min.`,
     });
   }
+}
+
+function firstDraftCategory(text: string): PreviewCategory {
+  if (hasAuditWord(text, /\bbride\b|\bbridal\b/)) return "bride";
+  if (hasAuditWord(text, /\bmother\b|\bmob\b|\bmog\b|mother of bride|mother of groom/)) return "mother";
+  if (hasAuditWord(text, /\bflower\s*girl\b|\bflowergirl\b/)) return "flower";
+  if (hasAuditWord(text, /\bbridesmaid\b|\bmaid of honor\b|\bmoh\b|\battendant\b/)) return "attendant";
+  return "other";
+}
+
+function firstDraftServiceKind(text: string): PreviewServiceKind {
+  const hasHair = auditHasHairService(text);
+  const hasMakeup = auditHasMakeupService(text);
+  if (hasHair && hasMakeup) return "both";
+  if (hasHair) return "hair";
+  if (hasMakeup) return "makeup";
+  return "other";
+}
+
+function defaultPreviewDuration(
+  category: PreviewCategory,
+  kind: PreviewServiceKind,
+  serviceLabel: string,
+  explicitDuration: number | null,
+  serviceDefaults: ServiceDefault[],
+): number {
+  const defaults = new Map(serviceDefaults.map((service) => [service.label.trim().toLowerCase(), service.durationMinutes]));
+  const byLabel = (label: string, fallback: number) => defaults.get(label.toLowerCase()) ?? fallback;
+  const exactDefault = serviceLabel.trim() ? defaults.get(serviceLabel.trim().toLowerCase()) : undefined;
+
+  if (category === "bride" && kind === "both") return byLabel("Bride Hair + Makeup", 120);
+  if (category === "bride" && kind === "makeup") return byLabel("Bride Makeup", 60);
+  if (category === "bride" && kind === "hair") return byLabel("Bride Hair", 45);
+  if (category === "mother" && kind === "makeup") return byLabel("Mother Makeup", 30);
+  if (category === "mother" && kind === "hair") return byLabel("Mother Hair", 45);
+  if (category === "flower") return byLabel("Flower Girl", 45);
+  if (category === "attendant" && kind === "makeup") return byLabel("Bridesmaid Makeup", 30);
+  if (category === "attendant" && kind === "hair") return byLabel("Bridesmaid Hair", 45);
+  if (kind === "makeup") return byLabel("Bridesmaid Makeup", 30);
+  if (kind === "hair") return byLabel("Bridesmaid Hair", 45);
+  if (kind === "both") return byLabel("Bride Hair + Makeup", 120);
+  return exactDefault ?? explicitDuration ?? 30;
+}
+
+function firstDraftProviderCanTake(provider: Provider, kind: PreviewServiceKind): boolean {
+  const capability = normalizeProviderCapability(provider.capability);
+  if (!capability || kind === "other") return true;
+  if (kind === "both") return capability === "ALL";
+  if (kind === "hair") return capability === "ALL" || capability === "HAIR_ONLY";
+  if (kind === "makeup") return capability === "ALL" || capability === "MAKEUP_ONLY";
+  return true;
+}
+
+function firstDraftCategoryRank(category: PreviewCategory): number {
+  if (category === "attendant") return 0;
+  if (category === "other") return 1;
+  if (category === "bride") return 2;
+  if (category === "mother") return 3;
+  return 4;
+}
+
+function buildFirstDraftPreview(input: {
+  rows: Row[];
+  providers: Provider[];
+  serviceDefaults: ServiceDefault[];
+  engineMetadata: ScheduleEngineMetadata;
+  providerColId: string;
+}): FirstDraftPreview {
+  const warnings: string[] = [];
+  const providerMap = new Map<string, Provider>();
+  for (const provider of input.providers) {
+    const name = provider.name.trim();
+    if (!name || providerMap.has(name)) continue;
+    providerMap.set(name, provider);
+    if (!normalizeProviderCapability(provider.capability)) {
+      warnings.push(`${name} has no capability selected, so the preview treats them as flexible.`);
+    }
+  }
+  for (const row of input.rows) {
+    const providerName = (row.cells?.[input.providerColId] ?? "").trim();
+    if (providerName && !providerMap.has(providerName)) {
+      providerMap.set(providerName, { id: providerName, name: providerName });
+      warnings.push(`${providerName} is used on rows but is not in the provider list, so capability is unknown.`);
+    }
+  }
+
+  if (providerMap.size === 0) {
+    providerMap.set("Unassigned", { id: "preview-unassigned", name: "Unassigned" });
+    warnings.push("Add providers before relying on this preview.");
+  }
+
+  const readyByRaw = input.engineMetadata.readyByTime?.trim() ?? "";
+  const readyBy = readyByRaw ? parseClockTime(readyByRaw) : null;
+  if (!readyByRaw) {
+    warnings.push("Add a ready-by / hard stop time to generate backward-planned times.");
+  } else if (readyBy === null) {
+    warnings.push(`Ready-by time "${readyByRaw}" could not be parsed, so preview times are omitted.`);
+  }
+
+  const sourceBlocks: PreviewSourceBlock[] = [];
+  input.rows.forEach((row, order) => {
+    const cells = row.cells ?? {};
+    const name = (cells.name ?? "").trim();
+    const service = (cells.service ?? "").trim();
+    const notes = (cells.notes ?? "").trim();
+    const originalProvider = (cells[input.providerColId] ?? "").trim();
+    const text = auditText([name, service, notes].join(" "));
+    if ((!name && !service && !notes) || hasAuditWord(text, /\b(setup|set up|station setup|stations)\b/)) return;
+    const category = firstDraftCategory(text);
+    const kind = firstDraftServiceKind(text);
+    const explicitDuration = parseDurationMinutes(cells.duration ?? "");
+    sourceBlocks.push({
+      id: row.id,
+      name,
+      service,
+      notes,
+      originalProvider,
+      kind,
+      category,
+      duration: defaultPreviewDuration(category, kind, service, explicitDuration, input.serviceDefaults),
+      order,
+    });
+  });
+
+  if (sourceBlocks.length === 0) {
+    warnings.push("Add service rows before generating a first draft preview.");
+  }
+
+  const providers = Array.from(providerMap.values());
+  const assignmentCounts = new Map(providers.map((provider) => [provider.name.trim() || provider.id, 0]));
+  const lanes = new Map<string, PreviewLane>();
+  const ensureLane = (provider: Provider) => {
+    const name = provider.name.trim() || "Unassigned";
+    if (!lanes.has(name)) {
+      lanes.set(name, {
+        provider: name,
+        capability: normalizeProviderCapability(provider.capability),
+        isPrimary: Boolean(provider.isPrimary),
+        blocks: [],
+      });
+    }
+    return lanes.get(name) as PreviewLane;
+  };
+
+  let brideProvider = providers.find((provider) => provider.isPrimary && firstDraftProviderCanTake(provider, "both")) ?? providers.find((provider) => provider.isPrimary);
+  const chooseProvider = (block: PreviewSourceBlock) => {
+    const original = block.originalProvider ? providerMap.get(block.originalProvider) : undefined;
+    if (original && firstDraftProviderCanTake(original, block.kind)) return original;
+    if (original && !firstDraftProviderCanTake(original, block.kind)) {
+      warnings.push(`${block.originalProvider} cannot take ${block.service || block.name || "a service"} based on capability, so the preview reassigns it.`);
+    }
+
+    let candidates = providers.filter((provider) => firstDraftProviderCanTake(provider, block.kind));
+    if (candidates.length === 0) {
+      candidates = providers;
+      warnings.push(`No provider capability matches ${block.service || block.name || "a service"}; preview assigns it for review.`);
+    }
+
+    if (block.category === "bride") {
+      const primary = candidates.find((provider) => provider.isPrimary);
+      const chosen = primary ?? candidates[0];
+      brideProvider = chosen;
+      return chosen;
+    }
+
+    if (block.category === "mother" && brideProvider && candidates.some((provider) => provider.name === brideProvider?.name)) {
+      return brideProvider;
+    }
+
+    return [...candidates].sort((a, b) => {
+      const aName = a.name.trim() || a.id;
+      const bName = b.name.trim() || b.id;
+      return (assignmentCounts.get(aName) ?? 0) - (assignmentCounts.get(bName) ?? 0);
+    })[0];
+  };
+
+  for (const block of sourceBlocks) {
+    const provider = chooseProvider(block);
+    const providerName = provider.name.trim() || "Unassigned";
+    assignmentCounts.set(providerName, (assignmentCounts.get(providerName) ?? 0) + 1);
+    ensureLane(provider).blocks.push({ ...block, provider: providerName, start: null, end: null });
+  }
+
+  const activeProviderCount = Math.max(lanes.size, providers.length);
+  const setupMinutes = activeProviderCount >= 3 ? 30 : 15;
+  const setupDefault = input.serviceDefaults.find((service) => service.label.trim().toLowerCase() === "setup")?.durationMinutes ?? setupMinutes;
+  const setupDuration = activeProviderCount >= 3 ? 30 : setupDefault;
+  const venueAccess = input.engineMetadata.venueAccessTime?.trim() ? parseClockTime(input.engineMetadata.venueAccessTime) : null;
+
+  for (const lane of lanes.values()) {
+    lane.blocks.sort((a, b) => firstDraftCategoryRank(a.category) - firstDraftCategoryRank(b.category) || a.order - b.order);
+    const setupBlock: PreviewBlock = {
+      id: `setup-${auditId(lane.provider)}`,
+      name: "Setup",
+      service: "Setup",
+      notes: activeProviderCount >= 3 ? "30 minutes for 3+ provider stations" : "15 minute default",
+      originalProvider: lane.provider,
+      kind: "other",
+      category: "other",
+      duration: setupDuration,
+      order: -1,
+      provider: lane.provider,
+      start: null,
+      end: null,
+      isSetup: true,
+    };
+    lane.blocks.unshift(setupBlock);
+
+    if (readyBy !== null) {
+      const totalMinutes = lane.blocks.reduce((sum, block) => sum + block.duration, 0);
+      let cursor = readyBy - totalMinutes;
+      if (venueAccess !== null && cursor < venueAccess) {
+        warnings.push(`${lane.provider} preview begins before venue access.`);
+      }
+      for (const block of lane.blocks) {
+        block.start = cursor;
+        block.end = cursor + block.duration;
+        cursor = block.end;
+      }
+    }
+  }
+
+  const previewBlocks = Array.from(lanes.values()).flatMap((lane) => lane.blocks).filter((block) => !block.isSetup);
+  const brideBlocks = previewBlocks.filter((block) => block.category === "bride");
+  if (brideBlocks.length === 0 && sourceBlocks.length > 0) {
+    warnings.push("No bride block was detected; mark the bride row clearly before relying on this preview.");
+  }
+  if (brideBlocks.some((block) => block.end === readyBy) && !previewBlocks.some((block) => block.category === "mother" || block.category === "flower")) {
+    warnings.push("Bride is last in this preview because there are no mother or flower girl tail-end blocks.");
+  }
+
+  for (let i = 0; i < previewBlocks.length; i++) {
+    for (let j = i + 1; j < previewBlocks.length; j++) {
+      const a = previewBlocks[i];
+      const b = previewBlocks[j];
+      const sameName = auditNameKey(a.name) && auditNameKey(a.name) === auditNameKey(b.name);
+      if (sameName && previewIntervalsOverlap(a, b)) {
+        warnings.push(`${a.name} has overlapping preview blocks across providers.`);
+      }
+    }
+  }
+
+  return {
+    lanes: Array.from(lanes.values()),
+    warnings: Array.from(new Set(warnings)),
+    readyBy,
+    setupMinutes: setupDuration,
+  };
 }
 
 function buildScheduleAudit(input: {
@@ -929,6 +1217,7 @@ export default function ScheduleDraftBuilder() {
   const [engineMetadata, setEngineMetadata] = useState<ScheduleEngineMetadata>(normalizeScheduleEngineMetadata());
   const [pasteText, setPasteText] = useState("");
   const [showPreview, setShowPreview] = useState(false);
+  const [showFirstDraftPreview, setShowFirstDraftPreview] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
 
@@ -1097,6 +1386,10 @@ export default function ScheduleDraftBuilder() {
 
   // Provider column id used to group rows (blocks) into provider lanes.
   const providerColId = columns.find((c) => c.type === "provider")?.id ?? "provider";
+  const firstDraftPreview = useMemo(
+    () => buildFirstDraftPreview({ rows, providers, serviceDefaults, engineMetadata, providerColId }),
+    [rows, providers, serviceDefaults, engineMetadata, providerColId],
+  );
 
   // Name pool ("People to assign") lives inside notes as one delimited line so
   // no schema changes are needed. Parse it out for its own section and keep the
@@ -1396,6 +1689,113 @@ export default function ScheduleDraftBuilder() {
                     </li>
                   ))}
                 </ul>
+              )}
+            </section>
+
+            <section className="border border-hairline bg-surface p-6" data-testid="section-first-draft-preview">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h2 className="font-serif text-xl tracking-tight">First draft preview</h2>
+                  <p className="mt-1 text-sm text-ink/60">Preview only. Nothing is saved.</p>
+                </div>
+                <button
+                  onClick={() => setShowFirstDraftPreview((value) => !value)}
+                  className="inline-flex items-center justify-center gap-2 border border-hairline px-3 py-2 text-sm hover:bg-bg"
+                  data-testid="button-first-draft-preview"
+                >
+                  <Eye className="w-4 h-4" />
+                  {showFirstDraftPreview ? "Hide preview" : "Generate preview"}
+                </button>
+              </div>
+
+              {showFirstDraftPreview && (
+                <div className="mt-5 space-y-5" data-testid="panel-first-draft-preview">
+                  <div className="flex flex-wrap gap-2 text-xs text-ink/55">
+                    <span className="border border-hairline bg-bg px-2.5 py-1">
+                      Ready by: {firstDraftPreview.readyBy === null ? "Pending" : formatClockTime(firstDraftPreview.readyBy)}
+                    </span>
+                    <span className="border border-hairline bg-bg px-2.5 py-1">
+                      Setup: {firstDraftPreview.setupMinutes} min
+                    </span>
+                  </div>
+
+                  {firstDraftPreview.warnings.length > 0 && (
+                    <ul className="space-y-2" data-testid="list-first-draft-warnings">
+                      {firstDraftPreview.warnings.map((warning, index) => (
+                        <li
+                          key={`${warning}-${index}`}
+                          className="border border-brass/40 bg-brass/10 px-3 py-2 text-sm text-ink/70"
+                          data-testid={`first-draft-warning-${index}`}
+                        >
+                          {warning}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {firstDraftPreview.lanes.length === 0 ? (
+                    <p className="border border-hairline bg-bg px-4 py-3 text-sm text-ink/50" data-testid="text-first-draft-empty">
+                      No preview blocks yet.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5 items-start" data-testid="grid-first-draft-lanes">
+                      {firstDraftPreview.lanes.map((lane) => (
+                        <div key={lane.provider} className="border border-hairline bg-bg rounded-sm" data-testid={`first-draft-lane-${auditId(lane.provider)}`}>
+                          <div className="border-b border-hairline px-4 py-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <h3 className="font-serif text-lg tracking-tight">{lane.provider}</h3>
+                              <div className="flex flex-wrap justify-end gap-1.5">
+                                <span className="border border-hairline px-2 py-0.5 text-[10px] uppercase tracking-wide text-ink/50">
+                                  {lane.capability ?? "Unknown"}
+                                </span>
+                                {lane.isPrimary && (
+                                  <span className="border border-brass/40 bg-brass/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-ink/60">
+                                    Primary
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="p-3 space-y-3">
+                            {lane.blocks.map((block) => (
+                              <div
+                                key={block.id}
+                                className={`rounded-sm border px-3 py-2.5 ${
+                                  block.category === "bride"
+                                    ? "border-brass bg-surface"
+                                    : block.isSetup
+                                      ? "border-ink/20 bg-surface"
+                                      : "border-hairline bg-surface"
+                                }`}
+                                data-testid={`first-draft-block-${auditId(block.id)}`}
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <p className="text-sm font-medium text-ink">{block.name || block.service || "Unassigned"}</p>
+                                    {block.service && block.service !== block.name && (
+                                      <p className="text-xs text-ink/55">{block.service}</p>
+                                    )}
+                                  </div>
+                                  <div className="text-right text-xs text-ink/55 whitespace-nowrap">
+                                    {block.start === null || block.end === null ? (
+                                      <span>Time pending</span>
+                                    ) : (
+                                      <span>
+                                        {formatClockTime(block.start)} - {formatClockTime(block.end)}
+                                      </span>
+                                    )}
+                                    <div>{block.duration} min</div>
+                                  </div>
+                                </div>
+                                {block.notes && <p className="mt-1.5 text-xs text-ink/55 whitespace-pre-wrap">{block.notes}</p>}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </section>
 
