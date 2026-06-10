@@ -612,7 +612,7 @@ export const scheduleDrafts = pgTable("schedule_drafts", {
   // Editable default durations per service (not hard-coded)
   serviceDefaults: jsonb("service_defaults").$type<Array<{ id: string; label: string; durationMinutes: number }>>().default([]),
   // Optional providers/artists for assignment
-  providers: jsonb("providers").$type<Array<{ id: string; name: string }>>().default([]),
+  providers: jsonb("providers").$type<Array<{ id: string; name: string; capability?: "ALL" | "HAIR_ONLY" | "MAKEUP_ONLY"; isPrimary?: boolean }>>().default([]),
   status: text("status").default("draft"), // 'draft' only for now (no sending)
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -2064,7 +2064,7 @@ export type ScheduleDraft = typeof scheduleDrafts.$inferSelect;
 export type ScheduleColumn = { id: string; label: string; type: string };
 export type ScheduleRow = { id: string; sortOrder: number; cells: Record<string, string> };
 export type ScheduleServiceDefault = { id: string; label: string; durationMinutes: number };
-export type ScheduleProvider = { id: string; name: string };
+export type ScheduleProvider = { id: string; name: string; capability?: "ALL" | "HAIR_ONLY" | "MAKEUP_ONLY"; isPrimary?: boolean };
 
 export type InsertScheduleTeamMember = z.infer<typeof insertScheduleTeamMemberSchema>;
 export type ScheduleTeamMember = typeof scheduleTeamMembers.$inferSelect;

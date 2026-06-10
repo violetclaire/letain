@@ -6992,6 +6992,25 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     ];
   }
 
+  function sanitizeScheduleProviderCapability(value: unknown) {
+    return value === "ALL" || value === "HAIR_ONLY" || value === "MAKEUP_ONLY" ? value : undefined;
+  }
+
+  function sanitizeScheduleProviders(providers: unknown) {
+    if (!Array.isArray(providers)) return [];
+    return providers
+      .filter((p: any) => p && typeof p === "object")
+      .map((p: any) => {
+        const capability = sanitizeScheduleProviderCapability(p.capability);
+        return {
+          id: String(p.id ?? "").slice(0, 64) || `prov_${Math.random().toString(36).slice(2, 9)}`,
+          name: String(p.name ?? "").slice(0, 120),
+          ...(capability ? { capability } : {}),
+          isPrimary: p.isPrimary === true,
+        };
+      });
+  }
+
   // Always start with a few placeholder rows so a draft is never empty / never
   // fails because names were not provided.
   function placeholderRows(count: number) {
@@ -7088,7 +7107,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         columns: defaultScheduleColumns(),
         rows: placeholderRows(3),
         serviceDefaults: defaultServiceDefaults(),
-        providers: [],
+        providers: sanitizeScheduleProviders(body.providers),
         status: "draft",
       } as any);
 
@@ -7224,12 +7243,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
 
       if (Array.isArray(body.providers)) {
-        update.providers = body.providers
-          .filter((p: any) => p && typeof p === "object")
-          .map((p: any) => ({
-            id: String(p.id ?? "").slice(0, 64) || `prov_${Math.random().toString(36).slice(2, 9)}`,
-            name: String(p.name ?? "").slice(0, 120),
-          }));
+        update.providers = sanitizeScheduleProviders(body.providers);
       }
 
       // status: foundation only supports 'draft'. Reject anything that looks like
