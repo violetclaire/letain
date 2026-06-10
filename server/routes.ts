@@ -7011,6 +7011,29 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       });
   }
 
+  const scheduleEngineMetadataFields = [
+    "venueAccessTime",
+    "photographerArrivalTime",
+    "readyByTime",
+    "ceremonyTime",
+    "firstLookTime",
+  ] as const;
+
+  function sanitizeScheduleEngineMetadata(metadata: unknown) {
+    const sanitized: Record<string, string> = {};
+    if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return sanitized;
+    const source = metadata as Record<string, unknown>;
+    for (const field of scheduleEngineMetadataFields) {
+      const value = source[field];
+      if (value === null) {
+        sanitized[field] = "";
+      } else if (typeof value === "string") {
+        sanitized[field] = value.trim().slice(0, 40);
+      }
+    }
+    return sanitized;
+  }
+
   // Always start with a few placeholder rows so a draft is never empty / never
   // fails because names were not provided.
   function placeholderRows(count: number) {
@@ -7108,6 +7131,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         rows: placeholderRows(3),
         serviceDefaults: defaultServiceDefaults(),
         providers: sanitizeScheduleProviders(body.providers),
+        engineMetadata: sanitizeScheduleEngineMetadata(body.engineMetadata),
         status: "draft",
       } as any);
 
@@ -7244,6 +7268,13 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
 
       if (Array.isArray(body.providers)) {
         update.providers = sanitizeScheduleProviders(body.providers);
+      }
+
+      if (
+        body.engineMetadata === null ||
+        (body.engineMetadata && typeof body.engineMetadata === "object" && !Array.isArray(body.engineMetadata))
+      ) {
+        update.engineMetadata = sanitizeScheduleEngineMetadata(body.engineMetadata);
       }
 
       // status: foundation only supports 'draft'. Reject anything that looks like
