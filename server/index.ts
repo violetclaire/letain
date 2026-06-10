@@ -6,7 +6,6 @@ import { registerRoutes } from "./routes";
 import { registerAgentRoutes } from "./agentRoutes";
 import { registerAcpRoutes } from "./acpHandler";
 import { startCronJobs } from "./cronJobs";
-import { serveStatic } from "./static";
 import { startScheduledEmailJob } from './scheduledEmailJob';
 import { db } from "./db";
 import { sql } from "drizzle-orm";
@@ -218,8 +217,6 @@ app.set('trust proxy', 1);
 const allowedOrigins = [
   'https://beauvette.app',
   'https://www.beauvette.app',
-  'https://dateinquiry.com',
-  'https://www.dateinquiry.com',
   'https://themakeupdolls.com',
   'https://www.themakeupdolls.com',
   // Allow localhost for development
@@ -235,12 +232,8 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
     
-    // Check if origin is in allowed list or matches *.replit.dev or *.replit.app
-    if (
-      allowedOrigins.includes(origin) ||
-      origin.endsWith('.replit.dev') ||
-      origin.endsWith('.replit.app')
-    ) {
+    // Check if origin is in allowed list
+    if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
     
@@ -304,7 +297,7 @@ app.use(helmet({
       imgSrc: ["'self'", "data:", "blob:", "https:"],
       connectSrc: ["'self'", "https:", "wss:"],
       frameSrc: ["'self'"],
-      frameAncestors: ["'self'", "https://themakeupdolls.com", "https://www.themakeupdolls.com", "https://beauvette.app", "https://dateinquiry.com"],
+      frameAncestors: ["'self'", "https://themakeupdolls.com", "https://www.themakeupdolls.com", "https://beauvette.app"],
     },
   },
   crossOriginEmbedderPolicy: false, // Allow embedding external resources
@@ -385,15 +378,7 @@ app.use((req, res, next) => {
       throw err;
     });
 
-    // importantly only setup vite in development and after
-    // setting up all the other routes so the catch-all route
-    // doesn't interfere with the other routes
-    if (process.env.NODE_ENV === "production") {
-      serveStatic(app);
-    } else {
-      const { setupVite } = await import("./vite");
-      await setupVite(httpServer, app);
-    }
+    // Headless API server: frontend/static serving is handled outside this process.
 
     // ALWAYS serve the app on the port specified in the environment variable PORT
     // Other ports are firewalled. Default to 5000 if not specified.
