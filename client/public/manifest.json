@@ -1,7 +1,7 @@
 {
-  "name": "Your Secretary",
-  "short_name": "Secretary",
-  "description": "Booking infrastructure for independent professionals",
+  "name": "Briarwood",
+  "short_name": "Briarwood",
+  "description": "Trust and coordination infrastructure for independent service professionals",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1A1A1A",
