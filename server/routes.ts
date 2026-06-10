@@ -785,7 +785,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send reset email
       try {
         const { sendPasswordResetEmail } = await import('./emailService');
-        const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
+        const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
         
         await sendPasswordResetEmail({
           toEmail: user.email!,
@@ -4583,7 +4583,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         : undefined;
 
       // Build chat link - use production URL for client-facing links
-      const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
       const chatLink = `${baseUrl}/messages`;
 
       // Send branded email
@@ -5367,7 +5367,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Send signing email
-      const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
       const signingUrl = `${baseUrl}/sign/${signingToken}`;
       
       const { sendContractSigningEmail } = await import("./emailService");
@@ -5475,7 +5475,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Send signing email - use production URL for client-facing links
-      const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
       const signingUrl = `${baseUrl}/sign/${signingToken}`;
       
       const { sendContractSigningEmail } = await import("./emailService");
@@ -5646,7 +5646,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (artist?.email) {
         try {
-          const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
+          const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
           const countersignUrl = `${baseUrl}/countersign/${token}`;
           const { sendContractSignedNotification } = await import("./emailService");
           await sendContractSignedNotification({
@@ -5892,7 +5892,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const artistName = artistProfile?.businessName || (artist?.firstName ? `${artist.firstName} ${artist.lastName || ""}`.trim() : "Beauty Artist");
       
       // Build signing URL - ALWAYS use production URL for client-facing links
-      const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
       const signingUrl = `${baseUrl}/sign/${signingToken}`;
       
       console.log("[SEND CONTRACT] Signing URL:", signingUrl);
@@ -6382,7 +6382,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           
           if (proposal) {
-            const shareUrl = `${process.env.REPLIT_DEPLOYMENT_URL || 'https://beauvette.app'}/quote/${shareToken}`;
+            const shareUrl = `${process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com'}/quote/${shareToken}`;
             (result as any).quoteCreated = true;
             (result as any).quoteId = proposal.id;
             (result as any).shareUrl = shareUrl;
@@ -7985,8 +7985,8 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         }))
         .join(' • ');
       
-      // Build share link - use the published Replit URL
-      const baseUrl = 'https://code-paste-html--violetherod.replit.app';
+      // Build share link
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
       
       const shareLink = shareTokens.length === 1
         ? `${baseUrl}/schedule/${shareTokens[0]}`
@@ -8111,7 +8111,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       const eventNames = [...new Set(validSchedules.map(s => s!.eventName))].join(', ');
       
       // Build share link
-      const baseUrl = 'https://code-paste-html--violetherod.replit.app';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
       const shareLink = shareTokens.length === 1
         ? `${baseUrl}/schedule/${shareTokens[0]}`
         : `${baseUrl}/schedules/${shareTokens.join(',')}`;
@@ -8978,7 +8978,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       });
       
       // Get base URL for chat link - use production URL
-      const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
       const chatLink = `${baseUrl}/chat-invite/${chatInvite.token}`;
       
       // Send email to client
@@ -11978,7 +11978,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       } as any);
       
       // Build chat link - use production URL
-      const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
       const chatLink = `${baseUrl}/chat-invite/${token}`;
       
       // Get vendor info
@@ -12054,7 +12054,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const vendorName = artistProfile?.businessName || vendor?.firstName || 'The Vendor';
       
       // Build chat link - use production URL
-      const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
       const chatLink = `${baseUrl}/chat-invite/${token}`;
       
       // Send chat invite email
@@ -12113,7 +12113,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const vendorName = artistProfile?.businessName || 'The Artist';
       
       // Build chat link
-      const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
       const chatLink = `${baseUrl}/chat-invite/${token}`;
       
       const eventDate = inquiry.eventDate 
@@ -14863,7 +14863,7 @@ Rules:
           try {
             const { Resend } = await import("resend");
             const resend = new Resend(process.env.RESEND_API_KEY);
-            const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
+            const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
             const threadUrl = `${baseUrl}/inquiry/${inquiry.threadToken}`;
 
             const fmtCurrency = (val: number) => `$${val.toFixed(2)}`;
@@ -16084,7 +16084,7 @@ Rules:
       if (email) {
         try {
           const { sendArtistWelcomeEmail } = await import('./emailService');
-          const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
+          const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
           const calendarUrl = `${baseUrl}/${artistSlug}`;
           const settingsUrl = `${baseUrl}/${artistSlug}/settings?token=${editToken}`;
           await sendArtistWelcomeEmail({
@@ -16103,7 +16103,7 @@ Rules:
       // Check referral artists - see which ones are not on platform yet
       const referralResults: Array<{ handle: string; isOnPlatform: boolean; inviteLink?: string }> = [];
       if (referralArtists && referralArtists.length > 0) {
-        const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
+        const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
         
         for (const refHandle of referralArtists) {
           if (!refHandle || refHandle.trim() === '') continue;
@@ -16570,11 +16570,7 @@ Rules:
         .returning();
       
       // Send invite email to the new member
-      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-        : process.env.NODE_ENV === 'production' 
-          ? 'https://dateinquiry.com'
-          : 'http://localhost:5000';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
       const inviteLink = `${baseUrl}/join?invite=${inviteToken}`;
       
       const { sendCircleInviteEmail } = await import('./emailService');
@@ -16716,11 +16712,7 @@ Rules:
         .returning();
       
       // Send invite email to the new member
-      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-        : process.env.NODE_ENV === 'production' 
-          ? 'https://dateinquiry.com'
-          : 'http://localhost:5000';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
       const inviteLink = `${baseUrl}/join?invite=${inviteToken}`;
       
       const { sendCircleInviteEmail } = await import('./emailService');
@@ -17812,7 +17804,7 @@ Rules:
       const artistProfile = await storage.getArtistProfile(profile.userId);
       
       // Use production URL for notifications
-      const prodUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
+      const prodUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
       
       // Dry-run: when the operator has assistant dry-run enabled, suppress the
       // real operator alert SMS/email so nothing leaves the system during a demo.
@@ -17977,7 +17969,7 @@ Rules:
       // Send notifications to artist
       const artist = await storage.getUser(profile.userId);
       const artistProfile = await storage.getArtistProfile(profile.userId);
-      const prodUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
+      const prodUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
       
       // Dry-run: when the operator has assistant dry-run enabled, suppress the
       // real operator alert SMS/email so nothing leaves the system during a demo.
@@ -18270,7 +18262,7 @@ Rules:
       });
       
       // Build chat link using production URL
-      const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
       const chatLink = `${baseUrl}/chat-invite/${token}`;
       
       // Send email
@@ -18348,7 +18340,7 @@ Rules:
       });
       
       // Build chat link - use production URL
-      const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
       const chatLink = `${baseUrl}/chat-invite/${token}`;
       
       // Send chat invite email
