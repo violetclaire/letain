@@ -1451,12 +1451,12 @@ export default function ScheduleDraftBuilder() {
   const rowsCanAcceptFirstDraftPreview = isEmptyOrPlaceholderOnlyRows(rows, providerColId);
   const canApplyFirstDraftPreview = hasFirstDraftPreview && hasFirstDraftServiceBlocks && rowsCanAcceptFirstDraftPreview;
   const firstDraftApplyMessage = !hasFirstDraftPreview
-    ? "Generate a preview before applying it."
+    ? "Generate a first draft preview before applying it."
     : !hasFirstDraftServiceBlocks
       ? "Add service blocks before applying a preview."
       : !rowsCanAcceptFirstDraftPreview
-        ? "Apply is disabled once editable rows contain manual schedule details."
-        : "Preview can be applied to editable rows.";
+        ? "Apply is locked because editable rows already contain manual details."
+        : "Ready to copy preview blocks into editable rows. Save draft after review.";
 
   // Name pool ("People to assign") lives inside notes as one delimited line so
   // no schema changes are needed. Parse it out for its own section and keep the
@@ -1484,7 +1484,7 @@ export default function ScheduleDraftBuilder() {
 
   const applyFirstDraftPreviewToRows = () => {
     if (!canApplyFirstDraftPreview) return;
-    if (!window.confirm("Apply this preview to editable rows? Review and save when ready.")) return;
+    if (!window.confirm("Apply this preview to editable rows? This only changes the local draft. Save draft is still required.")) return;
     const nextRows = firstDraftPreviewToRows(firstDraftPreview, columns, providerColId);
     if (nextRows.length === 0) return;
     setRows(nextRows);
@@ -1772,7 +1772,7 @@ export default function ScheduleDraftBuilder() {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <h2 className="font-serif text-xl tracking-tight">First draft preview</h2>
-                  <p className="mt-1 text-sm text-ink/60">Preview only. Nothing is saved.</p>
+                  <p className="mt-1 text-sm text-ink/60">Preview stays separate until applied. Save draft is still required.</p>
                 </div>
                 <button
                   onClick={() => setShowFirstDraftPreview((value) => !value)}
@@ -1806,7 +1806,7 @@ export default function ScheduleDraftBuilder() {
                       data-testid="button-apply-first-draft-preview"
                     >
                       <Plus className="w-4 h-4" />
-                      Apply preview to rows
+                      Apply preview to editable rows
                     </button>
                   </div>
 
