@@ -30,23 +30,6 @@ setInterval(async () => {
 }, 60000);
 
 export function registerSquareRoutes(app: Express, isAuthenticated: any, getAuthUserId: (req: any) => string | null) {
-  
-  // Debug endpoint to verify Square credentials
-  app.get("/api/square/debug-credentials", async (req, res) => {
-    try {
-      const appId = process.env.SQUARE_APP_ID || process.env.SQUARE_APPLICATION_ID || 'NOT SET';
-      const appSecret = process.env.SQUARE_APP_SECRET || process.env.SQUARE_APPLICATION_SECRET || 'NOT SET';
-      res.json({
-        appIdPrefix: appId.substring(0, 15),
-        appSecretPrefix: appSecret.substring(0, 12),
-        appIdLength: appId.length,
-        appSecretLength: appSecret.length,
-      });
-    } catch (e: any) {
-      res.status(500).json({ error: e.message });
-    }
-  });
-
   // Public OAuth flow for artist setup (uses artist slug instead of session)
   // Accepts optional returnUrl query param to redirect back after connection
   app.get("/api/square/connect/start/:artistSlug", async (req, res) => {
@@ -268,8 +251,7 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any, getAuth
       }
 
       console.log(`[Square OAuth] Exchanging code for token...`);
-      console.log(`[Square OAuth] clientId: ${applicationId}`);
-      console.log(`[Square OAuth] clientSecret: ${applicationSecret.substring(0, 10)}...`);
+      console.log(`[Square OAuth] Square application credentials present: ${applicationId ? 'yes' : 'no'}`);
       console.log(`[Square OAuth] redirectUri: ${callbackUrl}`);
       
       const tokenRequestBody = {
@@ -295,7 +277,7 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any, getAuth
       
       if (!tokenFetchResponse.ok) {
         console.error(`[Square OAuth] Token exchange FAILED - Status: ${tokenFetchResponse.status}`);
-        console.error(`[Square OAuth] Error response:`, JSON.stringify(tokenResponseJson, null, 2));
+        console.error(`[Square OAuth] Error response received from Square (body redacted)`);
         return res.redirect(`${errorRedirect}${encodeURIComponent(tokenResponseJson.message || tokenResponseJson.error || 'Token exchange failed')}`);
       }
       
@@ -303,7 +285,7 @@ export function registerSquareRoutes(app: Express, isAuthenticated: any, getAuth
       const tokenResponse = tokenResponseJson;
       
       if (!tokenResponse.access_token || !tokenResponse.merchant_id) {
-        console.error("Square OAuth: Failed to obtain tokens", tokenResponse);
+        console.error("Square OAuth: Token response missing required fields");
         return res.redirect(`${errorRedirect}Failed to obtain access token`);
       }
 
