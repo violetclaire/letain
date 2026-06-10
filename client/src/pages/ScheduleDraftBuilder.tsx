@@ -9,6 +9,38 @@ type Column = { id: string; label: string; type: string };
 type Row = { id: string; sortOrder: number; cells: Record<string, string> };
 type ServiceDefault = { id: string; label: string; durationMinutes: number };
 type Provider = { id: string; name: string };
+type AuditSeverity = "info" | "warning" | "critical";
+
+type ScheduleAuditIssue = {
+  id: string;
+  severity: AuditSeverity;
+  title: string;
+  detail: string;
+};
+
+type AuditBlock = {
+  id: string;
+  name: string;
+  service: string;
+  provider: string;
+  notes: string;
+  text: string;
+  start: number | null;
+  end: number | null;
+  duration: number | null;
+};
+
+const AUDIT_SEVERITY_LABELS: Record<AuditSeverity, string> = {
+  info: "Info",
+  warning: "Warning",
+  critical: "Critical",
+};
+
+const AUDIT_SEVERITY_STYLES: Record<AuditSeverity, string> = {
+  info: "border-ink/20 bg-bg text-ink/60",
+  warning: "border-brass/40 bg-brass/10 text-ink",
+  critical: "border-oxblood/40 bg-oxblood/10 text-oxblood",
+};
 
 interface Draft {
   id: string;
@@ -344,6 +376,232 @@ function composeNotes(body: string, names: string[]): string {
   return [clean, line].filter(Boolean).join("\n\n");
 }
 
+function auditText(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function auditId(value: string): string {
+  return auditText(value).replace(/\s+/g, "-") || "item";
+}
+
+function hasAuditWord(text: string, pattern: RegExp): boolean {
+  return pattern.test(text);
+}
+
+function auditNameKey(value: string): string {
+  return auditText(value)
+    .replace(/\b(bride|bridal|bridesmaid|maid of honor|moh|mother|mob|mog|flower girl)\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function auditBlockLabel(block: AuditBlock): string {
+  return [block.name, block.service].filter(Boolean).join(" / ") || "Unnamed block";
+}
+
+function intervalsOverlap(a: AuditBlock, b: AuditBlock): boolean {
+  return a.start !== null && a.end !== null && b.start !== null && b.end !== null && a.start < b.end && b.start < a.end;
+}
+
+function hasShortSimpleLabel(text: string): boolean {
+  return hasAuditWord(text, /\b(short|simple|quick|soft|light|easy)\b/);
+}
+
+function isSetupBlock(block: AuditBlock): boolean {
+  return hasAuditWord(block.text, /\b(setup|set up|station setup|stations)\b/);
+}
+
+function isServiceBlock(block: AuditBlock): boolean {
+  return Boolean(block.service || block.name) && !isSetupBlock(block);
+}
+
+function auditBlocksFromRows(rows: Row[], providerColId: string): AuditBlock[] {
+  return rows.map((row) => {
+    const cells = row.cells ?? {};
+    const start = parseClockTime(cells.start ?? "");
+    const duration = parseDurationMinutes(cells.duration ?? "");
+    const explicitEnd = parseClockTime(cells.end ?? "");
+    const end = explicitEnd ?? (start !== null && duration !== null ? start + duration : null);
+    const name = (cells.name ?? "").trim();
+    const service = (cells.service ?? "").trim();
+    const provider = (cells[providerColId] ?? "").trim();
+    const notes = (cells.notes ?? "").trim();
+    return {
+      id: row.id,
+      name,
+      service,
+      provider,
+      notes,
+      text: auditText(Object.values(cells).join(" ")),
+      start,
+      end,
+      duration,
+    };
+  });
+}
+
+function addDurationIssue(
+  issues: ScheduleAuditIssue[],
+  block: AuditBlock,
+  min: number,
+  title: string,
+  severity: AuditSeverity = "warning",
+) {
+  if (block.duration !== null && block.duration < min) {
+    issues.push({
+      id: `duration-${block.id}-${min}`,
+      severity,
+      title,
+      detail: `${auditBlockLabel(block)} is ${block.duration} min; Violet's rule expects at least ${min} min.`,
+    });
+  }
+}
+
+function buildScheduleAudit(input: {
+  title: string;
+  notes: string;
+  rows: Row[];
+  providers: Provider[];
+  providerColId: string;
+}): ScheduleAuditIssue[] {
+  const issues: ScheduleAuditIssue[] = [];
+  const blocks = auditBlocksFromRows(input.rows, input.providerColId);
+  const providerNames = new Set<string>();
+  for (const provider of input.providers) {
+    const name = provider.name.trim();
+    if (name) providerNames.add(name);
+  }
+  for (const block of blocks) {
+    if (block.provider) providerNames.add(block.provider);
+  }
+  const providerCount = providerNames.size;
+
+  for (const block of blocks) {
+    const text = block.text;
+    const isBride = hasAuditWord(text, /\bbride\b|\bbridal\b/);
+    const isBridesmaid = hasAuditWord(text, /\bbridesmaid\b|\bmaid of honor\b|\bmoh\b|\battendant\b/);
+    const isMother = hasAuditWord(text, /\bmother\b|\bmob\b|\bmog\b|mother of bride|mother of groom/);
+    const hasHair = hasAuditWord(text, /\bhair\b|\bupdo\b|\bstyling\b|\bstyle\b|\bh\b/);
+    const hasMakeup = hasAuditWord(text, /\bmakeup\b|\bmua\b|\bmu\b|\bm\b/);
+
+    if (isBride && hasHair && hasMakeup) {
+      addDurationIssue(issues, block, 120, "Bride hair + makeup is under 120 minutes", "critical");
+    } else if (isBride && hasMakeup) {
+      addDurationIssue(issues, block, 60, "Bride makeup-only block is under 60 minutes", "critical");
+    } else if (isBride && hasHair) {
+      const min = hasShortSimpleLabel(text) ? 35 : 45;
+      addDurationIssue(issues, block, min, "Bride hair-only block is under the expected duration", min === 35 ? "warning" : "critical");
+    } else {
+      if (isMother && hasMakeup) {
+        addDurationIssue(issues, block, 30, "Mother makeup block is under 30 minutes");
+      }
+      if (isMother && hasHair) {
+        const min = hasShortSimpleLabel(text) ? 30 : 45;
+        addDurationIssue(issues, block, min, "Mother hair block is under the expected duration");
+      }
+      if (isBridesmaid && hasMakeup) {
+        addDurationIssue(issues, block, 30, "Bridesmaid makeup block is under 30 minutes");
+      }
+      if (isBridesmaid && hasHair) {
+        addDurationIssue(issues, block, 45, "Bridesmaid hair block is under 45 minutes");
+      }
+    }
+  }
+
+  const setupBlocks = blocks.filter(isSetupBlock);
+  const setupMin = providerCount >= 3 ? 30 : 15;
+  if (setupBlocks.length === 0) {
+    issues.push({
+      id: "missing-setup",
+      severity: "warning",
+      title: "No setup block found",
+      detail: providerCount >= 3 ? "Schedules with 3+ provider stations should show a 30-minute setup buffer." : "Add a 15-minute setup buffer before services begin.",
+    });
+  } else {
+    for (const block of setupBlocks) {
+      if (block.duration === null) {
+        issues.push({
+          id: `setup-duration-${block.id}`,
+          severity: "warning",
+          title: "Setup block has no duration",
+          detail: `Setup should show at least ${setupMin} minutes for this provider count.`,
+        });
+      } else {
+        addDurationIssue(issues, block, setupMin, "Setup block is shorter than Violet's setup rule");
+      }
+    }
+  }
+
+  const timedBlocks = blocks.filter((block) => block.start !== null && block.end !== null);
+  for (let i = 0; i < timedBlocks.length; i++) {
+    for (let j = i + 1; j < timedBlocks.length; j++) {
+      const a = timedBlocks[i];
+      const b = timedBlocks[j];
+      if (!intervalsOverlap(a, b)) continue;
+
+      const sameProvider = a.provider && b.provider && a.provider === b.provider;
+      if (sameProvider) {
+        issues.push({
+          id: `provider-overlap-${a.id}-${b.id}`,
+          severity: "critical",
+          title: "Provider has overlapping blocks",
+          detail: `${a.provider} is assigned to both ${auditBlockLabel(a)} and ${auditBlockLabel(b)} at overlapping times.`,
+        });
+      }
+
+      const aName = auditNameKey(a.name);
+      const bName = auditNameKey(b.name);
+      if (aName && bName && aName === bName && a.provider !== b.provider) {
+        issues.push({
+          id: `client-overlap-${a.id}-${b.id}`,
+          severity: "critical",
+          title: "Client is double-booked across providers",
+          detail: `${a.name} appears in overlapping blocks for ${a.provider || "one provider"} and ${b.provider || "another provider"}.`,
+        });
+      }
+    }
+  }
+
+  for (const provider of providerNames) {
+    const laneBlocks = timedBlocks
+      .filter((block) => block.provider === provider && isServiceBlock(block))
+      .sort((a, b) => (a.start ?? 0) - (b.start ?? 0));
+    let chain = 1;
+    for (let i = 1; i < laneBlocks.length; i++) {
+      if (laneBlocks[i - 1].end === laneBlocks[i].start) {
+        chain += 1;
+        if (chain === 3) {
+          issues.push({
+            id: `zero-buffer-${auditId(provider)}`,
+            severity: "warning",
+            title: "0-buffer cascade",
+            detail: `${provider} has 3+ service blocks back-to-back with no visible buffer.`,
+          });
+          break;
+        }
+      } else {
+        chain = 1;
+      }
+    }
+  }
+
+  const contextText = auditText([
+    input.title,
+    input.notes,
+    ...input.rows.flatMap((row) => Object.values(row.cells ?? {})),
+  ].join(" "));
+  if (!hasAuditWord(contextText, /\b(hard stop|ready by|ready-by|photographer|photo time|first look|ceremony|dress|dressing)\b/)) {
+    issues.push({
+      id: "missing-hard-stop-context",
+      severity: "info",
+      title: "No hard-stop context found",
+      detail: "Add ready-by, photographer, ceremony, first-look, or dressing timing somewhere visible so the schedule can be checked backward.",
+    });
+  }
+
+  return issues;
+}
+
 export default function ScheduleDraftBuilder() {
   const [, params] = useRoute("/admin/:slug/schedules/:scheduleId");
   const slug = params?.slug ?? "";
@@ -669,6 +927,7 @@ export default function ScheduleDraftBuilder() {
   if (unassignedRows.length > 0) {
     laneList.push({ key: "unassigned", label: "Unassigned", provider: "", rows: unassignedRows });
   }
+  const auditIssues = buildScheduleAudit({ title, notes, rows, providers, providerColId });
 
   return (
     <div className="min-h-screen bg-bg text-ink">
@@ -777,6 +1036,40 @@ export default function ScheduleDraftBuilder() {
                   />
                 </label>
               </div>
+            </section>
+
+            <section className="border border-hairline bg-surface p-6" data-testid="section-schedule-audit">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h2 className="font-serif text-xl tracking-tight">Schedule rules audit</h2>
+                  <p className="mt-1 text-sm text-ink/60">
+                    Advisory only. These checks never block saving.
+                  </p>
+                </div>
+                <span className="text-xs uppercase tracking-wide text-ink/45" data-testid="text-audit-count">
+                  {auditIssues.length === 0 ? "No issues" : `${auditIssues.length} issue${auditIssues.length === 1 ? "" : "s"}`}
+                </span>
+              </div>
+
+              {auditIssues.length === 0 ? (
+                <p className="mt-4 border border-hairline bg-bg px-4 py-3 text-sm text-ink/70" data-testid="text-audit-clean">
+                  No issues found.
+                </p>
+              ) : (
+                <ul className="mt-4 space-y-3" data-testid="list-audit-issues">
+                  {auditIssues.map((issue) => (
+                    <li key={issue.id} className="border border-hairline bg-bg px-4 py-3" data-testid={`audit-issue-${auditId(issue.id)}`}>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`inline-flex border px-2 py-0.5 text-[11px] uppercase tracking-wide ${AUDIT_SEVERITY_STYLES[issue.severity]}`}>
+                          {AUDIT_SEVERITY_LABELS[issue.severity]}
+                        </span>
+                        <p className="text-sm font-medium text-ink">{issue.title}</p>
+                      </div>
+                      <p className="mt-1 text-sm text-ink/60">{issue.detail}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
 
             {/* Quick add from list */}
