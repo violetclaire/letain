@@ -30,6 +30,14 @@ export type NotificationPreferences = {
   };
 };
 
+export type ScheduleEngineMetadata = {
+  venueAccessTime?: string;
+  photographerArrivalTime?: string;
+  readyByTime?: string;
+  ceremonyTime?: string;
+  firstLookTime?: string;
+};
+
 // Vendor SLA targets type
 export type VendorSlaTargets = {
   firstResponseHours: number; // Target hours for first response (default: 24)
@@ -613,6 +621,8 @@ export const scheduleDrafts = pgTable("schedule_drafts", {
   serviceDefaults: jsonb("service_defaults").$type<Array<{ id: string; label: string; durationMinutes: number }>>().default([]),
   // Optional providers/artists for assignment
   providers: jsonb("providers").$type<Array<{ id: string; name: string; capability?: "ALL" | "HAIR_ONLY" | "MAKEUP_ONLY"; isPrimary?: boolean }>>().default([]),
+  // Structured timing context for future backward-planning schedule generation.
+  engineMetadata: jsonb("engine_metadata").$type<ScheduleEngineMetadata>().default({}),
   status: text("status").default("draft"), // 'draft' only for now (no sending)
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),

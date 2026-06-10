@@ -10,6 +10,13 @@ type Row = { id: string; sortOrder: number; cells: Record<string, string> };
 type ServiceDefault = { id: string; label: string; durationMinutes: number };
 type ProviderCapability = "ALL" | "HAIR_ONLY" | "MAKEUP_ONLY";
 type Provider = { id: string; name: string; capability?: ProviderCapability | ""; isPrimary?: boolean };
+type ScheduleEngineMetadata = {
+  venueAccessTime?: string;
+  photographerArrivalTime?: string;
+  readyByTime?: string;
+  ceremonyTime?: string;
+  firstLookTime?: string;
+};
 type AuditSeverity = "info" | "warning" | "critical";
 
 type ScheduleAuditIssue = {
@@ -49,6 +56,17 @@ const PROVIDER_CAPABILITY_LABELS: Record<ProviderCapability, string> = {
   MAKEUP_ONLY: "MAKEUP_ONLY",
 };
 
+const SCHEDULE_ENGINE_METADATA_FIELDS: Array<{
+  id: keyof ScheduleEngineMetadata;
+  label: string;
+}> = [
+  { id: "venueAccessTime", label: "Venue access" },
+  { id: "photographerArrivalTime", label: "Photographer arrival" },
+  { id: "readyByTime", label: "Ready by / hard stop" },
+  { id: "ceremonyTime", label: "Ceremony" },
+  { id: "firstLookTime", label: "First look" },
+];
+
 const VIOLET_SERVICE_DEFAULTS: ServiceDefault[] = [
   { id: "bride-hair-makeup", label: "Bride Hair + Makeup", durationMinutes: 120 },
   { id: "bride-makeup", label: "Bride Makeup", durationMinutes: 60 },
@@ -79,6 +97,7 @@ interface Draft {
   rows?: Row[] | null;
   serviceDefaults?: ServiceDefault[] | null;
   providers?: Provider[] | null;
+  engineMetadata?: ScheduleEngineMetadata | null;
   status?: string | null;
 }
 
@@ -484,6 +503,7 @@ function serializeScheduleState(s: {
   rows: Row[];
   serviceDefaults: ServiceDefault[];
   providers: Provider[];
+  engineMetadata: ScheduleEngineMetadata;
 }): string {
   return JSON.stringify({
     title: s.title,
@@ -494,6 +514,7 @@ function serializeScheduleState(s: {
     rows: s.rows.map((r, i) => ({ ...r, sortOrder: i })),
     serviceDefaults: s.serviceDefaults,
     providers: s.providers,
+    engineMetadata: s.engineMetadata,
   });
 }
 
@@ -540,6 +561,16 @@ function normalizeProviders(providers?: Provider[] | null): Provider[] {
       ...(provider.isPrimary ? { isPrimary: true } : {}),
     };
   });
+}
+
+function normalizeScheduleEngineMetadata(metadata?: ScheduleEngineMetadata | null): ScheduleEngineMetadata {
+  return {
+    venueAccessTime: metadata?.venueAccessTime ?? "",
+    photographerArrivalTime: metadata?.photographerArrivalTime ?? "",
+    readyByTime: metadata?.readyByTime ?? "",
+    ceremonyTime: metadata?.ceremonyTime ?? "",
+    firstLookTime: metadata?.firstLookTime ?? "",
+  };
 }
 
 function violetServiceDefaults(): ServiceDefault[] {
@@ -661,6 +692,7 @@ function buildScheduleAudit(input: {
   rows: Row[];
   providers: Provider[];
   providerColId: string;
+  engineMetadata: ScheduleEngineMetadata;
 }): ScheduleAuditIssue[] {
   const issues: ScheduleAuditIssue[] = [];
   const blocks = auditBlocksFromRows(input.rows, input.providerColId);
@@ -852,17 +884,24 @@ function buildScheduleAudit(input: {
     }
   }
 
+  const hasEngineTimingContext = [
+    input.engineMetadata.venueAccessTime,
+    input.engineMetadata.photographerArrivalTime,
+    input.engineMetadata.readyByTime,
+    input.engineMetadata.ceremonyTime,
+    input.engineMetadata.firstLookTime,
+  ].some((value) => Boolean(value?.trim()));
   const contextText = auditText([
     input.title,
     input.notes,
     ...input.rows.flatMap((row) => Object.values(row.cells ?? {})),
   ].join(" "));
-  if (!hasAuditWord(contextText, /\b(hard stop|ready by|ready-by|photographer|photo time|first look|ceremony|dress|dressing)\b/)) {
+  if (!hasEngineTimingContext && !hasAuditWord(contextText, /\b(hard stop|ready by|ready-by|photographer|photo time|first look|ceremony|dress|dressing)\b/)) {
     issues.push({
       id: "missing-hard-stop-context",
       severity: "info",
       title: "No hard-stop context found",
-      detail: "Add ready-by, photographer, ceremony, first-look, or dressing timing somewhere visible so the schedule can be checked backward.",
+      detail: "Add ready-by, photographer, ceremony, first-look, or venue timing so the schedule can be checked backward.",
     });
   }
 
@@ -887,6 +926,7 @@ export default function ScheduleDraftBuilder() {
   const [rows, setRows] = useState<Row[]>([]);
   const [serviceDefaults, setServiceDefaults] = useState<ServiceDefault[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
+  const [engineMetadata, setEngineMetadata] = useState<ScheduleEngineMetadata>(normalizeScheduleEngineMetadata());
   const [pasteText, setPasteText] = useState("");
   const [showPreview, setShowPreview] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -918,6 +958,7 @@ export default function ScheduleDraftBuilder() {
       const sortedRows = [...(d.rows ?? [])].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
       const normalizedDefaults = normalizeServiceDefaults(d.serviceDefaults);
       const normalizedProviders = normalizeProviders(d.providers);
+      const normalizedEngineMetadata = normalizeScheduleEngineMetadata(d.engineMetadata);
       setTitle(d.title ?? "");
       setEventDate(d.eventDate ?? "");
       setLocation(d.location ?? "");
@@ -926,6 +967,7 @@ export default function ScheduleDraftBuilder() {
       setRows(sortedRows);
       setServiceDefaults(normalizedDefaults);
       setProviders(normalizedProviders);
+      setEngineMetadata(normalizedEngineMetadata);
       // Capture the baseline so we can detect unsaved edits from here on.
       setSavedSnapshot(
         serializeScheduleState({
@@ -937,6 +979,7 @@ export default function ScheduleDraftBuilder() {
           rows: sortedRows,
           serviceDefaults: normalizedDefaults,
           providers: normalizedProviders,
+          engineMetadata: normalizedEngineMetadata,
         }),
       );
       setLoaded(true);
@@ -945,8 +988,8 @@ export default function ScheduleDraftBuilder() {
 
   // Current editable state, serialized. Compared against savedSnapshot for dirty.
   const currentSnapshot = useMemo(
-    () => serializeScheduleState({ title, eventDate, location, notes, columns, rows, serviceDefaults, providers }),
-    [title, eventDate, location, notes, columns, rows, serviceDefaults, providers],
+    () => serializeScheduleState({ title, eventDate, location, notes, columns, rows, serviceDefaults, providers, engineMetadata }),
+    [title, eventDate, location, notes, columns, rows, serviceDefaults, providers, engineMetadata],
   );
 
   const isDirty = loaded && savedSnapshot !== null && currentSnapshot !== savedSnapshot;
@@ -981,9 +1024,10 @@ export default function ScheduleDraftBuilder() {
         rows: rows.map((r, i) => ({ ...r, sortOrder: i })),
         serviceDefaults,
         providers,
+        engineMetadata,
       };
       // Snapshot exactly what we are sending so the dirty baseline matches.
-      const snapshot = serializeScheduleState({ title, eventDate, location, notes, columns, rows, serviceDefaults, providers });
+      const snapshot = serializeScheduleState({ title, eventDate, location, notes, columns, rows, serviceDefaults, providers, engineMetadata });
       const res = await fetch(`/api/schedule-drafts/${scheduleId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -1196,7 +1240,7 @@ export default function ScheduleDraftBuilder() {
   if (unassignedRows.length > 0) {
     laneList.push({ key: "unassigned", label: "Unassigned", provider: "", rows: unassignedRows });
   }
-  const auditIssues = buildScheduleAudit({ title, notes, rows, providers, providerColId });
+  const auditIssues = buildScheduleAudit({ title, notes, rows, providers, providerColId, engineMetadata });
 
   return (
     <div className="min-h-screen bg-bg text-ink">
@@ -1294,6 +1338,20 @@ export default function ScheduleDraftBuilder() {
                     data-testid="input-location"
                   />
                 </label>
+                <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                  {SCHEDULE_ENGINE_METADATA_FIELDS.map((field) => (
+                    <label key={field.id} className="block">
+                      <span className="text-xs uppercase tracking-wide text-ink/50">{field.label}</span>
+                      <input
+                        value={engineMetadata[field.id] ?? ""}
+                        onChange={(e) => setEngineMetadata((prev) => ({ ...prev, [field.id]: e.target.value }))}
+                        placeholder="12:45 PM"
+                        className="mt-1 w-full border border-hairline bg-bg px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70"
+                        data-testid={`input-engine-${field.id}`}
+                      />
+                    </label>
+                  ))}
+                </div>
                 <label className="block sm:col-span-2">
                   <span className="text-xs uppercase tracking-wide text-ink/50">Notes (parking, playlist link, etc.)</span>
                   <textarea

@@ -19,6 +19,7 @@ type TestScheduleDraft = {
     capability?: "ALL" | "HAIR_ONLY" | "MAKEUP_ONLY";
     isPrimary?: boolean;
   }>;
+  engineMetadata?: Record<string, string>;
 };
 
 let postScheduleDraftHandler: Handler;
@@ -254,6 +255,50 @@ test("schedule draft PATCH still allows admin access through the existing guard"
   ]);
 });
 
+test("schedule draft PATCH preserves sanitized schedule engine metadata", async () => {
+  const { calls } = stubScheduleDraftStorage();
+
+  const result = await invoke(patchScheduleDraftHandler, {
+    session: { userId: "artist-a" },
+    params: { id: "draft-a" },
+    body: {
+      engineMetadata: {
+        venueAccessTime: " 12:00 PM ",
+        photographerArrivalTime: 1245,
+        readyByTime: null,
+        ceremonyTime: "4".repeat(80),
+        firstLookTime: "2:00 PM",
+        ignoredField: "not stored",
+      },
+    },
+  });
+
+  assert.equal(result.statusCode, 200);
+  assert.equal(calls.updateScheduleDraft.length, 1);
+  assert.deepEqual(calls.updateScheduleDraft[0]?.[1].engineMetadata, {
+    venueAccessTime: "12:00 PM",
+    readyByTime: "",
+    ceremonyTime: "4".repeat(40),
+    firstLookTime: "2:00 PM",
+  });
+});
+
+test("schedule draft PATCH can clear schedule engine metadata", async () => {
+  const { calls } = stubScheduleDraftStorage();
+
+  const result = await invoke(patchScheduleDraftHandler, {
+    session: { userId: "artist-a" },
+    params: { id: "draft-a" },
+    body: {
+      engineMetadata: null,
+    },
+  });
+
+  assert.equal(result.statusCode, 200);
+  assert.equal(calls.updateScheduleDraft.length, 1);
+  assert.deepEqual(calls.updateScheduleDraft[0]?.[1].engineMetadata, {});
+});
+
 test("schedule draft POST accepts sanitized provider metadata for the creating operator", async () => {
   const { calls } = stubScheduleDraftStorage();
 
@@ -275,4 +320,34 @@ test("schedule draft POST accepts sanitized provider metadata for the creating o
     { id: "prov-violet", name: "Violet", capability: "ALL", isPrimary: true },
     { id: "prov-bad", name: "Bad Capability", isPrimary: true },
   ]);
+});
+
+test("schedule draft POST accepts sanitized schedule engine metadata for the creating operator", async () => {
+  const { calls } = stubScheduleDraftStorage();
+
+  const result = await invoke(postScheduleDraftHandler, {
+    session: { userId: "artist-a" },
+    body: {
+      title: "Wedding schedule",
+      engineMetadata: {
+        venueAccessTime: "12:00 PM",
+        photographerArrivalTime: "12:45 PM",
+        readyByTime: "1:20 PM",
+        ceremonyTime: "4:00 PM",
+        firstLookTime: "2:00 PM",
+        extraTiming: "not stored",
+      },
+    },
+  });
+
+  assert.equal(result.statusCode, 200);
+  assert.equal(calls.createScheduleDraft.length, 1);
+  assert.equal(calls.createScheduleDraft[0]?.artistId, "artist-a");
+  assert.deepEqual(calls.createScheduleDraft[0]?.engineMetadata, {
+    venueAccessTime: "12:00 PM",
+    photographerArrivalTime: "12:45 PM",
+    readyByTime: "1:20 PM",
+    ceremonyTime: "4:00 PM",
+    firstLookTime: "2:00 PM",
+  });
 });
