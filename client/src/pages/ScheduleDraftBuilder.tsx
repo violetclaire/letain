@@ -42,6 +42,26 @@ const AUDIT_SEVERITY_STYLES: Record<AuditSeverity, string> = {
   critical: "border-oxblood/40 bg-oxblood/10 text-oxblood",
 };
 
+const VIOLET_SERVICE_DEFAULTS: ServiceDefault[] = [
+  { id: "bride-hair-makeup", label: "Bride Hair + Makeup", durationMinutes: 120 },
+  { id: "bride-makeup", label: "Bride Makeup", durationMinutes: 60 },
+  { id: "bride-hair", label: "Bride Hair", durationMinutes: 45 },
+  { id: "bridesmaid-makeup", label: "Bridesmaid Makeup", durationMinutes: 30 },
+  { id: "bridesmaid-hair", label: "Bridesmaid Hair", durationMinutes: 45 },
+  { id: "mother-makeup", label: "Mother Makeup", durationMinutes: 30 },
+  { id: "mother-hair", label: "Mother Hair", durationMinutes: 45 },
+  { id: "flower-girl", label: "Flower Girl", durationMinutes: 45 },
+  { id: "touch-ups", label: "Touch-Ups", durationMinutes: 15 },
+  { id: "setup", label: "Setup", durationMinutes: 15 },
+];
+
+const LEGACY_SERVICE_DEFAULTS: Record<string, number> = {
+  makeup: 30,
+  hair: 30,
+  "hair + makeup": 60,
+  "bride hair + makeup": 120,
+};
+
 interface Draft {
   id: string;
   title?: string | null;
@@ -64,8 +84,8 @@ const SERVICE_ALIASES: Array<{ match: RegExp; label: string }> = [
   // must NOT match here, so it can be treated as a named group instead.
   { match: /\bbride\b/i, label: "Bride Hair + Makeup" },
   { match: /hair\s*(\+|and|&|\/)\s*makeup|makeup\s*(\+|and|&|\/)\s*hair|h\s*\+?\s*m\b/i, label: "Hair + Makeup" },
-  { match: /makeup|mua|\bmu\b/i, label: "Makeup" },
-  { match: /hair\b/i, label: "Hair" },
+  { match: /makeup|mua|\bmu\b/i, label: "Bridesmaid Makeup" },
+  { match: /hair\b/i, label: "Bridesmaid Hair" },
 ];
 
 function normalizeService(raw: string): string {
@@ -146,9 +166,9 @@ function buildScheduleFromInput(
       const n = Math.min(parseInt(countMatch[1], 10), 100);
       const rest = countMatch[2].trim();
       const svc = normalizeService(rest);
-      if (svc === "Makeup") {
+      if (svc === "Makeup" || svc === "Bridesmaid Makeup") {
         makeupCount += n;
-      } else if (svc === "Hair") {
+      } else if (svc === "Hair" || svc === "Bridesmaid Hair") {
         hairCount += n;
       } else if (svc) {
         otherServices.push({ service: svc, count: n });
@@ -374,6 +394,30 @@ function composeNotes(body: string, names: string[]): string {
   const clean = stripPeoplePool(body);
   const line = names.length > 0 ? `${POOL_PREFIX} ${names.join(", ")}` : "";
   return [clean, line].filter(Boolean).join("\n\n");
+}
+
+function violetServiceDefaults(): ServiceDefault[] {
+  return VIOLET_SERVICE_DEFAULTS.map((service) => ({ ...service }));
+}
+
+function usesLegacyServiceDefaults(defaults: ServiceDefault[]): boolean {
+  const legacyLabels = Object.keys(LEGACY_SERVICE_DEFAULTS);
+  if (defaults.length === 0 || defaults.length > legacyLabels.length) {
+    return false;
+  }
+
+  return defaults.every((service) => {
+    const label = service.label.trim().toLowerCase();
+    return LEGACY_SERVICE_DEFAULTS[label] === service.durationMinutes;
+  });
+}
+
+function normalizeServiceDefaults(defaults?: ServiceDefault[] | null): ServiceDefault[] {
+  const current = defaults ?? [];
+  if (current.length === 0 || usesLegacyServiceDefaults(current)) {
+    return violetServiceDefaults();
+  }
+  return current;
 }
 
 function auditText(value: string): string {
@@ -649,13 +693,14 @@ export default function ScheduleDraftBuilder() {
     const d = draftQuery.data;
     if (d && !loaded) {
       const sortedRows = [...(d.rows ?? [])].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+      const normalizedDefaults = normalizeServiceDefaults(d.serviceDefaults);
       setTitle(d.title ?? "");
       setEventDate(d.eventDate ?? "");
       setLocation(d.location ?? "");
       setNotes(d.notes ?? "");
       setColumns(d.columns ?? []);
       setRows(sortedRows);
-      setServiceDefaults(d.serviceDefaults ?? []);
+      setServiceDefaults(normalizedDefaults);
       setProviders(d.providers ?? []);
       // Capture the baseline so we can detect unsaved edits from here on.
       setSavedSnapshot(
@@ -666,7 +711,7 @@ export default function ScheduleDraftBuilder() {
           notes: d.notes ?? "",
           columns: d.columns ?? [],
           rows: sortedRows,
-          serviceDefaults: d.serviceDefaults ?? [],
+          serviceDefaults: normalizedDefaults,
           providers: d.providers ?? [],
         }),
       );
