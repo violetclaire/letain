@@ -11,7 +11,9 @@ This document captures the current repository architecture from a read-only audi
 - Briarwood private coordination infrastructure for routing, trusted handoffs, assistant prompts, and trust-event logging.
 - Demo, AI, agent, ACP, and experimental features.
 
-The app is Replit-first in its deployment assumptions. The production build creates a Vite client bundle under `dist/public` and an Express server bundle at `dist/index.cjs`.
+After PR #36, the product backend no longer serves the React app. The production build still creates a Vite client bundle under `dist/public` and an Express server bundle at `dist/index.cjs`, but those outputs have different hosting responsibilities: the backend starts as an API server, while the React app must be hosted separately or served by a reverse proxy/static host.
+
+For Capacitor/TestFlight, `https://atbriarwood.com` must load the real React app because the iOS wrapper uses that URL as its remote webview target. If that domain points only at the backend API or the marketing landing response, the native app will not show the product.
 
 ## Frontend Structure
 
@@ -42,12 +44,11 @@ Backend code lives under `server`.
 
 Main entry points:
 
-- `server/index.ts` creates the Express app, configures middleware, runs startup schema checks/DDL, registers route groups, serves the Vite app in development, serves static assets in production, and starts cron jobs.
+- `server/index.ts` creates the Express app, configures middleware, runs startup schema checks/DDL, registers route groups, starts the API server, and starts cron jobs.
 - `server/routes.ts` is the primary route registry. It is a large kitchen-sink file containing auth, profiles, inquiries, routing, schedules, bookings, contracts, payments, SMS, email, admin, CDI, AI, import, and chat endpoints.
 - `server/storage.ts` defines the large database storage abstraction and exports a singleton `storage`.
 - `server/db.ts` initializes Neon/Postgres pooling and Drizzle.
 - `server/replitAuth.ts` owns Replit OIDC session setup and `isAuthenticated`.
-- `server/static.ts` and `server/vite.ts` switch between production static serving and Vite middleware.
 
 Important service modules include:
 
@@ -270,18 +271,19 @@ Do not refactor these until tests and product boundaries are in place:
 
 ## Deployment Assumptions
 
-Observed deployment assumptions:
+Observed deployment assumptions after PR #36:
 
-- Replit is the primary target.
-- `.replit` uses Node.js 20, Python 3.11, Postgres 16, web module, and Chromium.
-- Dev command is `npm run dev`, which runs `tsx server/index.ts`.
-- Production deployment runs `npm run build` then `npm run start`.
-- `npm run build` runs `script/build.ts`, building the Vite client and bundling the server with esbuild.
-- Production server entry is `dist/index.cjs`.
-- Static client assets are expected at `dist/public`.
-- Main app port is `PORT` or `5000`; `.replit` maps local `5000` to external `80`.
-- Replit autoscale is configured, but in-process cron jobs and scheduled email jobs are not distributed-lock safe.
-- Client-facing links assume `PUBLIC_BASE_URL` or hardcoded production URLs in several places.
+- The backend is API-only for the product app. It no longer serves the React SPA in development or production.
+- `npm run dev` and `npm run dev:server` start the backend API with `tsx server/index.ts`.
+- `npm run dev:client` starts the Vite frontend separately on port `5173` to avoid colliding with the backend default port.
+- Production deployment still runs `npm run build` then `npm run start`.
+- `npm run build` runs `script/build.ts`, building the Vite client to `dist/public` and bundling the server with esbuild.
+- Production server entry is `dist/index.cjs`, started by `npm run start`.
+- The React bundle in `dist/public` must be deployed to separate frontend hosting or served by an external reverse proxy/static host.
+- `https://atbriarwood.com` must load the React app for the Capacitor remote webview. The backend API can sit behind the same domain only if routing/proxy rules still deliver the React app shell for product routes.
+- Main backend port is `PORT` or `5000`.
+- In-process cron jobs and scheduled email jobs are not distributed-lock safe.
+- Client-facing links should use `PUBLIC_BASE_URL`; any remaining hardcoded legacy domains should be removed in small, reviewed PRs.
 
 ## Environment Variables
 
@@ -290,14 +292,14 @@ Observed or implied environment variables:
 | Variable | Purpose | Notes |
 | --- | --- | --- |
 | `NODE_ENV` | Runtime mode | Controls production session cookie security and build/runtime behavior. |
-| `PORT` | Express port | `.replit` sets `5000`. |
+| `PORT` | Express port | Defaults to `5000` when not set. |
 | `DATABASE_URL` | Postgres connection | Used by Drizzle config and as DB fallback. |
 | `NEON_DATABASE_URL` | Preferred Neon/Postgres connection | Used before `DATABASE_URL` by `server/db.ts` and sessions. |
 | `SESSION_SECRET` | Express session signing | Required by session middleware. |
 | `REPL_ID` | Replit OIDC client id | Required by OIDC discovery/auth. |
 | `ISSUER_URL` | OIDC issuer override | Defaults to `https://replit.com/oidc`. |
-| `PUBLIC_BASE_URL` | Client-facing link base | `.replit` shared env sets `https://atbriarwood.com`; some code falls back to `https://dateinquiry.com`. |
-| `REPLIT_DEPLOYMENT_URL` | Deployment URL fallback | Used in some share-link generation. |
+| `PUBLIC_BASE_URL` | Client-facing link base | Should be set to the product frontend origin, currently `https://atbriarwood.com`. |
+| `REPLIT_DEPLOYMENT_URL` | Legacy deployment URL fallback | Should not be used for new production links; remaining references should be removed in small cleanup PRs. |
 | `REPLIT_CONNECTORS_HOSTNAME` | Replit connector host | Used for Resend connector lookup. |
 | `REPL_IDENTITY` | Replit connector auth token source | Used for connector access in dev. |
 | `WEB_REPL_RENEWAL` | Replit connector auth token source | Used for connector access in deployment. |

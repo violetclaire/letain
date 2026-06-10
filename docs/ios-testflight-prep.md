@@ -8,6 +8,8 @@ Current Capacitor app settings:
 - App name: `Briarwood`
 - Server URL: `https://atbriarwood.com`
 
+The Capacitor app uses `https://atbriarwood.com` as a remote webview. Before TestFlight, that URL must load the real React app, not only the API server, health routes, or marketing landing page. After PR #36, the backend no longer serves the React SPA itself, so backend/API hosting and frontend/static hosting must both be validated before generating or testing the iOS wrapper.
+
 ## Requirements
 
 - Node.js `>=22.12.0`
@@ -27,6 +29,13 @@ npx cap add ios
 npx cap sync ios
 npx cap open ios
 ```
+
+Before opening the app in Xcode, verify:
+
+- the backend API is reachable at the expected production origin
+- the frontend React app is hosted and loads at `https://atbriarwood.com`
+- authenticated operator flows work from the hosted frontend
+- the hosted frontend can call the backend API with the expected cookie/session behavior
 
 After `npx cap open ios`, use Xcode to configure signing, bundle capabilities, app icons, launch screen assets, and archive/upload settings.
 
