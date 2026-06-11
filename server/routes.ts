@@ -6,6 +6,7 @@ import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { getAuthUserId } from "./auth/identity";
 import * as googleCalendar from "./googleCalendarService";
 import { registerSquareRoutes } from "./squareRoutes";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
@@ -188,18 +189,7 @@ async function loadCDI() {
   }
 }
 
-// Helper to get authenticated user ID from either email/password session or Replit OAuth
-export function getAuthUserId(req: Request): string | null {
-  // Check email/password session first
-  if (req.session?.userId) {
-    return req.session.userId;
-  }
-  // Fall back to Replit OAuth
-  if (req.user?.claims?.sub) {
-    return req.user.claims.sub;
-  }
-  return null;
-}
+export { getAuthUserId };
 
 // Helper to analyze sentiment of inquiry messages using CDI agent
 // DISABLED: Automatic analysis disabled to save AI costs. Will be re-enabled with manual "liaison" button later.
