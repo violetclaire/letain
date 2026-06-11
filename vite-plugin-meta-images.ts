@@ -4,7 +4,7 @@ import path from 'path';
 
 /**
  * Vite plugin that updates og:image and twitter:image meta tags
- * to point to the app's opengraph image with the correct Replit domain.
+ * to point to the app's opengraph image with the configured public base URL.
  */
 export function metaImagesPlugin(): Plugin {
   return {
@@ -12,7 +12,7 @@ export function metaImagesPlugin(): Plugin {
     transformIndexHtml(html) {
       const baseUrl = getDeploymentUrl();
       if (!baseUrl) {
-        log('[meta-images] no Replit deployment domain found, skipping meta tag updates');
+        log('[meta-images] PUBLIC_BASE_URL not set, skipping meta tag updates');
         return html;
       }
 
@@ -56,19 +56,20 @@ export function metaImagesPlugin(): Plugin {
 }
 
 function getDeploymentUrl(): string | null {
-  if (process.env.REPLIT_INTERNAL_APP_DOMAIN) {
-    const url = `https://${process.env.REPLIT_INTERNAL_APP_DOMAIN}`;
-    log('[meta-images] using internal app domain:', url);
-    return url;
+  const publicBaseUrl = process.env.PUBLIC_BASE_URL?.trim();
+  if (!publicBaseUrl) {
+    return null;
   }
 
-  if (process.env.REPLIT_DEV_DOMAIN) {
-    const url = `https://${process.env.REPLIT_DEV_DOMAIN}`;
-    log('[meta-images] using dev domain:', url);
-    return url;
+  try {
+    const url = new URL(publicBaseUrl);
+    const normalizedUrl = url.origin;
+    log('[meta-images] using PUBLIC_BASE_URL:', normalizedUrl);
+    return normalizedUrl;
+  } catch {
+    log('[meta-images] invalid PUBLIC_BASE_URL, skipping meta tag updates:', publicBaseUrl);
+    return null;
   }
-
-  return null;
 }
 
 function log(...args: any[]): void {
