@@ -214,22 +214,17 @@ test("emailService rejects when neither connector nor direct credentials are ava
   assert.match(consoleCapture.errors.join("\n"), /No Resend credentials available - RESEND_API_KEY not set and connector fallback unavailable/);
 });
 
-test("aiChat keeps its separate Replit-only Resend credential behavior", async () => {
-  clearEmailEnv();
-  process.env.RESEND_API_KEY = "re_direct_key_ai_chat_does_not_use";
-  const consoleCapture = captureConsole();
-  mock.method(globalThis, "fetch", async () => {
-    throw new Error("aiChat should fail before connector fetch without a Replit token");
-  });
+test("aiChat uses the shared Resend credential resolver and keeps send payload shape", async () => {
+  const aiChatText = await readFile(new URL("./aiChat.ts", import.meta.url), "utf8");
 
-  const result = await aiChat.sendThankYouEmailFromAI("artist-a", {
-    recipientName: "Client",
-    recipientEmail: "client@example.com",
-    message: "Thank you",
-  });
-
-  assert.deepEqual(result, { success: false, error: "X_REPLIT_TOKEN not found" });
-  assert.match(consoleCapture.errors.join("\n"), /\[AI\] Failed to send thank you email:/);
+  assert.match(aiChatText, /import \{ resolveEmailCredentials \} from "\.\/email\/credentials";/);
+  assert.match(aiChatText, /const WHITELABEL_FROM_EMAIL = "notifications@dateinquiry\.com";/);
+  assert.match(aiChatText, /resolveEmailCredentials\(\{[\s\S]*?fromEmail: WHITELABEL_FROM_EMAIL[\s\S]*?\}\)/);
+  assert.match(aiChatText, /return \{ client: new Resend\(apiKey\), fromEmail \};/);
+  assert.match(aiChatText, /from: fromEmail \|\| "Your Secretary <notifications@dateinquiry\.com>"/);
+  assert.doesNotMatch(aiChatText, /async function getResendCredentials\(\)/);
+  assert.doesNotMatch(aiChatText, /connector_names=resend/);
+  assert.doesNotMatch(aiChatText, /X_REPLIT_TOKEN not found/);
 });
 
 test("email source keeps current sender domain and logging behavior", async () => {
@@ -250,21 +245,21 @@ test("email source keeps current sender domain and logging behavior", async () =
   assert.doesNotMatch(credentialsText, /console\.log\([^)]*RESEND_API_KEY[^)]*process\.env\.RESEND_API_KEY/);
 });
 
-test("aiChat source keeps current Replit-only resolver without direct RESEND_API_KEY fallback", async () => {
+test("aiChat source keeps email credential resolution centralized", async () => {
   const aiChatText = await readFile(new URL("./aiChat.ts", import.meta.url), "utf8");
-  const resolverStart = aiChatText.indexOf("async function getResendCredentials()");
-  const clientStart = aiChatText.indexOf("async function getResendClient()", resolverStart);
-  assert.ok(resolverStart >= 0, "aiChat getResendCredentials should exist");
-  assert.ok(clientStart > resolverStart, "aiChat getResendClient should follow getResendCredentials");
-  const resolverSection = aiChatText.slice(resolverStart, clientStart);
+  const clientStart = aiChatText.indexOf("async function getResendClient()");
+  const promptStart = aiChatText.indexOf("const SYSTEM_PROMPT", clientStart);
+  assert.ok(clientStart >= 0, "aiChat getResendClient should exist");
+  assert.ok(promptStart > clientStart, "aiChat getResendClient should remain before the system prompt");
+  const clientSection = aiChatText.slice(clientStart, promptStart);
 
-  assert.match(resolverSection, /process\.env\.REPLIT_CONNECTORS_HOSTNAME/);
-  assert.match(resolverSection, /process\.env\.REPL_IDENTITY/);
-  assert.match(resolverSection, /process\.env\.WEB_REPL_RENEWAL/);
-  assert.match(resolverSection, /throw new Error\("X_REPLIT_TOKEN not found"\)/);
-  assert.match(resolverSection, /connector_names=resend/);
-  assert.match(resolverSection, /settings\.api_key/);
-  assert.doesNotMatch(resolverSection, /RESEND_API_KEY/);
+  assert.match(clientSection, /resolveEmailCredentials\(\{[\s\S]*?fromEmail: WHITELABEL_FROM_EMAIL[\s\S]*?\}\)/);
+  assert.match(clientSection, /new Resend\(apiKey\)/);
+  assert.doesNotMatch(clientSection, /process\.env\.REPLIT_CONNECTORS_HOSTNAME/);
+  assert.doesNotMatch(clientSection, /process\.env\.REPL_IDENTITY/);
+  assert.doesNotMatch(clientSection, /process\.env\.WEB_REPL_RENEWAL/);
+  assert.doesNotMatch(clientSection, /connector_names=resend/);
+  assert.doesNotMatch(clientSection, /settings\.api_key/);
 });
 
 test("routes source keeps dry-run no-send boundaries around composer, routing, and operator alerts", async () => {
