@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { afterEach, before, mock, test } from "node:test";
+import { after, afterEach, before, mock, test } from "node:test";
 
 type EmailServiceModule = typeof import("./emailService");
 type AiChatModule = typeof import("./aiChat");
@@ -16,6 +16,7 @@ const EMAIL_ENV_KEYS = [
 ] as const;
 
 const originalEnv = new Map<string, string | undefined>();
+let originalNodeEnv: string | undefined;
 
 function captureConsole() {
   const logs: string[] = [];
@@ -52,6 +53,7 @@ before(async () => {
   for (const key of EMAIL_ENV_KEYS) {
     originalEnv.set(key, process.env[key]);
   }
+  originalNodeEnv = process.env.NODE_ENV;
 
   process.env.NODE_ENV = "test";
   process.env.DATABASE_URL = process.env.DATABASE_URL || "postgres://user:pass@localhost:5432/email_characterization_test";
@@ -65,6 +67,15 @@ before(async () => {
 afterEach(() => {
   mock.restoreAll();
   restoreEmailEnv();
+  process.env.NODE_ENV = "test";
+});
+
+after(() => {
+  if (originalNodeEnv === undefined) {
+    delete process.env.NODE_ENV;
+  } else {
+    process.env.NODE_ENV = originalNodeEnv;
+  }
 });
 
 test("emailService direct RESEND_API_KEY path returns the white-label from address without connector fetch", async () => {
@@ -85,48 +96,32 @@ test("emailService direct RESEND_API_KEY path returns the white-label from addre
   assert.doesNotMatch(consoleCapture.logs.join("\n"), /re_direct_resend_key/);
 });
 
-test("emailService Replit connector credentials take precedence over direct RESEND_API_KEY", async () => {
+test("emailService direct RESEND_API_KEY takes precedence over legacy connector credentials", async () => {
   clearEmailEnv();
-  process.env.RESEND_API_KEY = "re_direct_key_should_not_win";
+  process.env.RESEND_API_KEY = "re_direct_key_should_win";
   process.env.REPLIT_CONNECTORS_HOSTNAME = "connectors.example.test";
   process.env.REPL_IDENTITY = "repl-token";
   const consoleCapture = captureConsole();
-  const fetchCalls: Array<{ url: string; headers: Record<string, string> }> = [];
+  const fetchCalls: string[] = [];
 
-  mock.method(globalThis, "fetch", async (input: string | URL | Request, init?: RequestInit) => {
-    fetchCalls.push({
-      url: String(input),
-      headers: init?.headers as Record<string, string>,
-    });
-    return new Response(JSON.stringify({
-      items: [{ settings: { api_key: "re_replit_secret_key_super_long" } }],
-    }), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    });
+  mock.method(globalThis, "fetch", async (input: string | URL | Request) => {
+    fetchCalls.push(String(input));
+    throw new Error("connector fetch should not run when RESEND_API_KEY is set");
   });
 
   const result = await emailService.getResendClient();
 
   assert.equal(result.fromEmail, "notifications@dateinquiry.com");
-  assert.equal(fetchCalls.length, 1);
-  assert.equal(
-    fetchCalls[0].url,
-    "https://connectors.example.test/api/v2/connection?include_secrets=true&connector_names=resend",
-  );
-  assert.equal(fetchCalls[0].headers.Accept, "application/json");
-  assert.equal(fetchCalls[0].headers.X_REPLIT_TOKEN, "repl repl-token");
+  assert.equal(fetchCalls.length, 0);
   const logs = consoleCapture.logs.join("\n");
-  assert.match(logs, /Trying Replit connector/);
-  assert.match(logs, /Token type:\s*repl/);
-  assert.match(logs, /Using Resend from Replit connector/);
-  assert.match(logs, /Got Resend API key \(first 8 chars\): re_repli\.\.\./);
-  assert.doesNotMatch(logs, /re_replit_secret_key_super_long/);
-  assert.doesNotMatch(logs, /re_direct_key_should_not_win/);
+  assert.match(logs, /Using direct RESEND_API_KEY from environment/);
+  assert.doesNotMatch(logs, /Trying Replit connector fallback/);
+  assert.doesNotMatch(logs, /re_direct_key_should_win/);
 });
 
-test("emailService Replit connector can use WEB_REPL_RENEWAL token prefix", async () => {
+test("emailService non-production Replit connector fallback can use WEB_REPL_RENEWAL token prefix", async () => {
   clearEmailEnv();
+  process.env.NODE_ENV = "test";
   process.env.REPLIT_CONNECTORS_HOSTNAME = "connectors.example.test";
   process.env.WEB_REPL_RENEWAL = "deployment-token";
   const fetchCalls: Array<{ headers: Record<string, string> }> = [];
@@ -149,36 +144,59 @@ test("emailService Replit connector can use WEB_REPL_RENEWAL token prefix", asyn
   assert.equal(fetchCalls[0].headers.X_REPLIT_TOKEN, "depl deployment-token");
 });
 
-test("emailService falls back to direct RESEND_API_KEY when connector fetch fails or lacks api_key", async () => {
+test("emailService non-production Replit connector fallback failure rejects when no direct key exists", async () => {
   clearEmailEnv();
+  process.env.NODE_ENV = "test";
   process.env.REPLIT_CONNECTORS_HOSTNAME = "connectors.example.test";
   process.env.REPL_IDENTITY = "repl-token";
-  process.env.RESEND_API_KEY = "re_direct_fallback_key";
   const consoleCapture = captureConsole();
   mock.method(globalThis, "fetch", async () => {
     throw new Error("connector unavailable");
   });
 
-  const resultAfterFetchFailure = await emailService.getResendClient();
+  await assert.rejects(
+    emailService.getResendClient(),
+    /No Resend credentials available/,
+  );
 
-  assert.equal(resultAfterFetchFailure.fromEmail, "notifications@dateinquiry.com");
-  assert.match(consoleCapture.logs.join("\n"), /Replit connector failed, trying fallback/);
-  assert.match(consoleCapture.logs.join("\n"), /Using direct RESEND_API_KEY from environment/);
+  assert.match(consoleCapture.logs.join("\n"), /Replit connector fallback failed/);
 
   mock.restoreAll();
   clearEmailEnv();
+  process.env.NODE_ENV = "test";
   process.env.REPLIT_CONNECTORS_HOSTNAME = "connectors.example.test";
   process.env.REPL_IDENTITY = "repl-token";
-  process.env.RESEND_API_KEY = "re_direct_fallback_key";
   captureConsole();
   mock.method(globalThis, "fetch", async () => new Response(JSON.stringify({ items: [{ settings: {} }] }), {
     status: 200,
     headers: { "content-type": "application/json" },
   }));
 
-  const resultAfterMissingApiKey = await emailService.getResendClient();
+  await assert.rejects(
+    emailService.getResendClient(),
+    /No Resend credentials available/,
+  );
+});
 
-  assert.equal(resultAfterMissingApiKey.fromEmail, "notifications@dateinquiry.com");
+test("emailService does not use Replit connector fallback in production without RESEND_API_KEY", async () => {
+  clearEmailEnv();
+  process.env.NODE_ENV = "production";
+  process.env.REPLIT_CONNECTORS_HOSTNAME = "connectors.example.test";
+  process.env.REPL_IDENTITY = "repl-token";
+  const consoleCapture = captureConsole();
+  const fetchCalls: string[] = [];
+  mock.method(globalThis, "fetch", async (input: string | URL | Request) => {
+    fetchCalls.push(String(input));
+    throw new Error("production connector fetch should not run");
+  });
+
+  await assert.rejects(
+    emailService.getResendClient(),
+    /No Resend credentials available/,
+  );
+
+  assert.equal(fetchCalls.length, 0);
+  assert.match(consoleCapture.logs.join("\n"), /Replit email connector fallback is disabled in production/);
 });
 
 test("emailService rejects when neither connector nor direct credentials are available", async () => {
@@ -193,7 +211,7 @@ test("emailService rejects when neither connector nor direct credentials are ava
     /No Resend credentials available/,
   );
 
-  assert.match(consoleCapture.errors.join("\n"), /No Resend credentials available - neither connector nor RESEND_API_KEY found/);
+  assert.match(consoleCapture.errors.join("\n"), /No Resend credentials available - RESEND_API_KEY not set and connector fallback unavailable/);
 });
 
 test("aiChat keeps its separate Replit-only Resend credential behavior", async () => {
@@ -215,15 +233,21 @@ test("aiChat keeps its separate Replit-only Resend credential behavior", async (
 });
 
 test("email source keeps current sender domain and logging behavior", async () => {
-  const emailText = await readFile(new URL("./emailService.ts", import.meta.url), "utf8");
+  const [emailText, credentialsText] = await Promise.all([
+    readFile(new URL("./emailService.ts", import.meta.url), "utf8"),
+    readFile(new URL("./email/credentials.ts", import.meta.url), "utf8"),
+  ]);
 
   assert.match(emailText, /const WHITELABEL_EMAIL_DOMAIN = 'dateinquiry\.com'/);
   assert.match(emailText, /const WHITELABEL_FROM_EMAIL = 'notifications@dateinquiry\.com'/);
+  assert.match(emailText, /resolveEmailCredentials\(\{ fromEmail: WHITELABEL_FROM_EMAIL \}\)/);
   assert.match(emailText, /from: `Date Inquiry <\$\{fromEmail\}>`/);
   assert.match(emailText, /const senderEmail = `\$\{safeSenderName\} <notifications@dateinquiry\.com>`/);
   assert.match(emailText, /const senderEmail = `\$\{sanitizeSenderName\(senderName\)\} <notifications@dateinquiry\.com>`/);
-  assert.match(emailText, /console\.log\("Got Resend API key \(first 8 chars\):", connectionSettings\.settings\.api_key\?\.substring\(0, 8\) \+ "\.\.\."\)/);
-  assert.doesNotMatch(emailText, /console\.log\([^)]*RESEND_API_KEY[^)]*process\.env\.RESEND_API_KEY/);
+  assert.match(credentialsText, /Production email should be configured directly with RESEND_API_KEY/);
+  assert.match(credentialsText, /process\.env\.NODE_ENV !== "production"/);
+  assert.match(credentialsText, /console\.log\([\s\S]*"Got Resend API key \(first 8 chars\):"[\s\S]*connectionSettings\.settings\.api_key\?\.substring\(0, 8\) \+ "\.\.\."/);
+  assert.doesNotMatch(credentialsText, /console\.log\([^)]*RESEND_API_KEY[^)]*process\.env\.RESEND_API_KEY/);
 });
 
 test("aiChat source keeps current Replit-only resolver without direct RESEND_API_KEY fallback", async () => {
