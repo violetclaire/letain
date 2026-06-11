@@ -1,4 +1,4 @@
-import { Storage, File } from "@google-cloud/storage";
+import { File } from "@google-cloud/storage";
 import { Response } from "express";
 import { randomUUID } from "crypto";
 import {
@@ -8,26 +8,13 @@ import {
   getObjectAclPolicy,
   setObjectAclPolicy,
 } from "./objectAcl";
+import type { ObjectStorageProvider } from "./storage/provider";
+import {
+  getDefaultObjectStorageProvider,
+  objectStorageClient,
+} from "./storage/replitProvider";
 
-const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
-
-export const objectStorageClient = new Storage({
-  credentials: {
-    audience: "replit",
-    subject_token_type: "access_token",
-    token_url: `${REPLIT_SIDECAR_ENDPOINT}/token`,
-    type: "external_account",
-    credential_source: {
-      url: `${REPLIT_SIDECAR_ENDPOINT}/credential`,
-      format: {
-        type: "json",
-        subject_token_field_name: "access_token",
-      },
-    },
-    universe_domain: "googleapis.com",
-  },
-  projectId: "",
-});
+export { objectStorageClient };
 
 export class ObjectNotFoundError extends Error {
   constructor() {
@@ -38,7 +25,9 @@ export class ObjectNotFoundError extends Error {
 }
 
 export class ObjectStorageService {
-  constructor() {}
+  constructor(
+    private readonly provider: ObjectStorageProvider = getDefaultObjectStorageProvider()
+  ) {}
 
   getPublicObjectSearchPaths(): Array<string> {
     const pathsStr = process.env.PUBLIC_OBJECT_SEARCH_PATHS || "";
@@ -74,8 +63,7 @@ export class ObjectStorageService {
     for (const searchPath of this.getPublicObjectSearchPaths()) {
       const fullPath = `${searchPath}/${filePath}`;
       const { bucketName, objectName } = parseObjectPath(fullPath);
-      const bucket = objectStorageClient.bucket(bucketName);
-      const file = bucket.file(objectName);
+      const file = this.provider.getFile(bucketName, objectName);
       const [exists] = await file.exists();
       if (exists) {
         return file;
@@ -124,7 +112,7 @@ export class ObjectStorageService {
     const fullPath = `${privateObjectDir}/uploads/${objectId}`;
     const { bucketName, objectName } = parseObjectPath(fullPath);
 
-    return signObjectURL({
+    return this.provider.signObjectURL({
       bucketName,
       objectName,
       method: "PUT",
@@ -149,8 +137,7 @@ export class ObjectStorageService {
     }
     const objectEntityPath = `${entityDir}${entityId}`;
     const { bucketName, objectName } = parseObjectPath(objectEntityPath);
-    const bucket = objectStorageClient.bucket(bucketName);
-    const objectFile = bucket.file(objectName);
+    const objectFile = this.provider.getFile(bucketName, objectName);
     const [exists] = await objectFile.exists();
     if (!exists) {
       throw new ObjectNotFoundError();
@@ -219,8 +206,7 @@ export class ObjectStorageService {
     
     const { bucketName, objectName } = parseObjectPath(fullPath);
     
-    const bucket = objectStorageClient.bucket(bucketName);
-    const file = bucket.file(objectName);
+    const file = this.provider.getFile(bucketName, objectName);
     
     await file.save(buffer, {
       contentType: mimeType,
@@ -264,42 +250,4 @@ function parseObjectPath(path: string): {
     bucketName,
     objectName,
   };
-}
-
-async function signObjectURL({
-  bucketName,
-  objectName,
-  method,
-  ttlSec,
-}: {
-  bucketName: string;
-  objectName: string;
-  method: "GET" | "PUT" | "DELETE" | "HEAD";
-  ttlSec: number;
-}): Promise<string> {
-  const request = {
-    bucket_name: bucketName,
-    object_name: objectName,
-    method,
-    expires_at: new Date(Date.now() + ttlSec * 1000).toISOString(),
-  };
-  const response = await fetch(
-    `${REPLIT_SIDECAR_ENDPOINT}/object-storage/signed-object-url`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(request),
-    }
-  );
-  if (!response.ok) {
-    throw new Error(
-      `Failed to sign object URL, errorcode: ${response.status}, ` +
-        `make sure you're running on Replit`
-    );
-  }
-
-  const { signed_url: signedURL } = await response.json();
-  return signedURL;
 }
