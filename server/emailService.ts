@@ -1,6 +1,5 @@
 import { Resend } from 'resend';
-
-let connectionSettings: any;
+import { resolveEmailCredentials } from './email/credentials';
 
 // Get the base URL for email links - always use production URL for client-facing links
 function getBaseUrl(): string {
@@ -37,59 +36,7 @@ function sanitizeSubject(subject: string): string {
 }
 
 async function getCredentials() {
-  console.log("=== Getting Resend credentials ===");
-  
-  // Try Replit connector first (works in both dev and production deployments)
-  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY 
-    ? 'repl ' + process.env.REPL_IDENTITY 
-    : process.env.WEB_REPL_RENEWAL 
-    ? 'depl ' + process.env.WEB_REPL_RENEWAL 
-    : null;
-
-  if (hostname && xReplitToken) {
-    try {
-      console.log("Trying Replit connector...");
-      console.log("Token type:", xReplitToken.split(' ')[0]);
-      
-      const url = 'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=resend';
-      const response = await fetch(url, {
-        headers: {
-          'Accept': 'application/json',
-          'X_REPLIT_TOKEN': xReplitToken
-        }
-      });
-      
-      const data = await response.json();
-      console.log("Connectors response status:", response.status);
-      
-      connectionSettings = data.items?.[0];
-      
-      if (connectionSettings?.settings?.api_key) {
-        console.log("Using Resend from Replit connector");
-        console.log("Got Resend API key (first 8 chars):", connectionSettings.settings.api_key?.substring(0, 8) + "...");
-        // Use verified domain for emails
-        return { 
-          apiKey: connectionSettings.settings.api_key, 
-          fromEmail: WHITELABEL_FROM_EMAIL 
-        };
-      }
-    } catch (err) {
-      console.log("Replit connector failed, trying fallback:", err);
-    }
-  }
-  
-  // Fall back to direct RESEND_API_KEY environment variable
-  if (process.env.RESEND_API_KEY) {
-    console.log("Using direct RESEND_API_KEY from environment");
-    return { 
-      apiKey: process.env.RESEND_API_KEY, 
-      fromEmail: WHITELABEL_FROM_EMAIL 
-    };
-  }
-  
-  console.error("No Resend credentials available - neither connector nor RESEND_API_KEY found");
-  throw new Error('No Resend credentials available');
+  return resolveEmailCredentials({ fromEmail: WHITELABEL_FROM_EMAIL });
 }
 
 export async function getResendClient() {
