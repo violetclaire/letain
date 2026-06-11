@@ -1,6 +1,9 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 import { Resend } from "resend";
 import { storage } from "./storage";
+import { resolveEmailCredentials } from "./email/credentials";
+
+const WHITELABEL_FROM_EMAIL = "notifications@dateinquiry.com";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.AI_INTEGRATIONS_GEMINI_API_KEY || "",
@@ -180,43 +183,10 @@ function extractEntitiesFromText(text: string): WorkingMemory {
   return entities;
 }
 
-let resendConnectionSettings: any;
-
-async function getResendCredentials() {
-  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY
-    ? "repl " + process.env.REPL_IDENTITY
-    : process.env.WEB_REPL_RENEWAL
-    ? "depl " + process.env.WEB_REPL_RENEWAL
-    : null;
-
-  if (!xReplitToken) {
-    throw new Error("X_REPLIT_TOKEN not found");
-  }
-
-  resendConnectionSettings = await fetch(
-    "https://" + hostname + "/api/v2/connection?include_secrets=true&connector_names=resend",
-    {
-      headers: {
-        Accept: "application/json",
-        X_REPLIT_TOKEN: xReplitToken,
-      },
-    }
-  )
-    .then((res) => res.json())
-    .then((data) => data.items?.[0]);
-
-  if (!resendConnectionSettings || !resendConnectionSettings.settings.api_key) {
-    throw new Error("Resend not connected");
-  }
-  return {
-    apiKey: resendConnectionSettings.settings.api_key,
-    fromEmail: resendConnectionSettings.settings.from_email,
-  };
-}
-
 async function getResendClient() {
-  const { apiKey, fromEmail } = await getResendCredentials();
+  const { apiKey, fromEmail } = await resolveEmailCredentials({
+    fromEmail: WHITELABEL_FROM_EMAIL,
+  });
   return { client: new Resend(apiKey), fromEmail };
 }
 
