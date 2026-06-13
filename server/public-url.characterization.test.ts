@@ -90,7 +90,15 @@ test("server sources keep the current mixed public URL fallback map while low-ri
   );
   assert.match(
     emailServiceText,
-    /process\.env\.PUBLIC_BASE_URL \|\| process\.env\.REPLIT_DEPLOYMENT_URL \|\| 'https:\/\/dateinquiry\.com'/,
+    /import \{ getLegacyDateInquiryPublicBaseUrl \} from '\.\/config\/publicUrl';/,
+  );
+  assert.match(
+    emailServiceText,
+    /const baseUrl = getLegacyDateInquiryPublicBaseUrl\(\);[\s\S]*?pdfLink = `\$\{baseUrl\}\$\{infoSheetPdfUrl\}`;/,
+  );
+  assert.doesNotMatch(
+    emailServiceText,
+    /REPLIT_DEPLOYMENT_URL/,
   );
   assert.match(
     aiChatText,
