@@ -66,13 +66,14 @@ test("public URL helper treats an empty PUBLIC_BASE_URL like the current inline 
   );
 });
 
-test("server sources keep the current mixed public URL fallback map until a wiring PR", async () => {
-  const [routesText, squareRoutesText, emailServiceText, aiChatText] =
+test("server sources keep the current mixed public URL fallback map while low-risk links use the helper", async () => {
+  const [routesText, squareRoutesText, emailServiceText, aiChatText, agentRoutesText] =
     await Promise.all([
       readFile(new URL("./routes.ts", import.meta.url), "utf8"),
       readFile(new URL("./squareRoutes.ts", import.meta.url), "utf8"),
       readFile(new URL("./emailService.ts", import.meta.url), "utf8"),
       readFile(new URL("./aiChat.ts", import.meta.url), "utf8"),
+      readFile(new URL("./agentRoutes.ts", import.meta.url), "utf8"),
     ]);
 
   assert.match(
@@ -102,6 +103,18 @@ test("server sources keep the current mixed public URL fallback map until a wiri
   assert.match(
     squareRoutesText,
     /const callbackUrl = 'https:\/\/dateinquiry\.com\/api\/square\/connect\/callback'/,
+  );
+  assert.match(
+    agentRoutesText,
+    /import \{ getLegacyDateInquiryPublicBaseUrl \} from "\.\/config\/publicUrl";/,
+  );
+  assert.match(
+    agentRoutesText,
+    /baseUrl: getLegacyDateInquiryPublicBaseUrl\(\)/,
+  );
+  assert.match(
+    agentRoutesText,
+    /const baseUrl = getLegacyDateInquiryPublicBaseUrl\(\);[\s\S]*?const pdfUrl = profile\.infoSheetPdfUrl/,
   );
 });
 

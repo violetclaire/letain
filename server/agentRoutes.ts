@@ -23,6 +23,7 @@ import {
 } from "@shared/schema";
 import { storage } from "./storage";
 import { ObjectStorageService } from "./objectStorage";
+import { getLegacyDateInquiryPublicBaseUrl } from "./config/publicUrl";
 
 const objectStorage = new ObjectStorageService();
 
@@ -360,7 +361,7 @@ export function registerAgentRoutes(app: Express) {
       name: "Toile Coordination Engine",
       version: "1.0.0",
       description: "Agent-addressable API for high-trust service coordination. Book beauty artists, verify trust, coordinate events.",
-      baseUrl: process.env.PUBLIC_BASE_URL || "https://dateinquiry.com",
+      baseUrl: getLegacyDateInquiryPublicBaseUrl(),
       authentication: {
         type: "bearer",
         header: "Authorization: Bearer <api_key>",
@@ -905,7 +906,7 @@ export function registerAgentRoutes(app: Express) {
         return res.status(404).json({ error: "artist_not_found" });
       }
 
-      const baseUrl = process.env.PUBLIC_BASE_URL || "https://dateinquiry.com";
+      const baseUrl = getLegacyDateInquiryPublicBaseUrl();
       const pdfUrl = profile.infoSheetPdfUrl
         ? (profile.infoSheetPdfUrl.startsWith("http") ? profile.infoSheetPdfUrl : `${baseUrl}${profile.infoSheetPdfUrl}`)
         : null;
