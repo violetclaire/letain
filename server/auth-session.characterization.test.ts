@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, mock, test } from "node:test";
 import type { Express, NextFunction, Request, Response } from "express";
+import { getAuthUserId } from "./auth/identity";
 
 type Handler = (req: Request, res: Response, next?: NextFunction) => unknown | Promise<unknown>;
 type RouteRecord = {
@@ -9,7 +10,6 @@ type RouteRecord = {
   handlers: Handler[];
 };
 
-let getAuthUserId: (req: Request) => string | null;
 let isAuthenticated: Handler;
 let registerRoutes: (app: Express) => Promise<unknown>;
 let storage: any;
@@ -114,7 +114,6 @@ before(async () => {
     import("./storage"),
   ]);
 
-  getAuthUserId = routesModule.getAuthUserId;
   registerRoutes = routesModule.registerRoutes;
   isAuthenticated = authModule.isAuthenticated;
   storage = storageModule.storage;
