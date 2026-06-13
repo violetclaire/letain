@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
-import { DirectObjectStorageProvider } from "./directProvider";
+import {
+  createConfiguredObjectStorageProvider,
+  getConfiguredObjectStorageProviderName,
+} from "./defaultProvider";
+import {
+  DirectObjectStorageProvider,
+  validateDirectObjectStorageEnv,
+} from "./directProvider";
 
 function createMockStorage() {
   const fileCalls: Array<{ bucketName: string; objectName: string }> = [];
@@ -37,6 +44,36 @@ test("direct object storage provider delegates getFile to the injected storage c
   assert.deepEqual(fileCalls, [
     { bucketName: "briarwood-private", objectName: "uploads/file.png" },
   ]);
+});
+
+test("direct object storage provider requires explicit env creation or injected storage", () => {
+  assert.throws(
+    () => new DirectObjectStorageProvider(),
+    /requires an explicit storage client/,
+  );
+  assert.throws(
+    () => validateDirectObjectStorageEnv({}),
+    /Direct object storage provider requires direct Google Cloud config/,
+  );
+  assert.deepEqual(
+    validateDirectObjectStorageEnv({
+      DIRECT_OBJECT_STORAGE_PROJECT_ID: "briarwood-prod",
+      DIRECT_OBJECT_STORAGE_KEY_FILE: "C:/secrets/service-account.json",
+    }),
+    {
+      projectId: "briarwood-prod",
+      keyFilename: "C:/secrets/service-account.json",
+    },
+  );
+  assert.deepEqual(
+    validateDirectObjectStorageEnv({
+      GOOGLE_CLOUD_PROJECT: "briarwood-adc",
+    }),
+    {
+      projectId: "briarwood-adc",
+      keyFilename: undefined,
+    },
+  );
 });
 
 test("direct object storage provider signs PUT URLs with v4 write action and ttl", async () => {
@@ -98,16 +135,59 @@ test("direct object storage provider maps read and delete methods without changi
   );
 });
 
-test("direct provider remains a non-default skeleton until the provider switch PR", async () => {
-  const [objectStorageText, replitProviderText, directProviderText] = await Promise.all([
+test("object storage provider selection defaults to Replit and requires direct opt-in", () => {
+  const replitProvider = { name: "replit-provider" } as any;
+  const directProvider = { name: "direct-provider" } as any;
+
+  assert.equal(getConfiguredObjectStorageProviderName({}), "replit");
+  assert.equal(
+    createConfiguredObjectStorageProvider({
+      env: {},
+      createReplitProvider: () => replitProvider,
+      createDirectProvider: () => directProvider,
+    }),
+    replitProvider,
+  );
+  assert.equal(getConfiguredObjectStorageProviderName({ OBJECT_STORAGE_PROVIDER: "direct" }), "direct");
+  assert.equal(
+    createConfiguredObjectStorageProvider({
+      env: {
+        OBJECT_STORAGE_PROVIDER: "direct",
+        DIRECT_OBJECT_STORAGE_PROJECT_ID: "briarwood-prod",
+      },
+      createReplitProvider: () => replitProvider,
+      createDirectProvider: () => directProvider,
+    }),
+    directProvider,
+  );
+  assert.throws(
+    () => createConfiguredObjectStorageProvider({
+      env: { OBJECT_STORAGE_PROVIDER: "direct" },
+      createReplitProvider: () => replitProvider,
+      createDirectProvider: () => directProvider,
+    }),
+    /Direct object storage provider requires direct Google Cloud config/,
+  );
+  assert.throws(
+    () => getConfiguredObjectStorageProviderName({ OBJECT_STORAGE_PROVIDER: "gcs" }),
+    /Unsupported OBJECT_STORAGE_PROVIDER/,
+  );
+});
+
+test("Replit remains the default provider in ObjectStorageService until a provider switch PR", async () => {
+  const [objectStorageText, replitProviderText, defaultProviderText, directProviderText] = await Promise.all([
     readFile(new URL("../objectStorage.ts", import.meta.url), "utf8"),
     readFile(new URL("./replitProvider.ts", import.meta.url), "utf8"),
+    readFile(new URL("./defaultProvider.ts", import.meta.url), "utf8"),
     readFile(new URL("./directProvider.ts", import.meta.url), "utf8"),
   ]);
 
-  assert.match(objectStorageText, /from "\.\/storage\/replitProvider"/);
+  assert.match(objectStorageText, /from "\.\/storage\/defaultProvider"/);
   assert.doesNotMatch(objectStorageText, /directProvider/);
   assert.match(replitProviderText, /const defaultObjectStorageProvider = new ReplitObjectStorageProvider\(\);/);
-  assert.match(replitProviderText, /export function getDefaultObjectStorageProvider\(\): ObjectStorageProvider/);
+  assert.match(defaultProviderText, /env\.OBJECT_STORAGE_PROVIDER \|\| "replit"/);
+  assert.match(defaultProviderText, /providerName === "direct"/);
+  assert.match(defaultProviderText, /validateDirectObjectStorageEnv\(env\)/);
+  assert.match(defaultProviderText, /return createReplitProvider\(\);/);
   assert.doesNotMatch(directProviderText, /getDefaultObjectStorageProvider/);
 });

@@ -62,6 +62,10 @@ export class ReplitObjectStorageProvider implements ObjectStorageProvider {
 
 const defaultObjectStorageProvider = new ReplitObjectStorageProvider();
 
-export function getDefaultObjectStorageProvider(): ObjectStorageProvider {
+export function getDefaultReplitObjectStorageProvider(): ObjectStorageProvider {
   return defaultObjectStorageProvider;
+}
+
+export function getDefaultObjectStorageProvider(): ObjectStorageProvider {
+  return getDefaultReplitObjectStorageProvider();
 }

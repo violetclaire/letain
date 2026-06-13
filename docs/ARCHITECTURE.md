@@ -320,6 +320,9 @@ This section describes the current runtime configuration after the direct-provid
 | `SQUARE_WEBHOOK_SIGNATURE_KEY` | Square webhook validation is enabled | Used by Square webhook handling. |
 | `AI_INTEGRATIONS_GEMINI_API_KEY` | Gemini-backed AI helpers are enabled | Used by AI chat, schedule, timeline, CDI, and IQS helpers. |
 | `AI_INTEGRATIONS_GEMINI_BASE_URL` | Gemini-backed AI helpers require a custom base URL | Current helpers read this alongside the API key. |
+| `OBJECT_STORAGE_PROVIDER` | Direct object storage rollout is intentionally enabled | Defaults to `replit`. Set to `direct` only after direct Google Cloud config is present and storage checks pass. |
+| `DIRECT_OBJECT_STORAGE_PROJECT_ID` / `GOOGLE_CLOUD_PROJECT` / `GCLOUD_PROJECT` / `GCP_PROJECT` | Direct object storage uses host-managed ADC/workload identity | Required for direct storage unless a key-file env var is set. |
+| `DIRECT_OBJECT_STORAGE_KEY_FILE` / `GOOGLE_APPLICATION_CREDENTIALS` | Direct object storage uses a local credential file outside Git | Required for direct storage unless project/ADC env is set. Do not commit credential files. |
 
 ### Legacy / Non-Production Replit Fallbacks That Remain
 
@@ -329,13 +332,13 @@ This section describes the current runtime configuration after the direct-provid
 | `REPL_IDENTITY` | Replit connector token source for workspace/dev connector calls. | Still used by calendar and non-production email connector fallback. |
 | `WEB_REPL_RENEWAL` | Replit connector token source for deployed Replit connector calls. | Still used by calendar and non-production email connector fallback. |
 | `REPLIT_DEPLOYMENT_URL` | One intentionally characterized AI/Square payment redirect fallback remains. | Do not remove until Square/domain behavior is migrated under tests. |
-| Replit object-storage sidecar at `http://127.0.0.1:1106` | Default object storage provider still signs URLs and obtains GCS credentials through the sidecar. | Storage provider abstraction exists, but no direct replacement provider is active yet. |
+| Replit object-storage sidecar at `http://127.0.0.1:1106` | Default object storage provider still signs URLs and obtains GCS credentials through the sidecar. | A direct provider path exists behind `OBJECT_STORAGE_PROVIDER=direct`, but Replit remains the default. |
 | `https://dateinquiry.com` fallback domains | Legacy link fallbacks and Square callback/payment behavior remain in selected paths. | Public URL helper and Square/domain characterization tests exist; migrate in small, reviewed PRs. |
 
 ### Provider Defaults Today
 
 - Calendar: `getDefaultCalendarProvider()` returns `ReplitCalendarProvider`, which reads Google Calendar credentials from the Replit connector path.
-- Storage: `getDefaultObjectStorageProvider()` returns `ReplitObjectStorageProvider`, which depends on the Replit object-storage sidecar.
+- Storage: `getDefaultObjectStorageProvider()` defaults to `ReplitObjectStorageProvider`, which depends on the Replit object-storage sidecar. `OBJECT_STORAGE_PROVIDER=direct` opts into `DirectObjectStorageProvider` after direct Google Cloud config validation.
 - Email: `resolveEmailCredentials()` uses direct `RESEND_API_KEY` first. The Replit Resend connector remains only as a non-production legacy fallback.
 - Auth: session helpers and identity helpers are split into neutral modules, but login/logout/callback and the concrete `isAuthenticated` refresh behavior still live in `server/replitAuth.ts`.
 - Public URLs: `server/config/publicUrl.ts` exists and defaults Briarwood links to `https://atbriarwood.com`, with a separate legacy DateInquiry fallback for behavior-preserving migrations.
@@ -352,7 +355,7 @@ This section describes the current runtime configuration after the direct-provid
 ### Required Before Provider Replacement
 
 - Calendar: add a direct Google OAuth/provider implementation behind `CalendarProvider` while keeping PR #43 characterization tests green.
-- Storage: add a direct object storage provider behind `ObjectStorageProvider` while keeping PR #44 characterization tests green and preserving ACL behavior.
+- Storage: roll out `OBJECT_STORAGE_PROVIDER=direct` in a controlled environment while keeping PR #44 characterization tests and direct-provider tests green and preserving ACL behavior.
 - Auth: add the replacement auth provider only after the existing session, identity, and login/OIDC characterization tests cover the migration boundary.
 - Domains: continue replacing DateInquiry/Replit fallbacks through the public URL helper, excluding Square/payment/public-token-sensitive links until their characterization tests are updated.
 
@@ -367,7 +370,7 @@ This section describes the current runtime configuration after the direct-provid
 
 - `server/replitAuth.ts` OIDC behavior, `REPL_ID`, or `ISSUER_URL`.
 - Replit Google Calendar connector variables until a direct calendar provider is implemented and tested.
-- Replit object-storage sidecar assumptions until a direct storage provider is implemented and tested.
+- Replit object-storage sidecar assumptions until the direct storage provider has been rolled out and verified in production-like infrastructure.
 - DateInquiry/Square callback domains or the remaining AI/Square `REPLIT_DEPLOYMENT_URL` fallback until Square/domain tests are intentionally updated.
 - `DATABASE_URL` fallback or Drizzle config behavior until the DB migration/tooling target is explicitly fixed.
 
