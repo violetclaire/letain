@@ -37,6 +37,29 @@ Before opening the app in Xcode, verify:
 - authenticated operator flows work from the hosted frontend
 - the hosted frontend can call the backend API with the expected cookie/session behavior
 
+## Production Environment Readiness
+
+The iOS wrapper loads `https://atbriarwood.com`, so the hosted web app and API environment need to be production-ready before TestFlight validation.
+
+Required production configuration to confirm before native testing:
+
+- `NODE_ENV=production`
+- `NEON_DATABASE_URL` for the live app/session database, with `DATABASE_URL` understood as the remaining Drizzle/fallback variable
+- `SESSION_SECRET`
+- `PUBLIC_BASE_URL=https://atbriarwood.com`
+- `RESEND_API_KEY` for production email
+- `REPL_ID` and `ISSUER_URL` while Replit OIDC remains the active login provider
+- `PUBLIC_OBJECT_SEARCH_PATHS` and `PRIVATE_OBJECT_DIR` while the current object storage service remains active
+
+Provider defaults to remember:
+
+- Calendar still defaults to the Replit Google Calendar connector provider.
+- Storage still defaults to the Replit object-storage sidecar provider.
+- Email uses direct `RESEND_API_KEY` first; the Replit Resend connector is non-production legacy fallback only.
+- Auth has neutral session/identity helpers, but login/logout/callback still use `server/replitAuth.ts`.
+
+Do not remove the remaining Replit calendar, storage, or auth assumptions as part of iOS wrapper generation. Provider replacement should happen in separate backend PRs with characterization tests.
+
 After `npx cap open ios`, use Xcode to configure signing, bundle capabilities, app icons, launch screen assets, and archive/upload settings.
 
 ## Commit Safety
