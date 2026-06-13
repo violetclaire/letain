@@ -9,10 +9,8 @@ import {
   setObjectAclPolicy,
 } from "./objectAcl";
 import type { ObjectStorageProvider } from "./storage/provider";
-import {
-  getDefaultObjectStorageProvider,
-  objectStorageClient,
-} from "./storage/replitProvider";
+import { getDefaultObjectStorageProvider } from "./storage/defaultProvider";
+import { objectStorageClient } from "./storage/replitProvider";
 
 export { objectStorageClient };
 

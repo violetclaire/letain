@@ -295,6 +295,7 @@ test("object storage source keeps current route and upload touchpoints", async (
     routesText,
     objectStorageText,
     objectAclText,
+    defaultProviderText,
     replitProviderText,
     agentRoutesText,
     schemaText,
@@ -302,6 +303,7 @@ test("object storage source keeps current route and upload touchpoints", async (
     readFile(new URL("./routes.ts", import.meta.url), "utf8"),
     readFile(new URL("./objectStorage.ts", import.meta.url), "utf8"),
     readFile(new URL("./objectAcl.ts", import.meta.url), "utf8"),
+    readFile(new URL("./storage/defaultProvider.ts", import.meta.url), "utf8"),
     readFile(new URL("./storage/replitProvider.ts", import.meta.url), "utf8"),
     readFile(new URL("./agentRoutes.ts", import.meta.url), "utf8"),
     readFile(new URL("../shared/schema.ts", import.meta.url), "utf8"),
@@ -313,12 +315,16 @@ test("object storage source keeps current route and upload touchpoints", async (
   assert.match(routesText, /objectService\.uploadBuffer\(objectPath, buffer, mimeType, userId\)/);
   assert.match(routesText, /objectService\.uploadBuffer\(objectPath, buffer, mimeType \|\| 'application\/pdf', userId\)/);
   assert.match(routesText, /objectService\.uploadBuffer\(objectPath, fileBuffer, mimeType\)/);
-  assert.match(objectStorageText, /import \{[\s\S]*?getDefaultObjectStorageProvider[\s\S]*?objectStorageClient[\s\S]*?\} from "\.\/storage\/replitProvider";/);
+  assert.match(objectStorageText, /import \{ getDefaultObjectStorageProvider \} from "\.\/storage\/defaultProvider";/);
+  assert.match(objectStorageText, /import \{ objectStorageClient \} from "\.\/storage\/replitProvider";/);
   assert.match(objectStorageText, /export \{ objectStorageClient \};/);
   assert.match(objectStorageText, /private readonly provider: ObjectStorageProvider = getDefaultObjectStorageProvider\(\)/);
   assert.match(objectStorageText, /this\.provider\.signObjectURL\(\{[\s\S]*?method: "PUT"[\s\S]*?ttlSec: 900/);
   assert.match(objectStorageText, /this\.provider\.getFile\(bucketName, objectName\)/);
   assert.match(objectStorageText, /async uploadBuffer\(objectPath: string, buffer: Buffer, mimeType: string, ownerId\?: string\): Promise<string> \{[\s\S]*?cacheControl: 'public, max-age=31536000'[\s\S]*?visibility: 'public'[\s\S]*?return `\/objects\/\$\{cleanPath\}`;/);
+  assert.match(defaultProviderText, /env\.OBJECT_STORAGE_PROVIDER \|\| "replit"/);
+  assert.match(defaultProviderText, /validateDirectObjectStorageEnv\(env\)/);
+  assert.match(defaultProviderText, /return createReplitProvider\(\);/);
   assert.match(replitProviderText, /const REPLIT_SIDECAR_ENDPOINT = "http:\/\/127\.0\.0\.1:1106"/);
   assert.match(replitProviderText, /export const objectStorageClient = new Storage\(\{[\s\S]*?audience: "replit"[\s\S]*?token_url: `\$\{REPLIT_SIDECAR_ENDPOINT\}\/token`/);
   assert.match(replitProviderText, /export class ReplitObjectStorageProvider/);
