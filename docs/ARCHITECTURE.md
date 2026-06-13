@@ -285,41 +285,91 @@ Observed deployment assumptions after PR #36:
 - In-process cron jobs and scheduled email jobs are not distributed-lock safe.
 - Client-facing links should use `PUBLIC_BASE_URL`; any remaining hardcoded legacy domains should be removed in small, reviewed PRs.
 
-## Environment Variables
+## Production Environment Inventory
 
-Observed or implied environment variables:
+This section describes the current runtime configuration after the direct-provider cleanup work. It is an inventory, not a migration plan. Do not remove legacy variables until the owning provider has replacement tests and an explicit migration PR.
 
-| Variable | Purpose | Notes |
+### Required Production Variables Today
+
+| Variable | Purpose | Current status |
 | --- | --- | --- |
-| `NODE_ENV` | Runtime mode | Controls production session cookie security and build/runtime behavior. |
-| `PORT` | Express port | Defaults to `5000` when not set. |
-| `DATABASE_URL` | Postgres connection | Used by Drizzle config and as DB fallback. |
-| `NEON_DATABASE_URL` | Preferred Neon/Postgres connection | Used before `DATABASE_URL` by `server/db.ts` and sessions. |
-| `SESSION_SECRET` | Express session signing | Required by session middleware. |
-| `REPL_ID` | Replit OIDC client id | Required by OIDC discovery/auth. |
-| `ISSUER_URL` | OIDC issuer override | Defaults to `https://replit.com/oidc`. |
-| `PUBLIC_BASE_URL` | Client-facing link base | Should be set to the product frontend origin, currently `https://atbriarwood.com`. |
-| `REPLIT_DEPLOYMENT_URL` | Legacy deployment URL fallback | Should not be used for new production links; remaining references should be removed in small cleanup PRs. |
-| `REPLIT_CONNECTORS_HOSTNAME` | Replit connector host | Used for Resend connector lookup. |
-| `REPL_IDENTITY` | Replit connector auth token source | Used for connector access in dev. |
-| `WEB_REPL_RENEWAL` | Replit connector auth token source | Used for connector access in deployment. |
-| `RESEND_API_KEY` | Direct Resend credential fallback | Used if Replit connector credentials are unavailable. |
-| `TWILIO_ACCOUNT_SID` | Twilio account | Required for SMS. |
-| `TWILIO_AUTH_TOKEN` | Twilio auth and webhook validation | Required for SMS and inbound signature validation. |
-| `TWILIO_PHONE_NUMBER` | Twilio sender number | Required for SMS. |
-| `ENABLE_SMS_TEST_TOOLS` | Admin SMS simulator flag | Must equal `true` to expose simulator behavior. |
-| `SQUARE_ACCESS_TOKEN` | Platform Square access token | Used by Square client. |
-| `SQUARE_APP_ID` | Square OAuth application id | Preferred app id variable. |
-| `SQUARE_APPLICATION_ID` | Square OAuth application id fallback | Alternative app id variable. |
-| `SQUARE_APP_SECRET` | Square OAuth secret | Preferred secret variable. |
-| `SQUARE_APPLICATION_SECRET` | Square OAuth secret fallback | Alternative secret variable. |
-| `SQUARE_LOCATION_ID` | Square location | Shared in `.replit`. |
-| `PUBLIC_OBJECT_SEARCH_PATHS` | Object storage public search paths | Required by object storage service. |
-| `PRIVATE_OBJECT_DIR` | Object storage private root | Required by object storage service. |
-| `AI_INTEGRATIONS_GEMINI_API_KEY` | Gemini API key | Used by AI chat helpers. |
-| `AI_INTEGRATIONS_GEMINI_BASE_URL` | Gemini base URL | Used by AI chat helpers. |
+| `NODE_ENV` | Runtime mode | Set to `production` for production. It controls secure session cookies and production logging behavior. |
+| `PORT` | Express API port | Optional when the host injects a port. The server defaults to `5000`. |
+| `NEON_DATABASE_URL` | Preferred app/session Postgres connection | Production should use this as the canonical DB URL. `server/db.ts` and `server/auth/session.ts` prefer it over `DATABASE_URL`. |
+| `DATABASE_URL` | Postgres fallback / Drizzle default | Still used by `drizzle.config.ts` and as a fallback. Treat the `DATABASE_URL` vs `NEON_DATABASE_URL` mismatch as a migration risk before running schema tools. |
+| `SESSION_SECRET` | Express session signing secret | Required for session middleware. Must be long, secret, and stable across deploys. |
+| `PUBLIC_BASE_URL` | Product/frontend origin for generated links | Should be `https://atbriarwood.com` for Briarwood production. This must point to the hosted React app, not just the API server. |
+| `RESEND_API_KEY` | Direct Resend credential | Required for production email. Direct env now wins before the legacy Replit connector fallback. |
+| `REPL_ID` | Current Replit OIDC client id | Still required by the current OIDC login/logout provider in `server/replitAuth.ts`. |
+| `ISSUER_URL` | OIDC issuer override | Optional in code because it defaults to `https://replit.com/oidc`, but set it explicitly while Replit OIDC remains the provider. |
+| `PUBLIC_OBJECT_SEARCH_PATHS` | Public object storage search roots | Required by `ObjectStorageService` for public object reads. |
+| `PRIVATE_OBJECT_DIR` | Private object storage root | Required by `ObjectStorageService` for private uploads and signed object URLs. |
 
-Replit integrations listed in `.replit` also include database, Gemini AI, Google Calendar, object storage, Resend, OpenAI, and Stripe. Some connector-provided variables may be injected by Replit rather than declared directly in source.
+### Conditional Production Variables
+
+| Variable | Required when | Notes |
+| --- | --- | --- |
+| `TWILIO_ACCOUNT_SID` | SMS/inbound SMS is enabled | SMS paths should stay disabled or untested without the full Twilio set. |
+| `TWILIO_AUTH_TOKEN` | SMS/inbound SMS is enabled | Also used for inbound webhook validation. |
+| `TWILIO_PHONE_NUMBER` | SMS sending or simulator fallback is enabled | Required sender number for real SMS. |
+| `ENABLE_SMS_TEST_TOOLS` | Admin SMS simulator is intentionally enabled | Must be `true`; keep disabled in normal production. |
+| `SQUARE_ACCESS_TOKEN` | Platform Square API behavior is enabled | Used by `server/squareClient.ts`. |
+| `SQUARE_APP_ID` / `SQUARE_APPLICATION_ID` | Square OAuth is enabled | `SQUARE_APP_ID` is preferred; `SQUARE_APPLICATION_ID` remains a fallback. |
+| `SQUARE_APP_SECRET` / `SQUARE_APPLICATION_SECRET` | Square OAuth is enabled | `SQUARE_APP_SECRET` is preferred and must match the `sq0csp-` shape expected by current code. |
+| `SQUARE_LOCATION_ID` | Square payment link or invoice paths need a default location | Merchant profiles can also supply stored Square location IDs. |
+| `SQUARE_WEBHOOK_SIGNATURE_KEY` | Square webhook validation is enabled | Used by Square webhook handling. |
+| `AI_INTEGRATIONS_GEMINI_API_KEY` | Gemini-backed AI helpers are enabled | Used by AI chat, schedule, timeline, CDI, and IQS helpers. |
+| `AI_INTEGRATIONS_GEMINI_BASE_URL` | Gemini-backed AI helpers require a custom base URL | Current helpers read this alongside the API key. |
+
+### Legacy / Non-Production Replit Fallbacks That Remain
+
+| Variable or assumption | Current use | Replacement status |
+| --- | --- | --- |
+| `REPLIT_CONNECTORS_HOSTNAME` | Replit connector hostname for Google Calendar and non-production Resend fallback. | Calendar abstraction exists, but the default provider is still the Replit connector. Email production no longer depends on this when `RESEND_API_KEY` is set. |
+| `REPL_IDENTITY` | Replit connector token source for workspace/dev connector calls. | Still used by calendar and non-production email connector fallback. |
+| `WEB_REPL_RENEWAL` | Replit connector token source for deployed Replit connector calls. | Still used by calendar and non-production email connector fallback. |
+| `REPLIT_DEPLOYMENT_URL` | One intentionally characterized AI/Square payment redirect fallback remains. | Do not remove until Square/domain behavior is migrated under tests. |
+| Replit object-storage sidecar at `http://127.0.0.1:1106` | Default object storage provider still signs URLs and obtains GCS credentials through the sidecar. | Storage provider abstraction exists, but no direct replacement provider is active yet. |
+| `https://dateinquiry.com` fallback domains | Legacy link fallbacks and Square callback/payment behavior remain in selected paths. | Public URL helper and Square/domain characterization tests exist; migrate in small, reviewed PRs. |
+
+### Provider Defaults Today
+
+- Calendar: `getDefaultCalendarProvider()` returns `ReplitCalendarProvider`, which reads Google Calendar credentials from the Replit connector path.
+- Storage: `getDefaultObjectStorageProvider()` returns `ReplitObjectStorageProvider`, which depends on the Replit object-storage sidecar.
+- Email: `resolveEmailCredentials()` uses direct `RESEND_API_KEY` first. The Replit Resend connector remains only as a non-production legacy fallback.
+- Auth: session helpers and identity helpers are split into neutral modules, but login/logout/callback and the concrete `isAuthenticated` refresh behavior still live in `server/replitAuth.ts`.
+- Public URLs: `server/config/publicUrl.ts` exists and defaults Briarwood links to `https://atbriarwood.com`, with a separate legacy DateInquiry fallback for behavior-preserving migrations.
+
+### Required Before First Real Operator Use
+
+- Confirm `NEON_DATABASE_URL`, `SESSION_SECRET`, and `PUBLIC_BASE_URL` in production without exposing secret values.
+- Confirm `https://atbriarwood.com` serves the React app and that the app can reach the API with session cookies intact.
+- Confirm production email uses direct `RESEND_API_KEY`; do not rely on Replit connector email in production.
+- Confirm object storage variables and sidecar behavior for profile images, contracts, client photos, and schedule assets.
+- Confirm calendar availability behavior if operator workflows depend on Google Calendar busy data.
+- Keep SMS, contracts, Square/payment, and public token flows in their existing tested lanes unless explicitly reviewing those surfaces.
+
+### Required Before Provider Replacement
+
+- Calendar: add a direct Google OAuth/provider implementation behind `CalendarProvider` while keeping PR #43 characterization tests green.
+- Storage: add a direct object storage provider behind `ObjectStorageProvider` while keeping PR #44 characterization tests green and preserving ACL behavior.
+- Auth: add the replacement auth provider only after the existing session, identity, and login/OIDC characterization tests cover the migration boundary.
+- Domains: continue replacing DateInquiry/Replit fallbacks through the public URL helper, excluding Square/payment/public-token-sensitive links until their characterization tests are updated.
+
+### Required Before TestFlight
+
+- `https://atbriarwood.com` must serve the real React app because Capacitor loads it as the remote webview.
+- Backend/API and frontend hosting must be validated together, including CORS/cookies/session behavior from the iOS webview.
+- Direct production provider variables must be configured in the deployment environment; signing secrets and provisioning profiles must stay out of GitHub.
+- The generated `ios/` project should be created on a Mac with Node, Xcode, and CocoaPods, then reviewed in its own PR.
+
+### Do Not Remove Yet
+
+- `server/replitAuth.ts` OIDC behavior, `REPL_ID`, or `ISSUER_URL`.
+- Replit Google Calendar connector variables until a direct calendar provider is implemented and tested.
+- Replit object-storage sidecar assumptions until a direct storage provider is implemented and tested.
+- DateInquiry/Square callback domains or the remaining AI/Square `REPLIT_DEPLOYMENT_URL` fallback until Square/domain tests are intentionally updated.
+- `DATABASE_URL` fallback or Drizzle config behavior until the DB migration/tooling target is explicitly fixed.
 
 ## Recommended Order of Work
 
