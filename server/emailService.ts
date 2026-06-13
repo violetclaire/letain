@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import { resolveEmailCredentials } from './email/credentials';
+import { getLegacyDateInquiryPublicBaseUrl } from './config/publicUrl';
 
 // Get the base URL for email links - always use production URL for client-facing links
 function getBaseUrl(): string {
@@ -265,7 +266,7 @@ export async function sendInfoSheetEmail({
       pdfLink = infoSheetPdfUrl;
     } else {
       // Object path - need to prepend base URL
-      const baseUrl = process.env.PUBLIC_BASE_URL || process.env.REPLIT_DEPLOYMENT_URL || 'https://dateinquiry.com';
+      const baseUrl = getLegacyDateInquiryPublicBaseUrl();
       pdfLink = `${baseUrl}${infoSheetPdfUrl}`;
     }
   }
