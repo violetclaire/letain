@@ -29,10 +29,19 @@ const runtimeInventory: InventoryEntry[] = [
   },
   {
     area: "auth",
+    file: "server/auth/current.ts",
+    classification: "runtime critical",
+    markers: [
+      /export \{ isAuthenticated \} from "\.\.\/replitAuth";/,
+    ],
+  },
+  {
+    area: "auth",
     file: "server/routes.ts",
     classification: "runtime critical",
     markers: [
-      /import \{ setupAuth, isAuthenticated \} from "\.\/replitAuth";/,
+      /import \{ setupAuth \} from "\.\/replitAuth";/,
+      /import \{ isAuthenticated \} from "\.\/auth\/current";/,
       /await setupAuth\(app\);/,
       /Fall back to Replit OAuth/,
     ],
@@ -115,6 +124,7 @@ const allowedRuntimeReferenceFiles = new Set([
   "client/src/components/ui/badge.tsx",
   "client/src/components/ui/button.tsx",
   "server/aiChat.ts",
+  "server/auth/current.ts",
   "server/auth/session.ts",
   "server/calendar/defaultProvider.ts",
   "server/calendar/replitProvider.ts",
