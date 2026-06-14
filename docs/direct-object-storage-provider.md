@@ -57,6 +57,28 @@ Do not commit credential files, service-account JSON, private keys, certificates
 
 Rollout should set `OBJECT_STORAGE_PROVIDER=direct` only in a controlled environment first. Removing the Replit provider entirely is a later migration step.
 
+## Deployment Rollout Checklist
+
+No production switch happens in this PR. Direct storage remains opt-in behind `OBJECT_STORAGE_PROVIDER=direct`.
+
+- Prepare staging-only direct storage config first:
+  - `OBJECT_STORAGE_PROVIDER=direct`
+  - `PRIVATE_OBJECT_DIR`
+  - `PUBLIC_OBJECT_SEARCH_PATHS`
+  - `DIRECT_OBJECT_STORAGE_PROJECT_ID`, `GOOGLE_CLOUD_PROJECT`, `GCLOUD_PROJECT`, or `GCP_PROJECT`
+  - `DIRECT_OBJECT_STORAGE_KEY_FILE` or `GOOGLE_APPLICATION_CREDENTIALS` only when a key file is required by the host
+- Keep signing secrets, key files, certificates, and service-account JSON outside Git.
+- Confirm a rollback plan before switching staging:
+  - keep the Replit sidecar provider available
+  - document the exact env change needed to return to `OBJECT_STORAGE_PROVIDER=replit`
+  - preserve existing buckets/objects and ACL metadata during testing
+- Run smoke tests before any production promotion:
+  - `/api/objects/upload` returns the same `{ uploadURL }` response shape
+  - `/objects/...` serves public objects and denies private anonymous reads
+  - profile image upload/update still normalizes to `/objects/...`
+  - contract uploads, client photos, schedule assets, and agent assets still read/write as expected
+- Promote only after staging evidence is reviewed. Do not combine the provider switch with schema, auth, route, UI, calendar, email/SMS, payment, contract, CDI, or iOS changes.
+
 ## What Not To Change In The Provider Switch PR
 
 - Auth/session behavior.
