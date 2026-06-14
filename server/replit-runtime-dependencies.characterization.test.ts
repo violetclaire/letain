@@ -159,6 +159,7 @@ const testOnlyFiles = [
   "server/calendar-direct-provider.contract.test.ts",
   "server/email-credentials.characterization.test.ts",
   "server/object-storage.characterization.test.ts",
+  "server/storage-direct-deployment.characterization.test.ts",
   "server/storage/directProvider.characterization.test.ts",
 ];
 
