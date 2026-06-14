@@ -249,10 +249,10 @@ test("availability source keeps current no-record means available storage behavi
   assert.match(storageText, /async checkAvailability\(userId: string, date: Date\): Promise<boolean> \{[\s\S]*?if \(result\.length === 0\) return true;[\s\S]*?return result\[0\]\.isAvailable;/);
   assert.match(storageText, /async setAvailability\(avail: InsertAvailability\): Promise<Availability> \{[\s\S]*?eq\(availability\.userId, avail\.userId\)[\s\S]*?gte\(availability\.date, startOfDay\)[\s\S]*?lte\(availability\.date, endOfDay\)/);
   assert.match(assistantText, /const signedContract = contractMatches\.find[\s\S]*?"booked_by_contract"[\s\S]*?const activeBooking = sameDayBookings\.find[\s\S]*?"operator_unavailable"[\s\S]*?blocked_on_calendar[\s\S]*?const available = await storage\.checkAvailability\(operatorId, eventDate\)/);
-  assert.match(googleCalendarText, /import \{ getDefaultCalendarProvider \} from '\.\/calendar\/replitProvider';/);
+  assert.match(googleCalendarText, /import \{ getDefaultCalendarProvider \} from '\.\/calendar\/defaultProvider';/);
   assert.match(googleCalendarText, /return getDefaultCalendarProvider\(\)\.getCalendarClient\(\);/);
   assert.match(googleCalendarText, /catch \(error\) \{[\s\S]*?console\.error\('\[Google Calendar\] Error fetching busy times:', error\);[\s\S]*?return \[\];/);
-  assert.match(googleCalendarClientText, /import \{ getDefaultCalendarProvider \} from '\.\/calendar\/replitProvider';/);
+  assert.match(googleCalendarClientText, /import \{ getDefaultCalendarProvider \} from '\.\/calendar\/defaultProvider';/);
   assert.match(googleCalendarClientText, /return getDefaultCalendarProvider\(\)\.getCalendarClient\(\);/);
   assert.match(replitProviderText, /export class ReplitCalendarProvider/);
   assert.match(replitProviderText, /connector_names=google-calendar/);

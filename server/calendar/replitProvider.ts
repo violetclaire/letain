@@ -56,6 +56,10 @@ export class ReplitCalendarProvider implements CalendarProvider {
 
 const defaultCalendarProvider = new ReplitCalendarProvider();
 
-export function getDefaultCalendarProvider(): CalendarProvider {
+export function getDefaultReplitCalendarProvider(): CalendarProvider {
   return defaultCalendarProvider;
+}
+
+export function getDefaultCalendarProvider(): CalendarProvider {
+  return getDefaultReplitCalendarProvider();
 }

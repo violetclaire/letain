@@ -212,6 +212,7 @@ test("direct Google Calendar provider remains a non-default skeleton in this PR"
     clientText,
     routesText,
     directProviderText,
+    defaultProviderText,
     docsText,
   ] = await Promise.all([
     readFile(new URL("./calendar/replitProvider.ts", import.meta.url), "utf8"),
@@ -219,12 +220,15 @@ test("direct Google Calendar provider remains a non-default skeleton in this PR"
     readFile(new URL("./googleCalendarClient.ts", import.meta.url), "utf8"),
     readFile(new URL("./routes.ts", import.meta.url), "utf8"),
     readFile(new URL("./calendar/directProvider.ts", import.meta.url), "utf8"),
+    readFile(new URL("./calendar/defaultProvider.ts", import.meta.url), "utf8"),
     readFile(new URL("../docs/direct-google-calendar-oauth-plan.md", import.meta.url), "utf8"),
   ]);
 
   assert.match(replitProviderText, /const defaultCalendarProvider = new ReplitCalendarProvider\(\);/);
-  assert.match(serviceText, /from '\.\/calendar\/replitProvider';/);
-  assert.match(clientText, /from '\.\/calendar\/replitProvider';/);
+  assert.match(defaultProviderText, /env\.CALENDAR_PROVIDER \|\| "replit"/);
+  assert.match(defaultProviderText, /createReplitProvider = getDefaultReplitCalendarProvider/);
+  assert.match(serviceText, /from '\.\/calendar\/defaultProvider';/);
+  assert.match(clientText, /from '\.\/calendar\/defaultProvider';/);
   assert.doesNotMatch(serviceText, /directProvider/);
   assert.doesNotMatch(clientText, /directProvider/);
   assert.doesNotMatch(routesText, /\/api\/calendar\/google\/connect/);

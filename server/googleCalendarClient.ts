@@ -1,4 +1,4 @@
-import { getDefaultCalendarProvider } from './calendar/replitProvider';
+import { getDefaultCalendarProvider } from './calendar/defaultProvider';
 
 export async function getGoogleCalendarClient() {
   return getDefaultCalendarProvider().getCalendarClient();
