@@ -48,6 +48,22 @@ test("direct calendar selector config fails clearly when required OAuth env is m
   assert.match(defaultProviderText, /missing\.join\(", "\)/);
 });
 
+test("direct calendar selector reaches only the injected provider boundary after env validation", async () => {
+  const defaultProviderText = await readFile(new URL("./calendar/defaultProvider.ts", import.meta.url), "utf8");
+
+  assert.match(defaultProviderText, /createDirectProvider\?: \(\) => CalendarProvider/);
+  assert.match(
+    defaultProviderText,
+    /if \(providerName === "direct"\) \{[\s\S]*?validateDirectCalendarProviderEnv\(env\);[\s\S]*?return createDirectProvider\(\);[\s\S]*?\}/,
+  );
+  assert.match(
+    defaultProviderText,
+    /Direct calendar provider requires token storage and OAuth runtime wiring before it can be selected\./,
+  );
+  assert.doesNotMatch(defaultProviderText, /new DirectGoogleCalendarProvider/);
+  assert.doesNotMatch(defaultProviderText, /google\.auth\.OAuth2/);
+});
+
 test("current calendar provider still reads Google Calendar credentials from Replit connectors", async () => {
   const replitProviderText = await readFile(new URL("./calendar/replitProvider.ts", import.meta.url), "utf8");
 
