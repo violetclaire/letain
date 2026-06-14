@@ -1,4 +1,4 @@
-import { getDefaultCalendarProvider } from './calendar/replitProvider';
+import { getDefaultCalendarProvider } from './calendar/defaultProvider';
 
 // Always create a fresh client - access tokens expire
 async function getUncachableGoogleCalendarClient() {
