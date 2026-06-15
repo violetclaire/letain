@@ -2,11 +2,9 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { after, afterEach, before, mock, test } from "node:test";
 
-type EmailServiceModule = typeof import("./emailService");
-type AiChatModule = typeof import("./aiChat");
+type EmailCredentialsModule = typeof import("./email/credentials");
 
-let emailService: EmailServiceModule;
-let aiChat: AiChatModule;
+let emailCredentials: EmailCredentialsModule;
 
 const EMAIL_ENV_KEYS = [
   "RESEND_API_KEY",
@@ -58,10 +56,7 @@ before(async () => {
   process.env.NODE_ENV = "test";
   process.env.DATABASE_URL = process.env.DATABASE_URL || "postgres://user:pass@localhost:5432/email_characterization_test";
 
-  [emailService, aiChat] = await Promise.all([
-    import("./emailService"),
-    import("./aiChat"),
-  ]);
+  emailCredentials = await import("./email/credentials");
 });
 
 afterEach(() => {
@@ -88,9 +83,12 @@ test("emailService direct RESEND_API_KEY path returns the white-label from addre
     throw new Error("connector fetch should not run for direct-only credentials");
   });
 
-  const result = await emailService.getResendClient();
+  const result = await emailCredentials.resolveEmailCredentials({
+    fromEmail: "notifications@dateinquiry.com",
+  });
 
   assert.equal(result.fromEmail, "notifications@dateinquiry.com");
+  assert.equal(result.source, "env");
   assert.equal(fetchCalls.length, 0);
   assert.match(consoleCapture.logs.join("\n"), /Using direct RESEND_API_KEY from environment/);
   assert.doesNotMatch(consoleCapture.logs.join("\n"), /re_direct_resend_key/);
@@ -109,9 +107,12 @@ test("emailService direct RESEND_API_KEY takes precedence over legacy connector 
     throw new Error("connector fetch should not run when RESEND_API_KEY is set");
   });
 
-  const result = await emailService.getResendClient();
+  const result = await emailCredentials.resolveEmailCredentials({
+    fromEmail: "notifications@dateinquiry.com",
+  });
 
   assert.equal(result.fromEmail, "notifications@dateinquiry.com");
+  assert.equal(result.source, "env");
   assert.equal(fetchCalls.length, 0);
   const logs = consoleCapture.logs.join("\n");
   assert.match(logs, /Using direct RESEND_API_KEY from environment/);
@@ -137,9 +138,12 @@ test("emailService non-production Replit connector fallback can use WEB_REPL_REN
     });
   });
 
-  const result = await emailService.getResendClient();
+  const result = await emailCredentials.resolveEmailCredentials({
+    fromEmail: "notifications@dateinquiry.com",
+  });
 
   assert.equal(result.fromEmail, "notifications@dateinquiry.com");
+  assert.equal(result.source, "replit-connector");
   assert.equal(fetchCalls.length, 1);
   assert.equal(fetchCalls[0].headers.X_REPLIT_TOKEN, "depl deployment-token");
 });
@@ -155,7 +159,9 @@ test("emailService non-production Replit connector fallback failure rejects when
   });
 
   await assert.rejects(
-    emailService.getResendClient(),
+    emailCredentials.resolveEmailCredentials({
+      fromEmail: "notifications@dateinquiry.com",
+    }),
     /No Resend credentials available/,
   );
 
@@ -173,7 +179,9 @@ test("emailService non-production Replit connector fallback failure rejects when
   }));
 
   await assert.rejects(
-    emailService.getResendClient(),
+    emailCredentials.resolveEmailCredentials({
+      fromEmail: "notifications@dateinquiry.com",
+    }),
     /No Resend credentials available/,
   );
 });
@@ -191,7 +199,9 @@ test("emailService does not use Replit connector fallback in production without 
   });
 
   await assert.rejects(
-    emailService.getResendClient(),
+    emailCredentials.resolveEmailCredentials({
+      fromEmail: "notifications@dateinquiry.com",
+    }),
     /No Resend credentials available/,
   );
 
@@ -207,21 +217,24 @@ test("emailService rejects when neither connector nor direct credentials are ava
   });
 
   await assert.rejects(
-    emailService.getResendClient(),
+    emailCredentials.resolveEmailCredentials({
+      fromEmail: "notifications@dateinquiry.com",
+    }),
     /No Resend credentials available/,
   );
 
   assert.match(consoleCapture.errors.join("\n"), /No Resend credentials available - RESEND_API_KEY not set and connector fallback unavailable/);
 });
 
-test("aiChat uses the shared Resend credential resolver and keeps send payload shape", async () => {
+test("aiChat uses the shared Resend client factory and keeps send payload shape", async () => {
   const aiChatText = await readFile(new URL("./aiChat.ts", import.meta.url), "utf8");
 
-  assert.match(aiChatText, /import \{ resolveEmailCredentials \} from "\.\/email\/credentials";/);
+  assert.match(aiChatText, /import \{ createResolvedResendClient \} from "\.\/email\/credentials";/);
   assert.match(aiChatText, /const WHITELABEL_FROM_EMAIL = "notifications@dateinquiry\.com";/);
-  assert.match(aiChatText, /resolveEmailCredentials\(\{[\s\S]*?fromEmail: WHITELABEL_FROM_EMAIL[\s\S]*?\}\)/);
-  assert.match(aiChatText, /return \{ client: new Resend\(apiKey\), fromEmail \};/);
+  assert.match(aiChatText, /createResolvedResendClient\(\{[\s\S]*?fromEmail: WHITELABEL_FROM_EMAIL[\s\S]*?\}\)/);
+  assert.match(aiChatText, /return \{ client, fromEmail \};/);
   assert.match(aiChatText, /from: fromEmail \|\| "Your Secretary <notifications@dateinquiry\.com>"/);
+  assert.doesNotMatch(aiChatText, /import \{ Resend \} from "resend";/);
   assert.doesNotMatch(aiChatText, /async function getResendCredentials\(\)/);
   assert.doesNotMatch(aiChatText, /connector_names=resend/);
   assert.doesNotMatch(aiChatText, /X_REPLIT_TOKEN not found/);
@@ -235,7 +248,7 @@ test("email source keeps current sender domain and logging behavior", async () =
 
   assert.match(emailText, /const WHITELABEL_EMAIL_DOMAIN = 'dateinquiry\.com'/);
   assert.match(emailText, /const WHITELABEL_FROM_EMAIL = 'notifications@dateinquiry\.com'/);
-  assert.match(emailText, /resolveEmailCredentials\(\{ fromEmail: WHITELABEL_FROM_EMAIL \}\)/);
+  assert.match(emailText, /createResolvedResendClient\(\{ fromEmail: WHITELABEL_FROM_EMAIL \}\)/);
   assert.match(emailText, /from: `Date Inquiry <\$\{fromEmail\}>`/);
   assert.match(emailText, /const senderEmail = `\$\{safeSenderName\} <notifications@dateinquiry\.com>`/);
   assert.match(emailText, /const senderEmail = `\$\{sanitizeSenderName\(senderName\)\} <notifications@dateinquiry\.com>`/);
@@ -243,6 +256,22 @@ test("email source keeps current sender domain and logging behavior", async () =
   assert.match(credentialsText, /process\.env\.NODE_ENV !== "production"/);
   assert.match(credentialsText, /console\.log\([\s\S]*"Got Resend API key \(first 8 chars\):"[\s\S]*connectionSettings\.settings\.api_key\?\.substring\(0, 8\) \+ "\.\.\."/);
   assert.doesNotMatch(credentialsText, /console\.log\([^)]*RESEND_API_KEY[^)]*process\.env\.RESEND_API_KEY/);
+});
+
+test("central Resend client factory constructs clients from resolved credentials", async () => {
+  const [credentialsText, emailText, aiChatText] = await Promise.all([
+    readFile(new URL("./email/credentials.ts", import.meta.url), "utf8"),
+    readFile(new URL("./emailService.ts", import.meta.url), "utf8"),
+    readFile(new URL("./aiChat.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(credentialsText, /import type \{ Resend \} from "resend";/);
+  assert.match(credentialsText, /export async function createResolvedResendClient/);
+  assert.match(credentialsText, /const credentials = await resolveEmailCredentials\(options\);/);
+  assert.match(credentialsText, /const \{ Resend \} = await import\("resend"\);/);
+  assert.match(credentialsText, /client: new Resend\(credentials\.apiKey\)/);
+  assert.doesNotMatch(emailText, /new Resend\(/);
+  assert.doesNotMatch(aiChatText, /new Resend\(/);
 });
 
 test("aiChat source keeps email credential resolution centralized", async () => {
@@ -253,8 +282,8 @@ test("aiChat source keeps email credential resolution centralized", async () => 
   assert.ok(promptStart > clientStart, "aiChat getResendClient should remain before the system prompt");
   const clientSection = aiChatText.slice(clientStart, promptStart);
 
-  assert.match(clientSection, /resolveEmailCredentials\(\{[\s\S]*?fromEmail: WHITELABEL_FROM_EMAIL[\s\S]*?\}\)/);
-  assert.match(clientSection, /new Resend\(apiKey\)/);
+  assert.match(clientSection, /createResolvedResendClient\(\{[\s\S]*?fromEmail: WHITELABEL_FROM_EMAIL[\s\S]*?\}\)/);
+  assert.doesNotMatch(clientSection, /new Resend\(/);
   assert.doesNotMatch(clientSection, /process\.env\.REPLIT_CONNECTORS_HOSTNAME/);
   assert.doesNotMatch(clientSection, /process\.env\.REPL_IDENTITY/);
   assert.doesNotMatch(clientSection, /process\.env\.WEB_REPL_RENEWAL/);

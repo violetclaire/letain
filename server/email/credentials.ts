@@ -1,7 +1,15 @@
+import type { Resend } from "resend";
+
 export interface EmailCredentials {
   apiKey: string;
   fromEmail: string;
   source: "env" | "replit-connector";
+}
+
+export interface ResolvedResendClient {
+  client: Resend;
+  fromEmail: string;
+  source: EmailCredentials["source"];
 }
 
 interface ResolveEmailCredentialsOptions {
@@ -99,4 +107,17 @@ export async function resolveEmailCredentials({
 
   console.error("No Resend credentials available - RESEND_API_KEY not set and connector fallback unavailable");
   throw new Error("No Resend credentials available");
+}
+
+export async function createResolvedResendClient(
+  options: ResolveEmailCredentialsOptions,
+): Promise<ResolvedResendClient> {
+  const credentials = await resolveEmailCredentials(options);
+  const { Resend } = await import("resend");
+
+  return {
+    client: new Resend(credentials.apiKey),
+    fromEmail: credentials.fromEmail,
+    source: credentials.source,
+  };
 }

@@ -1,5 +1,4 @@
-import { Resend } from 'resend';
-import { resolveEmailCredentials } from './email/credentials';
+import { createResolvedResendClient } from './email/credentials';
 import { getLegacyDateInquiryPublicBaseUrl } from './config/publicUrl';
 
 // Get the base URL for email links - always use production URL for client-facing links
@@ -36,16 +35,8 @@ function sanitizeSubject(subject: string): string {
     .substring(0, 200);
 }
 
-async function getCredentials() {
-  return resolveEmailCredentials({ fromEmail: WHITELABEL_FROM_EMAIL });
-}
-
 export async function getResendClient() {
-  const { apiKey, fromEmail } = await getCredentials();
-  return {
-    client: new Resend(apiKey),
-    fromEmail
-  };
+  return createResolvedResendClient({ fromEmail: WHITELABEL_FROM_EMAIL });
 }
 
 export async function sendEmail({
