@@ -23,7 +23,10 @@ import {
 } from "@shared/schema";
 import { storage } from "./storage";
 import { ObjectStorageService } from "./objectStorage";
-import { getLegacyDateInquiryPublicBaseUrl } from "./config/publicUrl";
+import {
+  getBriarwoodPublicBaseUrl,
+  getLegacyDateInquiryPublicBaseUrl,
+} from "./config/publicUrl";
 
 const objectStorage = new ObjectStorageService();
 
@@ -181,17 +184,19 @@ export function registerAgentRoutes(app: Express) {
   // A2A AGENT CARD - Discovery endpoint for agent-to-agent protocol
   // ============================================================
   app.get("/.well-known/ai-agent", (_req, res) => {
+    const publicBaseUrl = getBriarwoodPublicBaseUrl();
+
     res.json({
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
       name: "Toile Coordination Engine",
       description: "Agentic commerce gateway for high-trust service coordination. Provides real-time availability, trust verification (CDI), booking orchestration, and proof-of-service for the beauty and events industry.",
-      url: "https://atbriarwood.com",
+      url: publicBaseUrl,
       version: "1.0.0",
       provider: {
         "@type": "Organization",
         name: "Toile",
-        url: "https://atbriarwood.com",
+        url: publicBaseUrl,
       },
       capabilities: [
         {
