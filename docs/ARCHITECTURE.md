@@ -17,7 +17,7 @@ For Capacitor/TestFlight, `https://atbriarwood.com` must load the real React app
 
 ## Current Platform Dependency Map
 
-This snapshot reflects the platform-foundation work through PR #73. It is a map of current defaults, not approval to switch providers or domains.
+This snapshot reflects the platform-foundation work through PR #78. It is a map of current defaults, not approval to switch providers or domains.
 
 | Area | Current default | Replacement status | Notes |
 | --- | --- | --- | --- |
@@ -29,6 +29,17 @@ This snapshot reflects the platform-foundation work through PR #73. It is a map 
 | Gemini/AI clients | Nine `new GoogleGenAI(...)` construction sites remain. | Characterized by `server/gemini-client.characterization.test.ts`; not centralized yet. | Env usage is intentionally mixed between `|| ""` fallbacks and direct env passing until a focused AI-client cleanup PR. |
 | Public URL helper | `server/config/publicUrl.ts` exists. | Wired only to low-risk agent metadata/manifest so far. | Square, payment, contract/token, sender/from, auth, and client-branding references remain intentionally excluded. |
 | Domain bridge | `https://atbriarwood.com` is the Briarwood public base fallback. | DateInquiry remains in sensitive legacy paths. | `dateinquiry.com` still appears in sender/from, Square, payment, contract/token, and legacy bridge paths. |
+
+## Architecture Hardening Snapshot
+
+PRs #71-#78 added guardrails around several high-risk dependency seams. The current principle is characterization and documentation first; runtime behavior changes should happen only in separate, behavior-guarded PRs. Product-sensitive surfaces require explicit review before cleanup, especially contracts, payments, public tokens, public inquiry intake, trust scoring, outbound messaging, and provider defaults.
+
+- Email/Resend: Resend client construction is centralized where safe for `server/emailService.ts` and `server/aiChat.ts`, with direct `RESEND_API_KEY` as the production credential path. Contract notification direct Resend paths in `server/routes.ts` are intentionally untouched and should move only in a focused contract/email review PR. Email behavior is guarded by `server/email-credentials.characterization.test.ts`.
+- Gemini/AI: GoogleGenAI construction sites are characterized by `server/gemini-client.characterization.test.ts` and documented as intentionally not centralized. The surface spans assistant flows, CDI/trust scoring, schedule parsing, timeline parsing, route-local clients, and contract/payment-adjacent extraction, so broad AI-client sweeps are unsafe.
+- Database URL/session/Drizzle: `server/database-url.characterization.test.ts` locks the current mismatch between runtime DB, session store, and Drizzle tooling. `server/db.ts`, `server/auth/session.ts`, and `drizzle.config.ts` remain intentionally not normalized because changes could affect Neon/Replit behavior, session persistence, migrations, local development, and production database targeting.
+- SMS/Twilio: `server/sms-dependencies.characterization.test.ts` locks the current SMS config, Twilio construction, route-level webhook/send surfaces, and simulator boundaries. SMS is intentionally not refactored because outbound sends, inbound capture, signed webhook validation, simulator/dev behavior, inquiry routing, and SMS-derived trust events can be affected.
+
+Future dependency cleanup should be narrow and test-led. Behavior-guarded cleanup is appropriate only after focused tests exist for the exact surface. Product work can resume on isolated surfaces such as Schedule Draft Builder improvements or Route Target UI, but avoid broad dependency sweeps across AI, SMS, DB/session, contracts, payments, public inquiry intake, public-token access, or trust scoring.
 
 ## Frontend Structure
 
