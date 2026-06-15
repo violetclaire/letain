@@ -22,7 +22,7 @@ This is the source of truth for remaining Replit dependencies after the provider
 | storage | `server/storage/defaultProvider.ts` | Object storage provider selector defaults to Replit | runtime default | `OBJECT_STORAGE_PROVIDER`, default `replit` | medium | Roll out `OBJECT_STORAGE_PROVIDER=direct` only after direct GCS config and object ACL checks pass. |
 | storage | `server/storage/replitProvider.ts` | Replit object-storage sidecar and GCS credential sidecar | runtime default | Replit sidecar at `http://127.0.0.1:1106` | medium | Use `DirectObjectStorageProvider` with explicit Google Cloud config and preserve URL/ACL behavior. |
 | storage | `server/objectStorage.ts` | Compatibility export of `objectStorageClient` from Replit provider | runtime default | Replit sidecar indirectly | medium | Remove compatibility export after all object access routes use the provider abstraction only. |
-| email fallback | `server/email/credentials.ts` | Non-production Resend connector fallback | fallback only | `REPLIT_CONNECTORS_HOSTNAME`, `REPL_IDENTITY`, `WEB_REPL_RENEWAL`; direct path is `RESEND_API_KEY` | low | Keep direct `RESEND_API_KEY` as production path, then remove fallback after local/dev envs stop needing it. |
+| email fallback | `server/email/credentials.ts` | Shared Resend credential resolver and client factory with non-production Replit connector fallback | fallback only | `REPLIT_CONNECTORS_HOSTNAME`, `REPL_IDENTITY`, `WEB_REPL_RENEWAL`; direct path is `RESEND_API_KEY` | low | Keep direct `RESEND_API_KEY` as production path, then remove fallback after local/dev envs stop needing it. |
 | payment redirect | `server/aiChat.ts` | AI Square payment redirect URL fallback | fallback only | `REPLIT_DEPLOYMENT_URL` | medium | Replace with public URL helper only after Square/domain payment redirect tests are updated and reviewed. |
 
 ## Reference-Only Replit Mentions
@@ -63,6 +63,13 @@ Characterization tests intentionally include Replit strings to lock current beha
 3. Switch storage only after direct provider rollout validation.
 4. Switch calendar only after token storage, OAuth callbacks, and availability checks are tested.
 5. Replace auth last, after login/logout/callback/session characterization covers the migration.
+
+## Current Email Boundary
+
+- `server/emailService.ts` and `server/aiChat.ts` now use the shared Resend client factory in `server/email/credentials.ts`.
+- Production email credentials still come from direct `RESEND_API_KEY`.
+- The Replit Resend connector remains a non-production legacy fallback only.
+- Contract-related direct Resend construction in `server/routes.ts` remains intentionally excluded from the shared factory until contract/email paths are reviewed separately.
 
 ## Do Not Remove Yet
 

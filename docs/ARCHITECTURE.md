@@ -15,6 +15,20 @@ After PR #36, the product backend no longer serves the React app. The production
 
 For Capacitor/TestFlight, `https://atbriarwood.com` must load the real React app because the iOS wrapper uses that URL as its remote webview target. If that domain points only at the backend API or the marketing landing response, the native app will not show the product.
 
+## Current Platform Dependency Map
+
+This snapshot reflects the platform-foundation work through PR #71. It is a map of current defaults, not approval to switch providers or domains.
+
+| Area | Current default | Replacement status | Notes |
+| --- | --- | --- | --- |
+| Auth | Replit OIDC remains the concrete login/logout/callback provider. | Neutral session, guard, and identity helpers exist, but provider replacement has not started. | Keep `setupAuth`, `/api/login`, `/api/callback`, and `/api/logout` behavior unchanged until auth migration review. |
+| Calendar | `CALENDAR_PROVIDER` defaults to `replit`. | Direct Google Calendar provider skeleton, selector, config-validation docs, and contract tests exist. | Direct calendar is explicit opt-in only and is not wired to live OAuth/token storage. |
+| Storage | `OBJECT_STORAGE_PROVIDER` defaults to `replit`. | Direct object storage provider, selector, rollout docs, and contract tests exist. | Direct storage is explicit opt-in only; production rollout is not complete. |
+| Email credentials | Direct `RESEND_API_KEY` wins in production. | Replit Resend connector fallback remains non-production legacy behavior only. | Resend client construction is centralized for `server/emailService.ts` and `server/aiChat.ts`. |
+| Contract email paths | Existing direct Resend construction in `server/routes.ts` remains. | Intentionally excluded from the Resend factory PR. | These paths are contract-related and should move only in a focused contract/email review PR. |
+| Public URL helper | `server/config/publicUrl.ts` exists. | Wired only to low-risk agent metadata/manifest so far. | Square, payment, contract/token, sender/from, auth, and client-branding references remain intentionally excluded. |
+| Domain bridge | `https://atbriarwood.com` is the Briarwood public base fallback. | DateInquiry remains in sensitive legacy paths. | `dateinquiry.com` still appears in sender/from, Square, payment, contract/token, and legacy bridge paths. |
+
 ## Frontend Structure
 
 Frontend code lives under `client/src`.
@@ -48,17 +62,17 @@ Main entry points:
 - `server/routes.ts` is the primary route registry. It is a large kitchen-sink file containing auth, profiles, inquiries, routing, schedules, bookings, contracts, payments, SMS, email, admin, CDI, AI, import, and chat endpoints.
 - `server/storage.ts` defines the large database storage abstraction and exports a singleton `storage`.
 - `server/db.ts` initializes Neon/Postgres pooling and Drizzle.
-- `server/replitAuth.ts` owns Replit OIDC session setup and `isAuthenticated`.
+- `server/replitAuth.ts` owns Replit OIDC session setup. Authenticated route guards now pass through `server/auth/current.ts`, which still re-exports the Replit-backed guard.
 
 Important service modules include:
 
 - `server/routingService.ts`: Briarwood response composer and generic routing/delegation helpers.
 - `server/inboundMatcher.ts` and `server/inboundProcessor.ts`: inbound SMS matching and trust-event creation.
 - `server/smsService.ts`: Twilio send and webhook verification helpers.
-- `server/emailService.ts`: Resend/Replit connector email sending.
+- `server/emailService.ts`: email sending through the shared Resend client factory and credential resolver.
 - `server/scheduledEmailJob.ts`: in-process scheduled email loop.
 - `server/cronJobs.ts`: hold expiration and SLA enforcement jobs.
-- `server/objectStorage.ts`: Replit object storage access and ACL handling.
+- `server/objectStorage.ts`: object storage access and ACL handling through the current provider facade; default storage remains the Replit sidecar provider.
 - `server/squareClient.ts` and `server/squareRoutes.ts`: Square API/OAuth/payment surfaces.
 - `server/agentRoutes.ts` and `server/acpHandler.ts`: agent and ACP surfaces.
 
@@ -261,13 +275,13 @@ Do not refactor these until tests and product boundaries are in place:
 - `HandoffOutcome` appears mismatched: the frontend route does not provide the token the backend handoff endpoint expects, and its `apiRequest` call appears to use the wrong signature.
 - Google Calendar availability failures may return no busy slots, which can overstate availability.
 - In-process cron and scheduled email jobs assume a single running instance.
-- Schedule email/SMS sending contains hardcoded Replit/public URLs in some paths.
+- Schedule/email/SMS and public-link paths still contain sensitive legacy domain fallbacks in some paths.
 - Side effects such as email, SMS, contracts, payments, and trust events are often embedded directly in route handlers.
 - Error middleware in `server/index.ts` sends JSON and then throws, which can crash/restart the process on request errors.
-- Square debug credential endpoint exposes credential prefixes/lengths and should be reviewed.
+- Square OAuth, callback, error redirect, and payment redirect domains remain sensitive and should be reviewed before migration.
 - Object storage upload paths and ACL policy need review, especially for contracts and private client assets.
 - The frontend `apiRequest` helper has a narrow signature and at least one observed misuse.
-- No automated test suite is configured.
+- Test coverage is currently strongest around characterization/source assertions for platform boundaries; it is not yet a broad product regression suite.
 
 ## Deployment Assumptions
 
@@ -340,7 +354,7 @@ This section describes the current runtime configuration after the direct-provid
 - Calendar: `getDefaultCalendarProvider()` returns `ReplitCalendarProvider`, which reads Google Calendar credentials from the Replit connector path.
 - Storage: `getDefaultObjectStorageProvider()` defaults to `ReplitObjectStorageProvider`, which depends on the Replit object-storage sidecar. `OBJECT_STORAGE_PROVIDER=direct` opts into `DirectObjectStorageProvider` after direct Google Cloud config validation.
 - Email: `resolveEmailCredentials()` uses direct `RESEND_API_KEY` first. The Replit Resend connector remains only as a non-production legacy fallback.
-- Auth: session helpers and identity helpers are split into neutral modules, but login/logout/callback and the concrete `isAuthenticated` refresh behavior still live in `server/replitAuth.ts`.
+- Auth: session helpers and identity helpers are split into neutral modules. Route guards import through the neutral current-auth facade, but login/logout/callback and the concrete Replit-backed guard behavior still live in `server/replitAuth.ts`.
 - Public URLs: `server/config/publicUrl.ts` exists and defaults Briarwood links to `https://atbriarwood.com`, with a separate legacy DateInquiry fallback for behavior-preserving migrations.
 
 ### Required Before First Real Operator Use
@@ -373,6 +387,19 @@ This section describes the current runtime configuration after the direct-provid
 - Replit object-storage sidecar assumptions until the direct storage provider has been rolled out and verified in production-like infrastructure.
 - DateInquiry/Square callback domains or the remaining AI/Square `REPLIT_DEPLOYMENT_URL` fallback until Square/domain tests are intentionally updated.
 - `DATABASE_URL` fallback or Drizzle config behavior until the DB migration/tooling target is explicitly fixed.
+
+### Do Not Migrate Without Review
+
+These areas are intentionally outside low-risk provider and metadata cleanup PRs:
+
+- Square OAuth callback, success, and error redirects.
+- Square/payment redirects and AI-generated Square payment links.
+- Contract signing, countersign, vault, and tokenized contract links.
+- Public-token links for inquiry threads, client threads, schedule shares, quotes, chat invites, and invitations.
+- Sender/from domains, reply handling, and email deliverability configuration.
+- Auth provider replacement, including OIDC callback behavior and session-cookie semantics.
+- Storage production provider switch from Replit sidecar to direct object storage.
+- Google Calendar OAuth routes, token schema, token encryption, and provider default switch.
 
 ## Recommended Order of Work
 
