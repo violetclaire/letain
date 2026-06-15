@@ -366,7 +366,7 @@ export function registerAgentRoutes(app: Express) {
       name: "Toile Coordination Engine",
       version: "1.0.0",
       description: "Agent-addressable API for high-trust service coordination. Book beauty artists, verify trust, coordinate events.",
-      baseUrl: getLegacyDateInquiryPublicBaseUrl(),
+      baseUrl: getBriarwoodPublicBaseUrl(),
       authentication: {
         type: "bearer",
         header: "Authorization: Bearer <api_key>",
