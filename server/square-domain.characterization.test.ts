@@ -12,7 +12,7 @@ test("Square OAuth source keeps the current DateInquiry callback and redirect do
   assert.match(squareRoutesText, /const errorRedirect = 'https:\/\/dateinquiry\.com\/artist\?square=error&message=';/);
   assert.match(squareRoutesText, /const productionDomain = 'https:\/\/dateinquiry\.com';/);
   assert.match(squareRoutesText, /redirect_uri: callbackUrl/);
-  assert.match(squareRoutesText, /redirectUri: `\$\{baseUrl\}\/payment-success\?bookingId=\$\{bookingId \|\| 'invoice'\}`/);
+  assert.match(squareRoutesText, /redirectUrl: `\$\{baseUrl\}\/payment-success\?bookingId=\$\{bookingId \|\| 'invoice'\}`/);
 });
 
 test("Square OAuth source does not use PUBLIC_BASE_URL or the public URL helper yet", async () => {
