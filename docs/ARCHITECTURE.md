@@ -17,7 +17,7 @@ For Capacitor/TestFlight, `https://atbriarwood.com` must load the real React app
 
 ## Current Platform Dependency Map
 
-This snapshot reflects the platform-foundation work through PR #71. It is a map of current defaults, not approval to switch providers or domains.
+This snapshot reflects the platform-foundation work through PR #73. It is a map of current defaults, not approval to switch providers or domains.
 
 | Area | Current default | Replacement status | Notes |
 | --- | --- | --- | --- |
@@ -26,6 +26,7 @@ This snapshot reflects the platform-foundation work through PR #71. It is a map 
 | Storage | `OBJECT_STORAGE_PROVIDER` defaults to `replit`. | Direct object storage provider, selector, rollout docs, and contract tests exist. | Direct storage is explicit opt-in only; production rollout is not complete. |
 | Email credentials | Direct `RESEND_API_KEY` wins in production. | Replit Resend connector fallback remains non-production legacy behavior only. | Resend client construction is centralized for `server/emailService.ts` and `server/aiChat.ts`. |
 | Contract email paths | Existing direct Resend construction in `server/routes.ts` remains. | Intentionally excluded from the Resend factory PR. | These paths are contract-related and should move only in a focused contract/email review PR. |
+| Gemini/AI clients | Nine `new GoogleGenAI(...)` construction sites remain. | Characterized by `server/gemini-client.characterization.test.ts`; not centralized yet. | Env usage is intentionally mixed between `|| ""` fallbacks and direct env passing until a focused AI-client cleanup PR. |
 | Public URL helper | `server/config/publicUrl.ts` exists. | Wired only to low-risk agent metadata/manifest so far. | Square, payment, contract/token, sender/from, auth, and client-branding references remain intentionally excluded. |
 | Domain bridge | `https://atbriarwood.com` is the Briarwood public base fallback. | DateInquiry remains in sensitive legacy paths. | `dateinquiry.com` still appears in sender/from, Square, payment, contract/token, and legacy bridge paths. |
 
@@ -356,6 +357,23 @@ This section describes the current runtime configuration after the direct-provid
 - Email: `resolveEmailCredentials()` uses direct `RESEND_API_KEY` first. The Replit Resend connector remains only as a non-production legacy fallback.
 - Auth: session helpers and identity helpers are split into neutral modules. Route guards import through the neutral current-auth facade, but login/logout/callback and the concrete Replit-backed guard behavior still live in `server/replitAuth.ts`.
 - Public URLs: `server/config/publicUrl.ts` exists and defaults Briarwood links to `https://atbriarwood.com`, with a separate legacy DateInquiry fallback for behavior-preserving migrations.
+
+### Gemini / AI Client Boundary
+
+`server/gemini-client.characterization.test.ts` is the current guardrail for Gemini client construction. It records nine current `new GoogleGenAI(...)` sites across:
+
+- `server/aiChat.ts`
+- `server/businessChatAgent.ts`
+- `server/cdiAgent.ts`
+- `server/cdiEngine.ts`
+- `server/iqsService.ts`
+- `server/scheduleAI.ts`
+- `server/timelineParser.ts`
+- `server/routes.ts`, with both a module-level client and a route-local contract extraction client
+
+The current environment behavior is mixed by source file. Some sites use `AI_INTEGRATIONS_GEMINI_API_KEY || ""` and `AI_INTEGRATIONS_GEMINI_BASE_URL || ""`; other sites pass the env values directly. This is documented behavior, not a recommended final shape. There is no shared Gemini helper or factory yet.
+
+Do not centralize Gemini construction as a broad sweep. Any future cleanup must preserve model selection, prompts, fallback behavior, request timing, env resolution, and response parsing. Do not touch the `routes.ts` route-local contract extraction client, the `routes.ts` module-level client, `cdiAgent.ts`, `cdiEngine.ts`, assistant/payment-adjacent flows in `aiChat.ts`, or schedule/timeline parsing flows without focused behavior tests. If a first migration is attempted later, `server/timelineParser.ts` is likely the smallest candidate, but only after timeline parsing behavior guards are added or confirmed.
 
 ### Required Before First Real Operator Use
 
