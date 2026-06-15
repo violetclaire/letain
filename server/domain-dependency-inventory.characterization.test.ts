@@ -73,9 +73,10 @@ const trackedRuntimeReferences: InventoryEntry[] = [
     file: "server/agentRoutes.ts",
     classifications: ["contract/token-link sensitive", "legacy bridge context"],
     markers: [
-      /import \{ getLegacyDateInquiryPublicBaseUrl \} from "\.\/config\/publicUrl";/,
+      /getBriarwoodPublicBaseUrl,[\s\S]*?getLegacyDateInquiryPublicBaseUrl,[\s\S]*?from "\.\/config\/publicUrl";/,
+      /const publicBaseUrl = getBriarwoodPublicBaseUrl\(\);/,
       /baseUrl: getLegacyDateInquiryPublicBaseUrl\(\)/,
-      /url: "https:\/\/atbriarwood\.com"/,
+      /url: publicBaseUrl/,
     ],
   },
   {

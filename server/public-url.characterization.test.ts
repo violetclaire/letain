@@ -114,7 +114,11 @@ test("server sources keep the current mixed public URL fallback map while low-ri
   );
   assert.match(
     agentRoutesText,
-    /import \{ getLegacyDateInquiryPublicBaseUrl \} from "\.\/config\/publicUrl";/,
+    /getBriarwoodPublicBaseUrl,[\s\S]*?getLegacyDateInquiryPublicBaseUrl,[\s\S]*?from "\.\/config\/publicUrl";/,
+  );
+  assert.match(
+    agentRoutesText,
+    /const publicBaseUrl = getBriarwoodPublicBaseUrl\(\);[\s\S]*?url: publicBaseUrl,[\s\S]*?provider: \{[\s\S]*?url: publicBaseUrl,/,
   );
   assert.match(
     agentRoutesText,
