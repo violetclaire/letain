@@ -9,7 +9,16 @@ This document defines the safe migration target for replacing the Replit object-
 - If `OBJECT_STORAGE_PROVIDER=direct`, the direct provider is selected only after direct Google Cloud config is present.
 - `ReplitObjectStorageProvider` still depends on the Replit sidecar at `http://127.0.0.1:1106`.
 - `server/storage/directProvider.ts` implements the existing `ObjectStorageProvider` contract, but is opt-in only.
+- Direct storage deployment validation docs and tests exist, but production rollout has not happened.
 - Existing object URL shape, ACL metadata, upload/read routes, and profile/contract/client/agent asset behavior must stay unchanged until a separate provider switch PR.
+
+## Current Runtime Boundary
+
+- Replit remains the active default provider.
+- Direct storage requires explicit `OBJECT_STORAGE_PROVIDER=direct` plus direct Google Cloud config.
+- Direct-provider selection is a deployment/config boundary only; it is not a schema, route, ACL, or UI migration.
+- Contract uploads, client photos, profile images, schedule assets, and agent assets still rely on the existing object URL shape and ACL behavior.
+- Do not combine a storage provider switch with auth, calendar, email/SMS, payment, contract, CDI, UI, iOS, or schema changes.
 
 ## Direct Provider Contract
 

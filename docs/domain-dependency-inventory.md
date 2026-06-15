@@ -29,6 +29,15 @@ This is the source of truth for remaining Briarwood, DateInquiry, and related le
 | Client setup and embeds | `client/src/pages/ArtistSettings.tsx`, `client/src/pages/Login.tsx`, `client/src/pages/intake/ArtistIntake.tsx`, `client/src/pages/SecretaryOnboarding.tsx` | hard-coded `https://dateinquiry.com` links, iframe embed URLs, setup redirects | client-visible branding; contract/token-link sensitive; legacy bridge context | runtime | Replace with Briarwood-domain UX after public links and embed/API behavior are reviewed. | yes |
 | Client DateInquiry routing | `client/src/App.tsx`, `client/src/hooks/useDashboard.ts`, `client/src/components/AIChatPanel.tsx`, `client/src/pages/ArtistDashboard.tsx` | DateInquiry hostname checks, comments, or route assumptions | client-visible branding; legacy bridge context | runtime | Remove after DateInquiry bridge routes are no longer needed. | yes |
 
+## Current Domain Migration Boundary
+
+- `server/config/publicUrl.ts` is the central public URL helper.
+- Low-risk agent discovery metadata and agent manifest `baseUrl` now use `getBriarwoodPublicBaseUrl()`.
+- The helper is not broadly wired into sender/from domains, Square callbacks, payment redirects, contract/token links, auth redirects, or client-visible branding.
+- `server/emailService.ts` and `server/aiChat.ts` now share centralized Resend client construction, but sender/from domains remain unchanged.
+- Direct Resend construction in `server/routes.ts` remains intentionally excluded where it is tied to contract-related notification paths.
+- DateInquiry remains a sensitive legacy bridge in sender/from, Square, payment, contract/token, and public-link paths until each class is migrated under focused tests.
+
 ## Briarwood Canonical Domain References
 
 These references use the current Briarwood domain and are not legacy DateInquiry dependencies. They remain inventoried because changing them can still affect production hosting, TestFlight, public links, or client-visible copy.

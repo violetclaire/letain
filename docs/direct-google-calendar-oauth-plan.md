@@ -9,11 +9,21 @@ This document describes the intended direct Google Calendar credential model. It
 - `server/googleCalendarService.ts` and `server/googleCalendarClient.ts` use the provider selector in `server/calendar/defaultProvider.ts`.
 - `CALENDAR_PROVIDER` defaults to `replit`.
 - `CALENDAR_PROVIDER=direct` is an explicit opt-in path only.
+- The direct provider skeleton and contract tests exist, but live Google OAuth routes and token storage do not.
+- Direct-provider config validation is documented and tested; it does not switch the default provider.
 - Current Google Calendar access still depends on the Replit connector variables:
   - `REPLIT_CONNECTORS_HOSTNAME`
   - `REPL_IDENTITY`
   - `WEB_REPL_RENEWAL`
 - Availability behavior remains unchanged: Google Calendar busy lookup failures are caught and return an empty busy list.
+
+## Current Runtime Boundary
+
+- Replit remains the active default provider.
+- Direct calendar requires explicit `CALENDAR_PROVIDER=direct` plus required Google OAuth config.
+- No schema exists yet for encrypted Google refresh-token storage.
+- No live OAuth connect/callback/disconnect routes are wired.
+- No calendar availability, event creation, assistant, or auto-responder behavior changed during the selector/config-validation work.
 
 ## Future Direct OAuth Model
 
