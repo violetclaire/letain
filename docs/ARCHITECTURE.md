@@ -97,6 +97,16 @@ The schema is broad and includes these main table families:
 
 Important schema caveat: `server/index.ts` also performs many `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` and `CREATE TABLE IF NOT EXISTS` statements at startup. This means the codebase currently has two schema mechanisms: Drizzle schema files and runtime additive DDL. That can hide migration failures and cause drift between expected and actual production database shape.
 
+### Database URL Authority Boundaries
+
+PR #75 added `server/database-url.characterization.test.ts` to lock the current database URL behavior as inventory only. Do not treat the current mismatch as fixed or safe to collapse without a focused review.
+
+- Application runtime DB: `server/db.ts` prefers `NEON_DATABASE_URL`, falls back to `DATABASE_URL`, cleans the selected value by removing a `psql` prefix/quotes/outer whitespace, then creates the Neon serverless pool and Drizzle client.
+- Auth/session DB: `server/auth/session.ts` uses `process.env.NEON_DATABASE_URL || process.env.DATABASE_URL` for the `connect-pg-simple` store and passes that selected value directly as `conString`. It does not currently share the runtime DB cleaning helper.
+- Drizzle tooling DB: `drizzle.config.ts` requires `DATABASE_URL` and passes it directly to drizzle-kit. It does not currently read `NEON_DATABASE_URL` or use the runtime cleaning behavior.
+
+This boundary matters because schema tools, runtime app traffic, and session storage can point at different effective connection strings if environment variables are not aligned. Before any future unification, review production variables, session-store behavior, Drizzle migration targets, runtime startup DDL, and rollback expectations. Do not change database URL precedence, session store selection, Drizzle migration selection, schema behavior, migrations, or production environment defaults in incidental cleanup PRs.
+
 ## Auth and Session Models
 
 The app has several auth/session models active at once.
@@ -310,8 +320,8 @@ This section describes the current runtime configuration after the direct-provid
 | --- | --- | --- |
 | `NODE_ENV` | Runtime mode | Set to `production` for production. It controls secure session cookies and production logging behavior. |
 | `PORT` | Express API port | Optional when the host injects a port. The server defaults to `5000`. |
-| `NEON_DATABASE_URL` | Preferred app/session Postgres connection | Production should use this as the canonical DB URL. `server/db.ts` and `server/auth/session.ts` prefer it over `DATABASE_URL`. |
-| `DATABASE_URL` | Postgres fallback / Drizzle default | Still used by `drizzle.config.ts` and as a fallback. Treat the `DATABASE_URL` vs `NEON_DATABASE_URL` mismatch as a migration risk before running schema tools. |
+| `NEON_DATABASE_URL` | Preferred app/session Postgres connection | Production should use this as the canonical app/session DB URL. `server/db.ts` prefers and cleans it; `server/auth/session.ts` prefers it but passes it directly to the session store. |
+| `DATABASE_URL` | Postgres fallback / Drizzle default | Runtime DB and session store still fall back to this value. `drizzle.config.ts` currently requires this value directly. Treat the `DATABASE_URL` vs `NEON_DATABASE_URL` mismatch as a migration risk before running schema tools. |
 | `SESSION_SECRET` | Express session signing secret | Required for session middleware. Must be long, secret, and stable across deploys. |
 | `PUBLIC_BASE_URL` | Product/frontend origin for generated links | Should be `https://atbriarwood.com` for Briarwood production. This must point to the hosted React app, not just the API server. |
 | `RESEND_API_KEY` | Direct Resend credential | Required for production email. Direct env now wins before the legacy Replit connector fallback. |
@@ -404,12 +414,13 @@ Do not centralize Gemini construction as a broad sweep. Any future cleanup must 
 - Replit Google Calendar connector variables until a direct calendar provider is implemented and tested.
 - Replit object-storage sidecar assumptions until the direct storage provider has been rolled out and verified in production-like infrastructure.
 - DateInquiry/Square callback domains or the remaining AI/Square `REPLIT_DEPLOYMENT_URL` fallback until Square/domain tests are intentionally updated.
-- `DATABASE_URL` fallback or Drizzle config behavior until the DB migration/tooling target is explicitly fixed.
+- `DATABASE_URL` fallback, `NEON_DATABASE_URL` precedence, session-store DB selection, or Drizzle config behavior until the DB migration/tooling target is explicitly fixed.
 
 ### Do Not Migrate Without Review
 
 These areas are intentionally outside low-risk provider and metadata cleanup PRs:
 
+- Database URL precedence, session store database selection, Drizzle migration target selection, schema/migration behavior, and production database environment expectations.
 - Square OAuth callback, success, and error redirects.
 - Square/payment redirects and AI-generated Square payment links.
 - Contract signing, countersign, vault, and tokenized contract links.
