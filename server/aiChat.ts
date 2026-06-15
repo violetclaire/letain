@@ -1,7 +1,6 @@
 import { GoogleGenAI, Modality } from "@google/genai";
-import { Resend } from "resend";
 import { storage } from "./storage";
-import { resolveEmailCredentials } from "./email/credentials";
+import { createResolvedResendClient } from "./email/credentials";
 
 const WHITELABEL_FROM_EMAIL = "notifications@dateinquiry.com";
 
@@ -184,10 +183,10 @@ function extractEntitiesFromText(text: string): WorkingMemory {
 }
 
 async function getResendClient() {
-  const { apiKey, fromEmail } = await resolveEmailCredentials({
+  const { client, fromEmail } = await createResolvedResendClient({
     fromEmail: WHITELABEL_FROM_EMAIL,
   });
-  return { client: new Resend(apiKey), fromEmail };
+  return { client, fromEmail };
 }
 
 const SYSTEM_PROMPT = `You are the AI assistant for Your Private Secretary - a powerful helper for beauty vendors. You can do EVERYTHING in the app:
