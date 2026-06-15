@@ -334,9 +334,9 @@ This section describes the current runtime configuration after the direct-provid
 
 | Variable | Required when | Notes |
 | --- | --- | --- |
-| `TWILIO_ACCOUNT_SID` | SMS/inbound SMS is enabled | SMS paths should stay disabled or untested without the full Twilio set. |
-| `TWILIO_AUTH_TOKEN` | SMS/inbound SMS is enabled | Also used for inbound webhook validation. |
-| `TWILIO_PHONE_NUMBER` | SMS sending or simulator fallback is enabled | Required sender number for real SMS. |
+| `TWILIO_ACCOUNT_SID` | SMS/inbound SMS is enabled | Required by `server/smsService.ts` for Twilio client construction. SMS paths should stay disabled or untested without the full Twilio set. |
+| `TWILIO_AUTH_TOKEN` | SMS/inbound SMS is enabled | Required by `server/smsService.ts` for Twilio client construction and inbound webhook signature validation. |
+| `TWILIO_PHONE_NUMBER` | SMS sending or simulator fallback is enabled | Required sender/from number for real SMS. The admin simulator also falls back to `+10000000000` when this is absent and no `to` value is supplied. |
 | `ENABLE_SMS_TEST_TOOLS` | Admin SMS simulator is intentionally enabled | Must be `true`; keep disabled in normal production. |
 | `SQUARE_ACCESS_TOKEN` | Platform Square API behavior is enabled | Used by `server/squareClient.ts`. |
 | `SQUARE_APP_ID` / `SQUARE_APPLICATION_ID` | Square OAuth is enabled | `SQUARE_APP_ID` is preferred; `SQUARE_APPLICATION_ID` remains a fallback. |
@@ -368,6 +368,18 @@ This section describes the current runtime configuration after the direct-provid
 - Auth: session helpers and identity helpers are split into neutral modules. Route guards import through the neutral current-auth facade, but login/logout/callback and the concrete Replit-backed guard behavior still live in `server/replitAuth.ts`.
 - Public URLs: `server/config/publicUrl.ts` exists and defaults Briarwood links to `https://atbriarwood.com`, with a separate legacy DateInquiry fallback for behavior-preserving migrations.
 
+### SMS / Twilio Boundary
+
+`server/sms-dependencies.characterization.test.ts` is the current guardrail for SMS/Twilio dependency construction and route-level SMS references. It is an inventory-only guard; PR #77 did not change SMS behavior.
+
+- `server/smsService.ts` is the current centralized SMS config and Twilio client boundary. It reads `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_PHONE_NUMBER`, constructs the Twilio client with `twilio(config.accountSid, config.authToken)`, sends from `config.phoneNumber`, and validates inbound signatures with `twilio.validateRequest`.
+- Missing Twilio account SID, auth token, or phone number currently fails closed at the service boundary: `getTwilioConfig()` returns `null`, `isSmsConfigured()` is false, outbound `sendSms()` returns a failed result, and inbound webhook validation returns false when config or signature is missing.
+- No messaging service SID is currently part of the characterized SMS runtime config. Do not add or swap to a Twilio Messaging Service SID without a separate behavior-guarded PR.
+- `server/routes.ts` still contains route-level SMS surfaces: `/api/sms/status`, `/api/sms/inbound`, `/api/sms/send`, `/api/invoice/send-sms`, `/api/event-schedules/send-sms`, inbound SMS admin review/match routes, and the admin SMS simulator.
+- The admin simulator is separately gated by `ENABLE_SMS_TEST_TOOLS === "true"` and admin auth. Its simulated inbound path currently uses `TWILIO_PHONE_NUMBER || "+10000000000"` for the destination number when a request does not provide `to`.
+
+Do not normalize, centralize, or refactor SMS/Twilio casually. SMS changes can affect outbound delivery, inbound capture, Twilio signature validation, signed replies, simulator/dev behavior, inquiry/routing notifications, and trust-event creation from inbound replies. Any future SMS helper extraction, Twilio Messaging Service migration, webhook URL/signature cleanup, or simulator behavior change should be a separate PR with focused behavior tests.
+
 ### Gemini / AI Client Boundary
 
 `server/gemini-client.characterization.test.ts` is the current guardrail for Gemini client construction. It records nine current `new GoogleGenAI(...)` sites across:
@@ -392,6 +404,7 @@ Do not centralize Gemini construction as a broad sweep. Any future cleanup must 
 - Confirm production email uses direct `RESEND_API_KEY`; do not rely on Replit connector email in production.
 - Confirm object storage variables and sidecar behavior for profile images, contracts, client photos, and schedule assets.
 - Confirm calendar availability behavior if operator workflows depend on Google Calendar busy data.
+- Confirm SMS remains intentionally disabled or fully configured with `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_PHONE_NUMBER` before any real SMS path is tested.
 - Keep SMS, contracts, Square/payment, and public token flows in their existing tested lanes unless explicitly reviewing those surfaces.
 
 ### Required Before Provider Replacement
@@ -429,6 +442,7 @@ These areas are intentionally outside low-risk provider and metadata cleanup PRs
 - Auth provider replacement, including OIDC callback behavior and session-cookie semantics.
 - Storage production provider switch from Replit sidecar to direct object storage.
 - Google Calendar OAuth routes, token schema, token encryption, and provider default switch.
+- Twilio/SMS config normalization, Messaging Service SID adoption, outbound SMS send paths, inbound SMS webhook/signature handling, admin SMS simulator behavior, and SMS-derived trust-event/inquiry-routing behavior.
 
 ## Recommended Order of Work
 
