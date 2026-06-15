@@ -75,7 +75,8 @@ const trackedRuntimeReferences: InventoryEntry[] = [
     markers: [
       /getBriarwoodPublicBaseUrl,[\s\S]*?getLegacyDateInquiryPublicBaseUrl,[\s\S]*?from "\.\/config\/publicUrl";/,
       /const publicBaseUrl = getBriarwoodPublicBaseUrl\(\);/,
-      /baseUrl: getLegacyDateInquiryPublicBaseUrl\(\)/,
+      /baseUrl: getBriarwoodPublicBaseUrl\(\)/,
+      /const baseUrl = getLegacyDateInquiryPublicBaseUrl\(\);/,
       /url: publicBaseUrl/,
     ],
   },

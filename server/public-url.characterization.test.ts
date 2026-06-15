@@ -122,7 +122,7 @@ test("server sources keep the current mixed public URL fallback map while low-ri
   );
   assert.match(
     agentRoutesText,
-    /baseUrl: getLegacyDateInquiryPublicBaseUrl\(\)/,
+    /baseUrl: getBriarwoodPublicBaseUrl\(\)/,
   );
   assert.match(
     agentRoutesText,
