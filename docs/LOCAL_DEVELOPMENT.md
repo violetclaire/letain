@@ -24,7 +24,9 @@ Create local environment values from the placeholder file:
 Copy-Item .env.example .env.local
 ```
 
-The backend reads `process.env` directly. This repo does not currently add a dotenv loader for `npm run dev:server`, so make sure your shell, terminal profile, or host tooling exports the needed values before starting the backend.
+Fill `.env.local` with staging or disposable local-preview values. `npm run dev:server` loads `.env.local` for the local dev server. If `.env.local` is absent, it falls back to `.env`. Existing shell-provided values for variables in the env file still win over file values.
+
+This local env loading is only part of the development server script. Production startup remains `npm run start` and does not use the local dev wrapper.
 
 Use a staging or disposable database for local preview. The backend may run additive database setup on startup, so do not point local preview at production casually.
 
