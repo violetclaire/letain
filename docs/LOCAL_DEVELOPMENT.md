@@ -7,6 +7,7 @@ This guide is for viewing the current Briarwood prototype locally. It does not c
 - Backend API: `http://localhost:5000`
 - Vite frontend: `http://localhost:5173`
 - Vite dev-only proxy: local `/api` requests from `localhost:5173` are forwarded to `http://localhost:5000`
+- Local backend bind override: `DEV_SERVER_HOST=127.0.0.1`
 
 The proxy exists only in the Vite development server. Production builds and backend runtime behavior are unchanged.
 
@@ -27,6 +28,8 @@ Copy-Item .env.example .env.local
 Fill `.env.local` with staging or disposable local-preview values. `npm run dev:server` loads `.env.local` for the local dev server. If `.env.local` is absent, it falls back to `.env`. Existing shell-provided values for variables in the env file still win over file values.
 
 This local env loading is only part of the development server script. Production startup remains `npm run start` and does not use the local dev wrapper.
+
+Keep `DEV_SERVER_HOST=127.0.0.1` in local preview if your machine cannot bind the API server to `0.0.0.0`. The production/default host remains unchanged unless this variable is set, and the local preview API should bind to `127.0.0.1:5000`.
 
 Use a staging or disposable database for local preview. The backend may run additive database setup on startup, so do not point local preview at production casually.
 
