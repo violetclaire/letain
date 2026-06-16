@@ -17,11 +17,11 @@ For Capacitor/TestFlight, `https://atbriarwood.com` must load the real React app
 
 ## Current Platform Dependency Map
 
-This snapshot reflects the platform-foundation work through PR #78. It is a map of current defaults, not approval to switch providers or domains.
+This snapshot reflects the platform-foundation work through PR #82. It is a map of current defaults, not approval to switch providers, auth, or domains.
 
 | Area | Current default | Replacement status | Notes |
 | --- | --- | --- | --- |
-| Auth | Replit OIDC remains the concrete login/logout/callback provider. | Neutral session, guard, and identity helpers exist, but provider replacement has not started. | Keep `setupAuth`, `/api/login`, `/api/callback`, and `/api/logout` behavior unchanged until auth migration review. |
+| Auth | Replit OIDC remains the concrete login/logout/callback provider. | Neutral session, guard, and identity helpers exist, and PR #82 added `server/auth-oidc-boundary.characterization.test.ts`, but provider replacement has not started. | Keep `setupAuth`, `/api/login`, `/api/callback`, `/api/logout`, token refresh, and the active guard source unchanged until auth migration review. |
 | Calendar | `CALENDAR_PROVIDER` defaults to `replit`. | Direct Google Calendar provider skeleton, selector, config-validation docs, and contract tests exist. | Direct calendar is explicit opt-in only and is not wired to live OAuth/token storage. |
 | Storage | `OBJECT_STORAGE_PROVIDER` defaults to `replit`. | Direct object storage provider, selector, rollout docs, and contract tests exist. | Direct storage is explicit opt-in only; production rollout is not complete. |
 | Email credentials | Direct `RESEND_API_KEY` wins in production. | Replit Resend connector fallback remains non-production legacy behavior only. | Resend client construction is centralized for `server/emailService.ts` and `server/aiChat.ts`. |
@@ -32,14 +32,15 @@ This snapshot reflects the platform-foundation work through PR #78. It is a map 
 
 ## Architecture Hardening Snapshot
 
-PRs #71-#78 added guardrails around several high-risk dependency seams. The current principle is characterization and documentation first; runtime behavior changes should happen only in separate, behavior-guarded PRs. Product-sensitive surfaces require explicit review before cleanup, especially contracts, payments, public tokens, public inquiry intake, trust scoring, outbound messaging, and provider defaults.
+PRs #71-#82 added guardrails around several high-risk dependency seams. The current principle is characterization and documentation first; runtime behavior changes should happen only in separate, behavior-guarded PRs. Product-sensitive surfaces require explicit review before cleanup, especially auth/session behavior, contracts, payments, public tokens, public inquiry intake, trust scoring, outbound messaging, and provider defaults.
 
 - Email/Resend: Resend client construction is centralized where safe for `server/emailService.ts` and `server/aiChat.ts`, with direct `RESEND_API_KEY` as the production credential path. Contract notification direct Resend paths in `server/routes.ts` are intentionally untouched and should move only in a focused contract/email review PR. Email behavior is guarded by `server/email-credentials.characterization.test.ts`.
+- Auth/OIDC: `server/auth-oidc-boundary.characterization.test.ts` locks the current Replit-backed auth boundary. `server/replitAuth.ts` still owns `setupAuth`, OIDC strategy setup, `/api/login`, `/api/callback`, `/api/logout`, and token refresh. `server/auth/current.ts` still re-exports the active Replit-backed guard, while `server/routes.ts` imports neutral `isAuthenticated` and `getAuthUserId` helpers but still calls `setupAuth` from `server/replitAuth.ts`. This is inventory only; neutral helper files do not mean auth migration is complete.
 - Gemini/AI: GoogleGenAI construction sites are characterized by `server/gemini-client.characterization.test.ts` and documented as intentionally not centralized. The surface spans assistant flows, CDI/trust scoring, schedule parsing, timeline parsing, route-local clients, and contract/payment-adjacent extraction, so broad AI-client sweeps are unsafe.
 - Database URL/session/Drizzle: `server/database-url.characterization.test.ts` locks the current mismatch between runtime DB, session store, and Drizzle tooling. `server/db.ts`, `server/auth/session.ts`, and `drizzle.config.ts` remain intentionally not normalized because changes could affect Neon/Replit behavior, session persistence, migrations, local development, and production database targeting.
 - SMS/Twilio: `server/sms-dependencies.characterization.test.ts` locks the current SMS config, Twilio construction, route-level webhook/send surfaces, and simulator boundaries. SMS is intentionally not refactored because outbound sends, inbound capture, signed webhook validation, simulator/dev behavior, inquiry routing, and SMS-derived trust events can be affected.
 
-Future dependency cleanup should be narrow and test-led. Behavior-guarded cleanup is appropriate only after focused tests exist for the exact surface. Product work can resume on isolated surfaces such as Schedule Draft Builder improvements or Route Target UI, but avoid broad dependency sweeps across AI, SMS, DB/session, contracts, payments, public inquiry intake, public-token access, or trust scoring.
+Future dependency cleanup should be narrow and test-led. Behavior-guarded cleanup is appropriate only after focused tests exist for the exact surface. Product work can resume on isolated surfaces such as Schedule Draft Builder improvements or Route Target UI, but avoid broad dependency sweeps across auth, AI, SMS, DB/session, contracts, payments, public inquiry intake, public-token access, or trust scoring.
 
 ## Frontend Structure
 
@@ -124,7 +125,13 @@ The app has several auth/session models active at once.
 
 ### Replit OIDC
 
-`server/replitAuth.ts` configures OIDC via `openid-client` and Passport. Login starts at `/api/login`, callback is `/api/callback`, and logout is `/api/logout`. The callback URL is derived from the request hostname.
+PR #82 added `server/auth-oidc-boundary.characterization.test.ts` to lock the current Replit-backed auth/OIDC authority boundary. This is inventory, not an auth migration.
+
+`server/replitAuth.ts` configures OIDC via `openid-client` and Passport. It still owns `setupAuth`, Replit OIDC discovery, Passport strategy registration, login at `/api/login`, callback at `/api/callback`, logout at `/api/logout`, and refresh of expired OIDC sessions. The callback URL is derived from the request hostname, and logout uses the Replit OIDC end-session URL with `REPL_ID`.
+
+`server/auth/current.ts` is the active authenticated-route guard facade, but it currently re-exports the Replit-backed `isAuthenticated` guard from `server/replitAuth.ts`. `server/routes.ts` imports `isAuthenticated` from the neutral facade and `getAuthUserId` from `server/auth/identity.ts`, but it still imports and calls `setupAuth` from `server/replitAuth.ts`.
+
+`server/auth/identity.ts` and `server/auth/session.ts` are neutral helper boundaries. `getAuthUserId` prefers `req.session.userId`, falls back to `req.user.claims.sub`, and returns `null` if neither exists. The session middleware remains shared by OIDC and email/password session flows.
 
 Sessions are stored in Postgres using `connect-pg-simple` and the `sessions` table. Session cookies are HTTP-only, one week long, `sameSite: lax`, and `secure` in production.
 
@@ -376,7 +383,7 @@ This section describes the current runtime configuration after the direct-provid
 - Calendar: `getDefaultCalendarProvider()` returns `ReplitCalendarProvider`, which reads Google Calendar credentials from the Replit connector path.
 - Storage: `getDefaultObjectStorageProvider()` defaults to `ReplitObjectStorageProvider`, which depends on the Replit object-storage sidecar. `OBJECT_STORAGE_PROVIDER=direct` opts into `DirectObjectStorageProvider` after direct Google Cloud config validation.
 - Email: `resolveEmailCredentials()` uses direct `RESEND_API_KEY` first. The Replit Resend connector remains only as a non-production legacy fallback.
-- Auth: session helpers and identity helpers are split into neutral modules. Route guards import through the neutral current-auth facade, but login/logout/callback and the concrete Replit-backed guard behavior still live in `server/replitAuth.ts`.
+- Auth: session helpers and identity helpers are split into neutral modules. Route guards import through the neutral current-auth facade, but the facade still re-exports the Replit-backed guard. `setupAuth`, login/logout/callback, OIDC strategy setup, token refresh, and concrete auth provider behavior still live in `server/replitAuth.ts`.
 - Public URLs: `server/config/publicUrl.ts` exists and defaults Briarwood links to `https://atbriarwood.com`, with a separate legacy DateInquiry fallback for behavior-preserving migrations.
 
 ### SMS / Twilio Boundary
@@ -422,7 +429,7 @@ Do not centralize Gemini construction as a broad sweep. Any future cleanup must 
 
 - Calendar: add a direct Google OAuth/provider implementation behind `CalendarProvider` while keeping PR #43 characterization tests green.
 - Storage: roll out `OBJECT_STORAGE_PROVIDER=direct` in a controlled environment while keeping PR #44 characterization tests and direct-provider tests green and preserving ACL behavior.
-- Auth: add the replacement auth provider only after the existing session, identity, and login/OIDC characterization tests cover the migration boundary.
+- Auth: add the replacement auth provider only after the existing session, identity, login/OIDC, and PR #82 auth/OIDC boundary characterization tests cover the migration boundary and a reviewed migration plan exists.
 - Domains: continue replacing DateInquiry/Replit fallbacks through the public URL helper, excluding Square/payment/public-token-sensitive links until their characterization tests are updated.
 
 ### Required Before TestFlight
@@ -434,7 +441,7 @@ Do not centralize Gemini construction as a broad sweep. Any future cleanup must 
 
 ### Do Not Remove Yet
 
-- `server/replitAuth.ts` OIDC behavior, `REPL_ID`, or `ISSUER_URL`.
+- `server/replitAuth.ts` OIDC behavior, `setupAuth`, `/api/login`, `/api/callback`, `/api/logout`, token refresh behavior, `REPL_ID`, or `ISSUER_URL`.
 - Replit Google Calendar connector variables until a direct calendar provider is implemented and tested.
 - Replit object-storage sidecar assumptions until the direct storage provider has been rolled out and verified in production-like infrastructure.
 - DateInquiry/Square callback domains or the remaining AI/Square `REPLIT_DEPLOYMENT_URL` fallback until Square/domain tests are intentionally updated.
@@ -450,7 +457,7 @@ These areas are intentionally outside low-risk provider and metadata cleanup PRs
 - Contract signing, countersign, vault, and tokenized contract links.
 - Public-token links for inquiry threads, client threads, schedule shares, quotes, chat invites, and invitations.
 - Sender/from domains, reply handling, and email deliverability configuration.
-- Auth provider replacement, including OIDC callback behavior and session-cookie semantics.
+- Auth provider replacement, including `setupAuth` ownership, login/callback/logout routes, active `isAuthenticated` guard source, `getAuthUserId` behavior, session-store assumptions, Replit auth env variables, OIDC token refresh, and session-cookie semantics.
 - Storage production provider switch from Replit sidecar to direct object storage.
 - Google Calendar OAuth routes, token schema, token encryption, and provider default switch.
 - Twilio/SMS config normalization, Messaging Service SID adoption, outbound SMS send paths, inbound SMS webhook/signature handling, admin SMS simulator behavior, and SMS-derived trust-event/inquiry-routing behavior.
