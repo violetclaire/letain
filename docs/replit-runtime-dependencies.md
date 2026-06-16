@@ -47,6 +47,7 @@ Characterization tests intentionally include Replit strings to lock current beha
 
 - `server/auth-session.characterization.test.ts`
 - `server/auth-login-oidc.characterization.test.ts`
+- `server/auth-oidc-boundary.characterization.test.ts`
 - `server/calendar-availability.characterization.test.ts`
 - `server/calendar-provider.characterization.test.ts`
 - `server/calendar-direct-provider.contract.test.ts`
@@ -71,9 +72,21 @@ Characterization tests intentionally include Replit strings to lock current beha
 - The Replit Resend connector remains a non-production legacy fallback only.
 - Contract-related direct Resend construction in `server/routes.ts` remains intentionally excluded from the shared factory until contract/email paths are reviewed separately.
 
+## Current Auth Boundary
+
+PR #82 added `server/auth-oidc-boundary.characterization.test.ts` to lock the current auth/OIDC dependency boundary as inventory only.
+
+- `server/replitAuth.ts` still owns `setupAuth`, OIDC discovery, Passport strategy registration, `/api/login`, `/api/callback`, `/api/logout`, and OIDC token refresh.
+- `server/auth/current.ts` is a neutral-looking facade, but it currently re-exports the Replit-backed `isAuthenticated` guard from `server/replitAuth.ts`.
+- `server/routes.ts` imports `isAuthenticated` from `server/auth/current.ts` and `getAuthUserId` from `server/auth/identity.ts`, but still imports and calls `setupAuth` from `server/replitAuth.ts`.
+- `server/auth/identity.ts` prefers `req.session.userId`, then falls back to `req.user.claims.sub`; do not change that precedence casually.
+- `server/auth/session.ts` remains the shared session middleware boundary for OIDC and email/password sessions, with the current `NEON_DATABASE_URL || DATABASE_URL` session-store behavior.
+
+Neutral session, guard, and identity modules do not mean auth provider migration is complete. Do not change `setupAuth`, login/callback/logout routes, active guard source, identity precedence, session-store assumptions, `REPL_ID`, `ISSUER_URL`, or token refresh behavior without a separate reviewed migration plan and focused tests.
+
 ## Do Not Remove Yet
 
-- `server/replitAuth.ts` login/logout/callback behavior.
+- `server/replitAuth.ts` `setupAuth`, login/logout/callback behavior, OIDC token refresh, `REPL_ID`, or `ISSUER_URL`.
 - Replit calendar connector variables while `CALENDAR_PROVIDER` defaults to `replit`.
 - Replit object-storage sidecar while `OBJECT_STORAGE_PROVIDER` defaults to `replit`.
 - The AI/Square `REPLIT_DEPLOYMENT_URL` fallback until Square/domain redirect behavior is migrated under tests.
