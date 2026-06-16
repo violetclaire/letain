@@ -383,15 +383,18 @@ app.use((req, res, next) => {
     // ALWAYS serve the API on the port specified in the environment variable PORT.
     // Other ports may be firewalled. Default to 5000 if not specified.
     const port = parseInt(process.env.PORT || "5000", 10);
-    const host = process.env.DEV_SERVER_HOST?.trim() || "0.0.0.0";
+    const devServerHost = process.env.DEV_SERVER_HOST?.trim();
+    const host = devServerHost || "0.0.0.0";
+    const reusePort = process.env.DEV_SERVER_REUSE_PORT === "true" || !devServerHost;
+    const listenOptions = {
+      port,
+      host,
+      ...(reusePort ? { reusePort: true } : {}),
+    };
     httpServer.listen(
-      {
-        port,
-        host,
-        reusePort: true,
-      },
+      listenOptions,
       () => {
-        log(`serving on ${host}:${port}`);
+        log(`serving on ${host}:${port}${reusePort ? " with reusePort" : ""}`);
         // Start scheduled email job
         startScheduledEmailJob();
         // Start cron jobs (hold-expirer, SLA enforcer)
