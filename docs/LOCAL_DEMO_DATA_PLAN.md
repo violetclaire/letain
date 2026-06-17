@@ -338,6 +338,14 @@ Then update:
 If this creates too much sensitivity for the first seed, skip contracts entirely
 and let Inquiry Workspace show empty contract/payment states.
 
+Implementation note: local/staging databases may have contract table drift from
+the current application schema. The demo seed must inspect available
+`contracts` columns before writing optional contract/payment metadata. If the
+required inert contract columns are missing, the seed should skip the contract
+record cleanly and continue with `schedule_drafts.contract_id = null`. This
+keeps Inquiry Workspace and Schedule Draft Builder viewable without depending on
+contract/signing/payment schema parity.
+
 ## Page Viewing Matrix
 
 | Page | Auth needed | Demo data needed | Expected local result |
@@ -439,3 +447,7 @@ Likely files:
 The implementation PR must not start the server, call routes, run migrations,
 send email/SMS, create payments, create Square links, send contracts, or touch
 public-token behavior.
+
+The seed is allowed to skip optional contract/payment summary metadata when the
+target disposable/staging DB is missing required contract columns. It should
+still seed the schedule draft with no linked contract in that case.

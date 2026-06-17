@@ -56,3 +56,36 @@ test("local demo seed does not import runtime route or delivery modules", () => 
   assert.doesNotMatch(script, /fetch\(|apiRequest|sendInfoSheet|sendSms|createPayment/);
   assert.doesNotMatch(script, /server\/seed/);
 });
+
+test("local demo seed treats contract metadata as optional and schema-aware", () => {
+  assert.match(script, /seedOptionalContractMetadata/);
+  assert.match(script, /information_schema\.columns/);
+  assert.match(script, /requiredContractColumns/);
+  assert.match(script, /Skipping optional contract metadata/);
+  assert.match(script, /return false/);
+});
+
+test("local demo schedule can seed without a linked contract", () => {
+  assert.match(script, /const contractSeeded = await seedOptionalContractMetadata/);
+  assert.match(script, /const scheduleContractId = contractSeeded \? DEMO_CONTRACT_ID : null/);
+  assert.match(script, /convertedToContractId: scheduleContractId/);
+  assert.match(script, /contractId: scheduleContractId/);
+});
+
+test("local demo cleanup targets deterministic demo rows only", () => {
+  for (const cleanupAnchor of [
+    "DEMO_INQUIRY_ID",
+    "DEMO_SCHEDULE_ID",
+    "DEMO_CONTRACT_ID",
+    "DEMO_OPERATOR_ID",
+    "DEMO_CLIENT_ID",
+    "DEMO_PROFILE_ID",
+  ]) {
+    assert.match(script, new RegExp(cleanupAnchor));
+  }
+
+  assert.match(script, /delete\(inquiryRouteCandidates\)\.where\(eq\(inquiryRouteCandidates\.inquiryId, DEMO_INQUIRY_ID\)\)/);
+  assert.match(script, /delete\(scheduleDrafts\)\.where\(eq\(scheduleDrafts\.id, DEMO_SCHEDULE_ID\)\)/);
+  assert.match(script, /delete\(routeTargets\)\.where\(eq\(routeTargets\.operatorId, DEMO_OPERATOR_ID\)\)/);
+  assert.match(script, /delete from contracts where id = \$\{DEMO_CONTRACT_ID\}/);
+});
