@@ -227,6 +227,121 @@ async function seedOptionalContractMetadata(
   return true;
 }
 
+async function seedScheduleDraft(
+  db: { execute: (query: unknown) => Promise<unknown> },
+  sql: typeof import("drizzle-orm").sql,
+  now: Date,
+  scheduleContractId: string | null,
+): Promise<void> {
+  const availableColumns = await getPublicTableColumns(db as any, sql, "schedule_drafts");
+  const requiredScheduleColumns = ["id", "artist_id"];
+  const missingRequiredColumns = requiredScheduleColumns.filter((column) => !availableColumns.has(column));
+
+  if (missingRequiredColumns.length > 0) {
+    throw new Error(
+      `[local-demo-seed] Cannot seed schedule draft; missing columns: ${missingRequiredColumns.join(", ")}`,
+    );
+  }
+
+  const scheduleValues: Array<[string, unknown, "json" | "scalar"]> = [
+    ["id", DEMO_SCHEDULE_ID, "scalar"],
+    ["artist_id", DEMO_OPERATOR_ID, "scalar"],
+    ["inquiry_id", DEMO_INQUIRY_ID, "scalar"],
+    ["contract_id", scheduleContractId, "scalar"],
+    ["title", "Fairmont Demo Wedding Schedule", "scalar"],
+    ["event_date", "2026-10-25", "scalar"],
+    ["location", "Fairmont Demo Ballroom", "scalar"],
+    ["notes", "Local demo only. Review before save.", "scalar"],
+    [
+      "columns",
+      [
+        { id: "time", label: "Time", type: "time" },
+        { id: "primary", label: "Primary Artist Demo", type: "provider" },
+        { id: "hair", label: "Demo Hair Artist", type: "provider" },
+        { id: "makeup", label: "Demo Makeup Artist", type: "provider" },
+        { id: "notes", label: "Notes", type: "text" },
+      ],
+      "json",
+    ],
+    [
+      "rows",
+      [
+        { id: "row-setup", sortOrder: 1, cells: { time: "9:30 AM", primary: "Setup", hair: "Setup", makeup: "Setup", notes: "30 min setup for 3 providers" } },
+        { id: "row-attendant-1", sortOrder: 2, cells: { time: "10:00 AM", primary: "Bridesmaid Makeup", hair: "Bridesmaid Hair", makeup: "Bridesmaid Makeup", notes: "Attendants open the morning" } },
+        { id: "row-mother", sortOrder: 3, cells: { time: "11:30 AM", primary: "Mother Makeup", hair: "Mother Hair", makeup: "", notes: "Mother adjacent to bride" } },
+        { id: "row-bride", sortOrder: 4, cells: { time: "12:00 PM", primary: "Bride Hair + Makeup", hair: "", makeup: "", notes: "Bride anchored midpoint-to-late" } },
+        { id: "row-flower-girl", sortOrder: 5, cells: { time: "1:00 PM", primary: "", hair: "Flower Girl", makeup: "", notes: "Tail-end service" } },
+        { id: "row-touchups", sortOrder: 6, cells: { time: "1:15 PM", primary: "Touch-Ups", hair: "Touch-Ups", makeup: "Touch-Ups", notes: "Ready by 1:20" } },
+      ],
+      "json",
+    ],
+    [
+      "service_defaults",
+      [
+        { id: "bride_hair_makeup", label: "Bride Hair + Makeup", durationMinutes: 120 },
+        { id: "bride_makeup", label: "Bride Makeup", durationMinutes: 60 },
+        { id: "bride_hair", label: "Bride Hair", durationMinutes: 45 },
+        { id: "bridesmaid_makeup", label: "Bridesmaid Makeup", durationMinutes: 30 },
+        { id: "bridesmaid_hair", label: "Bridesmaid Hair", durationMinutes: 45 },
+        { id: "mother_makeup", label: "Mother Makeup", durationMinutes: 30 },
+        { id: "mother_hair", label: "Mother Hair", durationMinutes: 45 },
+        { id: "flower_girl", label: "Flower Girl", durationMinutes: 45 },
+        { id: "touchups", label: "Touch-Ups", durationMinutes: 15 },
+        { id: "setup", label: "Setup", durationMinutes: 15 },
+      ],
+      "json",
+    ],
+    [
+      "providers",
+      [
+        { id: "primary", name: "Primary Artist Demo", capability: "ALL", isPrimary: true },
+        { id: "hair", name: "Demo Hair Artist", capability: "HAIR_ONLY", isPrimary: false },
+        { id: "makeup", name: "Demo Makeup Artist", capability: "MAKEUP_ONLY", isPrimary: false },
+      ],
+      "json",
+    ],
+    [
+      "engine_metadata",
+      {
+        venueAccessTime: "09:30",
+        photographerArrivalTime: "12:45",
+        readyByTime: "13:20",
+        ceremonyTime: "16:00",
+        firstLookTime: "13:30",
+      },
+      "json",
+    ],
+    ["status", "draft", "scalar"],
+    ["updated_at", now, "scalar"],
+  ].filter(([column]) => availableColumns.has(column));
+
+  const insertColumns = scheduleValues.map(([column]) => safeSqlIdentifier(column));
+  const insertValues = scheduleValues.map(([, value, kind]) =>
+    kind === "json" ? sql`${JSON.stringify(value)}::jsonb` : sql`${value}`,
+  );
+  const updateAssignments = scheduleValues
+    .filter(([column]) => column !== "id")
+    .map(([column]) => {
+      const safeColumn = safeSqlIdentifier(column);
+      return sql.raw(`${safeColumn} = excluded.${safeColumn}`);
+    });
+
+  await db.execute(sql`
+    insert into schedule_drafts (${sql.raw(insertColumns.join(", "))})
+    values (${sql.join(insertValues, sql`, `)})
+    on conflict (id) do update set ${sql.join(updateAssignments, sql`, `)}
+  `);
+
+  const omittedOptionalColumns = ["engine_metadata"].filter((column) => !availableColumns.has(column));
+  if (omittedOptionalColumns.length > 0) {
+    console.log(
+      `[local-demo-seed] Seeded schedule draft without unsupported optional columns: ${omittedOptionalColumns.join(", ")}`,
+    );
+  } else {
+    console.log("[local-demo-seed] Seeded schedule draft.");
+  }
+}
+
 async function seedDemoData(password: string): Promise<void> {
   const bcrypt = await import("bcryptjs");
   const { eq, sql } = await import("drizzle-orm");
@@ -239,7 +354,6 @@ async function seedDemoData(password: string): Promise<void> {
     inquiryRouteCandidates,
     inquiryRoutes,
     routeTargets,
-    scheduleDrafts,
     users,
   } = await import("../shared/schema");
 
@@ -540,109 +654,7 @@ async function seedDemoData(password: string): Promise<void> {
     .set({ convertedToContractId: scheduleContractId, updatedAt: now })
     .where(eq(inquiries.id, DEMO_INQUIRY_ID));
 
-  await db.insert(scheduleDrafts).values({
-    id: DEMO_SCHEDULE_ID,
-    artistId: DEMO_OPERATOR_ID,
-    inquiryId: DEMO_INQUIRY_ID,
-    contractId: scheduleContractId,
-    title: "Fairmont Demo Wedding Schedule",
-    eventDate: "2026-10-25",
-    location: "Fairmont Demo Ballroom",
-    notes: "Local demo only. Review before save.",
-    columns: [
-      { id: "time", label: "Time", type: "time" },
-      { id: "primary", label: "Primary Artist Demo", type: "provider" },
-      { id: "hair", label: "Demo Hair Artist", type: "provider" },
-      { id: "makeup", label: "Demo Makeup Artist", type: "provider" },
-      { id: "notes", label: "Notes", type: "text" },
-    ],
-    rows: [
-      { id: "row-setup", sortOrder: 1, cells: { time: "9:30 AM", primary: "Setup", hair: "Setup", makeup: "Setup", notes: "30 min setup for 3 providers" } },
-      { id: "row-attendant-1", sortOrder: 2, cells: { time: "10:00 AM", primary: "Bridesmaid Makeup", hair: "Bridesmaid Hair", makeup: "Bridesmaid Makeup", notes: "Attendants open the morning" } },
-      { id: "row-mother", sortOrder: 3, cells: { time: "11:30 AM", primary: "Mother Makeup", hair: "Mother Hair", makeup: "", notes: "Mother adjacent to bride" } },
-      { id: "row-bride", sortOrder: 4, cells: { time: "12:00 PM", primary: "Bride Hair + Makeup", hair: "", makeup: "", notes: "Bride anchored midpoint-to-late" } },
-      { id: "row-flower-girl", sortOrder: 5, cells: { time: "1:00 PM", primary: "", hair: "Flower Girl", makeup: "", notes: "Tail-end service" } },
-      { id: "row-touchups", sortOrder: 6, cells: { time: "1:15 PM", primary: "Touch-Ups", hair: "Touch-Ups", makeup: "Touch-Ups", notes: "Ready by 1:20" } },
-    ],
-    serviceDefaults: [
-      { id: "bride_hair_makeup", label: "Bride Hair + Makeup", durationMinutes: 120 },
-      { id: "bride_makeup", label: "Bride Makeup", durationMinutes: 60 },
-      { id: "bride_hair", label: "Bride Hair", durationMinutes: 45 },
-      { id: "bridesmaid_makeup", label: "Bridesmaid Makeup", durationMinutes: 30 },
-      { id: "bridesmaid_hair", label: "Bridesmaid Hair", durationMinutes: 45 },
-      { id: "mother_makeup", label: "Mother Makeup", durationMinutes: 30 },
-      { id: "mother_hair", label: "Mother Hair", durationMinutes: 45 },
-      { id: "flower_girl", label: "Flower Girl", durationMinutes: 45 },
-      { id: "touchups", label: "Touch-Ups", durationMinutes: 15 },
-      { id: "setup", label: "Setup", durationMinutes: 15 },
-    ],
-    providers: [
-      { id: "primary", name: "Primary Artist Demo", capability: "ALL", isPrimary: true },
-      { id: "hair", name: "Demo Hair Artist", capability: "HAIR_ONLY", isPrimary: false },
-      { id: "makeup", name: "Demo Makeup Artist", capability: "MAKEUP_ONLY", isPrimary: false },
-    ],
-    engineMetadata: {
-      venueAccessTime: "09:30",
-      photographerArrivalTime: "12:45",
-      readyByTime: "13:20",
-      ceremonyTime: "16:00",
-      firstLookTime: "13:30",
-    },
-    status: "draft",
-    updatedAt: now,
-  }).onConflictDoUpdate({
-    target: scheduleDrafts.id,
-    set: {
-      artistId: DEMO_OPERATOR_ID,
-      inquiryId: DEMO_INQUIRY_ID,
-      contractId: scheduleContractId,
-      title: "Fairmont Demo Wedding Schedule",
-      eventDate: "2026-10-25",
-      location: "Fairmont Demo Ballroom",
-      notes: "Local demo only. Review before save.",
-      columns: [
-        { id: "time", label: "Time", type: "time" },
-        { id: "primary", label: "Primary Artist Demo", type: "provider" },
-        { id: "hair", label: "Demo Hair Artist", type: "provider" },
-        { id: "makeup", label: "Demo Makeup Artist", type: "provider" },
-        { id: "notes", label: "Notes", type: "text" },
-      ],
-      rows: [
-        { id: "row-setup", sortOrder: 1, cells: { time: "9:30 AM", primary: "Setup", hair: "Setup", makeup: "Setup", notes: "30 min setup for 3 providers" } },
-        { id: "row-attendant-1", sortOrder: 2, cells: { time: "10:00 AM", primary: "Bridesmaid Makeup", hair: "Bridesmaid Hair", makeup: "Bridesmaid Makeup", notes: "Attendants open the morning" } },
-        { id: "row-mother", sortOrder: 3, cells: { time: "11:30 AM", primary: "Mother Makeup", hair: "Mother Hair", makeup: "", notes: "Mother adjacent to bride" } },
-        { id: "row-bride", sortOrder: 4, cells: { time: "12:00 PM", primary: "Bride Hair + Makeup", hair: "", makeup: "", notes: "Bride anchored midpoint-to-late" } },
-        { id: "row-flower-girl", sortOrder: 5, cells: { time: "1:00 PM", primary: "", hair: "Flower Girl", makeup: "", notes: "Tail-end service" } },
-        { id: "row-touchups", sortOrder: 6, cells: { time: "1:15 PM", primary: "Touch-Ups", hair: "Touch-Ups", makeup: "Touch-Ups", notes: "Ready by 1:20" } },
-      ],
-      serviceDefaults: [
-        { id: "bride_hair_makeup", label: "Bride Hair + Makeup", durationMinutes: 120 },
-        { id: "bride_makeup", label: "Bride Makeup", durationMinutes: 60 },
-        { id: "bride_hair", label: "Bride Hair", durationMinutes: 45 },
-        { id: "bridesmaid_makeup", label: "Bridesmaid Makeup", durationMinutes: 30 },
-        { id: "bridesmaid_hair", label: "Bridesmaid Hair", durationMinutes: 45 },
-        { id: "mother_makeup", label: "Mother Makeup", durationMinutes: 30 },
-        { id: "mother_hair", label: "Mother Hair", durationMinutes: 45 },
-        { id: "flower_girl", label: "Flower Girl", durationMinutes: 45 },
-        { id: "touchups", label: "Touch-Ups", durationMinutes: 15 },
-        { id: "setup", label: "Setup", durationMinutes: 15 },
-      ],
-      providers: [
-        { id: "primary", name: "Primary Artist Demo", capability: "ALL", isPrimary: true },
-        { id: "hair", name: "Demo Hair Artist", capability: "HAIR_ONLY", isPrimary: false },
-        { id: "makeup", name: "Demo Makeup Artist", capability: "MAKEUP_ONLY", isPrimary: false },
-      ],
-      engineMetadata: {
-        venueAccessTime: "09:30",
-        photographerArrivalTime: "12:45",
-        readyByTime: "13:20",
-        ceremonyTime: "16:00",
-        firstLookTime: "13:30",
-      },
-      status: "draft",
-      updatedAt: now,
-    },
-  });
+  await seedScheduleDraft(db as any, sql, now, scheduleContractId);
 
   console.log("[local-demo-seed] Seeded local demo data.");
   console.log("[local-demo-seed] Login email: operator.demo@briarwood.test");
