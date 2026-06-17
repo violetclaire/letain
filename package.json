@@ -7,6 +7,7 @@
     "dev": "npm run dev:server",
     "dev:server": "tsx script/dev-server.ts",
     "dev:client": "vite dev --port 5173",
+    "seed:local-demo": "tsx scripts/seed-local-demo.ts",
     "build": "tsx script/build.ts",
     "start": "NODE_ENV=production node dist/index.cjs",
     "check": "tsc",

@@ -359,10 +359,11 @@ The eventual seed command should refuse to run unless all gates pass:
 
 1. `ALLOW_LOCAL_DEMO_SEED=true`.
 2. `NODE_ENV !== "production"`.
-3. `PUBLIC_BASE_URL` starts with `http://localhost:`.
-4. `NEON_DATABASE_URL` or `DATABASE_URL` is present and parses.
-5. The target DB host/name is not a known production host/name.
-6. No production send/payment credentials are present:
+3. `LOCAL_DEMO_DB_CONFIRM=disposable`.
+4. `PUBLIC_BASE_URL=http://localhost:5173`.
+5. `NEON_DATABASE_URL` or `DATABASE_URL` is present and parses.
+6. The target DB host/name is not a known production host/name.
+7. No production send/payment credentials are present:
    - `RESEND_API_KEY`
    - `TWILIO_ACCOUNT_SID`
    - `TWILIO_AUTH_TOKEN`
@@ -371,11 +372,10 @@ The eventual seed command should refuse to run unless all gates pass:
    - `SQUARE_ACCESS_TOKEN`
    - `SQUARE_APPLICATION_ID`
    - `SQUARE_APPLICATION_SECRET`
-7. `DEMO_OPERATOR_PASSWORD` is present, or the command explicitly prints a
-   local-only generated password once to the terminal.
-8. The command confirms `server/seed.ts` is not being run.
-9. The command uses deterministic IDs and upserts, not blind inserts.
-10. The command does not call HTTP routes. It writes rows directly through a
+8. `DEMO_OPERATOR_PASSWORD` is present for seed runs.
+9. The command confirms `server/seed.ts` is not being run.
+10. The command uses deterministic IDs and upserts, not blind inserts.
+11. The command does not call HTTP routes. It writes rows directly through a
     reviewed script so no sends, webhooks, payments, or product actions fire.
 
 ## Proposed Future Commands
@@ -385,8 +385,9 @@ Implementation should be a separate PR. Suggested commands:
 ```powershell
 # Seed or update the local demo data.
 $env:ALLOW_LOCAL_DEMO_SEED = "true"
+$env:LOCAL_DEMO_DB_CONFIRM = "disposable"
 $env:DEMO_OPERATOR_PASSWORD = "<local-only-password>"
-npx.cmd tsx scripts/seed-local-demo.ts
+npm run seed:local-demo
 ```
 
 Optional cleanup command:
@@ -394,8 +395,9 @@ Optional cleanup command:
 ```powershell
 # Remove only deterministic demo rows, in reverse dependency order.
 $env:ALLOW_LOCAL_DEMO_SEED = "true"
+$env:LOCAL_DEMO_DB_CONFIRM = "disposable"
 $env:DEMO_SEED_ACTION = "cleanup"
-npx.cmd tsx scripts/seed-local-demo.ts
+npm run seed:local-demo
 ```
 
 The safest cleanup remains deleting and recreating the disposable Neon branch or
@@ -431,7 +433,7 @@ The next implementation PR should add a new script, not use `server/seed.ts`.
 Likely files:
 
 - `scripts/seed-local-demo.ts`
-- `package.json` only if adding a script such as `seed:local-demo`
+- `package.json` for `npm run seed:local-demo`
 - docs update to this file with the exact approved command
 
 The implementation PR must not start the server, call routes, run migrations,
