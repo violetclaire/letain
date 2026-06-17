@@ -90,6 +90,11 @@ function cleanDatabaseUrl(url: string): string {
   return url.replace(/^psql\s*/, "").replace(/^['"\s]+/, "").replace(/['"\s]+$/, "").trim();
 }
 
+function safeSqlIdentifier(identifier: string): string {
+  requireGate(/^[a-z_][a-z0-9_]*$/.test(identifier), `Unsafe SQL identifier: ${identifier}`);
+  return identifier;
+}
+
 function getDemoDatabaseUrl(): URL {
   const raw = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL || "";
   requireGate(raw, "NEON_DATABASE_URL or DATABASE_URL is required.");
@@ -141,13 +146,93 @@ function assertSafetyGates(): { dbUrl: URL; password: string; action: "seed" | "
   return { dbUrl: getDemoDatabaseUrl(), password, action };
 }
 
+async function getPublicTableColumns(
+  db: { execute: (query: unknown) => Promise<{ rows: Array<{ column_name: string }> }> },
+  sql: typeof import("drizzle-orm").sql,
+  tableName: string,
+): Promise<Set<string>> {
+  const result = await db.execute(sql`
+    select column_name
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = ${tableName}
+  `);
+  return new Set(result.rows.map((row) => row.column_name));
+}
+
+async function seedOptionalContractMetadata(
+  db: { execute: (query: unknown) => Promise<unknown> },
+  sql: typeof import("drizzle-orm").sql,
+  now: Date,
+): Promise<boolean> {
+  const availableColumns = await getPublicTableColumns(db as any, sql, "contracts");
+  const requiredContractColumns = [
+    "id",
+    "inquiry_id",
+    "artist_id",
+    "client_id",
+    "package_details",
+    "total_amount",
+    "status",
+  ];
+  const missingRequiredColumns = requiredContractColumns.filter((column) => !availableColumns.has(column));
+
+  if (missingRequiredColumns.length > 0) {
+    console.log(
+      `[local-demo-seed] Skipping optional contract metadata; missing columns: ${missingRequiredColumns.join(", ")}`,
+    );
+    return false;
+  }
+
+  const contractValues: Array<[string, unknown]> = [
+    ["id", DEMO_CONTRACT_ID],
+    ["inquiry_id", DEMO_INQUIRY_ID],
+    ["artist_id", DEMO_OPERATOR_ID],
+    ["client_id", DEMO_CLIENT_ID],
+    ["package_details", "Demo bridal beauty package"],
+    ["total_amount", 185000],
+    ["status", "draft"],
+    ["deposit_amount", 92500],
+    ["remaining_amount", 92500],
+    ["event_dates", "2026-10-25"],
+    ["event_location", "Fairmont Demo Ballroom"],
+    ["client_name", "Maya Demo"],
+    ["client_contact", "maya.demo@example.test"],
+    ["contract_source", "local_demo_metadata"],
+    ["contract_notes", "Local demo only. No signing link generated."],
+    ["payment_status", "payment_not_requested"],
+    ["amount_paid", 0],
+    ["payment_due_date", "Demo only"],
+    ["payment_link", null],
+    ["payment_notes", "No payment action is available in this demo seed."],
+    ["updated_at", now],
+  ].filter(([column]) => availableColumns.has(column));
+
+  const insertColumns = contractValues.map(([column]) => safeSqlIdentifier(column));
+  const insertValues = contractValues.map(([, value]) => sql`${value}`);
+  const updateAssignments = contractValues
+    .filter(([column]) => column !== "id")
+    .map(([column]) => {
+      const safeColumn = safeSqlIdentifier(column);
+      return sql.raw(`${safeColumn} = excluded.${safeColumn}`);
+    });
+
+  await db.execute(sql`
+    insert into contracts (${sql.raw(insertColumns.join(", "))})
+    values (${sql.join(insertValues, sql`, `)})
+    on conflict (id) do update set ${sql.join(updateAssignments, sql`, `)}
+  `);
+
+  console.log("[local-demo-seed] Seeded optional contract/payment summary metadata.");
+  return true;
+}
+
 async function seedDemoData(password: string): Promise<void> {
   const bcrypt = await import("bcryptjs");
-  const { eq } = await import("drizzle-orm");
+  const { eq, sql } = await import("drizzle-orm");
   const { db } = await import("../server/db");
   const {
     artistProfiles,
-    contracts,
     inquiries,
     inquiryInternalNotes,
     inquiryResponses,
@@ -448,71 +533,18 @@ async function seedDemoData(password: string): Promise<void> {
     },
   });
 
-  await db.insert(contracts).values({
-    id: DEMO_CONTRACT_ID,
-    inquiryId: DEMO_INQUIRY_ID,
-    artistId: DEMO_OPERATOR_ID,
-    clientId: DEMO_CLIENT_ID,
-    packageDetails: "Demo bridal beauty package",
-    totalAmount: 185000,
-    depositAmount: 92500,
-    remainingAmount: 92500,
-    status: "draft",
-    serviceItems: [
-      { clientType: "Bride", qty: 1, service: "Hair + Makeup", price: 60000, total: 60000 },
-      { clientType: "Attendant", qty: 6, service: "Hair or Makeup", price: 20000, total: 120000 },
-    ],
-    eventDates: "2026-10-25",
-    eventLocation: "Fairmont Demo Ballroom",
-    clientName: "Maya Demo",
-    clientContact: "maya.demo@example.test",
-    contractSource: "local_demo_metadata",
-    contractNotes: "Local demo only. No signing link generated.",
-    paymentStatus: "payment_not_requested",
-    amountPaid: 0,
-    paymentDueDate: "Demo only",
-    paymentLink: null,
-    paymentNotes: "No payment action is available in this demo seed.",
-    updatedAt: now,
-  }).onConflictDoUpdate({
-    target: contracts.id,
-    set: {
-      inquiryId: DEMO_INQUIRY_ID,
-      artistId: DEMO_OPERATOR_ID,
-      clientId: DEMO_CLIENT_ID,
-      packageDetails: "Demo bridal beauty package",
-      totalAmount: 185000,
-      depositAmount: 92500,
-      remainingAmount: 92500,
-      status: "draft",
-      serviceItems: [
-        { clientType: "Bride", qty: 1, service: "Hair + Makeup", price: 60000, total: 60000 },
-        { clientType: "Attendant", qty: 6, service: "Hair or Makeup", price: 20000, total: 120000 },
-      ],
-      eventDates: "2026-10-25",
-      eventLocation: "Fairmont Demo Ballroom",
-      clientName: "Maya Demo",
-      clientContact: "maya.demo@example.test",
-      contractSource: "local_demo_metadata",
-      contractNotes: "Local demo only. No signing link generated.",
-      paymentStatus: "payment_not_requested",
-      amountPaid: 0,
-      paymentDueDate: "Demo only",
-      paymentLink: null,
-      paymentNotes: "No payment action is available in this demo seed.",
-      updatedAt: now,
-    },
-  });
+  const contractSeeded = await seedOptionalContractMetadata(db as any, sql, now);
+  const scheduleContractId = contractSeeded ? DEMO_CONTRACT_ID : null;
 
   await db.update(inquiries)
-    .set({ convertedToContractId: DEMO_CONTRACT_ID, updatedAt: now })
+    .set({ convertedToContractId: scheduleContractId, updatedAt: now })
     .where(eq(inquiries.id, DEMO_INQUIRY_ID));
 
   await db.insert(scheduleDrafts).values({
     id: DEMO_SCHEDULE_ID,
     artistId: DEMO_OPERATOR_ID,
     inquiryId: DEMO_INQUIRY_ID,
-    contractId: DEMO_CONTRACT_ID,
+    contractId: scheduleContractId,
     title: "Fairmont Demo Wedding Schedule",
     eventDate: "2026-10-25",
     location: "Fairmont Demo Ballroom",
@@ -563,7 +595,7 @@ async function seedDemoData(password: string): Promise<void> {
     set: {
       artistId: DEMO_OPERATOR_ID,
       inquiryId: DEMO_INQUIRY_ID,
-      contractId: DEMO_CONTRACT_ID,
+      contractId: scheduleContractId,
       title: "Fairmont Demo Wedding Schedule",
       eventDate: "2026-10-25",
       location: "Fairmont Demo Ballroom",
@@ -620,11 +652,10 @@ async function seedDemoData(password: string): Promise<void> {
 }
 
 async function cleanupDemoData(): Promise<void> {
-  const { eq } = await import("drizzle-orm");
+  const { eq, sql } = await import("drizzle-orm");
   const { db } = await import("../server/db");
   const {
     artistProfiles,
-    contracts,
     inquiries,
     inquiryInternalNotes,
     inquiryResponses,
@@ -644,7 +675,7 @@ async function cleanupDemoData(): Promise<void> {
   await db.delete(inquiryResponses).where(eq(inquiryResponses.inquiryId, DEMO_INQUIRY_ID));
   await db.delete(inquiryRoutes).where(eq(inquiryRoutes.inquiryId, DEMO_INQUIRY_ID));
   await db.delete(scheduleDrafts).where(eq(scheduleDrafts.id, DEMO_SCHEDULE_ID));
-  await db.delete(contracts).where(eq(contracts.id, DEMO_CONTRACT_ID));
+  await db.execute(sql`delete from contracts where id = ${DEMO_CONTRACT_ID}`);
   await db.delete(routeTargets).where(eq(routeTargets.operatorId, DEMO_OPERATOR_ID));
   await db.delete(inquiries).where(eq(inquiries.id, DEMO_INQUIRY_ID));
   await db.delete(artistProfiles).where(eq(artistProfiles.id, DEMO_PROFILE_ID));
