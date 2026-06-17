@@ -69,7 +69,18 @@ test("local demo schedule can seed without a linked contract", () => {
   assert.match(script, /const contractSeeded = await seedOptionalContractMetadata/);
   assert.match(script, /const scheduleContractId = contractSeeded \? DEMO_CONTRACT_ID : null/);
   assert.match(script, /convertedToContractId: scheduleContractId/);
-  assert.match(script, /contractId: scheduleContractId/);
+  assert.match(script, /"contract_id", scheduleContractId/);
+});
+
+test("local demo schedule draft insert is schema-aware and treats engine metadata as optional", () => {
+  assert.match(script, /async function seedScheduleDraft/);
+  assert.match(script, /getPublicTableColumns\(db as any, sql, "schedule_drafts"\)/);
+  assert.match(script, /requiredScheduleColumns/);
+  assert.match(script, /"engine_metadata"/);
+  assert.match(script, /omittedOptionalColumns/);
+  assert.match(script, /Seeded schedule draft without unsupported optional columns/);
+  assert.match(script, /await seedScheduleDraft\(db as any, sql, now, scheduleContractId\)/);
+  assert.doesNotMatch(script, /db\.insert\(scheduleDrafts\)\.values/);
 });
 
 test("local demo cleanup targets deterministic demo rows only", () => {

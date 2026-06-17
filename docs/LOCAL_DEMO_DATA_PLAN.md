@@ -289,6 +289,13 @@ Proposed deterministic record:
   bridesmaid, mother, bride, flower girl, and touch-up rows. No public share
   token and no send state.
 
+Implementation note: local/staging databases may also have schedule draft table
+drift from the current application schema. The demo seed must inspect available
+`schedule_drafts` columns before writing the local schedule. If optional columns
+such as `engine_metadata` are missing, the seed should omit those fields and
+still write the minimum compatible `demo-schedule-fairmont` draft. Cleanup must
+continue to target only the deterministic `demo-schedule-fairmont` ID.
+
 ### Contract / Payment Status Metadata
 
 Table:
