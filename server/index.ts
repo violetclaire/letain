@@ -62,6 +62,19 @@ async function ensureDatabaseSchema() {
     { name: 'inbound_sms_messages.match_confidence', sql: sql`ALTER TABLE inbound_sms_messages ADD COLUMN IF NOT EXISTS match_confidence integer` },
     { name: 'inbound_sms_messages.suggested_matches', sql: sql`ALTER TABLE inbound_sms_messages ADD COLUMN IF NOT EXISTS suggested_matches jsonb` },
 
+    // --- Square OAuth state storage (additive, optional Square setup support) ---
+    { name: 'oauth_states.table', sql: sql`CREATE TABLE IF NOT EXISTS oauth_states (
+      id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+      state varchar UNIQUE NOT NULL,
+      user_id varchar NOT NULL,
+      artist_slug text,
+      return_base_url text,
+      callback_url text,
+      provider text NOT NULL DEFAULT 'square',
+      expires_at timestamp NOT NULL,
+      created_at timestamp NOT NULL DEFAULT now()
+    )` },
+
     // --- Contract Vault: operator-managed metadata (additive only) ---
     { name: 'contracts.contract_url', sql: sql`ALTER TABLE contracts ADD COLUMN IF NOT EXISTS contract_url text` },
     { name: 'contracts.contract_source', sql: sql`ALTER TABLE contracts ADD COLUMN IF NOT EXISTS contract_source text` },
