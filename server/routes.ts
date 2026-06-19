@@ -13,11 +13,13 @@ import { registerSquareRoutes } from "./squareRoutes";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import { GoogleGenAI, Modality } from "@google/genai";
+import { coordinationRiskFactorValues } from "@shared/schema";
 import * as smsService from "./smsService";
 import { processInboundSms } from "./inboundProcessor";
 import * as iqsService from "./iqsService";
 import { logActivity, getRecentActivity, getTodayActivity } from "./activityService";
 import { calculateCDI, runSampleCalculations, CDIInput, SAMPLE_TRANSACTIONS } from "./cdiService";
+import { assessCoordinationPath } from "./coordinationAssessment";
 
 // Rate limiter for auth endpoints to prevent brute force attacks
 const authLimiter = rateLimit({
@@ -45,6 +47,35 @@ const signupSchema = z.object({
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(1, "Password is required"),
+});
+
+const coordinationPathCreateSchema = z.object({
+  routeTargetId: z.string().optional().nullable(),
+  candidateRouteId: z.string().optional().nullable(),
+  contextCaptured: z.boolean().optional(),
+  timingConstraints: z.record(z.unknown()).optional(),
+  authorityState: z.string().optional(),
+  availabilityState: z.string().optional(),
+  handoffState: z.string().optional(),
+  escalationState: z.string().optional(),
+  recoveryCapacity: z.string().optional(),
+  commitmentState: z.string().optional(),
+  outcomeVerificationState: z.string().optional(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+const coordinationPathUpdateSchema = coordinationPathCreateSchema.extend({
+  status: z.string().optional(),
+  pathRisk: z.array(z.enum(coordinationRiskFactorValues)).optional(),
+  signalProvenance: z.array(z.string()).optional(),
+}).partial();
+
+const coordinationEventCreateSchema = z.object({
+  eventType: z.string().min(1),
+  eventSource: z.string().optional(),
+  summary: z.string().min(1),
+  signalProvenance: z.array(z.string()).optional(),
+  metadata: z.record(z.unknown()).optional(),
 });
 
 const ai = new GoogleGenAI({
@@ -1952,6 +1983,184 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.deleteDraftRouteCandidate(context.userId, context.inquiry.id, req.params.routeTargetId);
       res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  const loadCoordinationPathContext = async (req: Request, res: Response) => {
+    const userId = getAuthUserId(req);
+    if (!userId) {
+      res.status(401).json({ error: "Not authenticated" });
+      return null;
+    }
+
+    const user = await storage.getUser(userId);
+    if (!user || user.role !== "artist") {
+      res.status(403).json({ error: "Operator access required" });
+      return null;
+    }
+
+    const path = await storage.getCoordinationPath(req.params.pathId);
+    if (!path) {
+      res.status(404).json({ error: "Coordination path not found" });
+      return null;
+    }
+
+    if (path.operatorId !== userId) {
+      res.status(403).json({ error: "Access denied" });
+      return null;
+    }
+
+    const inquiry = await storage.getInquiry(path.inquiryId);
+    if (!inquiry || inquiry.vendorId !== userId) {
+      res.status(403).json({ error: "Access denied" });
+      return null;
+    }
+
+    return { userId, path, inquiry };
+  };
+
+  // --- Coordination permission engine: inquiry-rooted internal path state ---
+  app.get("/api/inquiries/:id/coordination-paths", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const context = await loadDraftCandidateContext(req, res);
+      if (!context) return;
+
+      const paths = await storage.listCoordinationPathsByInquiry(context.userId, context.inquiry.id);
+      const latestAssessments = await Promise.all(
+        paths.map((path) => storage.getLatestCoordinationAssessment(path.id)),
+      );
+
+      res.json({
+        paths: paths.map((path, index) => ({
+          path,
+          latestAssessment: latestAssessments[index] ?? null,
+        })),
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/inquiries/:id/coordination-paths", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const context = await loadDraftCandidateContext(req, res);
+      if (!context) return;
+
+      const parsed = coordinationPathCreateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0]?.message || "Invalid coordination path" });
+      }
+
+      if (parsed.data.routeTargetId) {
+        const target = await storage.getRouteTarget(parsed.data.routeTargetId);
+        if (!target || target.operatorId !== context.userId) {
+          return res.status(400).json({ error: "Invalid route target" });
+        }
+      }
+
+      const path = await storage.createCoordinationPath({
+        ...parsed.data,
+        operatorId: context.userId,
+        inquiryId: context.inquiry.id,
+      });
+
+      await storage.createCoordinationEvent({
+        pathId: path.id,
+        operatorId: context.userId,
+        inquiryId: context.inquiry.id,
+        eventType: "path_created",
+        eventSource: "system",
+        summary: "Coordination path created from inquiry.",
+        signalProvenance: [`inquiry:${context.inquiry.id}`],
+        metadata: {},
+      });
+
+      res.json({ path });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/coordination-paths/:pathId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const context = await loadCoordinationPathContext(req, res);
+      if (!context) return;
+
+      const [events, latestAssessment] = await Promise.all([
+        storage.listCoordinationEvents(context.path.id),
+        storage.getLatestCoordinationAssessment(context.path.id),
+      ]);
+
+      res.json({
+        path: context.path,
+        inquiry: context.inquiry,
+        events,
+        latestAssessment: latestAssessment ?? null,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/coordination-paths/:pathId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const context = await loadCoordinationPathContext(req, res);
+      if (!context) return;
+
+      const parsed = coordinationPathUpdateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0]?.message || "Invalid coordination path update" });
+      }
+
+      if (parsed.data.routeTargetId) {
+        const target = await storage.getRouteTarget(parsed.data.routeTargetId);
+        if (!target || target.operatorId !== context.userId) {
+          return res.status(400).json({ error: "Invalid route target" });
+        }
+      }
+
+      const path = await storage.updateCoordinationPath(context.path.id, parsed.data as any);
+      res.json({ path });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/coordination-paths/:pathId/events", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const context = await loadCoordinationPathContext(req, res);
+      if (!context) return;
+
+      const parsed = coordinationEventCreateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0]?.message || "Invalid coordination event" });
+      }
+
+      const event = await storage.createCoordinationEvent({
+        ...parsed.data,
+        pathId: context.path.id,
+        operatorId: context.userId,
+        inquiryId: context.inquiry.id,
+        eventSource: parsed.data.eventSource ?? "manual",
+        signalProvenance: parsed.data.signalProvenance ?? [`coordination_path:${context.path.id}`],
+        metadata: parsed.data.metadata ?? {},
+      });
+
+      res.json({ event });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/coordination-paths/:pathId/assess", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const context = await loadCoordinationPathContext(req, res);
+      if (!context) return;
+
+      const assessment = await assessCoordinationPath(context.path.id);
+      res.json({ assessment });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
