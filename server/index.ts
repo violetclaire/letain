@@ -150,6 +150,69 @@ async function ensureDatabaseSchema() {
     )` },
     { name: 'inquiry_route_candidates.unique', sql: sql`CREATE UNIQUE INDEX IF NOT EXISTS inquiry_route_candidates_operator_inquiry_target_unique
       ON inquiry_route_candidates (operator_id, inquiry_id, route_target_id)` },
+    { name: 'coordination_paths.table', sql: sql`CREATE TABLE IF NOT EXISTS coordination_paths (
+      id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+      operator_id varchar NOT NULL,
+      inquiry_id varchar NOT NULL,
+      route_target_id varchar,
+      candidate_route_id varchar,
+      status text NOT NULL DEFAULT 'active',
+      context_captured boolean NOT NULL DEFAULT false,
+      timing_constraints jsonb DEFAULT '{}'::jsonb,
+      authority_state text NOT NULL DEFAULT 'unclear',
+      availability_state text NOT NULL DEFAULT 'unknown',
+      handoff_state text NOT NULL DEFAULT 'not_started',
+      escalation_state text NOT NULL DEFAULT 'none',
+      recovery_capacity text NOT NULL DEFAULT 'unknown',
+      commitment_state text NOT NULL DEFAULT 'uncommitted',
+      outcome_verification_state text NOT NULL DEFAULT 'not_ready',
+      path_risk jsonb DEFAULT '[]'::jsonb,
+      signal_provenance jsonb DEFAULT '[]'::jsonb,
+      metadata jsonb DEFAULT '{}'::jsonb,
+      created_at timestamp NOT NULL DEFAULT now(),
+      updated_at timestamp DEFAULT now()
+    )` },
+    { name: 'coordination_paths.operator_inquiry_idx', sql: sql`CREATE INDEX IF NOT EXISTS coordination_paths_operator_inquiry_idx
+      ON coordination_paths (operator_id, inquiry_id)` },
+    { name: 'coordination_paths.route_target_idx', sql: sql`CREATE INDEX IF NOT EXISTS coordination_paths_route_target_idx
+      ON coordination_paths (route_target_id)` },
+    { name: 'coordination_events.table', sql: sql`CREATE TABLE IF NOT EXISTS coordination_events (
+      id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+      path_id varchar NOT NULL,
+      operator_id varchar NOT NULL,
+      inquiry_id varchar NOT NULL,
+      event_type text NOT NULL,
+      event_source text NOT NULL DEFAULT 'manual',
+      summary text NOT NULL,
+      signal_provenance jsonb DEFAULT '[]'::jsonb,
+      metadata jsonb DEFAULT '{}'::jsonb,
+      created_at timestamp NOT NULL DEFAULT now()
+    )` },
+    { name: 'coordination_events.path_idx', sql: sql`CREATE INDEX IF NOT EXISTS coordination_events_path_idx
+      ON coordination_events (path_id)` },
+    { name: 'coordination_events.operator_inquiry_idx', sql: sql`CREATE INDEX IF NOT EXISTS coordination_events_operator_inquiry_idx
+      ON coordination_events (operator_id, inquiry_id)` },
+    { name: 'coordination_assessments.table', sql: sql`CREATE TABLE IF NOT EXISTS coordination_assessments (
+      id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+      path_id varchar NOT NULL,
+      operator_id varchar NOT NULL,
+      inquiry_id varchar NOT NULL,
+      permission_decision text NOT NULL,
+      confidence integer NOT NULL,
+      risk_factors jsonb DEFAULT '[]'::jsonb,
+      missing_signals jsonb DEFAULT '[]'::jsonb,
+      recommended_next_action text NOT NULL,
+      explanation text NOT NULL,
+      signal_provenance jsonb DEFAULT '[]'::jsonb,
+      human_judgment_required boolean NOT NULL DEFAULT false,
+      escalation_reasons jsonb DEFAULT '[]'::jsonb,
+      outcome_verification text NOT NULL DEFAULT 'NOT_READY',
+      created_at timestamp NOT NULL DEFAULT now()
+    )` },
+    { name: 'coordination_assessments.path_idx', sql: sql`CREATE INDEX IF NOT EXISTS coordination_assessments_path_idx
+      ON coordination_assessments (path_id)` },
+    { name: 'coordination_assessments.operator_inquiry_idx', sql: sql`CREATE INDEX IF NOT EXISTS coordination_assessments_operator_inquiry_idx
+      ON coordination_assessments (operator_id, inquiry_id)` },
     { name: 'inquiry_internal_notes.table', sql: sql`CREATE TABLE IF NOT EXISTS inquiry_internal_notes (
       id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
       operator_id varchar NOT NULL,

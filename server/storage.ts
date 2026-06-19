@@ -143,6 +143,15 @@ import {
   inquiryRouteCandidates,
   type InquiryRouteCandidate,
   type InsertInquiryRouteCandidate,
+  coordinationPaths,
+  type CoordinationPath,
+  type InsertCoordinationPath,
+  coordinationEvents,
+  type CoordinationEvent,
+  type InsertCoordinationEvent,
+  coordinationAssessments,
+  type CoordinationAssessmentRecord,
+  type InsertCoordinationAssessment,
   inquiryInternalNotes,
   type InquiryInternalNote,
   inquiryResponses,
@@ -490,6 +499,15 @@ export interface IStorage {
     metadata?: Partial<Pick<InsertInquiryRouteCandidate, "matchScore" | "matchReasons" | "matchedCapabilities" | "matchedTags">>,
   ): Promise<InquiryRouteCandidate>;
   deleteDraftRouteCandidate(operatorId: string, inquiryId: string, routeTargetId: string): Promise<void>;
+  // Coordination permission engine: inquiry-rooted path state, not person score state
+  createCoordinationPath(data: InsertCoordinationPath): Promise<CoordinationPath>;
+  getCoordinationPath(id: string): Promise<CoordinationPath | undefined>;
+  listCoordinationPathsByInquiry(operatorId: string, inquiryId: string): Promise<CoordinationPath[]>;
+  updateCoordinationPath(id: string, updates: Partial<CoordinationPath>): Promise<CoordinationPath | undefined>;
+  createCoordinationEvent(data: InsertCoordinationEvent): Promise<CoordinationEvent>;
+  listCoordinationEvents(pathId: string): Promise<CoordinationEvent[]>;
+  createCoordinationAssessment(data: InsertCoordinationAssessment): Promise<CoordinationAssessmentRecord>;
+  getLatestCoordinationAssessment(pathId: string): Promise<CoordinationAssessmentRecord | undefined>;
   // Inquiry Workspace: private operator-only inquiry notes
   getInquiryInternalNote(operatorId: string, inquiryId: string): Promise<InquiryInternalNote | undefined>;
   upsertInquiryInternalNote(operatorId: string, inquiryId: string, body: string): Promise<InquiryInternalNote>;
@@ -2778,6 +2796,59 @@ export class DatabaseStorage implements IStorage {
         eq(inquiryRouteCandidates.routeTargetId, routeTargetId),
         eq(inquiryRouteCandidates.status, "draft"),
       ));
+  }
+
+  async createCoordinationPath(data: InsertCoordinationPath): Promise<CoordinationPath> {
+    const [row] = await db.insert(coordinationPaths).values(data as any).returning();
+    return row;
+  }
+
+  async getCoordinationPath(id: string): Promise<CoordinationPath | undefined> {
+    const [row] = await db.select().from(coordinationPaths)
+      .where(eq(coordinationPaths.id, id))
+      .limit(1);
+    return row || undefined;
+  }
+
+  async listCoordinationPathsByInquiry(operatorId: string, inquiryId: string): Promise<CoordinationPath[]> {
+    return await db.select().from(coordinationPaths)
+      .where(and(
+        eq(coordinationPaths.operatorId, operatorId),
+        eq(coordinationPaths.inquiryId, inquiryId),
+      ))
+      .orderBy(desc(coordinationPaths.updatedAt));
+  }
+
+  async updateCoordinationPath(id: string, updates: Partial<CoordinationPath>): Promise<CoordinationPath | undefined> {
+    const [row] = await db.update(coordinationPaths)
+      .set({ ...updates, updatedAt: new Date() } as any)
+      .where(eq(coordinationPaths.id, id))
+      .returning();
+    return row || undefined;
+  }
+
+  async createCoordinationEvent(data: InsertCoordinationEvent): Promise<CoordinationEvent> {
+    const [row] = await db.insert(coordinationEvents).values(data as any).returning();
+    return row;
+  }
+
+  async listCoordinationEvents(pathId: string): Promise<CoordinationEvent[]> {
+    return await db.select().from(coordinationEvents)
+      .where(eq(coordinationEvents.pathId, pathId))
+      .orderBy(desc(coordinationEvents.createdAt));
+  }
+
+  async createCoordinationAssessment(data: InsertCoordinationAssessment): Promise<CoordinationAssessmentRecord> {
+    const [row] = await db.insert(coordinationAssessments).values(data as any).returning();
+    return row;
+  }
+
+  async getLatestCoordinationAssessment(pathId: string): Promise<CoordinationAssessmentRecord | undefined> {
+    const [row] = await db.select().from(coordinationAssessments)
+      .where(eq(coordinationAssessments.pathId, pathId))
+      .orderBy(desc(coordinationAssessments.createdAt))
+      .limit(1);
+    return row || undefined;
   }
 
   async getInquiryInternalNote(operatorId: string, inquiryId: string): Promise<InquiryInternalNote | undefined> {

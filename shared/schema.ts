@@ -2736,6 +2736,167 @@ export const insertInquiryRouteCandidateSchema = createInsertSchema(inquiryRoute
 export type InsertInquiryRouteCandidate = z.infer<typeof insertInquiryRouteCandidateSchema>;
 export type InquiryRouteCandidate = typeof inquiryRouteCandidates.$inferSelect;
 
+export const permissionDecisionValues = [
+  "PROCEED",
+  "PROCEED_WITH_OVERSIGHT",
+  "CLARIFY",
+  "REROUTE",
+  "ESCALATE",
+  "STOP",
+] as const;
+export type PermissionDecision = typeof permissionDecisionValues[number];
+
+export const coordinationRiskFactorValues = [
+  "MISSING_CONTEXT",
+  "UNCLEAR_AUTHORITY",
+  "INSUFFICIENT_TIME_BUFFER",
+  "UNAVAILABLE_ROUTE_TARGET",
+  "UNCONFIRMED_HANDOFF",
+  "LOW_RECOVERY_CAPACITY",
+  "PRIOR_OPEN_LOOP_FAILURE",
+  "ESCALATION_OVERDUE",
+  "ATTRIBUTION_AMBIGUOUS",
+] as const;
+export type RiskFactor = typeof coordinationRiskFactorValues[number];
+
+export type SignalProvenance = string;
+
+export type EscalationReason =
+  | "AUTHORITY_REQUIRED"
+  | "TIME_CRITICAL"
+  | "HANDOFF_STALLED"
+  | "ROUTE_UNAVAILABLE"
+  | "MANUAL_REVIEW";
+
+export type OutcomeVerification =
+  | "NOT_READY"
+  | "PENDING"
+  | "VERIFIED"
+  | "FAILED";
+
+export interface CoordinationAssessment {
+  id: string;
+  pathId: string;
+  decision: PermissionDecision;
+  confidence: number;
+  riskFactors: RiskFactor[];
+  missingSignals: string[];
+  recommendedNextAction: string;
+  humanJudgmentRequired: boolean;
+  explanation: string;
+  signalProvenance: SignalProvenance[];
+  createdAt: string;
+}
+
+export type CoordinationAssessmentSnapshot = Omit<CoordinationAssessment, "id" | "pathId" | "createdAt"> & {
+  escalationReasons: EscalationReason[];
+  outcomeVerification: OutcomeVerification;
+};
+
+// A coordination path is an inquiry-rooted permission state machine. It assesses
+// whether a specific path is safe now; it is not a person/provider score.
+export const coordinationPaths = pgTable(
+  "coordination_paths",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    operatorId: varchar("operator_id").notNull(),
+    inquiryId: varchar("inquiry_id").notNull(),
+    routeTargetId: varchar("route_target_id"),
+    candidateRouteId: varchar("candidate_route_id"),
+    status: text("status").notNull().default("active"),
+    contextCaptured: boolean("context_captured").notNull().default(false),
+    timingConstraints: jsonb("timing_constraints").$type<{
+      bufferMinutes?: number;
+      hardStopAt?: string;
+      readyByAt?: string;
+      notes?: string;
+    }>().default({}),
+    authorityState: text("authority_state").notNull().default("unclear"),
+    availabilityState: text("availability_state").notNull().default("unknown"),
+    handoffState: text("handoff_state").notNull().default("not_started"),
+    escalationState: text("escalation_state").notNull().default("none"),
+    recoveryCapacity: text("recovery_capacity").notNull().default("unknown"),
+    commitmentState: text("commitment_state").notNull().default("uncommitted"),
+    outcomeVerificationState: text("outcome_verification_state").notNull().default("not_ready"),
+    pathRisk: jsonb("path_risk").$type<RiskFactor[]>().default([]),
+    signalProvenance: jsonb("signal_provenance").$type<SignalProvenance[]>().default([]),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("coordination_paths_operator_inquiry_idx").on(table.operatorId, table.inquiryId),
+    index("coordination_paths_route_target_idx").on(table.routeTargetId),
+  ],
+);
+
+export const coordinationEvents = pgTable(
+  "coordination_events",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    pathId: varchar("path_id").notNull(),
+    operatorId: varchar("operator_id").notNull(),
+    inquiryId: varchar("inquiry_id").notNull(),
+    eventType: text("event_type").notNull(),
+    eventSource: text("event_source").notNull().default("manual"),
+    summary: text("summary").notNull(),
+    signalProvenance: jsonb("signal_provenance").$type<SignalProvenance[]>().default([]),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("coordination_events_path_idx").on(table.pathId),
+    index("coordination_events_operator_inquiry_idx").on(table.operatorId, table.inquiryId),
+  ],
+);
+
+export const coordinationAssessments = pgTable(
+  "coordination_assessments",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    pathId: varchar("path_id").notNull(),
+    operatorId: varchar("operator_id").notNull(),
+    inquiryId: varchar("inquiry_id").notNull(),
+    decision: text("permission_decision").$type<PermissionDecision>().notNull(),
+    confidence: integer("confidence").notNull(),
+    riskFactors: jsonb("risk_factors").$type<RiskFactor[]>().default([]),
+    missingSignals: jsonb("missing_signals").$type<string[]>().default([]),
+    recommendedNextAction: text("recommended_next_action").notNull(),
+    explanation: text("explanation").notNull(),
+    signalProvenance: jsonb("signal_provenance").$type<SignalProvenance[]>().default([]),
+    humanJudgmentRequired: boolean("human_judgment_required").notNull().default(false),
+    escalationReasons: jsonb("escalation_reasons").$type<EscalationReason[]>().default([]),
+    outcomeVerification: text("outcome_verification").$type<OutcomeVerification>().notNull().default("NOT_READY"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("coordination_assessments_path_idx").on(table.pathId),
+    index("coordination_assessments_operator_inquiry_idx").on(table.operatorId, table.inquiryId),
+  ],
+);
+
+export const insertCoordinationPathSchema = createInsertSchema(coordinationPaths).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertCoordinationPath = z.infer<typeof insertCoordinationPathSchema>;
+export type CoordinationPath = typeof coordinationPaths.$inferSelect;
+
+export const insertCoordinationEventSchema = createInsertSchema(coordinationEvents).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertCoordinationEvent = z.infer<typeof insertCoordinationEventSchema>;
+export type CoordinationEvent = typeof coordinationEvents.$inferSelect;
+
+export const insertCoordinationAssessmentSchema = createInsertSchema(coordinationAssessments).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertCoordinationAssessment = z.infer<typeof insertCoordinationAssessmentSchema>;
+export type CoordinationAssessmentRecord = typeof coordinationAssessments.$inferSelect;
+
 // Private operator-only note for an inquiry. This is intentionally separate
 // from the public inquiry row so internal notes are never exposed through
 // client/thread routes that serialize inquiry records.
