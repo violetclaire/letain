@@ -28,8 +28,8 @@ const NETWORKS = ["Landscape Architecture", "Civil Engineering", "General Contra
 // ── STEP 0: Onboarding ───────────────────────────────────────────────────────
 
 function OnboardStep({ onNext }: { onNext: (data: { name: string; phone: string; email: string }) => void }) {
-  const [tab, setTab] = useState<"profile" | "network" | "bank">("profile");
-  const [form, setForm] = useState({ name: "", phone: "", email: "", network: [] as string[], routing: "", account: "", bank: "" });
+  const [tab, setTab] = useState<"profile" | "network" | "preview">("profile");
+  const [form, setForm] = useState({ name: "", phone: "", email: "", network: [] as string[] });
   const [profileDone, setProfileDone] = useState(false);
   const [networkDone, setNetworkDone] = useState(false);
 
@@ -45,10 +45,10 @@ function OnboardStep({ onNext }: { onNext: (data: { name: string; phone: string;
 
       {/* Tab nav */}
       <div style={{ display: "flex", borderBottom: "1px solid #d8d2c8", marginBottom: 28, gap: 0 }}>
-        {(["profile", "network", "bank"] as const).map((t, i) => {
-          const labels = ["01 · Profile", "02 · Network", "03 · Banking"];
-          const done = (t === "network" && profileDone) || (t === "bank" && networkDone);
-          const locked = (t === "network" && !profileDone) || (t === "bank" && !networkDone);
+        {(["profile", "network", "preview"] as const).map((t, i) => {
+          const labels = ["01 - Profile", "02 - Network", "03 - Preview"];
+          const done = (t === "network" && profileDone) || (t === "preview" && networkDone);
+          const locked = (t === "network" && !profileDone) || (t === "preview" && !networkDone);
           return (
             <button key={t} onClick={() => !locked && setTab(t)} style={{
               padding: "10px 20px", background: "none", border: "none",
@@ -92,27 +92,34 @@ function OnboardStep({ onNext }: { onNext: (data: { name: string; phone: string;
               }}>{n}</div>
             ))}
           </div>
-          <button style={BTNINK} onClick={() => { setNetworkDone(true); setTab("bank"); }}>Continue to Banking →</button>
+          <button style={BTNINK} onClick={() => { setNetworkDone(true); setTab("preview"); }}>Preview routing behavior -&gt;</button>
         </div>
       )}
 
-      {/* Bank tab */}
-      {tab === "bank" && (
+      {/* Preview tab */}
+      {tab === "preview" && (
         <div>
           <p style={{ fontSize: "0.84rem", color: "#5a5550", lineHeight: 1.7, marginBottom: 20 }}>
-            Briarwood routes payments directly to your bank via Square. 1.5% platform fee deducted at time of transaction.
+            Briarwood uses the network you named to review inquiry context, compare trusted route targets, and preview delivery outcomes before anything is sent.
           </p>
-          <div style={FGROW}>
-            <div style={FG}><label style={LBL}>Bank Name</label><input style={INPUT} placeholder="First Republic Bank" value={form.bank} onChange={e => setForm(f => ({ ...f, bank: e.target.value }))} /></div>
-            <div style={FG}><label style={LBL}>Routing Number</label><input style={INPUT} placeholder="••••••••••" value={form.routing} onChange={e => setForm(f => ({ ...f, routing: e.target.value }))} /></div>
+          <div style={{ display: "grid", gap: 12, marginBottom: 24 }}>
+            {[
+              ["Review demo inquiry", "See the request, constraints, and operator-only context before taking action."],
+              ["Preview routing behavior", "Compare trusted network candidates without sending a referral or preflight."],
+              ["Dry-run delivery preview", "Inspect drafted email/text outcomes before anything can reach a client."],
+            ].map(([title, copy]) => (
+              <div key={title} style={{ background: "#edeae3", border: "1px solid #d8d2c8", padding: "14px 18px" }}>
+                <div style={{ fontSize: "0.78rem", fontWeight: 600, color: "#1a1814", marginBottom: 4 }}>{title}</div>
+                <div style={{ fontSize: "0.78rem", color: "#5a5550", lineHeight: 1.55 }}>{copy}</div>
+              </div>
+            ))}
           </div>
-          <div style={{ marginBottom: 24 }}><label style={LBL}>Account Number</label><input style={{ ...INPUT, width: "100%" }} placeholder="••••••••••••" value={form.account} onChange={e => setForm(f => ({ ...f, account: e.target.value }))} /></div>
           <div style={{ background: "#edeae3", border: "1px solid #d8d2c8", padding: "14px 18px", marginBottom: 24, fontSize: "0.8rem", color: "#5a5550", display: "flex", gap: 10, alignItems: "flex-start" }}>
-            <span style={{ color: "#5c7a3e", fontSize: "0.9rem", marginTop: 1 }}>🔒</span>
-            <span>Bank data is encrypted and handled via Square Connect. Briarwood does not store account numbers. Transactions are audited and CDI-verified.</span>
+            <span style={{ color: "#5c7a3e", fontSize: "0.9rem", marginTop: 1 }}>-</span>
+            <span>Payment setup can be configured later. It is not required to evaluate trusted routing, private notes, inquiry review, or dry-run delivery previews.</span>
           </div>
           <button style={BTNINK} onClick={() => onNext({ name: form.name || "James Meridian", phone: form.phone || "+1 (628) 555-0142", email: form.email || "james@meridian-la.com" })}>
-            Activate CDI Score →
+            Open dry-run preview -&gt;
           </button>
         </div>
       )}
