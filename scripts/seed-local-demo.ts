@@ -16,6 +16,11 @@ const DEMO_CANDIDATE_MAKEUP_ID = "demo-candidate-fairmont-makeup";
 const DEMO_ROUTE_ID = "demo-route-fairmont-scheduler";
 const DEMO_INTERNAL_NOTE_ID = "demo-internal-note-fairmont";
 const DEMO_RESPONSE_ID = "demo-response-fairmont-pricing";
+const DEMO_COORDINATION_PATH_ID = "demo-path-fairmont";
+const DEMO_COORDINATION_EVENT_CONTEXT_ID = "demo-coordination-event-context";
+const DEMO_COORDINATION_EVENT_TIMING_ID = "demo-coordination-event-timing";
+const DEMO_COORDINATION_EVENT_HANDOFF_ID = "demo-coordination-event-handoff";
+const DEMO_COORDINATION_ASSESSMENT_ID = "demo-coordination-assessment-fairmont";
 
 const forbiddenSendPaymentEnv = [
   "RESEND_API_KEY",
@@ -342,6 +347,217 @@ async function seedScheduleDraft(
   }
 }
 
+async function seedCoordinationPath(
+  db: { execute: (query: unknown) => Promise<unknown> },
+  sql: typeof import("drizzle-orm").sql,
+  now: Date,
+): Promise<boolean> {
+  const pathColumns = await getPublicTableColumns(db as any, sql, "coordination_paths");
+  const requiredPathColumns = ["id", "operator_id", "inquiry_id"];
+  const missingPathColumns = requiredPathColumns.filter((column) => !pathColumns.has(column));
+
+  if (missingPathColumns.length > 0) {
+    console.log(
+      `[local-demo-seed] Skipping coordination path; missing columns: ${missingPathColumns.join(", ")}`,
+    );
+    return false;
+  }
+
+  const pathValues: Array<[string, unknown, "json" | "scalar"]> = [
+    ["id", DEMO_COORDINATION_PATH_ID, "scalar"],
+    ["operator_id", DEMO_OPERATOR_ID, "scalar"],
+    ["inquiry_id", DEMO_INQUIRY_ID, "scalar"],
+    ["route_target_id", DEMO_ROUTE_TARGET_SCHEDULER_ID, "scalar"],
+    ["candidate_route_id", DEMO_CANDIDATE_HAIR_ID, "scalar"],
+    ["status", "active", "scalar"],
+    ["context_captured", true, "scalar"],
+    [
+      "timing_constraints",
+      {
+        bufferMinutes: 35,
+        hardStopAt: "2026-10-25T13:20:00",
+        readyByAt: "2026-10-25T13:20:00",
+        notes: "Ready-by is known; recovery route still needs operator confirmation.",
+      },
+      "json",
+    ],
+    ["authority_state", "operator_review", "scalar"],
+    ["availability_state", "needs_confirmation", "scalar"],
+    ["handoff_state", "drafted", "scalar"],
+    ["escalation_state", "none", "scalar"],
+    ["recovery_capacity", "limited", "scalar"],
+    ["commitment_state", "uncommitted", "scalar"],
+    ["outcome_verification_state", "not_ready", "scalar"],
+    ["path_risk", ["UNCONFIRMED_HANDOFF", "LOW_RECOVERY_CAPACITY"], "json"],
+    [
+      "signal_provenance",
+      [
+        `inquiry:${DEMO_INQUIRY_ID}`,
+        `route_target:${DEMO_ROUTE_TARGET_SCHEDULER_ID}`,
+        `schedule_draft:${DEMO_SCHEDULE_ID}`,
+      ],
+      "json",
+    ],
+    [
+      "metadata",
+      {
+        demo: true,
+        label: "Fairmont bridal beauty handoff",
+        safetyNote: "Local demo only. Nothing is sent from this path.",
+      },
+      "json",
+    ],
+    ["updated_at", now, "scalar"],
+  ].filter(([column]) => pathColumns.has(column));
+
+  const pathInsertColumns = pathValues.map(([column]) => safeSqlIdentifier(column));
+  const pathInsertValues = pathValues.map(([, value, kind]) =>
+    kind === "json" ? sql`${JSON.stringify(value)}::jsonb` : sql`${value}`,
+  );
+  const pathUpdateAssignments = pathValues
+    .filter(([column]) => column !== "id")
+    .map(([column]) => {
+      const safeColumn = safeSqlIdentifier(column);
+      return sql.raw(`${safeColumn} = excluded.${safeColumn}`);
+    });
+
+  await db.execute(sql`
+    insert into coordination_paths (${sql.raw(pathInsertColumns.join(", "))})
+    values (${sql.join(pathInsertValues, sql`, `)})
+    on conflict (id) do update set ${sql.join(pathUpdateAssignments, sql`, `)}
+  `);
+
+  const eventColumns = await getPublicTableColumns(db as any, sql, "coordination_events");
+  if (["id", "path_id", "operator_id", "inquiry_id", "event_type", "summary"].every((column) => eventColumns.has(column))) {
+    const eventRows = [
+      {
+        id: DEMO_COORDINATION_EVENT_CONTEXT_ID,
+        eventType: "context_captured",
+        summary: "Inquiry context captured for Fairmont bridal beauty schedule.",
+        signalProvenance: [`inquiry:${DEMO_INQUIRY_ID}`],
+        metadata: { demo: true, contextCaptured: true },
+      },
+      {
+        id: DEMO_COORDINATION_EVENT_TIMING_ID,
+        eventType: "timing_constraints_reviewed",
+        summary: "Ready-by time and photographer arrival are known; setup buffer is present.",
+        signalProvenance: [`schedule_draft:${DEMO_SCHEDULE_ID}`],
+        metadata: { demo: true, readyByTime: "13:20", setupBufferMinutes: 30 },
+      },
+      {
+        id: DEMO_COORDINATION_EVENT_HANDOFF_ID,
+        eventType: "handoff_drafted",
+        summary: "Scheduler handoff is drafted but still requires human review before any outreach.",
+        signalProvenance: [`route_target:${DEMO_ROUTE_TARGET_SCHEDULER_ID}`],
+        metadata: { demo: true, externalSend: false },
+      },
+    ];
+
+    for (const row of eventRows) {
+      const eventValues: Array<[string, unknown, "json" | "scalar"]> = [
+        ["id", row.id, "scalar"],
+        ["path_id", DEMO_COORDINATION_PATH_ID, "scalar"],
+        ["operator_id", DEMO_OPERATOR_ID, "scalar"],
+        ["inquiry_id", DEMO_INQUIRY_ID, "scalar"],
+        ["event_type", row.eventType, "scalar"],
+        ["event_source", "system", "scalar"],
+        ["summary", row.summary, "scalar"],
+        ["signal_provenance", row.signalProvenance, "json"],
+        ["metadata", row.metadata, "json"],
+        ["created_at", now, "scalar"],
+      ].filter(([column]) => eventColumns.has(column));
+      const eventInsertColumns = eventValues.map(([column]) => safeSqlIdentifier(column));
+      const eventInsertValues = eventValues.map(([, value, kind]) =>
+        kind === "json" ? sql`${JSON.stringify(value)}::jsonb` : sql`${value}`,
+      );
+      const eventUpdateAssignments = eventValues
+        .filter(([column]) => column !== "id")
+        .map(([column]) => {
+          const safeColumn = safeSqlIdentifier(column);
+          return sql.raw(`${safeColumn} = excluded.${safeColumn}`);
+        });
+
+      await db.execute(sql`
+        insert into coordination_events (${sql.raw(eventInsertColumns.join(", "))})
+        values (${sql.join(eventInsertValues, sql`, `)})
+        on conflict (id) do update set ${sql.join(eventUpdateAssignments, sql`, `)}
+      `);
+    }
+  } else {
+    console.log("[local-demo-seed] Skipping coordination events; coordination_events table is incomplete.");
+  }
+
+  const assessmentColumns = await getPublicTableColumns(db as any, sql, "coordination_assessments");
+  if (["id", "path_id", "operator_id", "inquiry_id", "permission_decision", "recommended_next_action", "explanation"].every((column) => assessmentColumns.has(column))) {
+    const assessmentValues: Array<[string, unknown, "json" | "scalar"]> = [
+      ["id", DEMO_COORDINATION_ASSESSMENT_ID, "scalar"],
+      ["path_id", DEMO_COORDINATION_PATH_ID, "scalar"],
+      ["operator_id", DEMO_OPERATOR_ID, "scalar"],
+      ["inquiry_id", DEMO_INQUIRY_ID, "scalar"],
+      ["permission_decision", "PROCEED_WITH_OVERSIGHT", "scalar"],
+      ["confidence", 72, "scalar"],
+      ["risk_factors", ["UNCONFIRMED_HANDOFF", "LOW_RECOVERY_CAPACITY"], "json"],
+      ["missing_signals", ["Route target acceptance", "Recovery provider confirmation"], "json"],
+      ["recommended_next_action", "Review the drafted handoff and confirm recovery coverage before outreach.", "scalar"],
+      ["explanation", "The path has enough context to continue internally, but handoff and recovery capacity still need human review.", "scalar"],
+      [
+        "signal_provenance",
+        [
+          `inquiry:${DEMO_INQUIRY_ID}`,
+          `route_target:${DEMO_ROUTE_TARGET_SCHEDULER_ID}`,
+          `coordination_path:${DEMO_COORDINATION_PATH_ID}`,
+        ],
+        "json",
+      ],
+      ["human_judgment_required", true, "scalar"],
+      ["escalation_reasons", [], "json"],
+      ["outcome_verification", "NOT_READY", "scalar"],
+      ["created_at", now, "scalar"],
+    ].filter(([column]) => assessmentColumns.has(column));
+    const assessmentInsertColumns = assessmentValues.map(([column]) => safeSqlIdentifier(column));
+    const assessmentInsertValues = assessmentValues.map(([, value, kind]) =>
+      kind === "json" ? sql`${JSON.stringify(value)}::jsonb` : sql`${value}`,
+    );
+    const assessmentUpdateAssignments = assessmentValues
+      .filter(([column]) => column !== "id")
+      .map(([column]) => {
+        const safeColumn = safeSqlIdentifier(column);
+        return sql.raw(`${safeColumn} = excluded.${safeColumn}`);
+      });
+
+    await db.execute(sql`
+      insert into coordination_assessments (${sql.raw(assessmentInsertColumns.join(", "))})
+      values (${sql.join(assessmentInsertValues, sql`, `)})
+      on conflict (id) do update set ${sql.join(assessmentUpdateAssignments, sql`, `)}
+    `);
+  } else {
+    console.log("[local-demo-seed] Skipping coordination assessment; coordination_assessments table is incomplete.");
+  }
+
+  console.log("[local-demo-seed] Seeded coordination path demo.");
+  return true;
+}
+
+async function cleanupCoordinationDemoRows(
+  db: { execute: (query: unknown) => Promise<unknown> },
+  sql: typeof import("drizzle-orm").sql,
+): Promise<void> {
+  const assessmentColumns = await getPublicTableColumns(db as any, sql, "coordination_assessments");
+  if (assessmentColumns.has("path_id")) {
+    await db.execute(sql`delete from coordination_assessments where path_id = ${DEMO_COORDINATION_PATH_ID}`);
+  }
+
+  const eventColumns = await getPublicTableColumns(db as any, sql, "coordination_events");
+  if (eventColumns.has("path_id")) {
+    await db.execute(sql`delete from coordination_events where path_id = ${DEMO_COORDINATION_PATH_ID}`);
+  }
+
+  const pathColumns = await getPublicTableColumns(db as any, sql, "coordination_paths");
+  if (pathColumns.has("id")) {
+    await db.execute(sql`delete from coordination_paths where id = ${DEMO_COORDINATION_PATH_ID}`);
+  }
+}
+
 async function seedDemoData(password: string): Promise<void> {
   const bcrypt = await import("bcryptjs");
   const { eq, sql } = await import("drizzle-orm");
@@ -655,12 +871,14 @@ async function seedDemoData(password: string): Promise<void> {
     .where(eq(inquiries.id, DEMO_INQUIRY_ID));
 
   await seedScheduleDraft(db as any, sql, now, scheduleContractId);
+  await seedCoordinationPath(db as any, sql, now);
 
   console.log("[local-demo-seed] Seeded local demo data.");
   console.log("[local-demo-seed] Login email: operator.demo@briarwood.test");
   console.log("[local-demo-seed] Open: http://localhost:5173/inquiry-workspace");
   console.log("[local-demo-seed] Open: http://localhost:5173/admin/briarwood-demo/network");
   console.log("[local-demo-seed] Open: http://localhost:5173/admin/briarwood-demo/schedules/demo-schedule-fairmont");
+  console.log("[local-demo-seed] Open: http://localhost:5173/admin/briarwood-demo/coordination/demo-path-fairmont");
 }
 
 async function cleanupDemoData(): Promise<void> {
@@ -677,6 +895,8 @@ async function cleanupDemoData(): Promise<void> {
     scheduleDrafts,
     users,
   } = await import("../shared/schema");
+
+  await cleanupCoordinationDemoRows(db as any, sql);
 
   await db.update(inquiries)
     .set({ convertedToContractId: null, updatedAt: new Date() })

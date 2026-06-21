@@ -269,6 +269,7 @@ async function ensureDatabaseSchema() {
       created_at timestamp NOT NULL DEFAULT now(),
       updated_at timestamp DEFAULT now()
     )` },
+    { name: 'schedule_drafts.engine_metadata', sql: sql`ALTER TABLE schedule_drafts ADD COLUMN IF NOT EXISTS engine_metadata jsonb DEFAULT '{}'::jsonb` },
   ];
   
   for (const migration of migrations) {

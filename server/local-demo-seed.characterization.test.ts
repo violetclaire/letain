@@ -46,6 +46,7 @@ test("local demo seed uses deterministic Briarwood demo IDs", () => {
     "demo-route-target-makeup",
     "demo-route-target-scheduler",
     "demo-schedule-fairmont",
+    "demo-path-fairmont",
   ]) {
     assert.match(script, new RegExp(deterministicId));
   }
@@ -83,11 +84,23 @@ test("local demo schedule draft insert is schema-aware and treats engine metadat
   assert.doesNotMatch(script, /db\.insert\(scheduleDrafts\)\.values/);
 });
 
+test("local demo coordination path is seeded and cleaned up deterministically", () => {
+  assert.match(script, /async function seedCoordinationPath/);
+  assert.match(script, /DEMO_COORDINATION_PATH_ID/);
+  assert.match(script, /"permission_decision", "PROCEED_WITH_OVERSIGHT"/);
+  assert.match(script, /"UNCONFIRMED_HANDOFF"/);
+  assert.match(script, /"LOW_RECOVERY_CAPACITY"/);
+  assert.match(script, /await seedCoordinationPath\(db as any, sql, now\)/);
+  assert.match(script, /async function cleanupCoordinationDemoRows/);
+  assert.match(script, /await cleanupCoordinationDemoRows\(db as any, sql\)/);
+});
+
 test("local demo cleanup targets deterministic demo rows only", () => {
   for (const cleanupAnchor of [
     "DEMO_INQUIRY_ID",
     "DEMO_SCHEDULE_ID",
     "DEMO_CONTRACT_ID",
+    "DEMO_COORDINATION_PATH_ID",
     "DEMO_OPERATOR_ID",
     "DEMO_CLIENT_ID",
     "DEMO_PROFILE_ID",

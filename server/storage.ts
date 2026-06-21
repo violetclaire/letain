@@ -322,6 +322,7 @@ export interface IStorage {
   getAllPayments(): Promise<Payment[]>;
   
   // Availability
+  getAvailability(userId: string, startDate: Date, endDate: Date): Promise<Availability[]>;
   getUserAvailability(userId: string, startDate: Date, endDate: Date): Promise<Availability[]>;
   setAvailability(availability: InsertAvailability): Promise<Availability>;
   deleteAvailability(userId: string, date: Date): Promise<void>;
@@ -1378,6 +1379,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Availability
+  async getAvailability(userId: string, startDate: Date, endDate: Date): Promise<Availability[]> {
+    return this.getUserAvailability(userId, startDate, endDate);
+  }
+
   async getUserAvailability(userId: string, startDate: Date, endDate: Date): Promise<Availability[]> {
     return await db
       .select()
