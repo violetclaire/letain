@@ -23,7 +23,31 @@ function StepDots({ step }: { step: number }) {
   );
 }
 
-const NETWORKS = ["Landscape Architecture", "Civil Engineering", "General Contracting", "Interior Designer", "Architecture", "MEP Engineering", "Project Management", "Urban Planning", "Event Producer", "Stylist"];
+const NETWORKS = [
+  "Makeup Artist",
+  "Hair Stylist",
+  "Bridal Beauty",
+  "Esthetician",
+  "Brow Artist",
+  "Lash Artist",
+  "Nail Artist",
+  "Spray Tan Artist",
+  "Cosmetic Injector",
+  "Dermatology / Skin Clinic",
+  "Wellness Provider",
+  "Personal Stylist",
+  "Wardrobe Stylist",
+  "Photographer",
+  "Event Planner",
+  "Florist",
+  "Venue Coordinator",
+  "Event Producer",
+  "Interior Designer",
+  "Project Management",
+  "General Contractor",
+  "Architecture",
+  "Landscape Architecture",
+];
 
 // ── STEP 0: Onboarding ───────────────────────────────────────────────────────
 
