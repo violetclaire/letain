@@ -32,3 +32,34 @@ test("Briarwood demo onboarding advances from network to coordination preview", 
   assert.match(demoPage, /Payment setup can be configured later/);
   assert.match(demoPage, /Open dry-run preview/);
 });
+
+test("Briarwood demo network categories are cross-domain and beauty-forward", () => {
+  for (const expectedCategory of [
+    "Makeup Artist",
+    "Hair Stylist",
+    "Bridal Beauty",
+    "Esthetician",
+    "Brow Artist",
+    "Lash Artist",
+    "Nail Artist",
+    "Spray Tan Artist",
+    "Cosmetic Injector",
+    "Dermatology / Skin Clinic",
+    "Wellness Provider",
+    "Personal Stylist",
+    "Wardrobe Stylist",
+    "Photographer",
+    "Event Planner",
+    "Florist",
+    "Venue Coordinator",
+  ]) {
+    assert.match(demoPage, new RegExp(expectedCategory.replace("/", "\\/")));
+  }
+
+  assert.ok(
+    demoPage.indexOf("Makeup Artist") < demoPage.indexOf("Landscape Architecture"),
+    "Beauty and personal-service categories should appear before construction/design categories",
+  );
+  assert.match(demoPage, /General Contractor/);
+  assert.match(demoPage, /Architecture/);
+});
