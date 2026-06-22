@@ -537,7 +537,7 @@ export default function ArtistLogin() {
               Sign in
             </h1>
             <p className="text-sm text-[#1A1A1A]/60">
-              Access your dashboard
+              Access your private coordination workspace
             </p>
           </div>
 
