@@ -13,6 +13,7 @@ type TestScheduleDraft = {
   id: string;
   artistId: string;
   title: string | null;
+  updatedAt?: Date | string | null;
   providers: Array<{
     id: string;
     name: string;
@@ -141,8 +142,26 @@ function stubScheduleDraftStorage() {
     ["admin-user", { id: "admin-user", role: "admin", email: "admin@example.com" }],
   ]);
   const drafts = new Map<string, TestScheduleDraft>([
-    ["draft-a", { id: "draft-a", artistId: "artist-a", title: "Artist A schedule", providers: [] }],
-    ["draft-b", { id: "draft-b", artistId: "artist-b", title: "Artist B schedule", providers: [] }],
+    [
+      "draft-a",
+      {
+        id: "draft-a",
+        artistId: "artist-a",
+        title: "Artist A schedule",
+        updatedAt: new Date("2026-06-22T10:00:00.000Z"),
+        providers: [],
+      },
+    ],
+    [
+      "draft-b",
+      {
+        id: "draft-b",
+        artistId: "artist-b",
+        title: "Artist B schedule",
+        updatedAt: new Date("2026-06-22T10:00:00.000Z"),
+        providers: [],
+      },
+    ],
   ]);
   const calls = {
     getUser: [] as string[],
@@ -253,6 +272,42 @@ test("schedule draft PATCH still allows admin access through the existing guard"
   assert.deepEqual(calls.updateScheduleDraft[0]?.[1].providers, [
     { id: "prov-admin", name: "Admin Edited", capability: "MAKEUP_ONLY", isPrimary: true },
   ]);
+});
+
+test("schedule draft PATCH accepts a save when expected version matches", async () => {
+  const { calls } = stubScheduleDraftStorage();
+
+  const result = await invoke(patchScheduleDraftHandler, {
+    session: { userId: "artist-a" },
+    params: { id: "draft-a" },
+    body: {
+      expectedUpdatedAt: "2026-06-22T10:00:00.000Z",
+      title: "Updated private schedule",
+    },
+  });
+
+  assert.equal(result.statusCode, 200);
+  assert.equal(calls.updateScheduleDraft.length, 1);
+  assert.equal(calls.updateScheduleDraft[0]?.[1].title, "Updated private schedule");
+});
+
+test("schedule draft PATCH rejects stale expected version without overwriting", async () => {
+  const { calls } = stubScheduleDraftStorage();
+
+  const result = await invoke(patchScheduleDraftHandler, {
+    session: { userId: "artist-a" },
+    params: { id: "draft-a" },
+    body: {
+      expectedUpdatedAt: "2026-06-22T09:59:59.000Z",
+      title: "Stale overwrite attempt",
+    },
+  });
+
+  assert.equal(result.statusCode, 409);
+  assert.deepEqual(result.body, {
+    error: "This schedule draft changed elsewhere. Refresh before saving.",
+  });
+  assert.equal(calls.updateScheduleDraft.length, 0);
 });
 
 test("schedule draft PATCH preserves sanitized schedule engine metadata", async () => {

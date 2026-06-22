@@ -135,6 +135,7 @@ interface Draft {
   providers?: Provider[] | null;
   engineMetadata?: ScheduleEngineMetadata | null;
   status?: string | null;
+  updatedAt?: string | null;
 }
 
 function uid(prefix: string): string {
@@ -1276,6 +1277,7 @@ export default function ScheduleDraftBuilder() {
   const [showFirstDraftPreview, setShowFirstDraftPreview] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
+  const [loadedUpdatedAt, setLoadedUpdatedAt] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -1313,6 +1315,7 @@ export default function ScheduleDraftBuilder() {
       setServiceDefaults(normalizedDefaults);
       setProviders(normalizedProviders);
       setEngineMetadata(normalizedEngineMetadata);
+      setLoadedUpdatedAt(d.updatedAt ?? null);
       // Capture the baseline so we can detect unsaved edits from here on.
       setSavedSnapshot(
         serializeScheduleState({
@@ -1370,6 +1373,7 @@ export default function ScheduleDraftBuilder() {
         serviceDefaults,
         providers,
         engineMetadata,
+        expectedUpdatedAt: loadedUpdatedAt,
       };
       // Snapshot exactly what we are sending so the dirty baseline matches.
       const snapshot = serializeScheduleState({ title, eventDate, location, notes, columns, rows, serviceDefaults, providers, engineMetadata });
@@ -1383,11 +1387,12 @@ export default function ScheduleDraftBuilder() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Failed to save");
       }
-      const data = await res.json();
+      const data = await res.json() as Draft;
       return { data, snapshot };
     },
-    onSuccess: ({ snapshot }) => {
+    onSuccess: ({ data, snapshot }) => {
       setSavedSnapshot(snapshot);
+      setLoadedUpdatedAt(data.updatedAt ?? null);
       queryClient.invalidateQueries({ queryKey: ["/api/schedule-drafts", scheduleId] });
       toast({ title: "Schedule saved" });
     },
