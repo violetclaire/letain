@@ -34,6 +34,8 @@ Keep `DEV_SERVER_HOST=127.0.0.1` in local preview if your machine cannot bind th
 
 Leave `DEV_SERVER_REUSE_PORT` unset for normal local preview. When `DEV_SERVER_HOST` is set, the backend omits `reusePort` by default for Windows/local compatibility. Set `DEV_SERVER_REUSE_PORT=true` only if you explicitly need to opt back into reuse-port binding.
 
+Current login/logout/callback behavior is Replit OIDC-backed by default. If Replit OIDC discovery is unavailable during local preview, set `LOCAL_AUTH_BYPASS=true` only with localhost preview values and use the seeded demo operator credentials at `/artist-login`. The bypass skips Replit OIDC route setup for local preview only; it does not create production auth behavior and should not be set in production.
+
 Use a staging or disposable database for local preview. The backend may run additive database setup on startup, so do not point local preview at production casually.
 
 ## Run

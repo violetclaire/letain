@@ -18,6 +18,23 @@ const getOidcConfig = memoize(
   { maxAge: 3600 * 1000 }
 );
 
+export function isLocalAuthBypassEnabled(): boolean {
+  if (process.env.LOCAL_AUTH_BYPASS !== "true") {
+    return false;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    return false;
+  }
+
+  const publicBaseUrl = process.env.PUBLIC_BASE_URL?.trim() ?? "";
+  const devServerHost = process.env.DEV_SERVER_HOST?.trim() ?? "";
+  const isLocalPublicBaseUrl = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/?$/.test(publicBaseUrl);
+  const isLocalDevHost = devServerHost === "127.0.0.1" || devServerHost === "localhost";
+
+  return isLocalPublicBaseUrl || isLocalDevHost;
+}
+
 function updateUserSession(
   user: any,
   tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers
@@ -45,6 +62,29 @@ export async function setupAuth(app: Express) {
   app.use(getSession());
   app.use(passport.initialize());
   app.use(passport.session());
+
+  passport.serializeUser((user: Express.User, cb) => cb(null, user));
+  passport.deserializeUser((user: Express.User, cb) => cb(null, user));
+
+  if (isLocalAuthBypassEnabled()) {
+    console.warn("[Auth] LOCAL_AUTH_BYPASS enabled for local preview; Replit OIDC routes are disabled.");
+
+    app.get("/api/login", (_req, res) => {
+      res.redirect("/artist-login");
+    });
+
+    app.get("/api/callback", (_req, res) => {
+      res.status(404).json({ message: "Replit OIDC callback is disabled for local preview" });
+    });
+
+    app.get("/api/logout", (req, res) => {
+      req.logout(() => {
+        res.redirect("/artist-login");
+      });
+    });
+
+    return;
+  }
 
   const config = await getOidcConfig();
 
@@ -76,9 +116,6 @@ export async function setupAuth(app: Express) {
       registeredStrategies.add(strategyName);
     }
   };
-
-  passport.serializeUser((user: Express.User, cb) => cb(null, user));
-  passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
     // Save the intended role in session before redirecting to OAuth
