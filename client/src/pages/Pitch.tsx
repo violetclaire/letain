@@ -613,13 +613,13 @@ export default function Pitch() {
               </ul>
             </div>
             <div style={{ background: `${SURF}dd`, padding: "26px 28px", borderTop: `1px solid ${BLUE}18` }}>
-              <div style={{ fontFamily: "'Courier New', monospace", fontSize: "0.56rem", letterSpacing: "0.2em", textTransform: "uppercase", color: BLUE, marginBottom: 8, textShadow: `0 0 8px ${BLUE}80` }}>Co-founder & CTO</div>
-              <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 800, fontSize: "1.5rem", color: TEXT, marginBottom: 12, letterSpacing: "-0.5px" }}>Dundy Pasupuleti</div>
+              <div style={{ fontFamily: "'Courier New', monospace", fontSize: "0.56rem", letterSpacing: "0.2em", textTransform: "uppercase", color: BLUE, marginBottom: 8, textShadow: `0 0 8px ${BLUE}80` }}>Technical Architecture</div>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 800, fontSize: "1.5rem", color: TEXT, marginBottom: 12, letterSpacing: "-0.5px" }}>Coordination Engine</div>
               <ul style={{ listStyle: "none", padding: 0, fontFamily: "'Inter', sans-serif", fontSize: "0.84rem", color: FAINT, lineHeight: 1.7 }}>
-                <li>· Computer Science, Santa Clara University</li>
-                <li>· AI infrastructure and backend systems</li>
-                <li>· Inference pipelines, Kubernetes, GCP, GPU optimization</li>
-                <li>· Raised by SMB owners. Direct context for the operator economy</li>
+                <li>· Deterministic coordination assessment</li>
+                <li>· Signal provenance and event history</li>
+                <li>· Operator oversight and permission decisions</li>
+                <li>· Safe handoff review for physical-world work</li>
               </ul>
             </div>
           </div>

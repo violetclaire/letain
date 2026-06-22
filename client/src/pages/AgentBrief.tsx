@@ -418,7 +418,7 @@ export default function AgentBrief() {
                 "Briarwood is the FICO score for the real world — except FICO only reads financial history. We read coordination history. That is a larger and more valuable signal."
               </div>
               <div style={{ fontSize: "0.68rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#8a8078" }}>
-                Dundy Pasupuleti · Technical Co-founder, Briarwood AI
+                Briarwood AI · Technical architecture
               </div>
             </div>
           </div>
@@ -439,8 +439,8 @@ export default function AgentBrief() {
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: "0.64rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#8a8078", marginBottom: 10 }}>Technical Co-founder</div>
-                <div className="mono">dundysm@briarwood.ai</div>
+                <div style={{ fontSize: "0.64rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#8a8078", marginBottom: 10 }}>Technical Review</div>
+                <div className="mono">violet@briarwood.ai</div>
                 <div style={{ marginTop: 12, fontSize: "0.8rem", color: "#5a5550", lineHeight: 1.7 }}>
                   Architecture · CDI model · Integration partnerships
                 </div>

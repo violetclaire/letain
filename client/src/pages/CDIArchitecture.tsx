@@ -295,7 +295,7 @@ export default function CDIArchitecture() {
             <span className="meta-key">DATE</span>
             <span className="meta-val">March 21, 2026</span>
             <span className="meta-key">FOR</span>
-            <span className="meta-val">Dundy Pasupuleti — Technical Co-Founder</span>
+            <span className="meta-val">Technical Architecture Review</span>
             <span className="meta-key">FROM</span>
             <span className="meta-val">Violet — Founder</span>
           </div>
@@ -437,7 +437,7 @@ export default function CDIArchitecture() {
 
         {/* 5. Build Instructions */}
         <div className="section">
-          <div className="section-num">05 — Build Instructions for Dundy</div>
+          <div className="section-num">05 — Build Instructions</div>
           <div className="section-title">What the UI Must Reflect.</div>
           <div className="section-body">
             The front-end must make the CDI architecture legible to an operator at a glance. Three visual primitives need to be built:

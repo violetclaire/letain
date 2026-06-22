@@ -369,7 +369,7 @@ function AboutPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
               We understand this category from the inside: how outcomes are actually delivered, where trust is earned, how failure propagates, how informal referrals carry more signal than public reputation, and why existing software missed the real work.
             </p>
             <p>
-              Dundy Pasupuleti is Briarwood's co-founder and CTO.
+              Briarwood's technical work centers on coordination assessment, signal provenance, and safe handoff review.
             </p>
           </div>
           <div className="border-t border-[#e8e2d9] mt-12 pt-12 space-y-3">
