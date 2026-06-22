@@ -188,10 +188,10 @@ export default function Memo() {
                 </div>
               </div>
               <div>
-                <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: "10.5px", color: TEXT, letterSpacing: "-0.2px" }}>Dundy Pasupuleti</div>
-                <div style={{ fontFamily: "'Courier New', monospace", fontSize: "7.5px", letterSpacing: "0.14em", textTransform: "uppercase", color: BLUE, marginTop: 2, marginBottom: 4 }}>Co-founder & CTO</div>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: "10.5px", color: TEXT, letterSpacing: "-0.2px" }}>Technical Architecture</div>
+                <div style={{ fontFamily: "'Courier New', monospace", fontSize: "7.5px", letterSpacing: "0.14em", textTransform: "uppercase", color: BLUE, marginTop: 2, marginBottom: 4 }}>Coordination Engine</div>
                 <div style={{ fontSize: "8.5px", color: FAINT, lineHeight: 1.5 }}>
-                  Computer Science, Santa Clara University. AI infrastructure, inference pipelines, Kubernetes, GCP, GPU optimization. Raised by SMB owners.
+                  Deterministic coordination assessment, signal provenance, operator oversight, and safe handoff review for real-world service networks.
                 </div>
               </div>
             </div>

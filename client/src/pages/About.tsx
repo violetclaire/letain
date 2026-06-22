@@ -166,11 +166,11 @@ export default function About() {
           </div>
           <div>
             <div className="bw-meta-label">Authors</div>
-            <div className="bw-meta-val">Violet Herod<br />Dundy Pasupuleti</div>
+            <div className="bw-meta-val">Briarwood AI</div>
           </div>
           <div>
             <div className="bw-meta-label">Role</div>
-            <div className="bw-meta-val">Founder & CEO<br />Co-Founder & CTO</div>
+            <div className="bw-meta-val">Coordination Infrastructure</div>
           </div>
         </div>
 
@@ -234,7 +234,7 @@ export default function About() {
             Violet spent her entire adult life operating inside the physical service economy, coordinating high-stakes events where trust was the only currency. She built her reputation the way every great professional does: by showing up and delivering, thousands of times, with no system ever capturing that proof. She taught herself to code to solve the coordination problems she experienced firsthand. The CDI framework originated as a manual system she ran for years before encoding it into software.
           </p>
           <p>
-            Dundy brings deep expertise in AI/ML infrastructure at scale. As an AI Ops Engineer at Apple, he builds the ML workflows, GPU-optimized inference pipelines, and Kubernetes platforms that make AI systems reliable in production. He's architected secure, compliant systems across healthcare, privacy, and network infrastructure. At Briarwood, he's building the engine that turns behavioral signals into a machine-readable trust score that agents can query in real time.
+            Briarwood's technical architecture focuses on deterministic coordination assessment, signal provenance, and operator oversight for real-world handoffs. The goal is to make coordination state legible enough for agents to support safe action without replacing human judgment where it is required.
           </p>
           <p>
             We are the team with both the operational ground truth and the technical architecture to digitize coordination. We believe we're building the infrastructure layer that makes the physical world legible to AI for the first time. And we believe the window to build it is right now.

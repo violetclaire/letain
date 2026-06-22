@@ -52,6 +52,37 @@ test("local demo seed uses deterministic Briarwood demo IDs", () => {
   }
 });
 
+test("local demo seed uses generic role-based demo labels", () => {
+  for (const genericLabel of [
+    "Briarwood Local Demo Operator",
+    "Private Client",
+    "Private Venue Ballroom",
+    "Primary Beauty Lead",
+    "Preferred Hair Artist",
+    "Preferred Makeup Artist",
+    "Backup Beauty Coordinator",
+    "Private venue bridal beauty handoff",
+  ]) {
+    assert.match(script, new RegExp(genericLabel));
+  }
+});
+
+test("local demo seed does not depend on named demo people or providers", () => {
+  for (const legacyName of [
+    "Dun" + "dy",
+    "Briarwood Scheduler " + "Demo",
+    "Demo " + "Hair Artist",
+    "Demo " + "Makeup Artist",
+    "Maya " + "Demo",
+    "Primary Artist " + "Demo",
+    "Fairmont " + "Demo Ballroom",
+    "Fairmont " + "Demo Wedding Schedule",
+    "Fairmont " + "bridal",
+  ]) {
+    assert.doesNotMatch(script, new RegExp(legacyName));
+  }
+});
+
 test("local demo seed does not import runtime route or delivery modules", () => {
   assert.doesNotMatch(script, /server\/index|server\/routes|emailService|smsService|squareRoutes/);
   assert.doesNotMatch(script, /fetch\(|apiRequest|sendInfoSheet|sendSms|createPayment/);

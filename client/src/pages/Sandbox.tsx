@@ -239,7 +239,7 @@ export default function Sandbox() {
           <div style={{ fontFamily: "'Courier New', monospace", fontSize: "0.78rem",
             color: MUTED, lineHeight: 1.9, marginBottom: 0 }}>
             Prepared for: Alexander Lin · Flybridge Capital<br />
-            From: Violet Herod & Dundy Pasupuleti · Briarwood AI<br />
+            From: Briarwood AI · Coordination Infrastructure<br />
             CDI: Choreography Depth Index™ · Patent Pending
           </div>
         </motion.div>
@@ -523,12 +523,12 @@ export const verifyCDI = tool({
               textDecoration: "none" }}>
               Open Data Room
             </a>
-            <a href="mailto:dundysm@briarwood.ai?subject=CDI Architecture Review" style={{
+            <a href="mailto:violet@briarwood.ai?subject=CDI Architecture Review" style={{
               background: "transparent", border: `1px solid ${HAIR}`,
               color: MUTED, padding: "10px 24px",
               fontFamily: "'Courier New', monospace", fontSize: "0.68rem",
               letterSpacing: "0.1em", textTransform: "uppercase", textDecoration: "none" }}>
-              Reach Dundy
+              Request Technical Review
             </a>
           </div>
           <div style={{ fontFamily: "'Courier New', monospace", fontSize: "0.5rem",

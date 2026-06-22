@@ -722,13 +722,13 @@ function CDIGraphStep({ onBack }: { onBack: () => void }) {
             "Briarwood is the FICO score for the real world — except FICO only reads financial history. We read coordination history. That is a larger and more valuable signal."
           </div>
           <div style={{ fontSize: "0.72rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#8a8078" }}>
-            Dundy Pasupuleti · Co-founder, Briarwood AI
+            Briarwood AI · Coordination infrastructure
           </div>
         </div>
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
           <a href="mailto:violet@briarwood.ai" style={{ ...BTNINK, textDecoration: "none" }}>Request Early Access</a>
-          <a href="mailto:dundysm@briarwood.ai" style={{ background: "transparent", border: "1px solid #d8d2c8", color: "#3a3530", padding: "12px 24px", fontSize: "0.84rem", fontWeight: 500, cursor: "pointer", fontFamily: "'Inter',sans-serif", textDecoration: "none", display: "inline-block" }}>Contact Dundy</a>
+          <a href="mailto:violet@briarwood.ai?subject=Briarwood Technical Review" style={{ background: "transparent", border: "1px solid #d8d2c8", color: "#3a3530", padding: "12px 24px", fontSize: "0.84rem", fontWeight: 500, cursor: "pointer", fontFamily: "'Inter',sans-serif", textDecoration: "none", display: "inline-block" }}>Request Technical Review</a>
         </div>
       </div>
     </div>
