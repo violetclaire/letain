@@ -674,6 +674,7 @@ export default function InquiryWorkspace() {
   const [sourceFilter, setSourceFilter] = useState("all");
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [internalNoteBody, setInternalNoteBody] = useState("");
+  const [scheduleDraftError, setScheduleDraftError] = useState<string | null>(null);
   const isOperator = typeof user?.role === "string" && OPERATOR_ROLES.has(user.role);
   const artistSlug = typeof (user as { artistSlug?: unknown } | undefined)?.artistSlug === "string"
     ? (user as { artistSlug?: string }).artistSlug || ""
@@ -912,6 +913,44 @@ export default function InquiryWorkspace() {
   const scheduleDraftHref = selectedScheduleDraft?.id && artistSlug
     ? `/admin/${artistSlug}/schedules/${selectedScheduleDraft.id}`
     : null;
+  const createScheduleDraft = useMutation({
+    mutationFn: async (inquiry: InquiryWorkspaceInquiry) => {
+      const titleParts = [
+        hasText(inquiry.clientName) ? inquiry.clientName : "Inquiry",
+        hasText(inquiry.serviceType) ? inquiry.serviceType : "schedule coordination draft",
+      ];
+      const res = await fetch("/api/schedule-drafts", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inquiryId: inquiry.id,
+          title: `${titleParts.join(" - ")} schedule coordination draft`,
+          eventDate: inquiry.eventDate,
+          location: inquiry.eventLocation,
+          notes: inquiry.message,
+        }),
+      });
+      if (res.status === 401) throw new Error("401");
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        throw new Error(typeof payload?.error === "string" ? payload.error : "Failed to create schedule draft");
+      }
+      return res.json() as Promise<ScheduleDraft>;
+    },
+    onMutate: () => {
+      setScheduleDraftError(null);
+    },
+    onSuccess: (draft, inquiry) => {
+      queryClient.invalidateQueries({ queryKey: scheduleDraftQueryKey(inquiry.id) });
+      if (draft.id && artistSlug) {
+        window.location.href = `/admin/${artistSlug}/schedules/${draft.id}`;
+      }
+    },
+    onError: (error: Error) => {
+      setScheduleDraftError(error.message);
+    },
+  });
   const latestComposerResponse = useMemo(
     () => [...(composerQuery.data?.responses ?? [])].sort((a, b) => responseTimestamp(b) - responseTimestamp(a))[0] ?? null,
     [composerQuery.data?.responses],
@@ -1642,9 +1681,26 @@ export default function InquiryWorkspace() {
                     )}
 
                     {!scheduleDraftQuery.isLoading && !scheduleDraftQuery.isError && !selectedScheduleDraft && (
-                      <p className="text-sm text-ink/60">
-                        No private schedule draft is linked to this inquiry yet.
-                      </p>
+                      <div className="space-y-3">
+                        <p className="text-sm text-ink/60">
+                          No private schedule coordination draft is linked to this inquiry yet.
+                        </p>
+                        {scheduleDraftError && (
+                          <p className="text-xs text-oxblood" data-testid="text-create-schedule-error">
+                            {scheduleDraftError}
+                          </p>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => selectedInquiry && createScheduleDraft.mutate(selectedInquiry)}
+                          disabled={!selectedInquiry || createScheduleDraft.isPending}
+                          className="inline-flex h-8 w-fit items-center gap-2 bg-ink px-3 text-xs text-bg transition disabled:opacity-60"
+                          data-testid="button-create-schedule-draft"
+                        >
+                          {createScheduleDraft.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                          Create schedule draft
+                        </button>
+                      </div>
                     )}
 
                     {!scheduleDraftQuery.isLoading && !scheduleDraftQuery.isError && selectedScheduleDraft && (
