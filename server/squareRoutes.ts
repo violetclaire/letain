@@ -1,6 +1,7 @@
 import { Express, Request, Response } from "express";
 import { getSquare, getSquareOAuthClient, getMerchantSquare, getSquareApplicationId, getSquareApplicationSecret, isSquareConfigured, isSquareOAuthConfigured } from "./squareClient";
 import { storage } from "./storage";
+import { isLocalPreviewBackgroundJobsDisabled } from "./backgroundJobs";
 import crypto from "crypto";
 
 async function getMerchantAccessToken(userId: string): Promise<string | null> {
@@ -21,13 +22,15 @@ const PLATFORM_FEE_PERCENT = 1.5;
 const SQUARE_OAUTH_BASE = 'https://connect.squareup.com';
 
 // Cleanup expired OAuth states from database every minute
-setInterval(async () => {
-  try {
-    await storage.cleanupExpiredOAuthStates();
-  } catch (error) {
-    console.error("[Square OAuth] Failed to cleanup expired states:", error);
-  }
-}, 60000);
+if (!isLocalPreviewBackgroundJobsDisabled()) {
+  setInterval(async () => {
+    try {
+      await storage.cleanupExpiredOAuthStates();
+    } catch (error) {
+      console.error("[Square OAuth] Failed to cleanup expired states:", error);
+    }
+  }, 60000);
+}
 
 export function registerSquareRoutes(app: Express, isAuthenticated: any, getAuthUserId: (req: any) => string | null) {
   // Public OAuth flow for artist setup (uses artist slug instead of session)

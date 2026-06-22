@@ -7,6 +7,7 @@ import { registerAgentRoutes } from "./agentRoutes";
 import { registerAcpRoutes } from "./acpHandler";
 import { startCronJobs } from "./cronJobs";
 import { startScheduledEmailJob } from './scheduledEmailJob';
+import { isLocalPreviewBackgroundJobsDisabled, logLocalPreviewBackgroundJobsDisabled } from "./backgroundJobs";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 
@@ -472,6 +473,11 @@ app.use((req, res, next) => {
       listenOptions,
       () => {
         log(`serving on ${host}:${port}${reusePort ? " with reusePort" : ""}`);
+        if (isLocalPreviewBackgroundJobsDisabled()) {
+          logLocalPreviewBackgroundJobsDisabled();
+          return;
+        }
+
         // Start scheduled email job
         startScheduledEmailJob();
         // Start cron jobs (hold-expirer, SLA enforcer)
