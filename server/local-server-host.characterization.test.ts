@@ -30,7 +30,7 @@ test("local preview docs and env example document 127.0.0.1 host override withou
   assert.ok(envExample.includes("DEV_SERVER_HOST=127.0.0.1"));
   assert.ok(envExample.includes("# DEV_SERVER_REUSE_PORT=true"));
   assert.ok(localDocs.includes("DEV_SERVER_HOST=127.0.0.1"));
-  assert.ok(localDocs.includes("bind to `127.0.0.1:5000`"));
+  assert.ok(localDocs.includes("bind to `127.0.0.1` on the configured backend port"));
   assert.ok(localDocs.includes("Leave `DEV_SERVER_REUSE_PORT` unset for normal local preview"));
 });
 

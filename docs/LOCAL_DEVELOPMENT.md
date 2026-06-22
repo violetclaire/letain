@@ -4,9 +4,9 @@ This guide is for viewing the current Briarwood prototype locally. It does not c
 
 ## What This Preview Loop Does
 
-- Backend API: `http://localhost:5000`
+- Backend API: `http://localhost:5000` by default, or `http://localhost:5001` when `PORT=5001`
 - Vite frontend: `http://localhost:5173`
-- Vite dev-only proxy: local `/api` requests from `localhost:5173` are forwarded to `http://localhost:5000`
+- Vite dev-only proxy: local `/api` requests from `localhost:5173` are forwarded to `http://localhost:5000` by default, or to `VITE_API_PROXY_TARGET` when set
 - Local backend bind override: `DEV_SERVER_HOST=127.0.0.1`
 - Local preview does not require `reusePort`; leave `DEV_SERVER_REUSE_PORT` unset unless you explicitly need to opt in.
 
@@ -30,7 +30,16 @@ Fill `.env.local` with staging or disposable local-preview values. `npm run dev:
 
 This local env loading is only part of the development server script. Production startup remains `npm run start` and does not use the local dev wrapper.
 
-Keep `DEV_SERVER_HOST=127.0.0.1` in local preview if your machine cannot bind the API server to `0.0.0.0`. The production/default host remains unchanged unless this variable is set, and the local preview API should bind to `127.0.0.1:5000`.
+Keep `DEV_SERVER_HOST=127.0.0.1` in local preview if your machine cannot bind the API server to `0.0.0.0`. The production/default host remains unchanged unless this variable is set, and the local preview API should bind to `127.0.0.1` on the configured backend port.
+
+If `127.0.0.1:5000` is unavailable locally, keep production/default behavior unchanged and use a local alternate port in `.env.local`:
+
+```env
+PORT=5001
+VITE_API_PROXY_TARGET=http://localhost:5001
+```
+
+With those values, the backend should bind to `127.0.0.1:5001` and the Vite dev proxy should forward `/api` calls to `http://localhost:5001`.
 
 Leave `DEV_SERVER_REUSE_PORT` unset for normal local preview. When `DEV_SERVER_HOST` is set, the backend omits `reusePort` by default for Windows/local compatibility. Set `DEV_SERVER_REUSE_PORT=true` only if you explicitly need to opt back into reuse-port binding.
 
