@@ -45,6 +45,8 @@ Leave `DEV_SERVER_REUSE_PORT` unset for normal local preview. When `DEV_SERVER_H
 
 Current login/logout/callback behavior is Replit OIDC-backed by default. If Replit OIDC discovery is unavailable during local preview, set `LOCAL_AUTH_BYPASS=true` only with localhost preview values and use the seeded demo operator credentials at `/artist-login`. The bypass skips Replit OIDC route setup for local preview only; it does not create production auth behavior and should not be set in production.
 
+If your local network blocks background scheduled database work during browser preview, set `LOCAL_PREVIEW_DISABLE_JOBS=true` only with localhost preview values. This disables in-process cron, scheduled-email processing, and background OAuth-state cleanup registration for local preview while leaving API routes, auth, database reads, and page loading available. Do not set this flag in production.
+
 Use a staging or disposable database for local preview. The backend may run additive database setup on startup, so do not point local preview at production casually.
 
 ## Run
