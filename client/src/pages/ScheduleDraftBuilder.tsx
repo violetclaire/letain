@@ -198,8 +198,8 @@ function quickAddBlockNameBase(service: string): string {
   return service;
 }
 
-// Decide how many provider lanes do makeup vs hair, proportional to how many
-// blocks each kind has. When both kinds exist on a single artist, that one lane
+// Decide how many coordination lanes do makeup vs hair, proportional to how many
+// blocks each kind has. When both kinds exist on a single service role, that one lane
 // is "combined" (does both). Never leaves a needed kind without a lane.
 function buildLanes(
   providerCount: number,
@@ -220,12 +220,12 @@ function buildLanes(
   return { makeupLanes: providerCount, hairLanes: 0, combined: false };
 }
 
-// Build a PROVIDER-LANE schedule, not flat person rows. The core model:
-//   - artists/providers are lanes (the Provider column on each row)
-//   - services are appointment blocks placed inside those lanes
+// Build a coordination-lane schedule, not flat person rows. The core model:
+//   - service roles/providers are lanes (the Provider column on each row)
+//   - services are coordination blocks placed inside those lanes
 //   - people are a NAME POOL the operator assigns into blocks later
-// Handles "Bride, MOB, MOG, 5 bridesmaids, 8 makeup, 5 hair, 3 artists":
-//   - 3 artists -> 3 provider lanes (split makeup vs hair by demand)
+// Handles "Bride, MOB, MOG, 5 bridesmaids, 8 makeup, 5 hair, 3 providers":
+//   - 3 providers -> 3 coordination lanes (split makeup vs hair by demand)
 //   - 8 makeup / 5 hair -> service blocks, NOT extra people
 //   - Bride present + services -> one special "Bride Hair + Makeup" block
 //   - people stay a name pool (added to notes); only Bride is auto-placed
@@ -306,7 +306,7 @@ function buildScheduleFromInput(
     .filter(Boolean);
 
   for (const token of tokens) {
-    // "3 artists" / "3 providers" / "3 stylists" -> a lane count, not people.
+    // "3 providers" / "3 stylists" / "3 artists" -> a lane count, not people.
     const providerMatch = token.match(/^(\d+)\s*(artists?|providers?|stylists?)$/i);
     if (providerMatch) {
       providerCount += parseInt(providerMatch[1], 10);
@@ -1440,7 +1440,7 @@ export default function ScheduleDraftBuilder() {
     );
   };
 
-  // Provider column id used to group rows (blocks) into provider lanes.
+  // Provider column id used to group rows (blocks) into coordination lanes.
   const providerColId = columns.find((c) => c.type === "provider")?.id ?? "provider";
   const firstDraftPreview = useMemo(
     () => buildFirstDraftPreview({ rows, providers, serviceDefaults, engineMetadata, providerColId }),
@@ -1495,7 +1495,7 @@ export default function ScheduleDraftBuilder() {
     const built = buildScheduleFromInput(pasteText, serviceDefaults);
     const { providers: laneDefs, blocks, personRows, namePool } = built;
     if (laneDefs.length === 0 && blocks.length === 0 && personRows.length === 0) {
-      toast({ title: "Nothing to add", description: "Try something like: Bride, 8 makeup, 5 hair, 3 artists" });
+      toast({ title: "Nothing to add", description: "Try something like: Bride, 8 makeup, 5 hair, 3 providers" });
       return;
     }
     // Provider lanes (Artist 1 - Makeup, Artist 2 - Hair, etc.).
@@ -1545,7 +1545,7 @@ export default function ScheduleDraftBuilder() {
 
   // Providers editing
   const addProvider = () =>
-    setProviders((prev) => [...prev, { id: uid("prov"), name: `Artist ${prev.length + 1}`, capability: "", isPrimary: false }]);
+    setProviders((prev) => [...prev, { id: uid("prov"), name: `Service Role ${prev.length + 1}`, capability: "", isPrimary: false }]);
   const updateProvider = (id: string, patch: Partial<Provider>) =>
     setProviders((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
   const deleteProvider = (id: string) => setProviders((prev) => prev.filter((p) => p.id !== id));
@@ -1569,14 +1569,14 @@ export default function ScheduleDraftBuilder() {
           <h1 className="font-serif text-2xl tracking-tight mb-3">Schedule not available</h1>
           <p className="text-ink/70 mb-6">This schedule does not exist or is not one of yours.</p>
           <Link href={`/admin/${slug}/rolodex${authParam}`} className="underline text-ink" data-testid="link-back-rolodex">
-            Back to Rolodex
+            Back to network
           </Link>
         </div>
       </div>
     );
   }
 
-  // Group rows into provider lanes. Order: providers list first, then any extra
+  // Group rows into coordination lanes. Order: providers list first, then any extra
   // provider values seen on rows, then an "Unassigned" lane for blocks with no
   // provider. Fields shown per block are all columns except the provider column
   // (the provider is the lane itself, edited via the block's Lane field).
@@ -1621,17 +1621,17 @@ export default function ScheduleDraftBuilder() {
           data-testid="link-back-rolodex"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Rolodex
+          Back to network
         </Link>
 
         <header className="mb-8 flex items-start justify-between gap-4">
           <div>
             <h1 className="font-serif text-3xl tracking-tight mb-2" data-testid="text-page-title">
-              Schedule builder
+              Schedule coordination draft
             </h1>
             <p className="text-ink/70 max-w-[70ch]">
-              Plan the day as editable provider lanes, like a document. Nothing is sent and
-              there is no client link. Add blocks, edit names and times, and save when ready.
+              Map the day as editable coordination lanes for the service roles involved. Nothing is
+              sent and there is no client link. Add blocks, adjust timing, and save when ready.
             </p>
           </div>
           <div className="flex flex-col items-end gap-2 shrink-0">
@@ -1895,9 +1895,9 @@ export default function ScheduleDraftBuilder() {
               <h2 className="font-serif text-xl tracking-tight mb-3">Quick add</h2>
               <div className="border border-hairline bg-surface p-6">
                 <p className="text-ink/70 text-sm mb-3 max-w-[70ch]">
-                  Paste counts and people. "3 artists" makes 3 provider lanes, split between makeup
-                  and hair by demand. Service counts become appointment blocks in those lanes: "8
-                  makeup, 5 hair" makes 8 makeup blocks and 5 hair blocks (not extra people). If
+                  Paste counts and people. "3 providers" makes 3 coordination lanes, split between
+                  makeup and hair by demand. Service counts become coordination blocks in those lanes:
+                  "8 makeup, 5 hair" makes 8 makeup blocks and 5 hair blocks (not extra people). If
                   Bride is listed, she gets her own bridal block. People like "Bride, MOB, MOG, 5
                   bridesmaids" become a name pool added to Notes, ready to assign into blocks.
                   Everything stays editable.
@@ -1906,7 +1906,7 @@ export default function ScheduleDraftBuilder() {
                   value={pasteText}
                   onChange={(e) => setPasteText(e.target.value)}
                   rows={3}
-                  placeholder="8 makeup, 5 hair, 3 artists"
+                  placeholder="8 makeup, 5 hair, 3 providers"
                   className="w-full border border-hairline bg-bg px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70"
                   data-testid="input-paste"
                 />
@@ -1975,8 +1975,8 @@ export default function ScheduleDraftBuilder() {
                 </button>
               </div>
               <p className="text-xs text-ink/50 mb-3" data-testid="text-lane-hint">
-                Grouped by provider. Enter a start time and duration to auto-fill the end time.
-                Change a block's Lane field to move it to another provider.
+                Grouped by service role. Enter a start time and duration to auto-fill the end time.
+                Change a block's Lane field to move it to another coordination lane.
               </p>
 
               {laneList.length === 0 && (
@@ -1984,7 +1984,7 @@ export default function ScheduleDraftBuilder() {
                   className="border border-hairline bg-bg px-4 py-6 text-center text-ink/40"
                   data-testid="text-empty"
                 >
-                  No schedule yet. Use Quick add above to create provider lanes and blocks.
+                  No schedule yet. Use Quick add above to create coordination lanes and blocks.
                 </div>
               )}
 
@@ -2186,7 +2186,7 @@ export default function ScheduleDraftBuilder() {
             {/* Providers */}
             <section data-testid="section-providers">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="font-serif text-xl tracking-tight">Providers / artists</h2>
+                <h2 className="font-serif text-xl tracking-tight">Service roles</h2>
                 <button
                   onClick={addProvider}
                   className="inline-flex items-center gap-1 text-sm border border-hairline px-2.5 py-1.5 hover:bg-surface"
