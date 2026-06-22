@@ -7234,6 +7234,22 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     return sanitized;
   }
 
+  function scheduleDraftVersionChanged(currentUpdatedAt: unknown, expectedUpdatedAt: string) {
+    const current =
+      currentUpdatedAt instanceof Date
+        ? currentUpdatedAt.toISOString()
+        : typeof currentUpdatedAt === "string"
+          ? currentUpdatedAt
+          : null;
+    if (!current) return false;
+
+    const currentTime = Date.parse(current);
+    const expectedTime = Date.parse(expectedUpdatedAt);
+    if (!Number.isFinite(currentTime) || !Number.isFinite(expectedTime)) return true;
+
+    return currentTime !== expectedTime;
+  }
+
   // Always start with a few placeholder rows so a draft is never empty / never
   // fails because names were not provided.
   function placeholderRows(count: number) {
@@ -7418,6 +7434,15 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
 
       const body = req.body || {};
       const update: Record<string, any> = {};
+
+      if (
+        typeof body.expectedUpdatedAt === "string" &&
+        scheduleDraftVersionChanged(draft.updatedAt, body.expectedUpdatedAt)
+      ) {
+        return res.status(409).json({
+          error: "This schedule draft changed elsewhere. Refresh before saving.",
+        });
+      }
 
       if (typeof body.title === "string") update.title = body.title.slice(0, 300);
       if (body.eventDate === null || typeof body.eventDate === "string") update.eventDate = body.eventDate;
