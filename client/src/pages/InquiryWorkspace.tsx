@@ -75,6 +75,20 @@ interface InquiryWorkspaceResponse {
   inquiries: InquiryWorkspaceInquiry[];
 }
 
+interface ArtistProfileInfoSheetReadiness {
+  infoSheetEnabled?: boolean | null;
+  infoSheetType?: string | null;
+  infoSheetContent?: string | null;
+  infoSheetPdfUrl?: string | null;
+  pricingInfo?: string | null;
+  plannerInfoSheet?: string | null;
+  plannerPricing?: string | null;
+}
+
+interface ArtistServiceSummary {
+  id: string;
+}
+
 interface RouteTarget {
   id: string;
   name: string;
@@ -763,6 +777,32 @@ export default function InquiryWorkspace() {
   });
 
   const inquiries = inquiriesQuery.data?.inquiries ?? [];
+  const artistProfileQuery = useQuery<ArtistProfileInfoSheetReadiness | null>({
+    queryKey: ["artistProfile", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const res = await fetch(`/api/artist-profiles/${encodeURIComponent(user.id)}`, { credentials: "include" });
+      if (res.status === 404) return null;
+      if (res.status === 401) throw new Error("401");
+      if (!res.ok) throw new Error("Failed to load Pricing / Info Sheet setup");
+      return res.json() as Promise<ArtistProfileInfoSheetReadiness>;
+    },
+    enabled: isAuthenticated && isOperator && Boolean(user?.id),
+    retry: false,
+  });
+  const artistServicesQuery = useQuery<ArtistServiceSummary[]>({
+    queryKey: ["artistServices", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const res = await fetch(`/api/artist-services/${encodeURIComponent(user.id)}`, { credentials: "include" });
+      if (res.status === 401) throw new Error("401");
+      if (!res.ok) return [];
+      const payload = await res.json();
+      return Array.isArray(payload) ? payload : [];
+    },
+    enabled: isAuthenticated && isOperator && Boolean(user?.id),
+    retry: false,
+  });
   const routeTargetsQuery = useQuery<RouteTargetsResponse>({
     queryKey: ["/api/route-targets"],
     queryFn: async () => {
@@ -1000,6 +1040,39 @@ export default function InquiryWorkspace() {
   const coordinationPathHref = selectedCoordinationPath?.path?.id && artistSlug
     ? `/admin/${artistSlug}/coordination/${selectedCoordinationPath.path.id}`
     : null;
+  const artistProfile = artistProfileQuery.data ?? null;
+  const artistServices = artistServicesQuery.data ?? [];
+  const infoSheetReadinessIsLoading = artistProfileQuery.isLoading || artistServicesQuery.isLoading;
+  const infoSheetReadinessUnable = artistProfileQuery.isError || artistServicesQuery.isError;
+  const hasReusableInfoSheetMaterial = Boolean(
+    artistProfile && (
+      (artistProfile.infoSheetEnabled !== false && (
+        hasText(artistProfile.infoSheetContent) ||
+        hasText(artistProfile.infoSheetPdfUrl)
+      )) ||
+      hasText(artistProfile.pricingInfo) ||
+      hasText(artistProfile.plannerInfoSheet) ||
+      hasText(artistProfile.plannerPricing)
+    ),
+  );
+  const infoSheetReady = !infoSheetReadinessIsLoading && !infoSheetReadinessUnable && (
+    hasReusableInfoSheetMaterial ||
+    artistServices.length > 0
+  );
+  const infoSheetReadinessLabel = infoSheetReadinessIsLoading
+    ? "Checking Pricing / Info Sheet setup"
+    : infoSheetReadinessUnable
+      ? "Pricing / Info Sheet readiness unavailable"
+      : infoSheetReady
+        ? "Pricing / Info Sheet ready"
+        : "Pricing / Info Sheet not configured yet";
+  const infoSheetReadinessDescription = infoSheetReadinessIsLoading
+    ? "Checking existing settings before you draft a response."
+    : infoSheetReadinessUnable
+      ? "Unable to verify reusable pricing/details material from existing settings data."
+      : infoSheetReady
+        ? "Reusable pricing/details material is available for drafting later."
+        : "Pricing, service, policy, or PDF material has not been configured yet.";
   const createScheduleDraft = useMutation({
     mutationFn: async (inquiry: InquiryWorkspaceInquiry) => {
       const titleParts = [
@@ -1453,6 +1526,37 @@ export default function InquiryWorkspace() {
                       </div>
                     </div>
                   )}
+                </div>
+
+                <div className="border border-hairline bg-surface px-4 py-4" data-testid="info-sheet-readiness-card">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <FileText className="w-4 h-4 text-ink/50" />
+                        <h3 className="font-serif text-base tracking-tight">Pricing / Info Sheet</h3>
+                      </div>
+                      <p className="text-xs text-ink/55">
+                        Set this up in Settings so Briarwood can help draft inquiry responses later. Nothing sends from this workspace card.
+                      </p>
+                    </div>
+                    <Link
+                      href="/settings"
+                      className="inline-flex h-8 w-fit items-center border border-hairline px-3 text-xs text-ink/70 transition hover:bg-bg"
+                      data-testid="link-open-info-sheet-settings"
+                    >
+                      Open Pricing / Info Sheet setup
+                    </Link>
+                  </div>
+
+                  <div className={`mt-4 border px-3 py-3 text-sm ${
+                    infoSheetReady
+                      ? "border-emerald-500/30 bg-emerald-500/10 text-ink"
+                      : "border-hairline bg-bg text-ink/75"
+                  }`}>
+                    <p className="text-xs uppercase tracking-wide text-ink/45 mb-1">Reusable response material</p>
+                    <p className="break-words font-medium">{infoSheetReadinessLabel}</p>
+                    <p className="mt-1 text-xs text-ink/60 break-words">{infoSheetReadinessDescription}</p>
+                  </div>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
