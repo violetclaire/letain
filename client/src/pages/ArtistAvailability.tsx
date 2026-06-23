@@ -59,10 +59,10 @@ export default function ArtistAvailability() {
           Back
         </button>
         <h1 className="text-2xl" style={{ fontFamily: "'Fraunces', serif" }}>
-          Your Availability
+          Availability readiness
         </h1>
         <p className="text-sm text-black/50 mt-1">
-          Click dates to toggle between available, pending, and booked
+          Mark unavailable dates and confirmed commitments so inquiry readiness checks can flag conflicts before you respond.
         </p>
       </header>
 
@@ -74,36 +74,36 @@ export default function ArtistAvailability() {
         <div className="mt-8 text-sm text-black/50 space-y-2">
           <p className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-[#C4A35A]"></span>
-            Booked - You have a confirmed booking
+            Confirmed commitment - work already occupies the date
           </p>
           <p className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-[#C4A35A]/40 border border-[#C4A35A]/60"></span>
-            Pending - Inquiry on hold
+            Held inquiry - inquiry on hold
           </p>
           <p className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-[#8B2942]"></span>
-            Blocked - Marked as unavailable
+            Unavailable - blocked for new inquiries
           </p>
         </div>
       </main>
 
       <QuickGuide
         guideId="artist-calendar"
-        title="Your Calendar"
+        title="Availability readiness"
         steps={[
           {
-            title: "Click to Block Dates",
-            description: "Tap any date to mark it as blocked. This prevents new inquiries for that day.",
+            title: "Mark Unavailable Dates",
+            description: "Tap any open date to mark it unavailable for new inquiries.",
             icon: <MousePointer className="h-5 w-5" />,
           },
           {
-            title: "Blocked Dates",
-            description: "Blocked dates appear in brown. You can click them again to unblock.",
+            title: "Track Confirmed Commitments",
+            description: "Use confirmed commitments for dates already occupied by contracted work or another obligation.",
             icon: <Ban className="h-5 w-5" />,
           },
           {
-            title: "Bookings Sync Automatically",
-            description: "When you accept an inquiry and they pay, it automatically shows as booked here.",
+            title: "Feed Inquiry Readiness",
+            description: "These records help Inquiry Workspace show whether a requested date is clear before you draft a response.",
             icon: <CalendarCheck className="h-5 w-5" />,
           },
         ]}
