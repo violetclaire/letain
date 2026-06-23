@@ -163,7 +163,7 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
     if (booking && (booking.status === 'accepted' || booking.status === 'pending')) {
       toast({ 
         title: "Cannot modify", 
-        description: "This date has a booking. Manage it from your bookings.", 
+        description: "This date has a confirmed commitment. Manage the linked record before changing readiness.",
         variant: "destructive" 
       });
       return;
@@ -174,15 +174,15 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
     let toastTitle: string;
     let toastDesc: string;
     
-    // Cycle: available → blocked → booked → available
+    // Cycle: available, unavailable, confirmed commitment, available.
     if (currentStatus === 'available') {
       nextStatus = 'blocked';
-      toastTitle = "Date blocked";
-      toastDesc = `${dateKey} is now blocked`;
+      toastTitle = "Date marked unavailable";
+      toastDesc = `${dateKey} is unavailable for new inquiries`;
     } else if (currentStatus === 'blocked') {
       nextStatus = 'manual_booked';
-      toastTitle = "Marked as booked";
-      toastDesc = `${dateKey} is marked as booked`;
+      toastTitle = "Confirmed commitment recorded";
+      toastDesc = `${dateKey} is marked as occupied`;
     } else if (currentStatus === 'manual_booked') {
       nextStatus = 'available';
       toastTitle = "Date available";
@@ -259,7 +259,7 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
         } else {
           const errorText = await response.text();
           console.error('[Calendar] API error:', errorText);
-          toast({ title: "Error", description: "Failed to mark as booked", variant: "destructive" });
+          toast({ title: "Error", description: "Failed to record confirmed commitment", variant: "destructive" });
           setLoading(false);
           return;
         }
@@ -361,12 +361,12 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
 
   const getStatusLabel = (status: DateStatus): string => {
     switch (status) {
-      case 'booked': return 'Booked';
-      case 'manual_booked': return 'Booked (Manual)';
-      case 'pending': return 'Pending';
+      case 'booked': return 'Confirmed commitment';
+      case 'manual_booked': return 'Confirmed commitment';
+      case 'pending': return 'Held inquiry';
       case 'hold': return 'On Hold';
-      case 'blocked': return 'Blocked';
-      case 'available': return 'Request to Book';
+      case 'blocked': return 'Unavailable';
+      case 'available': return viewOnly ? 'Available for inquiry' : 'Available';
     }
   };
   
@@ -386,7 +386,7 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
     <div className="bg-[#1A1A1A] border border-[#F5F0E8]/10 rounded-md px-4 py-4">
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-header text-md text-[#F5F0E8]">
-          {viewOnly ? "Availability" : "My Calendar"}
+          {viewOnly ? "Availability" : "Availability readiness"}
         </h2>
         <div className="flex items-center gap-2">
           <button 
@@ -450,7 +450,7 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
               key={date.toISOString()}
               onClick={handleClick}
               disabled={(!canInteract && !canBook) || loading}
-              title={canBook ? 'Click to request booking' : hold ? `Hold: ${hold.clientName}` : getStatusLabel(status)}
+              title={canBook ? 'Click to start an inquiry' : hold ? `Hold: ${hold.clientName}` : getStatusLabel(status)}
               className={`
                 h-8 rounded text-xs relative transition-all
                 ${today ? 'ring-2 ring-[#C4A35A] ring-offset-1 ring-offset-[#1A1A1A]' : ''}
@@ -473,26 +473,26 @@ export default function AvailabilityCalendar({ userId, onDateSelect, onRequestBo
       <div className="flex flex-wrap items-center justify-center gap-3 mt-4 text-[0.65rem]">
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 bg-[#F5F0E8]/10 rounded border border-[#F5F0E8]/20" />
-          <span className="text-[#F5F0E8]/60">Available</span>
+          <span className="text-[#F5F0E8]/60">Available for inquiry</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 bg-[#8B2942] rounded" />
-          <span className="text-[#F5F0E8]/60">Blocked</span>
+          <span className="text-[#F5F0E8]/60">Unavailable</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 bg-[#C4A35A] rounded" />
-          <span className="text-[#F5F0E8]/60">Booked</span>
+          <span className="text-[#F5F0E8]/60">Confirmed commitment</span>
         </div>
       </div>
 
       {!viewOnly && (
         <p className="text-center text-[0.6rem] text-[#F5F0E8]/50 mt-3">
-          Click to cycle: Available → Blocked → Booked
+          Click to cycle: Available, Unavailable, Confirmed commitment
         </p>
       )}
       {viewOnly && onRequestBooking && (
         <p className="text-center text-[0.6rem] text-[#F5F0E8]/50 mt-3">
-          Click an available date to request booking
+          Click an available date to start an inquiry
         </p>
       )}
     </div>
