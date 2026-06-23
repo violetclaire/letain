@@ -40,6 +40,11 @@ the current permission decision, confidence, risk factors, missing signals,
 recommended next action, explanation, signal provenance, event history, and
 human judgment state.
 
+CDI is a related measurement layer, not a replacement for this permission layer.
+See `docs/CDI_PRODUCT_AND_RESEARCH_SCOPES.md`: CDI describes behavioral
+reliability and coordination-depth signals, while coordination assessment
+decides what is safe to do next for a specific path.
+
 ## Existing Decisions
 
 The current permission decision set is:
