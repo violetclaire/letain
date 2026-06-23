@@ -206,6 +206,51 @@ interface TrustTimelineResponse {
   timeline: TrustTimelineEntry[];
 }
 
+type PermissionDecision =
+  | "PROCEED"
+  | "PROCEED_WITH_OVERSIGHT"
+  | "CLARIFY"
+  | "REROUTE"
+  | "ESCALATE"
+  | "STOP";
+
+type RiskFactor =
+  | "MISSING_CONTEXT"
+  | "UNCLEAR_AUTHORITY"
+  | "INSUFFICIENT_TIME_BUFFER"
+  | "UNAVAILABLE_ROUTE_TARGET"
+  | "UNCONFIRMED_HANDOFF"
+  | "LOW_RECOVERY_CAPACITY"
+  | "PRIOR_OPEN_LOOP_FAILURE"
+  | "ESCALATION_OVERDUE"
+  | "ATTRIBUTION_AMBIGUOUS";
+
+interface CoordinationPathSummary {
+  id: string;
+  updatedAt?: string | null;
+}
+
+interface CoordinationAssessmentSummary {
+  id: string;
+  pathId: string;
+  decision: PermissionDecision;
+  confidence: number;
+  riskFactors: RiskFactor[] | null;
+  missingSignals: string[] | null;
+  recommendedNextAction: string;
+  humanJudgmentRequired: boolean;
+  createdAt?: string | null;
+}
+
+interface CoordinationPathListItem {
+  path: CoordinationPathSummary;
+  latestAssessment: CoordinationAssessmentSummary | null;
+}
+
+interface CoordinationPathsResponse {
+  paths: CoordinationPathListItem[];
+}
+
 type SortMode = "newest" | "oldest" | "requestedDateAsc" | "requestedDateDesc";
 
 interface NetworkMatch {
@@ -248,6 +293,24 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
   other: "Other",
 };
 
+const PERMISSION_DECISION_LABELS: Record<PermissionDecision, string> = {
+  PROCEED: "Proceed",
+  PROCEED_WITH_OVERSIGHT: "Proceed with oversight",
+  CLARIFY: "Clarify",
+  REROUTE: "Reroute",
+  ESCALATE: "Escalate",
+  STOP: "Stop",
+};
+
+const PERMISSION_DECISION_TONE: Record<PermissionDecision, string> = {
+  PROCEED: "border-emerald-200 bg-emerald-50 text-emerald-800",
+  PROCEED_WITH_OVERSIGHT: "border-blue-200 bg-blue-50 text-blue-800",
+  CLARIFY: "border-amber-200 bg-amber-50 text-amber-800",
+  REROUTE: "border-orange-200 bg-orange-50 text-orange-800",
+  ESCALATE: "border-rose-200 bg-rose-50 text-rose-800",
+  STOP: "border-red-200 bg-red-50 text-red-800",
+};
+
 function draftRouteCandidatesQueryKey(inquiryId?: string | null) {
   return ["/api/inquiries", inquiryId, "draft-route-candidates"] as const;
 }
@@ -258,6 +321,10 @@ function internalNoteQueryKey(inquiryId?: string | null) {
 
 function scheduleDraftQueryKey(inquiryId?: string | null) {
   return ["/api/schedule-drafts/by-inquiry", inquiryId] as const;
+}
+
+function coordinationPathsQueryKey(inquiryId?: string | null) {
+  return ["/api/inquiries", inquiryId, "coordination-paths"] as const;
 }
 
 function composerQueryKey(inquiryId?: string | null) {
@@ -793,6 +860,21 @@ export default function InquiryWorkspace() {
     enabled: isAuthenticated && isOperator && Boolean(selectedInquiryId),
     retry: false,
   });
+  const coordinationPathsQuery = useQuery<CoordinationPathsResponse>({
+    queryKey: coordinationPathsQueryKey(selectedInquiryId),
+    queryFn: async () => {
+      if (!selectedInquiryId) return { paths: [] };
+      const res = await fetch(`/api/inquiries/${encodeURIComponent(selectedInquiryId)}/coordination-paths`, { credentials: "include" });
+      if (res.status === 401) throw new Error("401");
+      if (!res.ok) throw new Error("Failed to load inquiry readiness");
+      const payload = await res.json();
+      return {
+        paths: Array.isArray(payload?.paths) ? payload.paths : [],
+      };
+    },
+    enabled: isAuthenticated && isOperator && Boolean(selectedInquiryId),
+    retry: false,
+  });
   const composerQuery = useQuery<ComposerResponse>({
     queryKey: composerQueryKey(selectedInquiryId),
     queryFn: async () => {
@@ -912,6 +994,11 @@ export default function InquiryWorkspace() {
   const selectedScheduleDraft = scheduleDraftQuery.data ?? null;
   const scheduleDraftHref = selectedScheduleDraft?.id && artistSlug
     ? `/admin/${artistSlug}/schedules/${selectedScheduleDraft.id}`
+    : null;
+  const selectedCoordinationPath = coordinationPathsQuery.data?.paths[0] ?? null;
+  const selectedPermissionAssessment = selectedCoordinationPath?.latestAssessment ?? null;
+  const coordinationPathHref = selectedCoordinationPath?.path?.id && artistSlug
+    ? `/admin/${artistSlug}/coordination/${selectedCoordinationPath.path.id}`
     : null;
   const createScheduleDraft = useMutation({
     mutationFn: async (inquiry: InquiryWorkspaceInquiry) => {
@@ -1246,6 +1333,126 @@ export default function InquiryWorkspace() {
                       </span>
                     </Field>
                   </dl>
+                </div>
+
+                <div className="border border-hairline bg-surface px-4 py-4" data-testid="inquiry-readiness-card">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CalendarDays className="w-4 h-4 text-ink/50" />
+                        <h3 className="font-serif text-base tracking-tight">Inquiry readiness</h3>
+                      </div>
+                      <p className="text-xs text-ink/55">
+                        Availability context first, then the current coordination permission.
+                      </p>
+                    </div>
+                    {coordinationPathHref && (
+                      <Link
+                        href={coordinationPathHref}
+                        className="inline-flex h-8 w-fit items-center border border-hairline px-3 text-xs text-ink/70 transition hover:bg-bg"
+                        data-testid="link-open-coordination-path"
+                      >
+                        Open full path
+                      </Link>
+                    )}
+                  </div>
+
+                  <div className={`mt-4 border px-3 py-3 text-sm ${
+                    selectedInquiry.hasDateConflict
+                      ? "border-amber-500/30 bg-amber-500/10 text-ink"
+                      : "border-hairline bg-bg text-ink/75"
+                  }`}>
+                    <p className="text-xs uppercase tracking-wide text-ink/45 mb-1">Availability check</p>
+                    <p className="break-words">
+                      {!selectedInquiry.eventDate
+                        ? "Requested date is not available yet; review availability manually."
+                        : selectedInquiry.hasDateConflict
+                          ? selectedInquiry.conflictSource || "A date conflict is recorded for this inquiry date."
+                          : "No date conflict recorded from current inquiry checks."}
+                    </p>
+                  </div>
+
+                  {coordinationPathsQuery.isLoading && (
+                    <div className="mt-3 flex items-center gap-2 text-sm text-ink/60">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Loading inquiry readiness
+                    </div>
+                  )}
+
+                  {coordinationPathsQuery.isError && (
+                    <p className="mt-3 text-sm text-ink/60">
+                      Could not load inquiry readiness.
+                    </p>
+                  )}
+
+                  {!coordinationPathsQuery.isLoading && !coordinationPathsQuery.isError && !selectedCoordinationPath && (
+                    <p className="mt-3 text-sm text-ink/60">
+                      No coordination path has been recorded for this inquiry yet.
+                    </p>
+                  )}
+
+                  {!coordinationPathsQuery.isLoading && !coordinationPathsQuery.isError && selectedCoordinationPath && !selectedPermissionAssessment && (
+                    <p className="mt-3 text-sm text-ink/60">
+                      Coordination path exists, but no permission decision has been recorded yet.
+                    </p>
+                  )}
+
+                  {!coordinationPathsQuery.isLoading && !coordinationPathsQuery.isError && selectedPermissionAssessment && (
+                    <div className="mt-4 grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-xs uppercase tracking-wide text-ink/45 mb-1">Coordination permission</p>
+                          <span className={`inline-flex w-fit items-center border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${PERMISSION_DECISION_TONE[selectedPermissionAssessment.decision]}`}>
+                            {PERMISSION_DECISION_LABELS[selectedPermissionAssessment.decision]}
+                          </span>
+                        </div>
+                        <dl className="grid gap-2 text-sm sm:grid-cols-2">
+                          <div>
+                            <dt className="text-xs uppercase tracking-wide text-ink/45">Confidence</dt>
+                            <dd className="text-ink">{selectedPermissionAssessment.confidence}%</dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs uppercase tracking-wide text-ink/45">Assessed</dt>
+                            <dd className="text-ink">{formatDateTime(selectedPermissionAssessment.createdAt)}</dd>
+                          </div>
+                        </dl>
+                        {selectedPermissionAssessment.humanJudgmentRequired && (
+                          <Pill>Human review required</Pill>
+                        )}
+                      </div>
+
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-xs uppercase tracking-wide text-ink/45 mb-1">Recommended next action</p>
+                          <p className="text-sm text-ink/75 break-words">
+                            {selectedPermissionAssessment.recommendedNextAction}
+                          </p>
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div>
+                            <p className="text-xs uppercase tracking-wide text-ink/45 mb-1">Risk factors</p>
+                            <div className="flex flex-wrap gap-1">
+                              {(selectedPermissionAssessment.riskFactors ?? []).length > 0
+                                ? (selectedPermissionAssessment.riskFactors ?? []).slice(0, 4).map((risk) => (
+                                  <Pill key={risk}>{sentenceLabel(risk)}</Pill>
+                                ))
+                                : <span className="text-sm text-ink/55">None recorded</span>}
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-xs uppercase tracking-wide text-ink/45 mb-1">Missing signals</p>
+                            <div className="flex flex-wrap gap-1">
+                              {(selectedPermissionAssessment.missingSignals ?? []).length > 0
+                                ? (selectedPermissionAssessment.missingSignals ?? []).slice(0, 4).map((signal) => (
+                                  <Pill key={signal}>{sentenceLabel(signal)}</Pill>
+                                ))
+                                : <span className="text-sm text-ink/55">None recorded</span>}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
