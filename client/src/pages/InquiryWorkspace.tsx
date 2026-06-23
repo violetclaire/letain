@@ -15,7 +15,6 @@ import {
   PlusCircle,
   Save,
   Search,
-  ShieldAlert,
   StickyNote,
   User,
   Users,
@@ -867,7 +866,7 @@ export default function InquiryWorkspace() {
       if (!selectedInquiryId) return { paths: [] };
       const res = await fetch(`/api/inquiries/${encodeURIComponent(selectedInquiryId)}/coordination-paths`, { credentials: "include" });
       if (res.status === 401) throw new Error("401");
-      if (!res.ok) throw new Error("Failed to load current permission decision");
+      if (!res.ok) throw new Error("Failed to load inquiry readiness");
       const payload = await res.json();
       return {
         paths: Array.isArray(payload?.paths) ? payload.paths : [],
@@ -1336,15 +1335,15 @@ export default function InquiryWorkspace() {
                   </dl>
                 </div>
 
-                <div className="border border-hairline bg-surface px-4 py-4" data-testid="current-permission-decision-card">
+                <div className="border border-hairline bg-surface px-4 py-4" data-testid="inquiry-readiness-card">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-2">
-                        <ShieldAlert className="w-4 h-4 text-ink/50" />
-                        <h3 className="font-serif text-base tracking-tight">Current permission decision</h3>
+                        <CalendarDays className="w-4 h-4 text-ink/50" />
+                        <h3 className="font-serif text-base tracking-tight">Inquiry readiness</h3>
                       </div>
                       <p className="text-xs text-ink/55">
-                        Read-only coordination assessment for this inquiry path.
+                        Availability context first, then the current coordination permission.
                       </p>
                     </div>
                     {coordinationPathHref && (
@@ -1358,16 +1357,31 @@ export default function InquiryWorkspace() {
                     )}
                   </div>
 
+                  <div className={`mt-4 border px-3 py-3 text-sm ${
+                    selectedInquiry.hasDateConflict
+                      ? "border-amber-500/30 bg-amber-500/10 text-ink"
+                      : "border-hairline bg-bg text-ink/75"
+                  }`}>
+                    <p className="text-xs uppercase tracking-wide text-ink/45 mb-1">Availability check</p>
+                    <p className="break-words">
+                      {!selectedInquiry.eventDate
+                        ? "Requested date is not available yet; review availability manually."
+                        : selectedInquiry.hasDateConflict
+                          ? selectedInquiry.conflictSource || "A date conflict is recorded for this inquiry date."
+                          : "No date conflict recorded from current inquiry checks."}
+                    </p>
+                  </div>
+
                   {coordinationPathsQuery.isLoading && (
                     <div className="mt-3 flex items-center gap-2 text-sm text-ink/60">
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Loading permission decision
+                      Loading inquiry readiness
                     </div>
                   )}
 
                   {coordinationPathsQuery.isError && (
                     <p className="mt-3 text-sm text-ink/60">
-                      Could not load current permission decision.
+                      Could not load inquiry readiness.
                     </p>
                   )}
 
@@ -1387,7 +1401,7 @@ export default function InquiryWorkspace() {
                     <div className="mt-4 grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
                       <div className="space-y-3">
                         <div>
-                          <p className="text-xs uppercase tracking-wide text-ink/45 mb-1">Permission decision</p>
+                          <p className="text-xs uppercase tracking-wide text-ink/45 mb-1">Coordination permission</p>
                           <span className={`inline-flex w-fit items-center border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${PERMISSION_DECISION_TONE[selectedPermissionAssessment.decision]}`}>
                             {PERMISSION_DECISION_LABELS[selectedPermissionAssessment.decision]}
                           </span>

@@ -15,13 +15,20 @@ test("Inquiry Workspace reads current permission decision from existing coordina
   assert.match(inquiryWorkspace, /const selectedPermissionAssessment = selectedCoordinationPath\?\.latestAssessment \?\? null/);
 });
 
-test("Inquiry Workspace renders a compact read-only permission decision card", () => {
-  assert.match(inquiryWorkspace, /data-testid="current-permission-decision-card"/);
-  assert.match(inquiryWorkspace, /Current permission decision/);
-  assert.match(inquiryWorkspace, /Loading permission decision/);
+test("Inquiry Workspace renders a compact read-only inquiry readiness card", () => {
+  assert.match(inquiryWorkspace, /data-testid="inquiry-readiness-card"/);
+  assert.match(inquiryWorkspace, /Inquiry readiness/);
+  assert.match(inquiryWorkspace, /Availability context first, then the current coordination permission\./);
+  assert.match(inquiryWorkspace, /Availability check/);
+  assert.match(inquiryWorkspace, /selectedInquiry\.hasDateConflict/);
+  assert.match(inquiryWorkspace, /selectedInquiry\.conflictSource/);
+  assert.match(inquiryWorkspace, /No date conflict recorded from current inquiry checks\./);
+  assert.match(inquiryWorkspace, /Requested date is not available yet; review availability manually\./);
+  assert.match(inquiryWorkspace, /Loading inquiry readiness/);
   assert.match(inquiryWorkspace, /No coordination path has been recorded for this inquiry yet\./);
   assert.match(inquiryWorkspace, /Coordination path exists, but no permission decision has been recorded yet\./);
-  assert.match(inquiryWorkspace, /Could not load current permission decision\./);
+  assert.match(inquiryWorkspace, /Could not load inquiry readiness\./);
+  assert.match(inquiryWorkspace, /Coordination permission/);
   assert.match(inquiryWorkspace, /Recommended next action/);
   assert.match(inquiryWorkspace, /Risk factors/);
   assert.match(inquiryWorkspace, /Missing signals/);
