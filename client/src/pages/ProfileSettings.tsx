@@ -544,7 +544,7 @@ export default function ProfileSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["artistProfile", user?.id] });
-      toast({ title: "Info Sheet Saved", description: "Your info sheet will be auto-sent to new inquiries." });
+      toast({ title: "Info Sheet Saved", description: "Your reusable pricing/info details have been saved." });
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -709,6 +709,12 @@ export default function ProfileSettings() {
       default: return "/";
     }
   };
+
+  const hasServiceRows = services.length > 0;
+  const hasInfoSheetText = infoSheetData.infoSheetContent.trim().length > 0;
+  const hasInfoSheetPdf = infoSheetData.infoSheetPdfUrl.trim().length > 0;
+  const hasLogoAsset = businessData.logoUrl.trim().length > 0;
+  const hasPricingInfoReady = hasServiceRows || hasInfoSheetText || hasInfoSheetPdf;
 
   if (authLoading) {
     return (
@@ -1475,7 +1481,7 @@ export default function ProfileSettings() {
             </div>
 
             <p className="text-sm text-black/60 mb-4">
-              Create your services menu here. Clients will see this when they request a booking, or you can generate a beautiful template to share.
+              Add reusable service roles, packages, and pricing context for future inquiry response drafts.
             </p>
 
             {/* Voice Add Service Box */}
@@ -1523,7 +1529,7 @@ export default function ProfileSettings() {
               <div className="border-2 border-dashed border-black/20 rounded-lg p-8 text-center">
                 <FileText size={32} className="mx-auto mb-2 text-black/30" />
                 <p className="text-sm text-black/50 mb-2">No services added yet</p>
-                <p className="text-xs text-black/40">Add your services or upload an existing menu PDF</p>
+                <p className="text-xs text-black/40">Add services, packages, or policy details to support future inquiry response drafts.</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -1601,7 +1607,7 @@ export default function ProfileSettings() {
             <form onSubmit={handleSaveInfoSheet}>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-header text-lg ink-main flex items-center gap-2">
-                  <FileText size={18} /> Inquiry Auto-Response
+                  <FileText size={18} /> Pricing / Info Sheet
                 </h2>
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
                   <input
@@ -1611,15 +1617,53 @@ export default function ProfileSettings() {
                     className="rounded border-black/30"
                     data-testid="checkbox-info-sheet-enabled"
                   />
-                  <span className="text-black/70">Auto-send on inquiry</span>
+                  <span className="text-black/70">Use this reusable info</span>
                 </label>
               </div>
               
-              <p className="text-xs text-black/60 mb-4">
-                {infoSheetData.infoSheetEnabled 
-                  ? "When clients inquire, they'll automatically receive your info sheet. Set up your content below:"
-                  : "Enable auto-send above to automatically share your info with inquiring clients. You can set up your content anytime:"}
-              </p>
+              <div className="mb-4 space-y-2">
+                <p className="text-xs text-black/60">
+                  Create or store the reusable pricing/details information you can use later when drafting inquiry responses. Nothing sends from this setup screen.
+                </p>
+                <p className="text-xs text-black/45">
+                  {infoSheetData.infoSheetEnabled
+                    ? "Briarwood can treat this material as active reusable context for future drafts."
+                    : "This material stays saved privately until you choose to use it as active draft context."}
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-black/10 bg-[#f8faf7] p-4 mb-6">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div>
+                    <p className="text-sm font-medium ink-main">Private readiness</p>
+                    <p className="text-xs text-black/50">
+                      {hasPricingInfoReady
+                        ? "Ready for composer later"
+                        : "Add your services, pricing, policies, or an existing PDF so Briarwood can help draft inquiry responses later."}
+                    </p>
+                  </div>
+                  <span className="text-xs rounded-full border border-black/10 px-2 py-1 text-black/60">
+                    Setup only
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {[
+                    { label: "Services added", ready: hasServiceRows },
+                    { label: "Pricing/details text added", ready: hasInfoSheetText },
+                    { label: "PDF reference added", ready: hasInfoSheetPdf },
+                    { label: "Logo added", ready: hasLogoAsset },
+                  ].map((item) => (
+                    <div key={item.label} className="flex items-center gap-2 text-xs text-black/65">
+                      <span className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                        item.ready ? "bg-black text-white border-black" : "border-black/20 text-transparent"
+                      }`}>
+                        <Check size={10} />
+                      </span>
+                      <span>{item.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
               {/* Option Selector */}
               <div className="flex gap-2 mb-6">
@@ -1634,7 +1678,7 @@ export default function ProfileSettings() {
                   data-testid="button-info-type-pdf"
                 >
                   <Upload size={16} className="mx-auto mb-1" />
-                  Upload Your Own
+                  Use Existing PDF
                 </button>
                 <button
                   type="button"
@@ -1647,7 +1691,7 @@ export default function ProfileSettings() {
                   data-testid="button-info-type-custom"
                 >
                   <Edit2 size={16} className="mx-auto mb-1" />
-                  Write Your Own
+                  Write Details
                 </button>
                 <button
                   type="button"
@@ -1660,7 +1704,7 @@ export default function ProfileSettings() {
                   data-testid="button-info-type-template"
                 >
                   <FileText size={16} className="mx-auto mb-1" />
-                  Use Our Template
+                  Use Starter Template
                 </button>
               </div>
 
@@ -1668,7 +1712,7 @@ export default function ProfileSettings() {
               {infoSheetData.infoSheetType === "pdf" && (
                 <div className="mb-4">
                   <label className="block text-xs uppercase tracking-wide text-black/60 mb-2">
-                    Upload Your Pricing Sheet (PDF or Image)
+                    Existing Pricing / Info Sheet (PDF or Image)
                   </label>
                   {infoSheetData.infoSheetPdfUrl ? (
                     <div className="border border-black/20 rounded-lg p-4 bg-[#f5f7fc]">
@@ -1713,7 +1757,7 @@ export default function ProfileSettings() {
                               const data = await res.json();
                               if (res.ok && data.objectPath) {
                                 setInfoSheetData(prev => ({ ...prev, infoSheetPdfUrl: data.objectPath }));
-                                toast({ title: "File Uploaded", description: "Your pricing sheet has been uploaded." });
+                                toast({ title: "File Uploaded", description: "Your pricing/info sheet reference has been saved." });
                               }
                             } catch (err: any) {
                               toast({ title: "Upload Failed", description: err.message, variant: "destructive" });
@@ -1727,7 +1771,7 @@ export default function ProfileSettings() {
                       >
                         <div className="flex flex-col items-center gap-2">
                           <Upload size={24} className="text-black/40" />
-                          <span className="text-sm text-black/60">Click to upload your pricing sheet</span>
+                          <span className="text-sm text-black/60">Click to upload an existing pricing/info sheet</span>
                           <span className="text-xs text-black/40">PDF, JPG, or PNG up to 10MB</span>
                         </div>
                       </ObjectUploader>
@@ -1740,10 +1784,10 @@ export default function ProfileSettings() {
               {infoSheetData.infoSheetType === "custom" && (
                 <div className="mb-4">
                   <label className="block text-xs uppercase tracking-wide text-black/60 mb-1">
-                    Your Custom Info Sheet
+                    Reusable Pricing / Info Details
                   </label>
                   <p className="text-xs text-black/50 mb-2">
-                    Write your own welcome message, pricing, and booking policies. This will be formatted and sent as an email.
+                    Write reusable services, pricing, policies, travel, and process details for future response drafts.
                   </p>
                   <textarea
                     value={infoSheetData.infoSheetContent}
@@ -1759,7 +1803,7 @@ export default function ProfileSettings() {
               {infoSheetData.infoSheetType === "template" && (
                 <div className="mb-4 space-y-4">
                   <p className="text-xs text-black/50">
-                    Fill in the template below with your own information. Leave sections blank if they don't apply.
+                    Fill in reusable services, pricing, policies, travel, and process details. Leave sections blank if they don't apply.
                   </p>
                   <textarea
                     value={infoSheetData.infoSheetContent}
@@ -1789,8 +1833,8 @@ Makeup: $200 and up
 Hair: $200 and up
 Makeup & Hair Together: $400 and up
 
-Booking Information
-Dates are secured with a signed contract and non-refundable retainer on a first come first serve basis.
+Process Information
+Dates are reserved after the required agreement and retainer are complete, according to your current policies.
 
 Additional Details
 - For parties over 10, an additional fee of $300 for each extra artist will apply
@@ -1798,7 +1842,7 @@ Additional Details
 - Travel fees vary based on location and start time
 - For start times before 8 AM or locations over 50 miles away, hotel accommodation for the night prior is necessary
 
-For further inquiries or to book your session, please contact us.
+For further inquiries or next steps, please contact us.
 Thank you for considering us for your special day!`}
                     data-testid="textarea-info-sheet-template"
                   />
@@ -1812,7 +1856,7 @@ Thank you for considering us for your special day!`}
                 data-testid="button-save-info-sheet"
               >
                 <Save size={16} />
-                {updateInfoSheetMutation.isPending ? "Saving..." : "Save Info Sheet Settings"}
+                {updateInfoSheetMutation.isPending ? "Saving..." : "Save Pricing / Info Sheet"}
               </button>
             </form>
           </div>
