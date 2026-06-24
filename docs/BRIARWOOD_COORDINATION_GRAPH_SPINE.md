@@ -5,6 +5,12 @@ documentation only. It does not add schema, routes, UI, migrations, sends,
 uploads, payment behavior, contract behavior, auth behavior, CDI behavior, or
 verification behavior.
 
+The operator behavior source of truth is
+`docs/BRIARWOOD_OPERATING_LOGIC.md`. Use that document to check build order,
+headless channel behavior, operator approval, calendar authority, inquiry
+readiness, referral routing, info-sheet setup, schedule prompting, and contract
+sequencing before adding product features.
+
 ## Product Definition
 
 Briarwood is private coordination infrastructure for real-world work.
