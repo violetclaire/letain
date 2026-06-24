@@ -277,6 +277,21 @@ interface NetworkMatch {
   matchedTags: string[];
 }
 
+type InquiryDecisionLabel =
+  | "Ready to respond"
+  | "Needs missing info"
+  | "Unavailable -- route options available"
+  | "Unavailable -- route blocked by missing contact"
+  | "Needs operator review"
+  | "Stop -- do not respond yet";
+
+interface InquiryDecisionSummary {
+  label: InquiryDecisionLabel;
+  tone: string;
+  reasons: string[];
+  nextStep: string;
+}
+
 interface TimelineEntry {
   id: string;
   label: string;
@@ -523,6 +538,179 @@ function contactReadinessFor(target: Pick<RouteTarget, "email" | "phone" | "note
   }
 
   return { label, details };
+}
+
+function routeTargetHasReachableContact(target: RouteTarget): boolean {
+  const readiness = contactReadinessFor(target);
+  return readiness.label === "Ready to contact" || readiness.label === "Phone ready" || readiness.label === "Email ready";
+}
+
+function routeTargetHasKnownButIncompleteContact(target: RouteTarget): boolean {
+  return contactReadinessFor(target).label === "Instagram/notes only";
+}
+
+function buildInquiryDecisionSummary({
+  inquiry,
+  infoSheetReady,
+  infoSheetReadinessIsLoading,
+  infoSheetReadinessUnable,
+  networkMatches,
+  permissionAssessment,
+  permissionIsLoading,
+  permissionIsError,
+}: {
+  inquiry: InquiryWorkspaceInquiry;
+  infoSheetReady: boolean;
+  infoSheetReadinessIsLoading: boolean;
+  infoSheetReadinessUnable: boolean;
+  networkMatches: NetworkMatch[];
+  permissionAssessment: CoordinationAssessmentSummary | null;
+  permissionIsLoading: boolean;
+  permissionIsError: boolean;
+}): InquiryDecisionSummary {
+  const hasDate = hasText(inquiry.eventDate);
+  const hasServiceNeed = hasText(inquiry.serviceType) || hasText(inquiry.eventType) || hasText(inquiry.message);
+  const permissionDecision = permissionAssessment?.decision ?? null;
+  const activeNetworkMatches = networkMatches.filter((match) => match.target.active !== false);
+  const reachableRouteExists = activeNetworkMatches.some((match) => routeTargetHasReachableContact(match.target));
+  const knownButIncompleteRouteExists = activeNetworkMatches.some((match) => routeTargetHasKnownButIncompleteContact(match.target));
+  const anyRouteOptionExists = activeNetworkMatches.length > 0;
+
+  if (!hasDate) {
+    return {
+      label: "Needs missing info",
+      tone: "border-amber-200 bg-amber-50 text-amber-900",
+      reasons: ["Need event date before responding."],
+      nextStep: "Ask for the event date before drafting a response.",
+    };
+  }
+
+  if (!hasServiceNeed) {
+    return {
+      label: "Needs missing info",
+      tone: "border-amber-200 bg-amber-50 text-amber-900",
+      reasons: ["Need service details before responding."],
+      nextStep: "Ask what service or scope the client needs.",
+    };
+  }
+
+  if (permissionDecision === "STOP") {
+    return {
+      label: "Stop -- do not respond yet",
+      tone: "border-red-200 bg-red-50 text-red-900",
+      reasons: ["Coordination permission is Stop."],
+      nextStep: permissionAssessment?.recommendedNextAction || "Review the full coordination path before responding.",
+    };
+  }
+
+  if (permissionDecision === "CLARIFY" || permissionDecision === "ESCALATE" || permissionDecision === "PROCEED_WITH_OVERSIGHT") {
+    return {
+      label: "Needs operator review",
+      tone: "border-blue-200 bg-blue-50 text-blue-900",
+      reasons: [`Coordination permission is ${PERMISSION_DECISION_LABELS[permissionDecision]}.`],
+      nextStep: permissionAssessment?.recommendedNextAction || "Review the current coordination permission before responding.",
+    };
+  }
+
+  if (inquiry.hasDateConflict) {
+    if (reachableRouteExists) {
+      return {
+        label: "Unavailable -- route options available",
+        tone: "border-orange-200 bg-orange-50 text-orange-900",
+        reasons: [inquiry.conflictSource || "A date conflict is recorded.", "Reachable route option exists."],
+        nextStep: "Review the private network options before deciding whether to route.",
+      };
+    }
+
+    if (knownButIncompleteRouteExists || anyRouteOptionExists) {
+      return {
+        label: "Unavailable -- route blocked by missing contact",
+        tone: "border-amber-200 bg-amber-50 text-amber-900",
+        reasons: [
+          inquiry.conflictSource || "A date conflict is recorded.",
+          knownButIncompleteRouteExists ? "Route option needs operator review." : "Route target contact method is missing.",
+        ],
+        nextStep: "Add phone or email before preflight, or review the route manually.",
+      };
+    }
+
+    return {
+      label: "Needs operator review",
+      tone: "border-blue-200 bg-blue-50 text-blue-900",
+      reasons: [inquiry.conflictSource || "A date conflict is recorded.", "No route option is ready from existing network data."],
+      nextStep: "Review whether to add a route target, decline, or ask for another date.",
+    };
+  }
+
+  if (infoSheetReadinessIsLoading) {
+    return {
+      label: "Needs operator review",
+      tone: "border-blue-200 bg-blue-50 text-blue-900",
+      reasons: ["Pricing / Info Sheet readiness is still loading."],
+      nextStep: "Wait for setup readiness before drafting a response.",
+    };
+  }
+
+  if (infoSheetReadinessUnable) {
+    return {
+      label: "Needs operator review",
+      tone: "border-blue-200 bg-blue-50 text-blue-900",
+      reasons: ["Pricing / Info Sheet readiness could not be verified."],
+      nextStep: "Review Settings before sending reusable details.",
+    };
+  }
+
+  if (!infoSheetReady) {
+    return {
+      label: "Needs missing info",
+      tone: "border-amber-200 bg-amber-50 text-amber-900",
+      reasons: ["Pricing / Info Sheet not configured yet."],
+      nextStep: "Open Settings and add pricing, services, policies, or an existing PDF before drafting.",
+    };
+  }
+
+  if (permissionIsLoading) {
+    return {
+      label: "Needs operator review",
+      tone: "border-blue-200 bg-blue-50 text-blue-900",
+      reasons: ["Current coordination permission is still loading."],
+      nextStep: "Wait for the coordination path check before responding.",
+    };
+  }
+
+  if (permissionIsError) {
+    return {
+      label: "Needs operator review",
+      tone: "border-blue-200 bg-blue-50 text-blue-900",
+      reasons: ["Current coordination permission could not be loaded."],
+      nextStep: "Open the coordination path panel or review manually before responding.",
+    };
+  }
+
+  if (permissionDecision === "PROCEED") {
+    return {
+      label: "Ready to respond",
+      tone: "border-emerald-200 bg-emerald-50 text-emerald-900",
+      reasons: ["Date is known.", "Service need is known.", "No date conflict is recorded.", "Pricing / Info Sheet ready.", "Coordination permission is Proceed."],
+      nextStep: "Draft the response for operator approval. Nothing sends automatically.",
+    };
+  }
+
+  if (permissionDecision === "REROUTE") {
+    return {
+      label: "Needs operator review",
+      tone: "border-blue-200 bg-blue-50 text-blue-900",
+      reasons: ["Coordination permission is Reroute."],
+      nextStep: permissionAssessment?.recommendedNextAction || "Review route options before responding.",
+    };
+  }
+
+  return {
+    label: "Needs operator review",
+    tone: "border-blue-200 bg-blue-50 text-blue-900",
+    reasons: ["No current coordination permission has been recorded yet."],
+    nextStep: "Review the inquiry and coordination path before deciding what to send.",
+  };
 }
 
 function textTokens(value?: string | null): string[] {
@@ -1131,6 +1319,44 @@ export default function InquiryWorkspace() {
       : infoSheetReady
         ? "Reusable pricing/details material is available for drafting later."
         : "Pricing, service, policy, or PDF material has not been configured yet.";
+  const inquiryDecisionSummary = useMemo(
+    () => selectedInquiry
+      ? buildInquiryDecisionSummary({
+        inquiry: selectedInquiry,
+        infoSheetReady,
+        infoSheetReadinessIsLoading,
+        infoSheetReadinessUnable,
+        networkMatches,
+        permissionAssessment: selectedPermissionAssessment,
+        permissionIsLoading: coordinationPathsQuery.isLoading,
+        permissionIsError: coordinationPathsQuery.isError,
+      })
+      : null,
+    [
+      selectedInquiry,
+      infoSheetReady,
+      infoSheetReadinessIsLoading,
+      infoSheetReadinessUnable,
+      networkMatches,
+      selectedPermissionAssessment,
+      coordinationPathsQuery.isLoading,
+      coordinationPathsQuery.isError,
+    ],
+  );
+  const routeContactReadinessLabel = networkMatches.some((match) => routeTargetHasReachableContact(match.target))
+    ? "Reachable route option exists"
+    : networkMatches.some((match) => routeTargetHasKnownButIncompleteContact(match.target))
+      ? "Route option needs operator review"
+      : networkMatches.length > 0
+        ? "Route blocked by missing contact"
+        : "No route option from existing network data";
+  const currentPermissionLabel = coordinationPathsQuery.isLoading
+    ? "Current coordination permission is loading"
+    : coordinationPathsQuery.isError
+      ? "Current coordination permission unavailable"
+      : selectedPermissionAssessment
+        ? PERMISSION_DECISION_LABELS[selectedPermissionAssessment.decision]
+        : "No current coordination permission recorded";
   const createScheduleDraft = useMutation({
     mutationFn: async (inquiry: InquiryWorkspaceInquiry) => {
       const titleParts = [
@@ -1465,6 +1691,63 @@ export default function InquiryWorkspace() {
                     </Field>
                   </dl>
                 </div>
+
+                {inquiryDecisionSummary && (
+                  <div className="border border-hairline bg-surface px-4 py-4" data-testid="inquiry-decision-summary-card">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <AlertCircle className="w-4 h-4 text-ink/50" />
+                          <h3 className="font-serif text-base tracking-tight">Can I respond yet?</h3>
+                        </div>
+                        <p className="max-w-3xl text-xs text-ink/55">
+                          Briarwood checks the inquiry date, service need, availability, info sheet readiness, route options, and current coordination permission before suggesting the next step. Nothing sends from this card.
+                        </p>
+                      </div>
+                      <span className={`inline-flex w-fit items-center border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${inquiryDecisionSummary.tone}`}>
+                        {inquiryDecisionSummary.label}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 text-sm lg:grid-cols-[0.8fr_1.2fr]">
+                      <div className={`border px-3 py-3 ${inquiryDecisionSummary.tone}`}>
+                        <p className="text-xs uppercase tracking-wide opacity-70 mb-1">Suggested next step</p>
+                        <p className="break-words">{inquiryDecisionSummary.nextStep}</p>
+                      </div>
+
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <div className="border border-hairline bg-bg px-3 py-2">
+                          <p className="text-xs uppercase tracking-wide text-ink/45">Availability</p>
+                          <p className="mt-1 text-ink/70 break-words">
+                            {selectedInquiry.hasDateConflict
+                              ? selectedInquiry.conflictSource || "A date conflict is recorded."
+                              : selectedInquiry.eventDate
+                                ? "No date conflict recorded from current inquiry checks."
+                                : "Need event date before responding."}
+                          </p>
+                        </div>
+                        <div className="border border-hairline bg-bg px-3 py-2">
+                          <p className="text-xs uppercase tracking-wide text-ink/45">Pricing / Info Sheet</p>
+                          <p className="mt-1 text-ink/70 break-words">{infoSheetReadinessLabel}</p>
+                        </div>
+                        <div className="border border-hairline bg-bg px-3 py-2">
+                          <p className="text-xs uppercase tracking-wide text-ink/45">Route/contact readiness</p>
+                          <p className="mt-1 text-ink/70 break-words">{routeContactReadinessLabel}</p>
+                        </div>
+                        <div className="border border-hairline bg-bg px-3 py-2">
+                          <p className="text-xs uppercase tracking-wide text-ink/45">Current coordination permission</p>
+                          <p className="mt-1 text-ink/70 break-words">{currentPermissionLabel}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-1">
+                      {inquiryDecisionSummary.reasons.map((reason) => (
+                        <Pill key={reason}>{reason}</Pill>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="border border-hairline bg-surface px-4 py-4" data-testid="inquiry-readiness-card">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
