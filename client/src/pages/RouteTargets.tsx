@@ -86,6 +86,62 @@ function splitList(value: string): string[] {
     .filter(Boolean);
 }
 
+function contactMetadataText(t: Pick<RouteTarget, "notes" | "tags" | "capabilities">): string {
+  return [t.notes, ...(t.tags ?? []), ...(t.capabilities ?? [])]
+    .filter((value): value is string => Boolean(value && value.trim()))
+    .join(" ")
+    .toLowerCase();
+}
+
+function preferredContactMethod(t: Pick<RouteTarget, "notes" | "tags" | "capabilities">): "phone" | "email" | null {
+  const text = contactMetadataText(t);
+  if (/(prefer|preferred|best|reach|contact).{0,24}(phone|text|sms|call)|\b(phone|text|sms|call).{0,24}(prefer|preferred|best)/.test(text)) {
+    return "phone";
+  }
+  if (/(prefer|preferred|best|reach|contact).{0,24}(email|e-mail)|\b(email|e-mail).{0,24}(prefer|preferred|best)/.test(text)) {
+    return "email";
+  }
+  return null;
+}
+
+function hasInstagramCue(t: Pick<RouteTarget, "notes" | "tags" | "capabilities">): boolean {
+  const text = contactMetadataText(t);
+  return /\b(instagram|insta|ig)\b|@[a-z0-9._-]{2,}/i.test(text);
+}
+
+function contactReadinessFor(t: Pick<RouteTarget, "email" | "phone" | "notes" | "tags" | "capabilities">): {
+  label: "Ready to contact" | "Phone ready" | "Email ready" | "Instagram/notes only" | "Contact method missing";
+  details: string[];
+} {
+  const hasPhone = Boolean(t.phone?.trim());
+  const hasEmail = Boolean(t.email?.trim());
+  const preferred = preferredContactMethod(t);
+  const instagramOnly = !hasPhone && !hasEmail && hasInstagramCue(t);
+
+  const label = hasPhone && hasEmail
+    ? "Ready to contact"
+    : hasPhone
+      ? "Phone ready"
+      : hasEmail
+        ? "Email ready"
+        : instagramOnly
+          ? "Instagram/notes only"
+          : "Contact method missing";
+
+  const details: string[] = [];
+  if ((preferred === "phone" && !hasPhone) || (preferred === "email" && !hasEmail)) {
+    details.push("Preferred channel missing");
+  } else if ((hasPhone || hasEmail) && !preferred) {
+    details.push("Preferred channel unknown");
+  }
+
+  if (!hasPhone && !hasEmail) {
+    details.push(instagramOnly ? "Known, but not safely reachable yet" : "Add phone or email before preflight");
+  }
+
+  return { label, details };
+}
+
 function toPayload(f: FormState) {
   return {
     name: f.name.trim(),
@@ -423,12 +479,15 @@ export default function RouteTargets() {
           </p>
         ) : (
           <div className="space-y-3" data-testid="list-targets">
-            {targets.map((t) => (
-              <article
-                key={t.id}
-                className="border border-hairline bg-surface p-5"
-                data-testid={`card-target-${t.id}`}
-              >
+            {targets.map((t) => {
+              const readiness = contactReadinessFor(t);
+
+              return (
+                <article
+                  key={t.id}
+                  className="border border-hairline bg-surface p-5"
+                  data-testid={`card-target-${t.id}`}
+                >
                 <div className="flex items-start justify-between gap-4 mb-2">
                   <div>
                     <h3 className="font-medium" data-testid={`text-target-name-${t.id}`}>
@@ -480,6 +539,21 @@ export default function RouteTargets() {
                   ))}
                 </div>
 
+                <div
+                  className="mt-3 border border-hairline bg-bg px-3 py-2 text-xs text-ink/65"
+                  data-testid={`contact-readiness-${t.id}`}
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="uppercase tracking-wide text-ink/45">Contact readiness</span>
+                    <Badge variant="outline" className="text-xs bg-surface">
+                      {readiness.label}
+                    </Badge>
+                  </div>
+                  {readiness.details.length > 0 && (
+                    <p className="mt-1">{readiness.details.join(" / ")}</p>
+                  )}
+                </div>
+
                 {(t.capabilities ?? []).length > 0 && (
                   <div className="text-sm text-ink/70 mt-2">
                     Services: {(t.capabilities ?? []).join(", ")}
@@ -509,8 +583,9 @@ export default function RouteTargets() {
                     {t.active === false ? "Set active" : "Set inactive"}
                   </button>
                 </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         )}
       </div>
