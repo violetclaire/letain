@@ -92,6 +92,8 @@ interface ArtistServiceSummary {
 interface RouteTarget {
   id: string;
   name: string;
+  email?: string | null;
+  phone?: string | null;
   roleLabel: string | null;
   tags: string[] | null;
   capabilities: string[] | null;
@@ -465,6 +467,62 @@ function bodyExcerpt(value?: string | null): string {
 
 function textList(values?: string[] | null): string[] {
   return Array.isArray(values) ? values.filter((value): value is string => typeof value === "string" && value.trim().length > 0) : [];
+}
+
+function contactMetadataText(target: Pick<RouteTarget, "notes" | "tags" | "capabilities">): string {
+  return [target.notes, ...(target.tags ?? []), ...(target.capabilities ?? [])]
+    .filter((value): value is string => Boolean(value && value.trim()))
+    .join(" ")
+    .toLowerCase();
+}
+
+function preferredContactMethod(target: Pick<RouteTarget, "notes" | "tags" | "capabilities">): "phone" | "email" | null {
+  const text = contactMetadataText(target);
+  if (/(prefer|preferred|best|reach|contact).{0,24}(phone|text|sms|call)|\b(phone|text|sms|call).{0,24}(prefer|preferred|best)/.test(text)) {
+    return "phone";
+  }
+  if (/(prefer|preferred|best|reach|contact).{0,24}(email|e-mail)|\b(email|e-mail).{0,24}(prefer|preferred|best)/.test(text)) {
+    return "email";
+  }
+  return null;
+}
+
+function hasInstagramCue(target: Pick<RouteTarget, "notes" | "tags" | "capabilities">): boolean {
+  const text = contactMetadataText(target);
+  return /\b(instagram|insta|ig)\b|@[a-z0-9._-]{2,}/i.test(text);
+}
+
+function contactReadinessFor(target: Pick<RouteTarget, "email" | "phone" | "notes" | "tags" | "capabilities">): {
+  label: "Ready to contact" | "Phone ready" | "Email ready" | "Instagram/notes only" | "Contact method missing";
+  details: string[];
+} {
+  const hasPhone = Boolean(target.phone?.trim());
+  const hasEmail = Boolean(target.email?.trim());
+  const preferred = preferredContactMethod(target);
+  const instagramOnly = !hasPhone && !hasEmail && hasInstagramCue(target);
+
+  const label = hasPhone && hasEmail
+    ? "Ready to contact"
+    : hasPhone
+      ? "Phone ready"
+      : hasEmail
+        ? "Email ready"
+        : instagramOnly
+          ? "Instagram/notes only"
+          : "Contact method missing";
+
+  const details: string[] = [];
+  if ((preferred === "phone" && !hasPhone) || (preferred === "email" && !hasEmail)) {
+    details.push("Preferred channel missing");
+  } else if ((hasPhone || hasEmail) && !preferred) {
+    details.push("Preferred channel unknown");
+  }
+
+  if (!hasPhone && !hasEmail) {
+    details.push(instagramOnly ? "Known, but not safely reachable yet" : "Add phone or email before preflight");
+  }
+
+  return { label, details };
 }
 
 function textTokens(value?: string | null): string[] {
@@ -1645,6 +1703,7 @@ export default function InquiryWorkspace() {
                         {networkMatches.slice(0, 5).map(({ target, reasons }) => {
                           const capabilities = textList(target.capabilities);
                           const tags = textList(target.tags);
+                          const readiness = contactReadinessFor(target);
 
                           return (
                             <div key={target.id} className="border-t border-hairline pt-3 first:border-t-0 first:pt-0">
@@ -1659,6 +1718,16 @@ export default function InquiryWorkspace() {
                                   {target.isInternal === false && <Pill>External</Pill>}
                                   {target.isAgent === true && <Pill>Agent/system</Pill>}
                                 </div>
+                              </div>
+
+                              <div className="mt-2 border border-hairline bg-bg px-3 py-2 text-xs text-ink/60">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="uppercase tracking-wide text-ink/45">Contact readiness</span>
+                                  <Pill>{readiness.label}</Pill>
+                                </div>
+                                {readiness.details.length > 0 && (
+                                  <p className="mt-1">{readiness.details.join(" / ")}</p>
+                                )}
                               </div>
 
                               {capabilities.length > 0 && (
@@ -2112,6 +2181,7 @@ export default function InquiryWorkspace() {
                         {networkMatches.slice(0, 3).map((match) => {
                           const { target, reasons, score, matchedCapabilities, matchedTags } = match;
                           const isSaved = savedDraftTargetIds.has(target.id);
+                          const readiness = contactReadinessFor(target);
                           const isSaving =
                             saveDraftCandidate.isPending &&
                             saveDraftCandidate.variables?.inquiryId === selectedInquiryId &&
@@ -2186,6 +2256,16 @@ export default function InquiryWorkspace() {
                                 {target.isInternal === true && <Pill>Internal</Pill>}
                                 {target.isInternal === false && <Pill>External</Pill>}
                                 {target.isAgent === true && <Pill>Agent/system</Pill>}
+                              </div>
+
+                              <div className="mt-2 border border-hairline bg-bg px-3 py-2 text-xs text-ink/60">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="uppercase tracking-wide text-ink/45">Contact readiness</span>
+                                  <Pill>{readiness.label}</Pill>
+                                </div>
+                                {readiness.details.length > 0 && (
+                                  <p className="mt-1">{readiness.details.join(" / ")}</p>
+                                )}
                               </div>
 
                               {matchedCapabilities.length > 0 && (
