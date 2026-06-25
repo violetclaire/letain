@@ -38,6 +38,18 @@ type AuditBlock = {
   duration: number | null;
 };
 
+type ScheduleReadinessState =
+  | "Ready to draft"
+  | "Needs schedule details"
+  | "Ready with assumptions"
+  | "Needs operator review";
+
+type ScheduleReadiness = {
+  state: ScheduleReadinessState;
+  prompts: string[];
+  nextPrompt: string;
+};
+
 type PreviewServiceKind = "hair" | "makeup" | "both" | "other";
 type PreviewCategory = "attendant" | "bride" | "mother" | "flower" | "other";
 
@@ -84,6 +96,13 @@ const AUDIT_SEVERITY_STYLES: Record<AuditSeverity, string> = {
   info: "border-ink/20 bg-bg text-ink/60",
   warning: "border-brass/40 bg-brass/10 text-ink",
   critical: "border-oxblood/40 bg-oxblood/10 text-oxblood",
+};
+
+const SCHEDULE_READINESS_STYLES: Record<ScheduleReadinessState, string> = {
+  "Ready to draft": "border-sage/40 bg-sage/10 text-ink",
+  "Needs schedule details": "border-brass/40 bg-brass/10 text-ink",
+  "Ready with assumptions": "border-brass/40 bg-brass/10 text-ink",
+  "Needs operator review": "border-oxblood/40 bg-oxblood/10 text-oxblood",
 };
 
 const PROVIDER_CAPABILITY_LABELS: Record<ProviderCapability, string> = {
@@ -1253,6 +1272,87 @@ function buildScheduleAudit(input: {
   return issues;
 }
 
+function getScheduleMissingInfo(input: {
+  eventDate: string;
+  notes: string;
+  rows: Row[];
+  providers: Provider[];
+  serviceDefaults: ServiceDefault[];
+  engineMetadata: ScheduleEngineMetadata;
+  providerColId: string;
+  auditIssues: ScheduleAuditIssue[];
+}): ScheduleReadiness {
+  const missing: string[] = [];
+  const confirmations: string[] = [];
+  const addMissing = (message: string) => {
+    if (!missing.includes(message)) missing.push(message);
+  };
+  const addConfirmation = (message: string) => {
+    if (!confirmations.includes(message)) confirmations.push(message);
+  };
+
+  const blocks = auditBlocksFromRows(input.rows, input.providerColId);
+  const serviceBlocks = blocks.filter(isServiceBlock);
+  const hasEventDate = Boolean(input.eventDate.trim());
+  const hasReadyTime = Boolean(input.engineMetadata.readyByTime?.trim());
+  const hasServiceWindow = Boolean(
+    input.engineMetadata.readyByTime?.trim() ||
+      input.engineMetadata.ceremonyTime?.trim() ||
+      input.engineMetadata.firstLookTime?.trim() ||
+      input.engineMetadata.photographerArrivalTime?.trim() ||
+      serviceBlocks.some((block) => block.end !== null),
+  );
+  const hasPeople = serviceBlocks.length > 0 || parsePeoplePool(input.notes).length > 0;
+  const hasServiceCounts = serviceBlocks.some((block) => auditHasHairService(block.text) || auditHasMakeupService(block.text) || Boolean(block.service));
+  const providerNames = new Set(
+    [
+      ...input.providers.map((provider) => provider.name.trim()),
+      ...serviceBlocks.map((block) => block.provider.trim()),
+    ].filter(Boolean),
+  );
+
+  if (!hasEventDate) addMissing("Need event date before drafting the schedule.");
+  if (!hasReadyTime) addMissing("Need ready time before finalizing the schedule.");
+  if (!hasServiceWindow) addMissing("Need end time or service window before finalizing the schedule.");
+  if (!hasPeople) addMissing("Need number of people receiving services.");
+  if (!hasServiceCounts) addMissing("Need service counts before assigning provider lanes.");
+  if (hasServiceCounts && providerNames.size === 0) addMissing("Need provider count before assigning lanes.");
+
+  const hasBrideBlock = serviceBlocks.some((block) => hasAuditWord(block.text, /\bbride\b|\bbridal\b/));
+  const hasBrideDefault = input.serviceDefaults.some((service) => service.label.trim().toLowerCase() === "bride hair + makeup" && service.durationMinutes === 120);
+  if (hasBrideBlock && hasBrideDefault) addConfirmation("Bride block assumed 2 hours -- confirm.");
+
+  const hasMakeupDefault = input.serviceDefaults.some((service) => /makeup/i.test(service.label) && service.durationMinutes > 0);
+  const hasHairDefault = input.serviceDefaults.some((service) => /\bhair\b/i.test(service.label) && service.durationMinutes > 0);
+  const makeupNeedsDefault = serviceBlocks.some((block) => auditHasMakeupService(block.text) && block.duration === null);
+  const hairNeedsDefault = serviceBlocks.some((block) => auditHasHairService(block.text) && block.duration === null);
+  if (hasMakeupDefault && makeupNeedsDefault) addConfirmation("Default makeup duration used -- confirm.");
+  if (hasHairDefault && hairNeedsDefault) addConfirmation("Default hair duration used -- confirm.");
+
+  if (serviceBlocks.some((block) => !block.name.trim() || isStarterScheduleName(block.name) || isPlaceholderName(block.name))) {
+    addConfirmation("Placeholder names used -- confirm when names are available.");
+  }
+
+  const hasCriticalAuditIssue = input.auditIssues.some((issue) => issue.severity === "critical");
+  if (hasCriticalAuditIssue) addConfirmation("Review critical schedule audit issues before finalizing.");
+
+  const prompts = [...missing, ...confirmations];
+  const state: ScheduleReadinessState =
+    missing.length > 0
+      ? "Needs schedule details"
+      : hasCriticalAuditIssue
+        ? "Needs operator review"
+        : confirmations.length > 0
+          ? "Ready with assumptions"
+          : "Ready to draft";
+
+  return {
+    state,
+    prompts,
+    nextPrompt: prompts[0] ?? "Schedule has enough details to draft. Review before finalizing.",
+  };
+}
+
 export default function ScheduleDraftBuilder() {
   const [, params] = useRoute("/admin/:slug/schedules/:scheduleId");
   const slug = params?.slug ?? "";
@@ -1615,6 +1715,16 @@ export default function ScheduleDraftBuilder() {
     laneList.push({ key: "unassigned", label: "Unassigned", provider: "", rows: unassignedRows });
   }
   const auditIssues = buildScheduleAudit({ title, notes, rows, providers, providerColId, engineMetadata });
+  const scheduleReadiness = getScheduleMissingInfo({
+    eventDate,
+    notes,
+    rows,
+    providers,
+    serviceDefaults,
+    engineMetadata,
+    providerColId,
+    auditIssues,
+  });
 
   return (
     <div className="min-h-screen bg-bg text-ink">
@@ -1737,6 +1847,35 @@ export default function ScheduleDraftBuilder() {
                   />
                 </label>
               </div>
+            </section>
+
+            <section className="border border-hairline bg-surface p-6" data-testid="section-schedule-readiness">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h2 className="font-serif text-xl tracking-tight">Schedule readiness</h2>
+                  <p className="mt-1 text-sm text-ink/60">
+                    Briarwood checks the date, timing window, people, services, providers, and assumptions before finalizing a schedule. Nothing sends from this card.
+                  </p>
+                </div>
+                <span className={`inline-flex w-fit border px-2.5 py-1 text-xs uppercase tracking-wide ${SCHEDULE_READINESS_STYLES[scheduleReadiness.state]}`} data-testid="status-schedule-readiness">
+                  {scheduleReadiness.state}
+                </span>
+              </div>
+
+              <div className="mt-4 border border-hairline bg-bg px-4 py-3" data-testid="text-schedule-next-prompt">
+                <p className="text-xs uppercase tracking-wide text-ink/45">Next missing / confirmation prompt</p>
+                <p className="mt-1 text-sm text-ink/75">{scheduleReadiness.nextPrompt}</p>
+              </div>
+
+              {scheduleReadiness.prompts.length > 1 && (
+                <ul className="mt-3 space-y-2" data-testid="list-schedule-readiness-prompts">
+                  {scheduleReadiness.prompts.slice(1).map((prompt) => (
+                    <li key={prompt} className="border border-hairline bg-bg px-3 py-2 text-sm text-ink/65">
+                      {prompt}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
 
             <section className="border border-hairline bg-surface p-6" data-testid="section-schedule-audit">
