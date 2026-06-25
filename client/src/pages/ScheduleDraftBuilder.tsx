@@ -665,6 +665,32 @@ function composeNotes(body: string, names: string[]): string {
   return [clean, line].filter(Boolean).join("\n\n");
 }
 
+function readHandoffField(notes: string, label: string): string {
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = notes.match(new RegExp(`^[ \\t]*${escaped}:[ \\t]*(.*)$`, "im"));
+  return match?.[1]?.trim() ?? "";
+}
+
+function readHandoffNotes(notes: string): string {
+  const match = notes.match(/(?:^|\n)Inquiry notes:[ \t]*\n([\s\S]*)$/i);
+  return match?.[1]?.trim() ?? "";
+}
+
+function buildInquiryHandoffContext(input: {
+  eventDate: string;
+  location: string;
+  notesBody: string;
+}): { date: string; location: string; scheduleContext: string; notes: string } {
+  const notes = input.notesBody.trim();
+  const inquiryNotes = readHandoffNotes(notes);
+  return {
+    date: readHandoffField(notes, "Event date") || input.eventDate.trim() || "Not captured yet",
+    location: readHandoffField(notes, "Location / venue") || input.location.trim() || "Not captured yet",
+    scheduleContext: readHandoffField(notes, "Schedule context") || "Confirm from inquiry",
+    notes: inquiryNotes || notes || "No inquiry notes captured yet",
+  };
+}
+
 function normalizeProviderCapability(value: unknown): ProviderCapability | undefined {
   return value === "ALL" || value === "HAIR_ONLY" || value === "MAKEUP_ONLY" ? value : undefined;
 }
@@ -1674,6 +1700,10 @@ export default function ScheduleDraftBuilder() {
   const setNotesBody = (body: string) => setNotes(composeNotes(body, peopleToAssign));
   const setPeopleToAssign = (names: string[]) => setNotes(composeNotes(notesBody, names));
   const isInquiryHandoffDraft = Boolean(draftQuery.data?.inquiryId);
+  const inquiryHandoffContext = useMemo(
+    () => buildInquiryHandoffContext({ eventDate, location, notesBody }),
+    [eventDate, location, notesBody],
+  );
 
   // Add an empty block already assigned to a given lane (provider value).
   const addBlock = (providerName: string) =>
@@ -1969,12 +1999,20 @@ export default function ScheduleDraftBuilder() {
                 </div>
                 <dl className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                   <div className="border border-hairline bg-bg px-3 py-2">
-                    <dt className="text-xs uppercase tracking-wide text-ink/45">Event date</dt>
-                    <dd className="mt-1 text-ink/75 break-words">{eventDate.trim() || "Not provided yet"}</dd>
+                    <dt className="text-xs uppercase tracking-wide text-ink/45">Date</dt>
+                    <dd className="mt-1 text-ink/75 break-words">{inquiryHandoffContext.date}</dd>
                   </div>
                   <div className="border border-hairline bg-bg px-3 py-2">
                     <dt className="text-xs uppercase tracking-wide text-ink/45">Location</dt>
-                    <dd className="mt-1 text-ink/75 break-words">{location.trim() || "Not provided yet"}</dd>
+                    <dd className="mt-1 text-ink/75 break-words">{inquiryHandoffContext.location}</dd>
+                  </div>
+                  <div className="border border-hairline bg-bg px-3 py-2">
+                    <dt className="text-xs uppercase tracking-wide text-ink/45">Schedule context</dt>
+                    <dd className="mt-1 text-ink/75 break-words">{inquiryHandoffContext.scheduleContext}</dd>
+                  </div>
+                  <div className="border border-hairline bg-bg px-3 py-2">
+                    <dt className="text-xs uppercase tracking-wide text-ink/45">Notes</dt>
+                    <dd className="mt-1 text-ink/75 whitespace-pre-wrap break-words">{inquiryHandoffContext.notes}</dd>
                   </div>
                 </dl>
                 <div className="mt-3 grid grid-cols-1 gap-2 text-xs text-ink/55 sm:grid-cols-2">
@@ -1985,11 +2023,6 @@ export default function ScheduleDraftBuilder() {
                     Nothing sends from this draft and no client link exists.
                   </div>
                 </div>
-                {notesBody.trim() && (
-                  <p className="mt-3 border border-hairline bg-bg px-3 py-2 text-sm text-ink/65 whitespace-pre-wrap" data-testid="text-inquiry-handoff-notes">
-                    {notesBody.trim()}
-                  </p>
-                )}
               </section>
             )}
 
