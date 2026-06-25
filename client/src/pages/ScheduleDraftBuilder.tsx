@@ -110,6 +110,7 @@ const PROVIDER_CAPABILITY_LABELS: Record<ProviderCapability, string> = {
   HAIR_ONLY: "Hair",
   MAKEUP_ONLY: "Makeup",
 };
+const UNKNOWN_PROVIDER_CAPABILITY_LABEL = "Unknown / needs operator confirmation";
 
 const SCHEDULE_ENGINE_METADATA_FIELDS: Array<{
   id: keyof ScheduleEngineMetadata;
@@ -218,6 +219,10 @@ function quickAddBlockNameBase(service: string): string {
   return service;
 }
 
+function providerCapabilityLabel(capability?: ProviderCapability | ""): string {
+  return capability ? PROVIDER_CAPABILITY_LABELS[capability] : UNKNOWN_PROVIDER_CAPABILITY_LABEL;
+}
+
 // Decide how many coordination lanes do makeup vs hair, proportional to how many
 // blocks each kind has. When both kinds exist on a single service role, that one lane
 // is "combined" (does both). Never leaves a needed kind without a lane.
@@ -254,7 +259,7 @@ function buildScheduleFromInput(
   text: string,
   serviceDefaults: ServiceDefault[],
 ): {
-  providers: Array<{ name: string }>;
+  providers: Array<{ name: string; capability?: ProviderCapability | "" }>;
   blocks: Array<{ name: string; service: string; provider: string; duration: string }>;
   personRows: Array<{ name: string }>;
   namePool: string[];
@@ -409,8 +414,8 @@ function buildScheduleFromInput(
 
   // No services at all -> just a roster of people (names in the Name column).
   if (serviceBlocks.length === 0) {
-    const provs: Array<{ name: string }> = [];
-    for (let i = 0; i < providerCount; i++) provs.push({ name: `Artist ${i + 1}` });
+    const provs: Array<{ name: string; capability: "" }> = [];
+    for (let i = 0; i < providerCount; i++) provs.push({ name: `Artist ${i + 1}`, capability: "" });
     return {
       providers: provs,
       blocks: [],
@@ -457,6 +462,11 @@ function buildScheduleFromInput(
     else svc = "Hair";
     return `Artist ${rec.artistNum} - ${svc}`;
   };
+  const laneCapability = (rec: Lane): ProviderCapability => {
+    if (rec.role === "both") return "ALL";
+    if (rec.role === "makeup") return "MAKEUP_ONLY";
+    return "HAIR_ONLY";
+  };
 
   // Distribute blocks across their lanes round-robin (balanced). The lane that
   // gets the bride block is flagged so its label reads "/ Bride".
@@ -476,7 +486,7 @@ function buildScheduleFromInput(
     if (laneRecords.length > 0) blockLane.set(b, laneRecords[0]);
   });
 
-  const providers = laneRecords.map((rec) => ({ name: laneLabel(rec) }));
+  const providers = laneRecords.map((rec) => ({ name: laneLabel(rec), capability: laneCapability(rec) }));
   const blocks = [...setupGroup, ...makeupGroup, ...hairGroup].map((b) => {
     const lane = blockLane.get(b);
     return {
@@ -746,6 +756,59 @@ function intervalsOverlap(a: AuditBlock, b: AuditBlock): boolean {
 
 function previewIntervalsOverlap(a: PreviewBlock, b: PreviewBlock): boolean {
   return a.start !== null && a.end !== null && b.start !== null && b.end !== null && a.start < b.end && b.start < a.end;
+}
+
+function previewServiceSequenceRank(block: PreviewBlock): number {
+  const text = auditText([block.service, block.name, block.notes].join(" "));
+  const hasHair = auditHasHairService(text);
+  const hasMakeup = auditHasMakeupService(text);
+  if (hasHair && !hasMakeup) return 0;
+  if (hasHair && hasMakeup) return 0;
+  if (hasMakeup) return 1;
+  return 2;
+}
+
+function sequenceSamePersonPreviewBlocks(lanes: PreviewLane[], warnings: string[]) {
+  const groups = new Map<string, PreviewBlock[]>();
+  for (const block of lanes.flatMap((lane) => lane.blocks)) {
+    if (block.isSetup || block.start === null || block.end === null) continue;
+    const key = auditNameKey(block.name);
+    if (!key) continue;
+    const current = groups.get(key) ?? [];
+    current.push(block);
+    groups.set(key, current);
+  }
+
+  for (const blocks of groups.values()) {
+    if (blocks.length < 2) continue;
+    let hasOverlap = false;
+    for (let i = 0; i < blocks.length; i++) {
+      for (let j = i + 1; j < blocks.length; j++) {
+        if (previewIntervalsOverlap(blocks[i], blocks[j])) hasOverlap = true;
+      }
+    }
+    if (!hasOverlap) continue;
+
+    const ordered = [...blocks].sort((a, b) => previewServiceSequenceRank(a) - previewServiceSequenceRank(b) || a.order - b.order);
+    let cursor = Math.max(...ordered.map((block) => block.end ?? 0));
+    for (let i = ordered.length - 1; i >= 0; i--) {
+      const block = ordered[i];
+      block.end = cursor;
+      block.start = cursor - block.duration;
+      cursor = block.start;
+    }
+    const name = ordered.find((block) => block.name.trim())?.name.trim() ?? "This person";
+    warnings.push(`${name} hair/makeup preview blocks were sequenced so the same person is not overlapping across providers.`);
+  }
+
+  for (const lane of lanes) {
+    lane.blocks.sort((a, b) => {
+      if (a.start !== null && b.start !== null) return a.start - b.start || a.order - b.order;
+      if (a.isSetup && !b.isSetup) return -1;
+      if (!a.isSetup && b.isSetup) return 1;
+      return a.order - b.order;
+    });
+  }
 }
 
 function hasShortSimpleLabel(text: string): boolean {
@@ -1022,6 +1085,8 @@ function buildFirstDraftPreview(input: {
     }
   }
 
+  sequenceSamePersonPreviewBlocks(Array.from(lanes.values()), warnings);
+
   const previewBlocks = Array.from(lanes.values()).flatMap((lane) => lane.blocks).filter((block) => !block.isSetup);
   const brideBlocks = previewBlocks.filter((block) => block.category === "bride");
   if (brideBlocks.length === 0 && sourceBlocks.length > 0) {
@@ -1085,7 +1150,7 @@ function buildScheduleAudit(input: {
       severity: "warning",
       title: "Provider capability missing",
       detail: knownProvider
-        ? `${providerName} has no capability selected. Choose ALL, HAIR_ONLY, or MAKEUP_ONLY.`
+        ? `${providerName} has no capability selected. Choose Hair, Makeup, or Hair + makeup.`
         : `${providerName} is used on the schedule but is not in the provider list with a capability.`,
     });
   };
@@ -1609,7 +1674,7 @@ export default function ScheduleDraftBuilder() {
     }
     // Provider lanes (Artist 1 - Makeup, Artist 2 - Hair, etc.).
     if (laneDefs.length > 0) {
-      const newProviders: Provider[] = laneDefs.map((l) => ({ id: uid("prov"), name: l.name }));
+      const newProviders: Provider[] = laneDefs.map((l) => ({ id: uid("prov"), name: l.name, capability: l.capability ?? "" }));
       setProviders((prev) => [...prev, ...newProviders]);
     }
     // Rows are service blocks placed in lanes; if there were no services, fall
@@ -1884,6 +1949,12 @@ export default function ScheduleDraftBuilder() {
                 <div className="border border-hairline bg-bg px-3 py-2">
                   Bride timing and placement are Violet defaults to confirm, not universal rules.
                 </div>
+                <div className="border border-hairline bg-bg px-3 py-2">
+                  Same-person hair and makeup blocks are sequenced so they do not overlap.
+                </div>
+                <div className="border border-hairline bg-bg px-3 py-2">
+                  Unknown provider capability means operator confirmation is still needed.
+                </div>
               </div>
 
               {scheduleReadiness.prompts.length > 1 && (
@@ -1936,7 +2007,7 @@ export default function ScheduleDraftBuilder() {
                 <div>
                   <h2 className="font-serif text-xl tracking-tight">First draft preview</h2>
                   <p className="mt-1 text-sm text-ink/60">
-                    Preview works backward from ready time. One provider can carry consecutive hair + makeup blocks; split providers stay in separate lanes and same-person overlaps are flagged. Preview stays separate until applied.
+                    Preview works backward from ready time. One provider can carry consecutive hair + makeup blocks; split providers stay in separate lanes and same-person hair/makeup blocks are sequenced to avoid overlap. Preview stays separate until applied.
                   </p>
                 </div>
                 <button
@@ -2002,7 +2073,7 @@ export default function ScheduleDraftBuilder() {
                               <h3 className="font-serif text-lg tracking-tight">{lane.provider}</h3>
                               <div className="flex flex-wrap justify-end gap-1.5">
                                 <span className="border border-hairline px-2 py-0.5 text-[10px] uppercase tracking-wide text-ink/50">
-                                  {lane.capability ?? "Unknown"}
+                                  {providerCapabilityLabel(lane.capability)}
                                 </span>
                                 {lane.isPrimary && (
                                   <span className="border border-brass/40 bg-brass/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-ink/60">
@@ -2061,7 +2132,7 @@ export default function ScheduleDraftBuilder() {
               <div className="border border-hairline bg-surface p-6">
                 <p className="text-ink/70 text-sm mb-3 max-w-[70ch]">
                   Paste counts and people. "3 providers" makes Artist 1 / Artist 2 / Artist 3
-                  coordination lanes, split between makeup and hair by demand. Service counts become coordination blocks in those lanes:
+                  coordination lanes with Hair, Makeup, Hair + makeup, or Unknown capability. Service counts become coordination blocks in those lanes:
                   "8 makeup, 5 hair" makes 8 makeup blocks and 5 hair blocks (not extra people). If
                   Bride is listed, she gets her own bridal block. People like "Bride, MOB, MOG, 5
                   bridesmaids" become a name pool added to Notes, ready to assign into blocks.
@@ -2390,7 +2461,7 @@ export default function ScheduleDraftBuilder() {
                         className="mt-0.5 w-full bg-bg border border-hairline px-2 py-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70"
                         data-testid={`select-provider-capability-${p.id}`}
                       >
-                        <option value="">Unknown</option>
+                        <option value="">{UNKNOWN_PROVIDER_CAPABILITY_LABEL}</option>
                         {Object.entries(PROVIDER_CAPABILITY_LABELS).map(([value, label]) => (
                           <option key={value} value={value}>
                             {label}
