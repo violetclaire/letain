@@ -67,6 +67,34 @@ test("local demo seed uses generic role-based demo labels", () => {
   }
 });
 
+test("local demo schedule stores service details outside the lane source", () => {
+  assert.match(script, /id: "provider", label: "Provider \/ lane", type: "provider"/);
+  assert.match(script, /id: "role", label: "Role \/ person", type: "text"/);
+  assert.match(script, /id: "service", label: "Service", type: "text"/);
+
+  for (const laneProvider of [
+    'provider: "Primary Beauty Lead"',
+    'provider: "Preferred Hair Artist"',
+    'provider: "Preferred Makeup Artist"',
+  ]) {
+    assert.match(script, new RegExp(laneProvider.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+
+  for (const serviceLikeLaneValue of [
+    'provider: "Setup"',
+    'provider: "Bridesmaid Makeup"',
+    'provider: "Mother Makeup"',
+    'provider: "Bride Hair + Makeup"',
+    'provider: "Touch-Ups"',
+  ]) {
+    assert.doesNotMatch(script, new RegExp(serviceLikeLaneValue.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+
+  assert.match(script, /service: "Touch-ups"/);
+  assert.match(script, /role: "Flower girl"/);
+  assert.match(script, /provider: "", role: "Flower girl", service: "Service pending"/);
+});
+
 test("local demo seed does not depend on named demo people or providers", () => {
   for (const legacyName of [
     "Dun" + "dy",
