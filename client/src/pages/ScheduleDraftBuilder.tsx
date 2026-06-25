@@ -106,9 +106,9 @@ const SCHEDULE_READINESS_STYLES: Record<ScheduleReadinessState, string> = {
 };
 
 const PROVIDER_CAPABILITY_LABELS: Record<ProviderCapability, string> = {
-  ALL: "ALL",
-  HAIR_ONLY: "HAIR_ONLY",
-  MAKEUP_ONLY: "MAKEUP_ONLY",
+  ALL: "Hair + makeup",
+  HAIR_ONLY: "Hair",
+  MAKEUP_ONLY: "Makeup",
 };
 
 const SCHEDULE_ENGINE_METADATA_FIELDS: Array<{
@@ -1311,8 +1311,8 @@ function getScheduleMissingInfo(input: {
     ].filter(Boolean),
   );
 
-  if (!hasEventDate) addMissing("Need event date before drafting the schedule.");
   if (!hasReadyTime) addMissing("Need ready time before finalizing the schedule.");
+  if (!hasEventDate) addMissing("Need event date before drafting the schedule.");
   if (!hasServiceWindow) addMissing("Need end time or service window before finalizing the schedule.");
   if (!hasPeople) addMissing("Need number of people receiving services.");
   if (!hasServiceCounts) addMissing("Need service counts before assigning provider lanes.");
@@ -1320,7 +1320,8 @@ function getScheduleMissingInfo(input: {
 
   const hasBrideBlock = serviceBlocks.some((block) => hasAuditWord(block.text, /\bbride\b|\bbridal\b/));
   const hasBrideDefault = input.serviceDefaults.some((service) => service.label.trim().toLowerCase() === "bride hair + makeup" && service.durationMinutes === 120);
-  if (hasBrideBlock && hasBrideDefault) addConfirmation("Bride block assumed 2 hours -- confirm.");
+  if (hasBrideBlock && hasBrideDefault) addConfirmation("Bride hair + makeup uses Violet's 2-hour default -- confirm.");
+  if (hasBrideBlock) addConfirmation("Bride placement follows Violet's near-end default -- confirm for this event.");
 
   const hasMakeupDefault = input.serviceDefaults.some((service) => /makeup/i.test(service.label) && service.durationMinutes > 0);
   const hasHairDefault = input.serviceDefaults.some((service) => /\bhair\b/i.test(service.label) && service.durationMinutes > 0);
@@ -1328,9 +1329,12 @@ function getScheduleMissingInfo(input: {
   const hairNeedsDefault = serviceBlocks.some((block) => auditHasHairService(block.text) && block.duration === null);
   if (hasMakeupDefault && makeupNeedsDefault) addConfirmation("Default makeup duration used -- confirm.");
   if (hasHairDefault && hairNeedsDefault) addConfirmation("Default hair duration used -- confirm.");
+  if (serviceBlocks.some((block) => (auditHasMakeupService(block.text) || auditHasHairService(block.text)) && block.duration === null)) {
+    addConfirmation("Single-service default duration used -- confirm this provider's timing.");
+  }
 
   if (serviceBlocks.some((block) => !block.name.trim() || isStarterScheduleName(block.name) || isPlaceholderName(block.name))) {
-    addConfirmation("Placeholder names used -- confirm when names are available.");
+    addConfirmation("Missing names are okay; blank/placeholders can be confirmed later.");
   }
 
   const hasCriticalAuditIssue = input.auditIssues.some((issue) => issue.severity === "critical");
@@ -1854,7 +1858,7 @@ export default function ScheduleDraftBuilder() {
                 <div>
                   <h2 className="font-serif text-xl tracking-tight">Schedule readiness</h2>
                   <p className="mt-1 text-sm text-ink/60">
-                    Briarwood checks the date, timing window, people, services, providers, and assumptions before finalizing a schedule. Nothing sends from this card.
+                    Briarwood works backward from ready time, then checks people, services, provider lanes, and assumptions before finalizing a schedule. Nothing sends from this card.
                   </p>
                 </div>
                 <span className={`inline-flex w-fit border px-2.5 py-1 text-xs uppercase tracking-wide ${SCHEDULE_READINESS_STYLES[scheduleReadiness.state]}`} data-testid="status-schedule-readiness">
@@ -1863,8 +1867,23 @@ export default function ScheduleDraftBuilder() {
               </div>
 
               <div className="mt-4 border border-hairline bg-bg px-4 py-3" data-testid="text-schedule-next-prompt">
-                <p className="text-xs uppercase tracking-wide text-ink/45">Next missing / confirmation prompt</p>
+                <p className="text-xs uppercase tracking-wide text-ink/45">Next schedule detail</p>
                 <p className="mt-1 text-sm text-ink/75">{scheduleReadiness.nextPrompt}</p>
+              </div>
+
+              <div className="mt-3 grid grid-cols-1 gap-2 text-xs text-ink/55 sm:grid-cols-2" data-testid="list-schedule-readiness-rules">
+                <div className="border border-hairline bg-bg px-3 py-2">
+                  Ready time is the anchor; the final service ends there by default.
+                </div>
+                <div className="border border-hairline bg-bg px-3 py-2">
+                  Optional: finish 15 minutes early for touch-ups and notes.
+                </div>
+                <div className="border border-hairline bg-bg px-3 py-2">
+                  Missing names are allowed; blanks and placeholders stay editable.
+                </div>
+                <div className="border border-hairline bg-bg px-3 py-2">
+                  Bride timing and placement are Violet defaults to confirm, not universal rules.
+                </div>
               </div>
 
               {scheduleReadiness.prompts.length > 1 && (
@@ -1916,7 +1935,9 @@ export default function ScheduleDraftBuilder() {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <h2 className="font-serif text-xl tracking-tight">First draft preview</h2>
-                  <p className="mt-1 text-sm text-ink/60">Preview stays separate until applied. Save draft is still required.</p>
+                  <p className="mt-1 text-sm text-ink/60">
+                    Preview works backward from ready time. One provider can carry consecutive hair + makeup blocks; split providers stay in separate lanes and same-person overlaps are flagged. Preview stays separate until applied.
+                  </p>
                 </div>
                 <button
                   onClick={() => setShowFirstDraftPreview((value) => !value)}
@@ -2039,12 +2060,12 @@ export default function ScheduleDraftBuilder() {
               <h2 className="font-serif text-xl tracking-tight mb-3">Quick add</h2>
               <div className="border border-hairline bg-surface p-6">
                 <p className="text-ink/70 text-sm mb-3 max-w-[70ch]">
-                  Paste counts and people. "3 providers" makes 3 coordination lanes, split between
-                  makeup and hair by demand. Service counts become coordination blocks in those lanes:
+                  Paste counts and people. "3 providers" makes Artist 1 / Artist 2 / Artist 3
+                  coordination lanes, split between makeup and hair by demand. Service counts become coordination blocks in those lanes:
                   "8 makeup, 5 hair" makes 8 makeup blocks and 5 hair blocks (not extra people). If
                   Bride is listed, she gets her own bridal block. People like "Bride, MOB, MOG, 5
                   bridesmaids" become a name pool added to Notes, ready to assign into blocks.
-                  Everything stays editable.
+                  Missing names are allowed; everything stays editable.
                 </p>
                 <textarea
                   value={pasteText}
@@ -2323,7 +2344,9 @@ export default function ScheduleDraftBuilder() {
               </div>
               <p className="text-xs text-ink/50 mt-2">
                 These are starting durations only. Edit them anytime. They fill the Duration
-                column when you quick-add a matching service.
+                column when you quick-add a matching service. Violet's defaults start with 2 hours
+                for bride hair + makeup, 30 minutes for Violet single services, and no buffer unless
+                you add one.
               </p>
             </section>
 
@@ -2396,7 +2419,8 @@ export default function ScheduleDraftBuilder() {
                 ))}
               </div>
               <p className="text-xs text-ink/50 mt-2">
-                Add the people working the day. Assign them in the Provider column per row.
+                Add the people working the day. Use Capability to mark whether each provider handles
+                hair, makeup, or both, then assign them in the Provider column per row.
               </p>
             </section>
 
