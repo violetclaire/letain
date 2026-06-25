@@ -285,9 +285,20 @@ Proposed deterministic record:
   - `ceremonyTime`: `16:00`
   - `firstLookTime`: `13:30`
 - `service_defaults`: Violet defaults already used by the UI.
-- `columns` / `rows`: existing editable schedule table shape, with setup,
-  bridesmaid, mother, bride, flower girl, and touch-up rows. No public share
-  token and no send state.
+- `columns` / `rows`: normalized editable schedule table shape:
+  - lane/header source: `Provider / lane`
+  - timed block details: `Role / person`, `Service`, and `Notes`
+  - demo rows cover setup, bridal party, mother, bride, flower girl, and
+    touch-up details.
+  - touch-ups are stored as a block/detail, not as a default lane/header.
+  - missing names remain allowed; role placeholders can be edited later.
+  - no public share token and no send state.
+
+The local demo schedule intentionally keeps provider/service lanes separate
+from role/person/service detail. This lets the Schedule Draft Builder preview
+demonstrate the normalized model after PR #120: lane headers identify a
+provider or service lane, while row blocks carry role, person, service, timing,
+and notes.
 
 Implementation note: local/staging databases may also have schedule draft table
 drift from the current application schema. The demo seed must inspect available
