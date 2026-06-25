@@ -14,7 +14,7 @@ test("Inquiry Workspace can create a private schedule draft for the selected inq
   assert.match(inquiryWorkspace, /title: `\$\{titleParts\.join\(" - "\)\} schedule coordination draft`/);
   assert.match(inquiryWorkspace, /eventDate: inquiry\.eventDate/);
   assert.match(inquiryWorkspace, /location: inquiry\.eventLocation/);
-  assert.match(inquiryWorkspace, /notes: inquiry\.message/);
+  assert.match(inquiryWorkspace, /notes: buildScheduleDraftHandoffNotes\(inquiry\)/);
   assert.match(inquiryWorkspace, /data-testid="button-create-schedule-draft"/);
   assert.match(inquiryWorkspace, /Create schedule draft/);
 });

@@ -448,6 +448,28 @@ function requestSummary(inquiry: InquiryWorkspaceInquiry): string {
   return parts.join(" / ") || "No request summary available";
 }
 
+function buildScheduleDraftHandoffNotes(inquiry: InquiryWorkspaceInquiry): string {
+  const serviceContext = [inquiry.serviceType, inquiry.eventType].filter(hasText).join(" / ");
+  const lines = [
+    "Inquiry handoff context (private draft):",
+    `Source inquiry: ${inquiry.id}`,
+    hasText(inquiry.clientName) ? `Inquiry context: ${inquiry.clientName}` : null,
+    hasText(inquiry.eventDate) ? `Event date: ${inquiry.eventDate}` : null,
+    hasText(inquiry.eventLocation) ? `Location / venue: ${inquiry.eventLocation}` : null,
+    hasText(serviceContext) ? `Schedule context: ${serviceContext}` : null,
+    hasNumber(inquiry.partySize) ? `People / service count cue: ${inquiry.partySize}` : null,
+    "Treat inquiry details as draft context to confirm, not final schedule truth.",
+    "Next schedule detail: ready time is usually the first missing schedule anchor.",
+    "Nothing sends from this schedule draft and no client link exists.",
+  ].filter((line): line is string => typeof line === "string" && line.trim().length > 0);
+
+  if (hasText(inquiry.message)) {
+    lines.push("", "Inquiry notes:", inquiry.message.trim());
+  }
+
+  return lines.join("\n");
+}
+
 function searchableText(inquiry: InquiryWorkspaceInquiry): string {
   return [
     inquiry.clientName,
@@ -1372,7 +1394,7 @@ export default function InquiryWorkspace() {
           title: `${titleParts.join(" - ")} schedule coordination draft`,
           eventDate: inquiry.eventDate,
           location: inquiry.eventLocation,
-          notes: inquiry.message,
+          notes: buildScheduleDraftHandoffNotes(inquiry),
         }),
       });
       if (res.status === 401) throw new Error("401");
@@ -2348,6 +2370,9 @@ export default function InquiryWorkspace() {
                         <p className="text-sm text-ink/60">
                           No private schedule coordination draft is linked to this inquiry yet.
                         </p>
+                        <p className="text-xs text-ink/55">
+                          Create a private draft with the inquiry date, venue, service context, and notes carried over as context to confirm. Missing schedule details are still expected; ready time is usually the next anchor. Nothing sends and no client link exists.
+                        </p>
                         {scheduleDraftError && (
                           <p className="text-xs text-oxblood" data-testid="text-create-schedule-error">
                             {scheduleDraftError}
@@ -2397,6 +2422,9 @@ export default function InquiryWorkspace() {
                             Open schedule draft
                           </Link>
                         )}
+                        <p className="text-xs text-ink/55">
+                          This stays private to the operator. Confirm inquiry context in the schedule builder before treating it as final.
+                        </p>
                       </div>
                     )}
                   </div>
