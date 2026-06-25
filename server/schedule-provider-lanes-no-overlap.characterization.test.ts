@@ -5,7 +5,9 @@ import test from "node:test";
 const builderSource = readFileSync("client/src/pages/ScheduleDraftBuilder.tsx", "utf8");
 
 test("Quick Add provider count creates provider lanes with explicit capabilities", () => {
-  assert.match(builderSource, /Artist 1 \/ Artist 2 \/ Artist 3/);
+  assert.match(builderSource, /What type of business or service schedule are you making\?/);
+  assert.match(builderSource, /const laneLabel = \(rec: Lane\): string => `Provider \$\{rec\.artistNum\}`/);
+  assert.match(builderSource, /Wedding beauty or HMU schedules can use Hair, Makeup, or Hair \+ makeup capabilities\./);
   assert.match(builderSource, /function buildLanes/);
   assert.match(builderSource, /laneCapability/);
   assert.match(builderSource, /capability: laneCapability\(rec\)/);
@@ -27,8 +29,8 @@ test("first draft preview sequences same-person blocks instead of allowing silen
   assert.match(builderSource, /sequenceSamePersonPreviewBlocks/);
   assert.match(builderSource, /previewServiceSequenceRank/);
   assert.match(builderSource, /same person is not overlapping across providers/);
-  assert.match(builderSource, /Same-person hair and makeup blocks are sequenced so they do not overlap\./);
-  assert.match(builderSource, /same-person hair\/makeup blocks are sequenced to avoid overlap/);
+  assert.match(builderSource, /Same-person service blocks are checked so they do not overlap\./);
+  assert.match(builderSource, /Domain-specific rules apply when the schedule type is known or inferred\./);
   assert.match(builderSource, /a\.start - b\.start/);
   assert.match(builderSource, /previewIntervalsOverlap/);
 });

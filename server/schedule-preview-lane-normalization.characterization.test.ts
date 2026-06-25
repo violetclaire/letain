@@ -14,11 +14,14 @@ test("schedule preview normalizes lane headers away from role/person service lab
 });
 
 test("provider and service lane headers stay explicit while details remain inside blocks", () => {
-  assert.match(builderSource, /const laneLabel = \(rec: Lane\): string => `Artist \$\{rec\.artistNum\}`/);
+  assert.match(builderSource, /What type of business or service schedule are you making\?/);
+  assert.match(builderSource, /const laneLabel = \(rec: Lane\): string => `Provider \$\{rec\.artistNum\}`/);
+  assert.match(builderSource, /if \(artistMatch\) return `Provider \$\{artistMatch\[1\]\}`/);
   assert.match(builderSource, /Needs provider assignment/);
   assert.match(builderSource, /Hair \+ Makeup/);
   assert.match(builderSource, /Touch-ups/);
   assert.match(builderSource, /Lane headers use provider\/service-lane metadata; role, person, and service details stay inside timed blocks\./);
+  assert.match(builderSource, /Domain-specific rules apply when the schedule type is known or inferred\./);
   assert.match(builderSource, /<h3 className="font-serif text-lg tracking-tight">\{lane\.label\}<\/h3>/);
   assert.match(builderSource, /\{service && <div className="text-sm text-ink\/70 mt-0\.5">\{service\}<\/div>\}/);
 });
@@ -27,7 +30,7 @@ test("missing names and overlap warnings remain supported", () => {
   assert.match(builderSource, /Missing names are allowed; everything stays editable\./);
   assert.match(builderSource, /Missing names are allowed; blanks and placeholders stay editable\./);
   assert.match(builderSource, /sequenceSamePersonPreviewBlocks/);
-  assert.match(builderSource, /same-person hair\/makeup blocks are sequenced to avoid overlap/);
+  assert.match(builderSource, /Same-person service blocks are checked so they do not overlap\./);
   assert.match(builderSource, /same person is not overlapping across providers/);
 });
 

@@ -6,7 +6,7 @@ const builderSource = readFileSync("client/src/pages/ScheduleDraftBuilder.tsx", 
 
 test("Schedule Draft Builder shows a read-only schedule readiness card", () => {
   assert.match(builderSource, /Schedule readiness/);
-  assert.match(builderSource, /Briarwood works backward from ready time/);
+  assert.match(builderSource, /Briarwood starts with the schedule type/);
   assert.match(builderSource, /Nothing sends from this card/);
   assert.match(builderSource, /Next schedule detail/);
   assert.match(builderSource, /getScheduleMissingInfo/);
@@ -45,11 +45,14 @@ test("schedule readiness surfaces backward draft rules without treating defaults
 });
 
 test("quick add/provider lane copy keeps names flexible and provider roles explicit", () => {
-  assert.match(builderSource, /Artist 1 \/ Artist 2 \/ Artist 3/);
+  assert.match(builderSource, /What type of business or service schedule are you making\?/);
+  assert.match(builderSource, /Add the schedule context first, then paste counts, services, roles, and provider count\./);
+  assert.match(builderSource, /For a wedding beauty or HMU schedule, Briarwood can infer ready-time logistics, provider capabilities, missing names, and overlap checks\./);
+  assert.match(builderSource, /const laneLabel = \(rec: Lane\): string => `Provider \$\{rec\.artistNum\}`/);
   assert.match(builderSource, /Missing names are allowed; everything stays editable\./);
-  assert.match(builderSource, /Use Capability to mark whether each provider handles\s+hair, makeup, or both/);
-  assert.match(builderSource, /One provider can carry consecutive hair \+ makeup blocks/);
-  assert.match(builderSource, /split providers stay in separate lanes and same-person hair\/makeup blocks are sequenced to avoid overlap/);
+  assert.match(builderSource, /Use Capability to mark what each provider handles for this schedule type/);
+  assert.match(builderSource, /Wedding beauty or HMU schedules can use Hair, Makeup, or Hair \+ makeup capabilities\./);
+  assert.match(builderSource, /Domain-specific rules apply when the schedule type is known or inferred\./);
 });
 
 test("schedule readiness stays read-only and does not wire AI scheduling or sends", () => {

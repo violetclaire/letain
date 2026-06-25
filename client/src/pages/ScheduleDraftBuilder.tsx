@@ -429,7 +429,7 @@ function buildScheduleFromInput(
   const makeupGroup = serviceBlocks.filter((block) => block.kind === "makeup");
   const hairGroup = serviceBlocks.filter((block) => block.kind === "hair");
 
-  // Create lane records, makeup lanes first then hair lanes (Artist 1..N).
+  // Create lane records, makeup lanes first then hair lanes (Provider 1..N).
   type Lane = { role: "makeup" | "hair" | "both"; artistNum: number; holdsBride: boolean };
   const { makeupLanes, hairLanes, combined } = buildLanes(providerCount, makeupGroup.length, hairGroup.length);
   const laneRecords: Lane[] = [];
@@ -456,7 +456,7 @@ function buildScheduleFromInput(
     }
   }
 
-  const laneLabel = (rec: Lane): string => `Artist ${rec.artistNum}`;
+  const laneLabel = (rec: Lane): string => `Provider ${rec.artistNum}`;
   const laneCapability = (rec: Lane): ProviderCapability => {
     if (rec.role === "both") return "ALL";
     if (rec.role === "makeup") return "MAKEUP_ONLY";
@@ -580,7 +580,7 @@ function serializeScheduleState(s: {
 }
 
 // A name "looks like a placeholder" if it is one or more words followed by a
-// trailing number, e.g. "Guest 1", "Bridesmaid 2", "Artist 1", "Person 1",
+// trailing number, e.g. "Guest 1", "Bridesmaid 2", "Provider 1", "Person 1",
 // "Client 1", "Flower Girl 1". Real names ("Jane Doe") have no trailing number,
 // so they style normally. Purely a visual cue, never blocks saving.
 function isPlaceholderName(value: string): boolean {
@@ -748,9 +748,11 @@ function isServiceLikeLaneHeader(raw: string): boolean {
 
 function normalizeScheduleLaneLabel(raw: string, capability?: ProviderCapability | "", fallbackArtistNumber?: number): string {
   const name = raw.trim();
-  if (!name) return fallbackArtistNumber ? `Artist ${fallbackArtistNumber}` : "Needs provider assignment";
+  if (!name) return fallbackArtistNumber ? `Provider ${fallbackArtistNumber}` : "Needs provider assignment";
   const artistMatch = name.match(/^Artist\s+(\d+)(?:\s*[-–]\s*.+)?$/i);
-  if (artistMatch) return `Artist ${artistMatch[1]}`;
+  if (artistMatch) return `Provider ${artistMatch[1]}`;
+  const providerMatch = name.match(/^Provider\s+(\d+)(?:\s*-\s*.+)?$/i);
+  if (providerMatch) return `Provider ${providerMatch[1]}`;
   if (/^unassigned$/i.test(name)) return "Needs provider assignment";
   const serviceLabel = serviceCapabilityLaneLabel(name, capability);
   if (serviceLabel && isServiceLikeLaneHeader(name)) return serviceLabel;
@@ -1700,10 +1702,10 @@ export default function ScheduleDraftBuilder() {
     const built = buildScheduleFromInput(pasteText, serviceDefaults);
     const { providers: laneDefs, blocks, personRows, namePool } = built;
     if (laneDefs.length === 0 && blocks.length === 0 && personRows.length === 0) {
-      toast({ title: "Nothing to add", description: "Try something like: Bride, 8 makeup, 5 hair, 3 providers" });
+      toast({ title: "Nothing to add", description: "Try adding a schedule type and counts, like: wedding beauty, 8 makeup, 5 hair, 3 providers" });
       return;
     }
-    // Provider lanes (Artist 1 - Makeup, Artist 2 - Hair, etc.).
+    // Provider lanes (Provider 1, Provider 2, etc.; capability stays separate).
     if (laneDefs.length > 0) {
       const newProviders: Provider[] = laneDefs.map((l) => ({ id: uid("prov"), name: l.name, capability: l.capability ?? "" }));
       setProviders((prev) => [...prev, ...newProviders]);
@@ -1955,7 +1957,7 @@ export default function ScheduleDraftBuilder() {
                 <div>
                   <h2 className="font-serif text-xl tracking-tight">Schedule readiness</h2>
                   <p className="mt-1 text-sm text-ink/60">
-                    Briarwood works backward from ready time, then checks people, services, provider lanes, and assumptions before finalizing a schedule. Nothing sends from this card.
+                    Briarwood starts with the schedule type, then checks timing anchors, people, services, provider lanes, and assumptions before finalizing a schedule. Nothing sends from this card.
                   </p>
                 </div>
                 <span className={`inline-flex w-fit border px-2.5 py-1 text-xs uppercase tracking-wide ${SCHEDULE_READINESS_STYLES[scheduleReadiness.state]}`} data-testid="status-schedule-readiness">
@@ -1982,7 +1984,7 @@ export default function ScheduleDraftBuilder() {
                   Bride timing and placement are Violet defaults to confirm, not universal rules.
                 </div>
                 <div className="border border-hairline bg-bg px-3 py-2">
-                  Same-person hair and makeup blocks are sequenced so they do not overlap.
+                  Same-person service blocks are checked so they do not overlap.
                 </div>
                 <div className="border border-hairline bg-bg px-3 py-2">
                   Unknown provider capability means operator confirmation is still needed.
@@ -2039,7 +2041,7 @@ export default function ScheduleDraftBuilder() {
                 <div>
                   <h2 className="font-serif text-xl tracking-tight">First draft preview</h2>
                   <p className="mt-1 text-sm text-ink/60">
-                    Preview works backward from ready time. Lane headers use provider/service-lane metadata; role, person, and service details stay inside timed blocks. One provider can carry consecutive hair + makeup blocks; split providers stay in separate lanes and same-person hair/makeup blocks are sequenced to avoid overlap. Preview stays separate until applied.
+                    Preview works backward from ready time. Lane headers use provider/service-lane metadata; role, person, and service details stay inside timed blocks. Domain-specific rules apply when the schedule type is known or inferred. Preview stays separate until applied.
                   </p>
                 </div>
                 <button
@@ -2162,19 +2164,17 @@ export default function ScheduleDraftBuilder() {
             <section data-testid="section-paste">
               <h2 className="font-serif text-xl tracking-tight mb-3">Quick add</h2>
               <div className="border border-hairline bg-surface p-6">
+                <p className="text-sm font-medium text-ink mb-2">
+                  What type of business or service schedule are you making?
+                </p>
                 <p className="text-ink/70 text-sm mb-3 max-w-[70ch]">
-                  Paste counts and people. "3 providers" makes Artist 1 / Artist 2 / Artist 3
-                  coordination lanes with Hair, Makeup, Hair + makeup, or Unknown capability. Service counts become coordination blocks in those lanes:
-                  "8 makeup, 5 hair" makes 8 makeup blocks and 5 hair blocks (not extra people). If
-                  Bride is listed, she gets her own bridal block. People like "Bride, MOB, MOG, 5
-                  bridesmaids" become a name pool added to Notes, ready to assign into blocks.
-                  Missing names are allowed; everything stays editable.
+                  Add the schedule context first, then paste counts, services, roles, and provider count. For a wedding beauty or HMU schedule, Briarwood can infer ready-time logistics, provider capabilities, missing names, and overlap checks. Missing names are allowed; everything stays editable.
                 </p>
                 <textarea
                   value={pasteText}
                   onChange={(e) => setPasteText(e.target.value)}
                   rows={3}
-                  placeholder="8 makeup, 5 hair, 3 providers"
+                  placeholder="e.g. wedding beauty: 8 makeup, 5 hair, 3 providers"
                   className="w-full border border-hairline bg-bg px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70"
                   data-testid="input-paste"
                 />
@@ -2522,8 +2522,7 @@ export default function ScheduleDraftBuilder() {
                 ))}
               </div>
               <p className="text-xs text-ink/50 mt-2">
-                Add the people working the day. Use Capability to mark whether each provider handles
-                hair, makeup, or both, then assign them in the Provider column per row.
+                Add the people working the day. Use Capability to mark what each provider handles for this schedule type, then assign them in the Provider column per row. Wedding beauty or HMU schedules can use Hair, Makeup, or Hair + makeup capabilities.
               </p>
             </section>
 
