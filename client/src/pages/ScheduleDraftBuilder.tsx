@@ -146,6 +146,7 @@ const LEGACY_SERVICE_DEFAULTS: Record<string, number> = {
 
 interface Draft {
   id: string;
+  inquiryId?: string | null;
   title?: string | null;
   eventDate?: string | null;
   location?: string | null;
@@ -1672,6 +1673,7 @@ export default function ScheduleDraftBuilder() {
   const notesBody = stripPeoplePool(notes);
   const setNotesBody = (body: string) => setNotes(composeNotes(body, peopleToAssign));
   const setPeopleToAssign = (names: string[]) => setNotes(composeNotes(notesBody, names));
+  const isInquiryHandoffDraft = Boolean(draftQuery.data?.inquiryId);
 
   // Add an empty block already assigned to a given lane (provider value).
   const addBlock = (providerName: string) =>
@@ -1951,6 +1953,45 @@ export default function ScheduleDraftBuilder() {
                 </label>
               </div>
             </section>
+
+            {isInquiryHandoffDraft && (
+              <section className="border border-hairline bg-surface p-6" data-testid="section-inquiry-schedule-handoff">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h2 className="font-serif text-xl tracking-tight">Inquiry schedule handoff</h2>
+                    <p className="mt-1 text-sm text-ink/60">
+                      This private draft was opened from an inquiry. Treat carried context as draft context to confirm, not final schedule truth.
+                    </p>
+                  </div>
+                  <span className="inline-flex w-fit border border-hairline bg-bg px-2.5 py-1 text-xs uppercase tracking-wide text-ink/55">
+                    Private draft
+                  </span>
+                </div>
+                <dl className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                  <div className="border border-hairline bg-bg px-3 py-2">
+                    <dt className="text-xs uppercase tracking-wide text-ink/45">Event date</dt>
+                    <dd className="mt-1 text-ink/75 break-words">{eventDate.trim() || "Not provided yet"}</dd>
+                  </div>
+                  <div className="border border-hairline bg-bg px-3 py-2">
+                    <dt className="text-xs uppercase tracking-wide text-ink/45">Location</dt>
+                    <dd className="mt-1 text-ink/75 break-words">{location.trim() || "Not provided yet"}</dd>
+                  </div>
+                </dl>
+                <div className="mt-3 grid grid-cols-1 gap-2 text-xs text-ink/55 sm:grid-cols-2">
+                  <div className="border border-hairline bg-bg px-3 py-2">
+                    Missing schedule details are still expected; ready time is usually the next key schedule detail.
+                  </div>
+                  <div className="border border-hairline bg-bg px-3 py-2">
+                    Nothing sends from this draft and no client link exists.
+                  </div>
+                </div>
+                {notesBody.trim() && (
+                  <p className="mt-3 border border-hairline bg-bg px-3 py-2 text-sm text-ink/65 whitespace-pre-wrap" data-testid="text-inquiry-handoff-notes">
+                    {notesBody.trim()}
+                  </p>
+                )}
+              </section>
+            )}
 
             <section className="border border-hairline bg-surface p-6" data-testid="section-schedule-readiness">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
