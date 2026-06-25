@@ -49,7 +49,7 @@ test("quick add/provider lane copy keeps names flexible and provider roles expli
   assert.match(builderSource, /Missing names are allowed; everything stays editable\./);
   assert.match(builderSource, /Use Capability to mark whether each provider handles\s+hair, makeup, or both/);
   assert.match(builderSource, /One provider can carry consecutive hair \+ makeup blocks/);
-  assert.match(builderSource, /split providers stay in separate lanes and same-person overlaps are flagged/);
+  assert.match(builderSource, /split providers stay in separate lanes and same-person hair\/makeup blocks are sequenced to avoid overlap/);
 });
 
 test("schedule readiness stays read-only and does not wire AI scheduling or sends", () => {
