@@ -74,6 +74,7 @@ type PreviewBlock = PreviewSourceBlock & {
 
 type PreviewLane = {
   provider: string;
+  label: string;
   capability?: ProviderCapability;
   isPrimary: boolean;
   blocks: PreviewBlock[];
@@ -455,13 +456,7 @@ function buildScheduleFromInput(
     }
   }
 
-  const laneLabel = (rec: Lane): string => {
-    let svc: string;
-    if (rec.role === "both") svc = rec.holdsBride ? "Makeup / Hair / Bride" : "Makeup / Hair";
-    else if (rec.role === "makeup") svc = rec.holdsBride ? "Makeup / Bride" : "Makeup";
-    else svc = "Hair";
-    return `Artist ${rec.artistNum} - ${svc}`;
-  };
+  const laneLabel = (rec: Lane): string => `Artist ${rec.artistNum}`;
   const laneCapability = (rec: Lane): ProviderCapability => {
     if (rec.role === "both") return "ALL";
     if (rec.role === "makeup") return "MAKEUP_ONLY";
@@ -725,6 +720,41 @@ function auditText(value: string): string {
 
 function auditId(value: string): string {
   return auditText(value).replace(/\s+/g, "-") || "item";
+}
+
+function serviceCapabilityLaneLabel(raw: string, capability?: ProviderCapability | ""): string | null {
+  const text = auditText(raw);
+  if (capability === "ALL") return "Hair + Makeup";
+  if (capability === "HAIR_ONLY") return "Hair";
+  if (capability === "MAKEUP_ONLY") return "Makeup";
+  if (!text) return null;
+  if (/\btouch\s*ups?\b|\btouchups?\b/.test(text)) return "Touch-ups";
+  if (/\b(hm|hmu|hair\s*(and|\+|\/|&)\s*makeup|makeup\s*(and|\+|\/|&)\s*hair)\b/.test(text)) return "Hair + Makeup";
+  if (/\bhair\b/.test(text)) return "Hair";
+  if (/\b(makeup|make\s*up)\b/.test(text)) return "Makeup";
+  return null;
+}
+
+function isServiceLikeLaneHeader(raw: string): boolean {
+  const text = auditText(raw);
+  if (!text) return false;
+  if (/^(hair|makeup|make up|hm|hmu|hair and makeup|hair makeup|hair \+ makeup|makeup hair|makeup \+ hair|touch ups?|touchups?)$/.test(text)) {
+    return true;
+  }
+  if (VIOLET_SERVICE_DEFAULTS.some((service) => auditText(service.label) === text)) return true;
+  return /\b(bride|bridal|bridesmaid|bm|mother|mob|mog|flower|fg|attendant|party|guest|person)\b/.test(text) &&
+    /\b(hair|makeup|make up|hm|hmu|touch\s*ups?|touchups?)\b/.test(text);
+}
+
+function normalizeScheduleLaneLabel(raw: string, capability?: ProviderCapability | "", fallbackArtistNumber?: number): string {
+  const name = raw.trim();
+  if (!name) return fallbackArtistNumber ? `Artist ${fallbackArtistNumber}` : "Needs provider assignment";
+  const artistMatch = name.match(/^Artist\s+(\d+)(?:\s*[-–]\s*.+)?$/i);
+  if (artistMatch) return `Artist ${artistMatch[1]}`;
+  if (/^unassigned$/i.test(name)) return "Needs provider assignment";
+  const serviceLabel = serviceCapabilityLaneLabel(name, capability);
+  if (serviceLabel && isServiceLikeLaneHeader(name)) return serviceLabel;
+  return name;
 }
 
 function hasAuditWord(text: string, pattern: RegExp): boolean {
@@ -999,6 +1029,7 @@ function buildFirstDraftPreview(input: {
     if (!lanes.has(name)) {
       lanes.set(name, {
         provider: name,
+        label: normalizeScheduleLaneLabel(name, provider.capability, lanes.size + 1),
         capability: normalizeProviderCapability(provider.capability),
         isPrimary: Boolean(provider.isPrimary),
         blocks: [],
@@ -1759,6 +1790,7 @@ export default function ScheduleDraftBuilder() {
     s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "lane";
   const laneNames: string[] = [];
   const laneSeen = new Set<string>();
+  const providersByName = new Map(providers.map((provider) => [provider.name.trim(), provider]));
   for (const p of providers) {
     const n = p.name.trim();
     if (n && !laneSeen.has(n)) {
@@ -1773,15 +1805,15 @@ export default function ScheduleDraftBuilder() {
       laneSeen.add(v);
     }
   }
-  const laneList = laneNames.map((name) => ({
+  const laneList = laneNames.map((name, index) => ({
     key: laneSlug(name),
-    label: name,
+    label: normalizeScheduleLaneLabel(name, providersByName.get(name)?.capability, index + 1),
     provider: name,
     rows: rows.filter((r) => (r.cells[providerColId] ?? "").trim() === name),
   }));
   const unassignedRows = rows.filter((r) => !(r.cells[providerColId] ?? "").trim());
   if (unassignedRows.length > 0) {
-    laneList.push({ key: "unassigned", label: "Unassigned", provider: "", rows: unassignedRows });
+    laneList.push({ key: "unassigned", label: "Needs provider assignment", provider: "", rows: unassignedRows });
   }
   const auditIssues = buildScheduleAudit({ title, notes, rows, providers, providerColId, engineMetadata });
   const scheduleReadiness = getScheduleMissingInfo({
@@ -2007,7 +2039,7 @@ export default function ScheduleDraftBuilder() {
                 <div>
                   <h2 className="font-serif text-xl tracking-tight">First draft preview</h2>
                   <p className="mt-1 text-sm text-ink/60">
-                    Preview works backward from ready time. One provider can carry consecutive hair + makeup blocks; split providers stay in separate lanes and same-person hair/makeup blocks are sequenced to avoid overlap. Preview stays separate until applied.
+                    Preview works backward from ready time. Lane headers use provider/service-lane metadata; role, person, and service details stay inside timed blocks. One provider can carry consecutive hair + makeup blocks; split providers stay in separate lanes and same-person hair/makeup blocks are sequenced to avoid overlap. Preview stays separate until applied.
                   </p>
                 </div>
                 <button
@@ -2070,7 +2102,7 @@ export default function ScheduleDraftBuilder() {
                         <div key={lane.provider} className="border border-hairline bg-bg rounded-sm" data-testid={`first-draft-lane-${auditId(lane.provider)}`}>
                           <div className="border-b border-hairline px-4 py-3">
                             <div className="flex items-start justify-between gap-3">
-                              <h3 className="font-serif text-lg tracking-tight">{lane.provider}</h3>
+                              <h3 className="font-serif text-lg tracking-tight">{lane.label}</h3>
                               <div className="flex flex-wrap justify-end gap-1.5">
                                 <span className="border border-hairline px-2 py-0.5 text-[10px] uppercase tracking-wide text-ink/50">
                                   {providerCapabilityLabel(lane.capability)}
