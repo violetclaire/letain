@@ -713,8 +713,9 @@ export default function ProfileSettings() {
   const hasServiceRows = services.length > 0;
   const hasInfoSheetText = infoSheetData.infoSheetContent.trim().length > 0;
   const hasInfoSheetPdf = infoSheetData.infoSheetPdfUrl.trim().length > 0;
-  const hasLogoAsset = businessData.logoUrl.trim().length > 0;
-  const hasPricingInfoReady = hasServiceRows || hasInfoSheetText || hasInfoSheetPdf;
+  const hasReusableInfoEnabled = infoSheetData.infoSheetEnabled;
+  const hasReusableInfoMaterial = hasServiceRows || hasInfoSheetText || hasInfoSheetPdf;
+  const hasPricingInfoReady = hasReusableInfoEnabled && hasReusableInfoMaterial;
 
   if (authLoading) {
     return (
@@ -1623,12 +1624,12 @@ export default function ProfileSettings() {
               
               <div className="mb-4 space-y-2">
                 <p className="text-xs text-black/60">
-                  Create or store the reusable pricing/details information you can use later when drafting inquiry responses. Nothing sends from this setup screen.
+                  Create or store the reusable pricing/details information Inquiry Workspace checks before response drafting. Nothing sends from this setup screen.
                 </p>
                 <p className="text-xs text-black/45">
                   {infoSheetData.infoSheetEnabled
-                    ? "Briarwood can treat this material as active reusable context for future drafts."
-                    : "This material stays saved privately until you choose to use it as active draft context."}
+                    ? "Briarwood can treat this material as active reusable context for future inquiry response drafts."
+                    : "Reusable info is disabled, so Inquiry Workspace will not treat this setup as ready yet."}
                 </p>
               </div>
 
@@ -1638,8 +1639,10 @@ export default function ProfileSettings() {
                     <p className="text-sm font-medium ink-main">Private readiness</p>
                     <p className="text-xs text-black/50">
                       {hasPricingInfoReady
-                        ? "Ready for composer later"
-                        : "Add your services, pricing, policies, or an existing PDF so Briarwood can help draft inquiry responses later."}
+                        ? "Ready for Inquiry Workspace"
+                        : hasReusableInfoMaterial
+                          ? "Turn on reusable info so Inquiry Workspace can treat these details as ready."
+                          : "Add services, pricing/details text, policies, or an existing PDF reference so Briarwood can help draft inquiry responses later."}
                     </p>
                   </div>
                   <span className="text-xs rounded-full border border-black/10 px-2 py-1 text-black/60">
@@ -1651,7 +1654,7 @@ export default function ProfileSettings() {
                     { label: "Services added", ready: hasServiceRows },
                     { label: "Pricing/details text added", ready: hasInfoSheetText },
                     { label: "PDF reference added", ready: hasInfoSheetPdf },
-                    { label: "Logo added", ready: hasLogoAsset },
+                    { label: "Reusable info enabled", ready: hasReusableInfoEnabled },
                   ].map((item) => (
                     <div key={item.label} className="flex items-center gap-2 text-xs text-black/65">
                       <span className={`w-4 h-4 rounded-full border flex items-center justify-center ${
@@ -1678,7 +1681,7 @@ export default function ProfileSettings() {
                   data-testid="button-info-type-pdf"
                 >
                   <Upload size={16} className="mx-auto mb-1" />
-                  Use Existing PDF
+                  Use Existing PDF Reference
                 </button>
                 <button
                   type="button"
@@ -1712,14 +1715,17 @@ export default function ProfileSettings() {
               {infoSheetData.infoSheetType === "pdf" && (
                 <div className="mb-4">
                   <label className="block text-xs uppercase tracking-wide text-black/60 mb-2">
-                    Existing Pricing / Info Sheet (PDF or Image)
+                    Existing Pricing / Info Sheet Reference
                   </label>
+                  <p className="text-xs text-black/50 mb-2">
+                    PDF reference is optional. Use it only when you already have an existing pricing/info sheet file; this setup still stays private and does not send.
+                  </p>
                   {infoSheetData.infoSheetPdfUrl ? (
                     <div className="border border-black/20 rounded-lg p-4 bg-[#f5f7fc]">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <FileText size={20} className="text-black/60" />
-                          <span className="text-sm">Your pricing sheet is uploaded</span>
+                          <span className="text-sm">Your existing pricing/info sheet reference is saved</span>
                         </div>
                         <div className="flex gap-2">
                           <a 
@@ -1771,8 +1777,8 @@ export default function ProfileSettings() {
                       >
                         <div className="flex flex-col items-center gap-2">
                           <Upload size={24} className="text-black/40" />
-                          <span className="text-sm text-black/60">Click to upload an existing pricing/info sheet</span>
-                          <span className="text-xs text-black/40">PDF, JPG, or PNG up to 10MB</span>
+                          <span className="text-sm text-black/60">Add an existing pricing/info sheet reference</span>
+                          <span className="text-xs text-black/40">PDF, JPG, or PNG up to 10MB. Nothing sends from this setup screen.</span>
                         </div>
                       </ObjectUploader>
                     </div>
