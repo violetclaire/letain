@@ -1312,6 +1312,17 @@ export default function InquiryWorkspace() {
   const artistServices = artistServicesQuery.data ?? [];
   const infoSheetReadinessIsLoading = artistProfileQuery.isLoading || artistServicesQuery.isLoading;
   const infoSheetReadinessUnable = artistProfileQuery.isError || artistServicesQuery.isError;
+  const hasInfoSheetText = Boolean(
+    artistProfile && (
+      hasText(artistProfile.infoSheetContent) ||
+      hasText(artistProfile.pricingInfo) ||
+      hasText(artistProfile.plannerInfoSheet) ||
+      hasText(artistProfile.plannerPricing)
+    ),
+  );
+  const hasInfoSheetPdf = Boolean(artistProfile && hasText(artistProfile.infoSheetPdfUrl));
+  const hasServiceRows = artistServices.length > 0;
+  const hasReusableInfoEnabled = Boolean(artistProfile && artistProfile.infoSheetEnabled !== false);
   const hasReusableInfoSheetMaterial = Boolean(
     artistProfile && (
       (artistProfile.infoSheetEnabled !== false && (
@@ -1341,6 +1352,24 @@ export default function InquiryWorkspace() {
       : infoSheetReady
         ? "Reusable pricing/details material is available for drafting later."
         : "Pricing, service, policy, or PDF material has not been configured yet.";
+  const infoSheetReadinessSources = [
+    hasServiceRows ? "services" : null,
+    hasInfoSheetText ? "pricing/details text" : null,
+    hasInfoSheetPdf ? "PDF reference" : null,
+  ].filter(hasText);
+  const infoSheetReadinessDetail = infoSheetReadinessIsLoading
+    ? "Checking services, pricing/details text, PDF references, and reusable info settings."
+    : infoSheetReadinessUnable
+      ? "Unable to verify services, pricing/details text, PDF references, or reusable info settings."
+      : infoSheetReady && infoSheetReadinessSources.length > 0
+        ? `Ready from: ${infoSheetReadinessSources.join(", ")}.`
+        : "Add reusable services, pricing/details text, policies, or an existing PDF in Settings. Nothing sends from this card.";
+  const infoSheetReadinessChecklist = [
+    { label: "Services added", ready: hasServiceRows },
+    { label: "Pricing/details text added", ready: hasInfoSheetText },
+    { label: "PDF reference added", ready: hasInfoSheetPdf },
+    { label: "Reusable info enabled", ready: hasReusableInfoEnabled },
+  ];
   const inquiryDecisionSummary = useMemo(
     () => selectedInquiry
       ? buildInquiryDecisionSummary({
@@ -1919,6 +1948,27 @@ export default function InquiryWorkspace() {
                     <p className="text-xs uppercase tracking-wide text-ink/45 mb-1">Reusable response material</p>
                     <p className="break-words font-medium">{infoSheetReadinessLabel}</p>
                     <p className="mt-1 text-xs text-ink/60 break-words">{infoSheetReadinessDescription}</p>
+                    <p className="mt-2 text-xs text-ink/70 break-words">{infoSheetReadinessDetail}</p>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      {infoSheetReadinessChecklist.map((item) => (
+                        <div key={item.label} className="flex items-center justify-between gap-3 border border-hairline bg-surface px-2 py-2">
+                          <span className="text-xs text-ink/70">{item.label}</span>
+                          <span className={`text-[11px] uppercase tracking-wide ${
+                            item.ready && !infoSheetReadinessIsLoading && !infoSheetReadinessUnable
+                              ? "text-emerald-700"
+                              : "text-ink/45"
+                          }`}>
+                            {infoSheetReadinessIsLoading
+                              ? "Checking"
+                              : infoSheetReadinessUnable
+                                ? "Unable to verify"
+                                : item.ready
+                                  ? "Ready"
+                                  : "Missing"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
 

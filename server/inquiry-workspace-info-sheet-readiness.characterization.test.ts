@@ -50,9 +50,42 @@ test("Inquiry Workspace renders compact Pricing / Info Sheet readiness copy", ()
     /Set this up in Settings so Briarwood can help draft inquiry responses later\. Nothing sends from this workspace card\./,
   );
   assert.match(cardSource, /Reusable response material/);
+  assert.match(inquiryWorkspaceSource, /Ready from:/);
+  assert.match(
+    inquiryWorkspaceSource,
+    /Add reusable services, pricing\/details text, policies, or an existing PDF in Settings\. Nothing sends from this card\./,
+  );
+  assert.match(cardSource, /infoSheetReadinessDetail/);
   assert.match(cardSource, /Open Pricing \/ Info Sheet setup/);
   assert.match(cardSource, /href="\/settings"/);
   assert.match(cardSource, /data-testid="link-open-info-sheet-settings"/);
+});
+
+test("Inquiry Workspace shows a read-only Pricing / Info Sheet readiness checklist", () => {
+  const cardSource = infoSheetReadinessCardSource();
+
+  assert.match(inquiryWorkspaceSource, /Services added/);
+  assert.match(inquiryWorkspaceSource, /Pricing\/details text added/);
+  assert.match(inquiryWorkspaceSource, /PDF reference added/);
+  assert.match(inquiryWorkspaceSource, /Reusable info enabled/);
+  assert.match(cardSource, /Checking/);
+  assert.match(cardSource, /Unable to verify/);
+  assert.match(cardSource, /Ready/);
+  assert.match(cardSource, /Missing/);
+  assert.match(cardSource, /infoSheetReadinessChecklist\.map/);
+  assert.match(inquiryWorkspaceSource, /hasServiceRows/);
+  assert.match(inquiryWorkspaceSource, /hasInfoSheetText/);
+  assert.match(inquiryWorkspaceSource, /hasInfoSheetPdf/);
+  assert.match(inquiryWorkspaceSource, /hasReusableInfoEnabled/);
+});
+
+test("Missing Pricing / Info Sheet still blocks response readiness", () => {
+  assert.match(inquiryWorkspaceSource, /if \(!infoSheetReady\) \{/);
+  assert.match(inquiryWorkspaceSource, /Pricing \/ Info Sheet not configured yet\./);
+  assert.match(
+    inquiryWorkspaceSource,
+    /Open Settings and add pricing, services, policies, or an existing PDF before drafting\./,
+  );
 });
 
 test("Pricing / Info Sheet readiness card is read-only and does not send, upload, or compose", () => {
