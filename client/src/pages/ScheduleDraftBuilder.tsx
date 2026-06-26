@@ -160,6 +160,12 @@ interface Draft {
   updatedAt?: string | null;
 }
 
+interface LinkedInquiryContext {
+  id: string;
+  serviceType?: string | null;
+  eventType?: string | null;
+}
+
 function uid(prefix: string): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -676,17 +682,28 @@ function readHandoffNotes(notes: string): string {
   return match?.[1]?.trim() ?? "";
 }
 
+function cleanText(value?: string | null): string {
+  return value?.trim() ?? "";
+}
+
+function buildLinkedInquiryScheduleContext(inquiry?: LinkedInquiryContext | null): string {
+  return [inquiry?.serviceType, inquiry?.eventType].map(cleanText).filter(Boolean).join(" / ");
+}
+
 function buildInquiryHandoffContext(input: {
   eventDate: string;
   location: string;
   notesBody: string;
+  linkedScheduleContext?: string | null;
 }): { date: string; location: string; scheduleContext: string; notes: string } {
   const notes = input.notesBody.trim();
   const inquiryNotes = readHandoffNotes(notes);
+  const parsedScheduleContext = readHandoffField(notes, "Schedule context");
+  const linkedScheduleContext = cleanText(input.linkedScheduleContext);
   return {
     date: readHandoffField(notes, "Event date") || input.eventDate.trim() || "Not captured yet",
     location: readHandoffField(notes, "Location / venue") || input.location.trim() || "Not captured yet",
-    scheduleContext: readHandoffField(notes, "Schedule context") || "Confirm from inquiry",
+    scheduleContext: parsedScheduleContext || linkedScheduleContext || "Confirm from inquiry",
     notes: inquiryNotes || notes || "No inquiry notes captured yet",
   };
 }
@@ -1527,6 +1544,19 @@ export default function ScheduleDraftBuilder() {
     enabled: !!scheduleId && isAuthenticated,
     retry: false,
   });
+  const linkedInquiryId = draftQuery.data?.inquiryId ?? null;
+  const linkedInquiryQuery = useQuery<LinkedInquiryContext | null>({
+    queryKey: ["/api/inquiries", linkedInquiryId, "schedule-context"],
+    queryFn: async () => {
+      if (!linkedInquiryId) return null;
+      const res = await fetch(`/api/inquiries/${encodeURIComponent(linkedInquiryId)}`, { credentials: "include" });
+      if (res.status === 401 || res.status === 403 || res.status === 404) return null;
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: Boolean(linkedInquiryId && isAuthenticated),
+    retry: false,
+  });
 
   useEffect(() => {
     const d = draftQuery.data;
@@ -1700,9 +1730,10 @@ export default function ScheduleDraftBuilder() {
   const setNotesBody = (body: string) => setNotes(composeNotes(body, peopleToAssign));
   const setPeopleToAssign = (names: string[]) => setNotes(composeNotes(notesBody, names));
   const isInquiryHandoffDraft = Boolean(draftQuery.data?.inquiryId);
+  const linkedInquiryScheduleContext = buildLinkedInquiryScheduleContext(linkedInquiryQuery.data);
   const inquiryHandoffContext = useMemo(
-    () => buildInquiryHandoffContext({ eventDate, location, notesBody }),
-    [eventDate, location, notesBody],
+    () => buildInquiryHandoffContext({ eventDate, location, notesBody, linkedScheduleContext: linkedInquiryScheduleContext }),
+    [eventDate, location, notesBody, linkedInquiryScheduleContext],
   );
 
   // Add an empty block already assigned to a given lane (provider value).

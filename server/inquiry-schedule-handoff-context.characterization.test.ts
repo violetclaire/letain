@@ -14,6 +14,7 @@ function around(source: string, marker: string, radius = 2800): string {
 const handoffPanel = around(builderSource, 'data-testid="section-inquiry-schedule-handoff"');
 const handoffHelpers = around(builderSource, "function buildInquiryHandoffContext", 2200);
 const handoffSources = `${handoffHelpers}\n${handoffPanel}`;
+const linkedInquiryFallback = around(builderSource, "const linkedInquiryScheduleContext", 1400);
 
 test("Schedule Draft Builder handoff panel shows structured inquiry context rows", () => {
   assert.match(builderSource, /function buildInquiryHandoffContext/);
@@ -27,15 +28,28 @@ test("Schedule Draft Builder handoff panel shows structured inquiry context rows
   assert.match(handoffPanel, /inquiryHandoffContext\.notes/);
 });
 
-test("handoff context is parsed from existing draft notes without inventing missing context", () => {
+test("handoff context uses draft notes first, linked inquiry context second, and a safe fallback last", () => {
   assert.match(handoffHelpers, /readHandoffField\(notes, "Event date"\)/);
   assert.match(handoffHelpers, /readHandoffField\(notes, "Location \/ venue"\)/);
-  assert.match(handoffHelpers, /readHandoffField\(notes, "Schedule context"\)/);
+  assert.match(handoffHelpers, /const parsedScheduleContext = readHandoffField\(notes, "Schedule context"\)/);
+  assert.match(handoffHelpers, /const linkedScheduleContext = cleanText\(input\.linkedScheduleContext\)/);
   assert.match(handoffHelpers, /readHandoffNotes\(notes\)/);
-  assert.match(handoffHelpers, /scheduleContext: readHandoffField\(notes, "Schedule context"\) \|\| "Confirm from inquiry"/);
+  assert.match(handoffHelpers, /scheduleContext: parsedScheduleContext \|\| linkedScheduleContext \|\| "Confirm from inquiry"/);
   assert.match(handoffHelpers, /date: readHandoffField\(notes, "Event date"\) \|\| input\.eventDate\.trim\(\) \|\| "Not captured yet"/);
   assert.match(handoffHelpers, /location: readHandoffField\(notes, "Location \/ venue"\) \|\| input\.location\.trim\(\) \|\| "Not captured yet"/);
   assert.match(handoffHelpers, /notes: inquiryNotes \|\| notes \|\| "No inquiry notes captured yet"/);
+});
+
+test("Schedule Draft Builder reads linked inquiry context without mutating the draft", () => {
+  assert.match(builderSource, /interface LinkedInquiryContext/);
+  assert.match(builderSource, /function buildLinkedInquiryScheduleContext\(inquiry\?: LinkedInquiryContext \| null\): string/);
+  assert.match(builderSource, /\[inquiry\?\.serviceType, inquiry\?\.eventType\]\.map\(cleanText\)\.filter\(Boolean\)\.join\(" \/ "\)/);
+  assert.match(builderSource, /const linkedInquiryId = draftQuery\.data\?\.inquiryId \?\? null/);
+  assert.match(builderSource, /useQuery<LinkedInquiryContext \| null>/);
+  assert.match(builderSource, /fetch\(`\/api\/inquiries\/\$\{encodeURIComponent\(linkedInquiryId\)\}`/);
+  assert.match(builderSource, /enabled: Boolean\(linkedInquiryId && isAuthenticated\)/);
+  assert.match(builderSource, /linkedScheduleContext: linkedInquiryScheduleContext/);
+  assert.doesNotMatch(linkedInquiryFallback, /saveMutation|method: "PATCH"|method: "POST"/);
 });
 
 test("handoff panel frames structured context as draft context to confirm", () => {
