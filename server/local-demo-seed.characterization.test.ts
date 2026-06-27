@@ -41,6 +41,9 @@ test("local demo seed uses deterministic Briarwood demo IDs", () => {
   for (const deterministicId of [
     "demo-operator-briarwood",
     "demo-artist-profile-briarwood",
+    "demo-service-bridal-hair-makeup",
+    "demo-service-attendant-hair",
+    "demo-service-attendant-makeup",
     "demo-inquiry-fairmont-2026",
     "demo-route-target-hair",
     "demo-route-target-makeup",
@@ -50,6 +53,41 @@ test("local demo seed uses deterministic Briarwood demo IDs", () => {
   ]) {
     assert.match(script, new RegExp(deterministicId));
   }
+});
+
+test("local demo profile seeds Pricing / Info Sheet configured state without a PDF requirement", () => {
+  assert.match(script, /infoSheetEnabled: true/);
+  assert.match(script, /infoSheetType: "custom"/);
+  assert.match(script, /infoSheetContent: DEMO_INFO_SHEET_CONTENT/);
+  assert.match(script, /pricingInfo: DEMO_PRICING_INFO/);
+  assert.match(script, /plannerInfoSheet: DEMO_PLANNER_INFO_SHEET/);
+  assert.match(script, /plannerPricing: DEMO_PRICING_INFO/);
+  assert.match(script, /infoSheetPdfUrl: null/);
+  assert.match(script, /Local demo Pricing \/ Info Sheet/);
+  assert.match(script, /nothing sends automatically/i);
+});
+
+test("local demo services are seeded for reusable Pricing / Info Sheet readiness", () => {
+  assert.match(script, /artistServices/);
+
+  for (const serviceSeed of [
+    "demo-service-bridal-hair-makeup",
+    "demo-service-attendant-hair",
+    "demo-service-attendant-makeup",
+    "Demo bridal hair and makeup coordination",
+    "Demo attendant hair",
+    "Demo attendant makeup",
+  ]) {
+    assert.match(script, new RegExp(serviceSeed.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+
+  assert.match(script, /await db\.insert\(artistServices\)\.values\(row\)\.onConflictDoUpdate/);
+  assert.match(script, /delete\(artistServices\)\.where\(eq\(artistServices\.artistId, DEMO_OPERATOR_ID\)\)/);
+});
+
+test("local demo Pricing / Info Sheet seed does not introduce upload or delivery behavior", () => {
+  assert.doesNotMatch(script, /uploadObject|objectStorage|ObjectStorage|createObject|infoSheetPdfUrl: "[^"]+"/);
+  assert.doesNotMatch(script, /sendInfoSheet|sendEmail|sendSms|createPayment|createContract/);
 });
 
 test("local demo seed uses generic role-based demo labels", () => {
@@ -163,6 +201,9 @@ test("local demo cleanup targets deterministic demo rows only", () => {
     "DEMO_OPERATOR_ID",
     "DEMO_CLIENT_ID",
     "DEMO_PROFILE_ID",
+    "DEMO_SERVICE_BRIDAL_HM_ID",
+    "DEMO_SERVICE_ATTENDANT_HAIR_ID",
+    "DEMO_SERVICE_ATTENDANT_MAKEUP_ID",
   ]) {
     assert.match(script, new RegExp(cleanupAnchor));
   }

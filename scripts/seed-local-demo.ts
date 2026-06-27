@@ -5,6 +5,9 @@ import process from "node:process";
 const DEMO_OPERATOR_ID = "demo-operator-briarwood";
 const DEMO_CLIENT_ID = "demo-client-maya";
 const DEMO_PROFILE_ID = "demo-artist-profile-briarwood";
+const DEMO_SERVICE_BRIDAL_HM_ID = "demo-service-bridal-hair-makeup";
+const DEMO_SERVICE_ATTENDANT_HAIR_ID = "demo-service-attendant-hair";
+const DEMO_SERVICE_ATTENDANT_MAKEUP_ID = "demo-service-attendant-makeup";
 const DEMO_INQUIRY_ID = "demo-inquiry-fairmont-2026";
 const DEMO_CONTRACT_ID = "demo-contract-fairmont";
 const DEMO_SCHEDULE_ID = "demo-schedule-fairmont";
@@ -21,6 +24,23 @@ const DEMO_COORDINATION_EVENT_CONTEXT_ID = "demo-coordination-event-context";
 const DEMO_COORDINATION_EVENT_TIMING_ID = "demo-coordination-event-timing";
 const DEMO_COORDINATION_EVENT_HANDOFF_ID = "demo-coordination-event-handoff";
 const DEMO_COORDINATION_ASSESSMENT_ID = "demo-coordination-assessment-fairmont";
+
+const DEMO_INFO_SHEET_CONTENT = [
+  "Local demo Pricing / Info Sheet.",
+  "",
+  "Reusable services, pricing notes, policies, travel details, and response context for Briarwood's local demo operator.",
+  "",
+  "Demo policies:",
+  "- Dates are reviewed by the operator before any client response.",
+  "- Schedule context is confirmed before a final timeline is used.",
+  "- This setup screen stores reusable information only; nothing sends automatically.",
+].join("\n");
+
+const DEMO_PRICING_INFO =
+  "Demo-only bridal beauty pricing context: services, policies, travel, and process details are ready for inquiry response drafting.";
+
+const DEMO_PLANNER_INFO_SHEET =
+  "Demo-only planner context: use the inquiry date, venue, ready time, and service count to draft coordination notes.";
 
 const forbiddenSendPaymentEnv = [
   "RESEND_API_KEY",
@@ -566,6 +586,7 @@ async function seedDemoData(password: string): Promise<void> {
   const { db } = await import("../server/db");
   const {
     artistProfiles,
+    artistServices,
     inquiries,
     inquiryInternalNotes,
     inquiryResponses,
@@ -634,7 +655,13 @@ async function seedDemoData(password: string): Promise<void> {
     artistSlug: "briarwood-demo",
     onboardingCompleted: true,
     calendarConnected: false,
-    infoSheetEnabled: false,
+    infoSheetEnabled: true,
+    infoSheetType: "custom",
+    infoSheetContent: DEMO_INFO_SHEET_CONTENT,
+    infoSheetPdfUrl: null,
+    pricingInfo: DEMO_PRICING_INFO,
+    plannerInfoSheet: DEMO_PLANNER_INFO_SHEET,
+    plannerPricing: DEMO_PRICING_INFO,
     autoResponderMode: "off",
     preferredDeliveryChannel: "email",
     assistantPhoneEnabled: false,
@@ -654,7 +681,13 @@ async function seedDemoData(password: string): Promise<void> {
       artistSlug: "briarwood-demo",
       onboardingCompleted: true,
       calendarConnected: false,
-      infoSheetEnabled: false,
+      infoSheetEnabled: true,
+      infoSheetType: "custom",
+      infoSheetContent: DEMO_INFO_SHEET_CONTENT,
+      infoSheetPdfUrl: null,
+      pricingInfo: DEMO_PRICING_INFO,
+      plannerInfoSheet: DEMO_PLANNER_INFO_SHEET,
+      plannerPricing: DEMO_PRICING_INFO,
       autoResponderMode: "off",
       preferredDeliveryChannel: "email",
       assistantPhoneEnabled: false,
@@ -663,6 +696,49 @@ async function seedDemoData(password: string): Promise<void> {
       assistantDryRun: true,
     },
   });
+
+  const serviceRows = [
+    {
+      id: DEMO_SERVICE_BRIDAL_HM_ID,
+      artistId: DEMO_OPERATOR_ID,
+      name: "Demo bridal hair and makeup coordination",
+      description: "Demo-only reusable service context for drafting inquiry responses.",
+      price: 150000,
+      duration: 120,
+      category: "wedding beauty",
+      isActive: true,
+      sortOrder: 1,
+    },
+    {
+      id: DEMO_SERVICE_ATTENDANT_MAKEUP_ID,
+      artistId: DEMO_OPERATOR_ID,
+      name: "Demo attendant makeup",
+      description: "Demo-only reusable makeup service row. Nothing sends automatically.",
+      price: 20000,
+      duration: 30,
+      category: "wedding beauty",
+      isActive: true,
+      sortOrder: 2,
+    },
+    {
+      id: DEMO_SERVICE_ATTENDANT_HAIR_ID,
+      artistId: DEMO_OPERATOR_ID,
+      name: "Demo attendant hair",
+      description: "Demo-only reusable hair service row. Nothing sends automatically.",
+      price: 20000,
+      duration: 45,
+      category: "wedding beauty",
+      isActive: true,
+      sortOrder: 3,
+    },
+  ];
+
+  for (const row of serviceRows) {
+    await db.insert(artistServices).values(row).onConflictDoUpdate({
+      target: artistServices.id,
+      set: withoutId(row),
+    });
+  }
 
   await db.insert(inquiries).values({
     id: DEMO_INQUIRY_ID,
@@ -888,6 +964,7 @@ async function cleanupDemoData(): Promise<void> {
   const { db } = await import("../server/db");
   const {
     artistProfiles,
+    artistServices,
     inquiries,
     inquiryInternalNotes,
     inquiryResponses,
@@ -911,6 +988,7 @@ async function cleanupDemoData(): Promise<void> {
   await db.delete(scheduleDrafts).where(eq(scheduleDrafts.id, DEMO_SCHEDULE_ID));
   await db.execute(sql`delete from contracts where id = ${DEMO_CONTRACT_ID}`);
   await db.delete(routeTargets).where(eq(routeTargets.operatorId, DEMO_OPERATOR_ID));
+  await db.delete(artistServices).where(eq(artistServices.artistId, DEMO_OPERATOR_ID));
   await db.delete(inquiries).where(eq(inquiries.id, DEMO_INQUIRY_ID));
   await db.delete(artistProfiles).where(eq(artistProfiles.id, DEMO_PROFILE_ID));
   await db.delete(users).where(eq(users.id, DEMO_CLIENT_ID));

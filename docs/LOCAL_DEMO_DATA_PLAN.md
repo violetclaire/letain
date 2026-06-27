@@ -79,8 +79,57 @@ Proposed deterministic records:
 - `artist_profiles.assistant_dry_run`: `true`
 - `artist_profiles.assistant_email_enabled`: `false`
 - `artist_profiles.assistant_phone_enabled`: `false`
-- `artist_profiles.info_sheet_enabled`: `false`
+- `artist_profiles.info_sheet_enabled`: `true`
+- `artist_profiles.info_sheet_type`: `custom`
+- `artist_profiles.info_sheet_content`: demo-only reusable services,
+  pricing, policy, travel, and process context.
+- `artist_profiles.info_sheet_pdf_url`: `null`
+- `artist_profiles.pricing_info`: demo-only pricing/details summary.
+- `artist_profiles.planner_info_sheet`: demo-only planner/context notes.
+- `artist_profiles.planner_pricing`: demo-only pricing/details summary.
 - `artist_profiles.auto_responder_mode`: `off`
+
+The local demo profile intentionally has Pricing / Info Sheet readiness
+configured so Inquiry Workspace can demonstrate the ready state. This does not
+enable sends: assistant delivery remains disabled/dry-run, no public/client
+links are seeded, and no PDF upload or object-storage row is required.
+
+### Reusable Services / Pricing Context
+
+Table:
+
+- `artist_services`
+
+Purpose:
+
+- Let `/settings` and Inquiry Workspace show `Services added` as ready for the
+  local demo operator.
+- Keep reusable service/package context available for response drafting without
+  creating a send, proposal, contract, payment, or upload flow.
+
+Proposed deterministic records:
+
+- `demo-service-bridal-hair-makeup`
+  - `artist_id`: `demo-operator-briarwood`
+  - `name`: `Demo bridal hair and makeup coordination`
+  - `category`: `wedding beauty`
+  - `duration`: `120`
+  - `price`: demo-only cents value
+- `demo-service-attendant-makeup`
+  - `artist_id`: `demo-operator-briarwood`
+  - `name`: `Demo attendant makeup`
+  - `category`: `wedding beauty`
+  - `duration`: `30`
+  - `price`: demo-only cents value
+- `demo-service-attendant-hair`
+  - `artist_id`: `demo-operator-briarwood`
+  - `name`: `Demo attendant hair`
+  - `category`: `wedding beauty`
+  - `duration`: `45`
+  - `price`: demo-only cents value
+
+These rows are reusable setup data only. They do not create an inquiry response,
+contract, payment request, upload, public page, or client-visible artifact.
 
 ### Inquiry
 
@@ -445,9 +494,10 @@ Suggested cleanup order:
 6. optional `contracts`
 7. optional fake client `users`
 8. `route_targets`
-9. `inquiries`
-10. `artist_profiles`
-11. demo operator `users`
+9. `artist_services`
+10. `inquiries`
+11. `artist_profiles`
+12. demo operator `users`
 
 Do not cleanup by email domain alone. Only deterministic IDs or an explicit seed
 marker should be trusted.
