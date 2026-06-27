@@ -290,6 +290,10 @@ interface InquiryDecisionSummary {
   tone: string;
   reasons: string[];
   nextStep: string;
+  reviewDetails?: Array<{
+    label: string;
+    value: string;
+  }>;
 }
 
 interface TimelineEntry {
@@ -506,6 +510,63 @@ function textList(values?: string[] | null): string[] {
   return Array.isArray(values) ? values.filter((value): value is string => typeof value === "string" && value.trim().length > 0) : [];
 }
 
+function readableAssessmentItem(value: string): string {
+  const normalized = valueLabel(value).trim().toLowerCase();
+  if (!normalized) return "";
+  return `${normalized.charAt(0).toUpperCase()}${normalized.slice(1)}`;
+}
+
+function assessmentListSummary(values?: string[] | null): string | null {
+  const labels = textList(values)
+    .map(readableAssessmentItem)
+    .filter(Boolean);
+  return labels.length > 0 ? labels.join(", ") : null;
+}
+
+function buildOperatorReviewDetails(assessment: CoordinationAssessmentSummary): InquiryDecisionSummary["reviewDetails"] {
+  const details: InquiryDecisionSummary["reviewDetails"] = [];
+  const permissionLabel = PERMISSION_DECISION_LABELS[assessment.decision];
+
+  details.push({
+    label: "Permission reason",
+    value: assessment.decision === "PROCEED_WITH_OVERSIGHT"
+      ? "Proceed with oversight: review handoff and recovery before outreach."
+      : `${permissionLabel}: review the current coordination permission before outreach.`,
+  });
+
+  const riskSummary = assessmentListSummary(assessment.riskFactors);
+  if (riskSummary) {
+    details.push({
+      label: "Why review is needed",
+      value: riskSummary,
+    });
+  }
+
+  const missingSignals = assessmentListSummary(assessment.missingSignals);
+  if (missingSignals) {
+    details.push({
+      label: "Missing signals",
+      value: missingSignals,
+    });
+  }
+
+  if (assessment.humanJudgmentRequired) {
+    details.push({
+      label: "Human judgment",
+      value: "Human review required before outreach.",
+    });
+  }
+
+  if (hasText(assessment.recommendedNextAction)) {
+    details.push({
+      label: "Recommended next action",
+      value: assessment.recommendedNextAction,
+    });
+  }
+
+  return details;
+}
+
 function contactMetadataText(target: Pick<RouteTarget, "notes" | "tags" | "capabilities">): string {
   return [target.notes, ...(target.tags ?? []), ...(target.capabilities ?? [])]
     .filter((value): value is string => Boolean(value && value.trim()))
@@ -626,11 +687,13 @@ function buildInquiryDecisionSummary({
   }
 
   if (permissionDecision === "CLARIFY" || permissionDecision === "ESCALATE" || permissionDecision === "PROCEED_WITH_OVERSIGHT") {
+    const reviewDetails = permissionAssessment ? buildOperatorReviewDetails(permissionAssessment) : undefined;
     return {
       label: "Needs operator review",
       tone: "border-blue-200 bg-blue-50 text-blue-900",
       reasons: [`Coordination permission is ${PERMISSION_DECISION_LABELS[permissionDecision]}.`],
       nextStep: permissionAssessment?.recommendedNextAction || "Review the current coordination permission before responding.",
+      reviewDetails,
     };
   }
 
@@ -1797,6 +1860,23 @@ export default function InquiryWorkspace() {
                         <Pill key={reason}>{reason}</Pill>
                       ))}
                     </div>
+
+                    {inquiryDecisionSummary.reviewDetails && inquiryDecisionSummary.reviewDetails.length > 0 && (
+                      <div className="mt-3 border border-hairline bg-bg px-3 py-3 text-sm" data-testid="operator-review-explanation">
+                        <p className="text-xs uppercase tracking-wide text-ink/45 mb-2">Operator review details</p>
+                        <p className="mb-3 text-xs text-ink/55">
+                          This is not a hard block. Review the current handoff and recovery context before outreach.
+                        </p>
+                        <dl className="grid gap-2 sm:grid-cols-2">
+                          {inquiryDecisionSummary.reviewDetails.map((detail) => (
+                            <div key={detail.label}>
+                              <dt className="text-xs uppercase tracking-wide text-ink/45">{detail.label}</dt>
+                              <dd className="mt-1 text-ink/75 break-words">{detail.value}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                      </div>
+                    )}
                   </div>
                 )}
 

@@ -26,8 +26,10 @@ function snippetsAround(source: string, marker: string): string {
 }
 
 const decisionSummarySource = [
+  sliceBetween(inquiryWorkspaceSource, "function buildOperatorReviewDetails", "function contactMetadataText"),
   sliceBetween(inquiryWorkspaceSource, "function buildInquiryDecisionSummary", "function textTokens"),
   snippetsAround(inquiryWorkspaceSource, "Can I respond yet?"),
+  snippetsAround(inquiryWorkspaceSource, "operator-review-explanation"),
 ].join("\n");
 
 test("Inquiry Workspace renders a read-only Can I respond yet decision summary", () => {
@@ -66,6 +68,31 @@ test("decision summary uses availability, route contact readiness, and coordinat
   assert.match(decisionSummarySource, /Current coordination permission/);
   assert.match(decisionSummarySource, /permissionAssessment/);
   assert.match(decisionSummarySource, /PERMISSION_DECISION_LABELS/);
+});
+
+test("operator review state explains the loaded coordination assessment", () => {
+  assert.match(decisionSummarySource, /operator-review-explanation/);
+  assert.match(decisionSummarySource, /Operator review details/);
+  assert.match(decisionSummarySource, /This is not a hard block/);
+  assert.match(decisionSummarySource, /Review the current handoff and recovery context before outreach/);
+  assert.match(decisionSummarySource, /buildOperatorReviewDetails/);
+  assert.match(decisionSummarySource, /PROCEED_WITH_OVERSIGHT/);
+  assert.match(decisionSummarySource, /Proceed with oversight: review handoff and recovery before outreach/);
+  assert.match(decisionSummarySource, /Why review is needed/);
+  assert.match(decisionSummarySource, /riskFactors/);
+  assert.match(decisionSummarySource, /Missing signals/);
+  assert.match(decisionSummarySource, /missingSignals/);
+  assert.match(decisionSummarySource, /Human review required before outreach/);
+  assert.match(decisionSummarySource, /humanJudgmentRequired/);
+  assert.match(decisionSummarySource, /Recommended next action/);
+  assert.match(decisionSummarySource, /recommendedNextAction/);
+});
+
+test("operator review state is explained by permission, not missing Pricing / Info Sheet", () => {
+  assert.match(decisionSummarySource, /Pricing \/ Info Sheet ready/);
+  assert.match(decisionSummarySource, /Permission reason/);
+  assert.match(decisionSummarySource, /Coordination permission is \$\{PERMISSION_DECISION_LABELS\[permissionDecision\]\}/);
+  assert.match(decisionSummarySource, /reviewDetails/);
 });
 
 test("decision summary stays read-only and does not introduce sends or mutations", () => {
