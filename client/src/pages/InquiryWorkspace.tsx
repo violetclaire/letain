@@ -5,7 +5,6 @@ import {
   AlertCircle,
   CalendarDays,
   Clock3,
-  CreditCard,
   FileText,
   Inbox,
   Loader2,
@@ -168,35 +167,6 @@ interface ComposerResponse {
   responses: ComposerResponseDraft[];
 }
 
-interface ContractSummary {
-  id: string;
-  clientName?: string | null;
-  eventDates?: string | null;
-  eventLocation?: string | null;
-  packageDetails?: string | null;
-  status?: string | null;
-  totalAmount?: number | null;
-  depositAmount?: number | null;
-  remainingAmount?: number | null;
-  depositPaidAt?: string | null;
-  contractSource?: string | null;
-  contractUrl?: string | null;
-  fileUrl?: string | null;
-  bookingId?: string | null;
-  inquiryId?: string | null;
-  paymentStatus?: string | null;
-  paymentMethod?: string | null;
-  amountPaid?: number | null;
-  paymentDueDate?: string | null;
-  paymentNotes?: string | null;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-
-interface ContractSummaryResponse {
-  contract: ContractSummary;
-}
-
 interface TrustTimelineEntry {
   id: string;
   eventType: string;
@@ -312,29 +282,6 @@ interface TimelineEntry {
 
 const OPERATOR_ROLES = new Set(["artist"]);
 
-const PAYMENT_STATUS_LABELS: Record<string, string> = {
-  payment_not_requested: "Not requested yet",
-  payment_requested: "Payment requested",
-  deposit_due: "Deposit due",
-  deposit_paid: "Deposit paid",
-  balance_due: "Balance due",
-  balance_paid: "Balance paid",
-  overdue: "Overdue",
-  manually_confirmed_paid: "Manually confirmed paid",
-};
-
-const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  square: "Square",
-  zelle: "Zelle",
-  venmo: "Venmo",
-  paypal: "PayPal",
-  stripe: "Stripe",
-  check: "Check",
-  cash: "Cash",
-  bank_transfer: "Bank transfer",
-  other: "Other",
-};
-
 const PERMISSION_DECISION_LABELS: Record<PermissionDecision, string> = {
   PROCEED: "Proceed",
   PROCEED_WITH_OVERSIGHT: "Proceed with oversight",
@@ -371,10 +318,6 @@ function coordinationPathsQueryKey(inquiryId?: string | null) {
 
 function composerQueryKey(inquiryId?: string | null) {
   return ["/api/inquiries", inquiryId, "composer"] as const;
-}
-
-function contractSummaryQueryKey(contractId?: string | null) {
-  return ["/api/vault/contracts", contractId] as const;
 }
 
 function formatDate(value?: string | null): string {
@@ -424,21 +367,6 @@ function sourceLabel(inquiry: InquiryWorkspaceInquiry): string {
 function statusLabel(status?: string | null): string {
   if (!status) return "Unknown";
   return valueLabel(status);
-}
-
-function paymentStatusLabel(status?: string | null): string {
-  if (!status) return "Unknown";
-  return PAYMENT_STATUS_LABELS[status] ?? statusLabel(status);
-}
-
-function paymentMethodLabel(method?: string | null): string {
-  if (!method) return "Unknown";
-  return PAYMENT_METHOD_LABELS[method] ?? statusLabel(method);
-}
-
-function money(cents?: number | null): string | null {
-  if (cents === null || cents === undefined) return null;
-  return `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function hasNumber(value?: number | null): value is number {
@@ -1272,7 +1200,6 @@ export default function InquiryWorkspace() {
   );
   const selectedInquiryId = selectedInquiry?.id ?? null;
   const selectedThreadToken = selectedInquiry?.threadToken ?? null;
-  const selectedContractId = selectedInquiry?.convertedToContractId ?? null;
   const draftCandidatesQuery = useQuery<DraftRouteCandidatesResponse>({
     queryKey: draftRouteCandidatesQueryKey(selectedInquiryId),
     queryFn: async () => {
@@ -1345,19 +1272,6 @@ export default function InquiryWorkspace() {
       };
     },
     enabled: isAuthenticated && isOperator && Boolean(selectedInquiryId),
-    retry: false,
-  });
-  const contractSummaryQuery = useQuery<ContractSummaryResponse | null>({
-    queryKey: contractSummaryQueryKey(selectedContractId),
-    queryFn: async () => {
-      if (!selectedContractId) return null;
-      const res = await fetch(`/api/vault/contracts/${encodeURIComponent(selectedContractId)}`, { credentials: "include" });
-      if (res.status === 404) return null;
-      if (res.status === 401) throw new Error("401");
-      if (!res.ok) throw new Error("Failed to load linked contract");
-      return res.json() as Promise<ContractSummaryResponse>;
-    },
-    enabled: isAuthenticated && isOperator && Boolean(selectedContractId),
     retry: false,
   });
   const trustTimelineQuery = useQuery<TrustTimelineResponse>({
@@ -1609,20 +1523,6 @@ export default function InquiryWorkspace() {
     [composerQuery.data?.responses],
   );
   const latestComposerExcerpt = bodyExcerpt(latestComposerResponse?.body);
-  const selectedContract = contractSummaryQuery.data?.contract ?? null;
-  const hasPaymentSummary = Boolean(selectedContract && (
-    hasText(selectedContract.paymentStatus) ||
-    hasNumber(selectedContract.depositAmount) ||
-    hasNumber(selectedContract.remainingAmount) ||
-    hasNumber(selectedContract.amountPaid) ||
-    hasText(selectedContract.paymentDueDate) ||
-    hasText(selectedContract.paymentMethod) ||
-    hasText(selectedContract.paymentNotes) ||
-    hasText(selectedContract.depositPaidAt)
-  ));
-  const contractHref = selectedContract?.id && artistSlug
-    ? `/admin/${artistSlug}/contracts/${selectedContract.id}`
-    : null;
 
   useEffect(() => {
     if (filteredInquiries.length === 0) {
@@ -2447,169 +2347,6 @@ export default function InquiryWorkspace() {
                             <EmptyValue>{latestComposerExcerpt}</EmptyValue>
                           </p>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="border border-hairline bg-surface px-4 py-4" data-testid="contract-summary-card">
-                    <div className="flex items-center gap-2 mb-3">
-                      <FileText className="w-4 h-4 text-ink/50" />
-                      <h3 className="font-serif text-base tracking-tight">Contract</h3>
-                    </div>
-
-                    {!selectedContractId && (
-                      <p className="text-sm text-ink/60">
-                        No contract is linked to this inquiry yet.
-                      </p>
-                    )}
-
-                    {selectedContractId && contractSummaryQuery.isLoading && (
-                      <div className="flex items-center gap-2 text-sm text-ink/60">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Loading linked contract
-                      </div>
-                    )}
-
-                    {selectedContractId && contractSummaryQuery.isError && (
-                      <p className="text-sm text-ink/60">
-                        Could not load the linked contract.
-                      </p>
-                    )}
-
-                    {selectedContractId && !contractSummaryQuery.isLoading && !contractSummaryQuery.isError && !selectedContract && (
-                      <p className="text-sm text-ink/60">
-                        No accessible contract record was found for this inquiry.
-                      </p>
-                    )}
-
-                    {selectedContractId && !contractSummaryQuery.isLoading && !contractSummaryQuery.isError && selectedContract && (
-                      <div className="space-y-3">
-                        <dl className="space-y-2 text-sm">
-                          <div>
-                            <dt className="text-xs uppercase tracking-wide text-ink/45">Package / type</dt>
-                            <dd className="text-ink break-words">
-                              <EmptyValue>{selectedContract.packageDetails}</EmptyValue>
-                            </dd>
-                          </div>
-                          <div>
-                            <dt className="text-xs uppercase tracking-wide text-ink/45">Status</dt>
-                            <dd className="text-ink break-words">{statusLabel(selectedContract.status)}</dd>
-                          </div>
-                          <div>
-                            <dt className="text-xs uppercase tracking-wide text-ink/45">Source</dt>
-                            <dd className="text-ink break-words">
-                              <EmptyValue>{selectedContract.contractSource}</EmptyValue>
-                            </dd>
-                          </div>
-                          <div>
-                            <dt className="text-xs uppercase tracking-wide text-ink/45">Updated</dt>
-                            <dd className="text-ink break-words">{formatDateTime(selectedContract.updatedAt || selectedContract.createdAt)}</dd>
-                          </div>
-                          <div>
-                            <dt className="text-xs uppercase tracking-wide text-ink/45">Contract ID</dt>
-                            <dd className="text-ink break-all">{selectedContract.id}</dd>
-                          </div>
-                        </dl>
-                        {contractHref && (
-                          <Link
-                            href={contractHref}
-                            className="inline-flex h-8 w-fit items-center border border-hairline px-3 text-xs text-ink/70 transition hover:bg-bg"
-                            data-testid="link-open-contract"
-                          >
-                            Open contract
-                          </Link>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div className="border border-hairline bg-surface px-4 py-4" data-testid="payment-summary-card">
-                    <div className="flex items-center gap-2 mb-3">
-                      <CreditCard className="w-4 h-4 text-ink/50" />
-                      <h3 className="font-serif text-base tracking-tight">Payment summary</h3>
-                    </div>
-
-                    {!selectedContractId && (
-                      <p className="text-sm text-ink/60">
-                        No payment data is linked to this inquiry yet.
-                      </p>
-                    )}
-
-                    {selectedContractId && contractSummaryQuery.isLoading && (
-                      <div className="flex items-center gap-2 text-sm text-ink/60">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Loading payment summary
-                      </div>
-                    )}
-
-                    {selectedContractId && contractSummaryQuery.isError && (
-                      <p className="text-sm text-ink/60">
-                        Could not load payment data from the linked contract.
-                      </p>
-                    )}
-
-                    {selectedContractId && !contractSummaryQuery.isLoading && !contractSummaryQuery.isError && !selectedContract && (
-                      <p className="text-sm text-ink/60">
-                        No accessible payment data was found for this inquiry.
-                      </p>
-                    )}
-
-                    {selectedContractId && !contractSummaryQuery.isLoading && !contractSummaryQuery.isError && selectedContract && !hasPaymentSummary && (
-                      <p className="text-sm text-ink/60">
-                        No payment tracking details are recorded on the linked contract yet.
-                      </p>
-                    )}
-
-                    {selectedContractId && !contractSummaryQuery.isLoading && !contractSummaryQuery.isError && selectedContract && hasPaymentSummary && (
-                      <div className="space-y-3">
-                        <dl className="space-y-2 text-sm">
-                          {hasText(selectedContract.paymentStatus) && (
-                            <div>
-                              <dt className="text-xs uppercase tracking-wide text-ink/45">Status</dt>
-                              <dd className="text-ink break-words">{paymentStatusLabel(selectedContract.paymentStatus)}</dd>
-                            </div>
-                          )}
-                          {hasNumber(selectedContract.depositAmount) && (
-                            <div>
-                              <dt className="text-xs uppercase tracking-wide text-ink/45">Deposit</dt>
-                              <dd className="text-ink break-words">{money(selectedContract.depositAmount)}</dd>
-                            </div>
-                          )}
-                          {hasNumber(selectedContract.remainingAmount) && (
-                            <div>
-                              <dt className="text-xs uppercase tracking-wide text-ink/45">Balance</dt>
-                              <dd className="text-ink break-words">{money(selectedContract.remainingAmount)}</dd>
-                            </div>
-                          )}
-                          {hasNumber(selectedContract.amountPaid) && (
-                            <div>
-                              <dt className="text-xs uppercase tracking-wide text-ink/45">Amount paid</dt>
-                              <dd className="text-ink break-words">{money(selectedContract.amountPaid)}</dd>
-                            </div>
-                          )}
-                          {hasText(selectedContract.paymentDueDate) && (
-                            <div>
-                              <dt className="text-xs uppercase tracking-wide text-ink/45">Due date</dt>
-                              <dd className="text-ink break-words">{selectedContract.paymentDueDate}</dd>
-                            </div>
-                          )}
-                          {hasText(selectedContract.paymentMethod) && (
-                            <div>
-                              <dt className="text-xs uppercase tracking-wide text-ink/45">Method</dt>
-                              <dd className="text-ink break-words">{paymentMethodLabel(selectedContract.paymentMethod)}</dd>
-                            </div>
-                          )}
-                          {hasText(selectedContract.depositPaidAt) && (
-                            <div>
-                              <dt className="text-xs uppercase tracking-wide text-ink/45">Deposit paid</dt>
-                              <dd className="text-ink break-words">{formatDateTime(selectedContract.depositPaidAt)}</dd>
-                            </div>
-                          )}
-                        </dl>
-                        {hasText(selectedContract.paymentNotes) && (
-                          <div className="border border-hairline bg-bg px-3 py-2 text-sm text-ink/70 whitespace-pre-wrap break-words">
-                            <p className="text-xs uppercase tracking-wide text-ink/45 mb-1">Payment notes</p>
-                            {selectedContract.paymentNotes}
-                          </div>
-                        )}
                       </div>
                     )}
                   </div>
