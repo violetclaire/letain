@@ -33,8 +33,12 @@ test("handoff context uses draft notes first, linked inquiry context second, and
   assert.match(handoffHelpers, /readHandoffField\(notes, "Location \/ venue"\)/);
   assert.match(handoffHelpers, /const parsedScheduleContext = readHandoffField\(notes, "Schedule context"\)/);
   assert.match(handoffHelpers, /const linkedScheduleContext = cleanText\(input\.linkedScheduleContext\)/);
+  assert.match(handoffHelpers, /const scheduleContext = parsedScheduleContext/);
+  assert.match(handoffHelpers, /input\.linkedScheduleContextLoading \? "Checking linked inquiry context" : ""/);
+  assert.match(handoffHelpers, /\|\| linkedScheduleContext/);
+  assert.match(handoffHelpers, /\|\| "Confirm from inquiry"/);
   assert.match(handoffHelpers, /readHandoffNotes\(notes\)/);
-  assert.match(handoffHelpers, /scheduleContext: parsedScheduleContext \|\| linkedScheduleContext \|\| "Confirm from inquiry"/);
+  assert.match(handoffHelpers, /scheduleContext,/);
   assert.match(handoffHelpers, /date: readHandoffField\(notes, "Event date"\) \|\| input\.eventDate\.trim\(\) \|\| "Not captured yet"/);
   assert.match(handoffHelpers, /location: readHandoffField\(notes, "Location \/ venue"\) \|\| input\.location\.trim\(\) \|\| "Not captured yet"/);
   assert.match(handoffHelpers, /notes: inquiryNotes \|\| notes \|\| "No inquiry notes captured yet"/);
@@ -49,7 +53,16 @@ test("Schedule Draft Builder reads linked inquiry context without mutating the d
   assert.match(builderSource, /fetch\(`\/api\/inquiries\/\$\{encodeURIComponent\(linkedInquiryId\)\}`/);
   assert.match(builderSource, /enabled: Boolean\(linkedInquiryId && isAuthenticated\)/);
   assert.match(builderSource, /linkedScheduleContext: linkedInquiryScheduleContext/);
+  assert.match(builderSource, /const linkedInquiryScheduleContextLoading = Boolean\(linkedInquiryId && linkedInquiryQuery\.status === "pending"\)/);
+  assert.match(builderSource, /linkedScheduleContextLoading: linkedInquiryScheduleContextLoading/);
   assert.doesNotMatch(linkedInquiryFallback, /saveMutation|method: "PATCH"|method: "POST"/);
+});
+
+test("inquiry-linked drafts show a loading context before falling back to confirm from inquiry", () => {
+  assert.match(handoffHelpers, /linkedScheduleContextLoading\?: boolean/);
+  assert.match(handoffHelpers, /"Checking linked inquiry context"/);
+  assert.match(handoffHelpers, /parsedScheduleContext[\s\S]*linkedScheduleContextLoading[\s\S]*linkedScheduleContext[\s\S]*"Confirm from inquiry"/);
+  assert.match(linkedInquiryFallback, /linkedInquiryQuery\.status === "pending"/);
 });
 
 test("handoff panel frames structured context as draft context to confirm", () => {
