@@ -296,6 +296,13 @@ interface InquiryDecisionSummary {
   }>;
 }
 
+interface OperatorReviewChecklistRow {
+  label: string;
+  status: string;
+  detail: string;
+  state: "needs-review" | "ready" | "informational";
+}
+
 interface TimelineEntry {
   id: string;
   label: string;
@@ -867,6 +874,85 @@ function buildNetworkMatches(targets: RouteTarget[], inquiry: InquiryWorkspaceIn
     })
     .filter((match) => match.reasons.length > 0)
     .sort((a, b) => b.score - a.score || a.target.name.localeCompare(b.target.name));
+}
+
+function assessmentIncludes(values: string[] | null | undefined, expected: string): boolean {
+  const normalizedExpected = valueLabel(expected).toLowerCase();
+  return textList(values).some((value) => valueLabel(value).toLowerCase() === normalizedExpected);
+}
+
+function buildOperatorReviewChecklist({
+  assessment,
+  networkMatches,
+}: {
+  assessment: CoordinationAssessmentSummary | null;
+  networkMatches: NetworkMatch[];
+}): OperatorReviewChecklistRow[] {
+  const activeNetworkMatches = networkMatches.filter((match) => match.target.active !== false);
+  const reachableRouteExists = activeNetworkMatches.some((match) => routeTargetHasReachableContact(match.target));
+  const knownButIncompleteRouteExists = activeNetworkMatches.some((match) => routeTargetHasKnownButIncompleteContact(match.target));
+  const routeTargetAcceptanceMissing = assessmentIncludes(assessment?.missingSignals, "Route target acceptance");
+  const recoverySignalMissing = assessmentIncludes(assessment?.missingSignals, "Recovery provider confirmation");
+  const lowRecoveryCapacity = assessmentIncludes(assessment?.riskFactors, "LOW_RECOVERY_CAPACITY");
+  const unconfirmedHandoff = assessmentIncludes(assessment?.riskFactors, "UNCONFIRMED_HANDOFF");
+  const recommendedNextAction = hasText(assessment?.recommendedNextAction) ? assessment?.recommendedNextAction : null;
+
+  const routeOptionStatus = reachableRouteExists
+    ? "Reachable option exists"
+    : knownButIncompleteRouteExists
+      ? "Known option needs contact review"
+      : activeNetworkMatches.length > 0
+        ? "Contact method missing"
+        : "No route option from existing network data";
+
+  const routeOptionDetail = reachableRouteExists
+    ? "At least one matched route target has phone or email from existing private network data."
+    : knownButIncompleteRouteExists
+      ? "A matched route target exists, but it is not safely reachable by phone or email yet."
+      : activeNetworkMatches.length > 0
+        ? "Matched route targets exist, but none have a safe phone or email contact path."
+        : "No matched route target is available from existing route-target metadata.";
+
+  return [
+    {
+      label: "Route target acceptance",
+      status: routeTargetAcceptanceMissing ? "Not confirmed yet" : "No acceptance gap recorded",
+      detail: routeTargetAcceptanceMissing
+        ? "Route target acceptance is still a missing signal before outreach."
+        : "The latest assessment does not list route target acceptance as missing.",
+      state: routeTargetAcceptanceMissing ? "needs-review" : "informational",
+    },
+    {
+      label: "Recovery coverage",
+      status: recoverySignalMissing || lowRecoveryCapacity ? "Needs confirmation" : "No recovery gap recorded",
+      detail: recoverySignalMissing || lowRecoveryCapacity
+        ? "Confirm recovery coverage before outreach because recovery capacity is limited or unconfirmed."
+        : "The latest assessment does not list recovery coverage as a missing signal.",
+      state: recoverySignalMissing || lowRecoveryCapacity ? "needs-review" : "informational",
+    },
+    {
+      label: "Handoff review",
+      status: unconfirmedHandoff ? "Review handoff" : "No handoff gap recorded",
+      detail: unconfirmedHandoff
+        ? "The handoff is drafted but not confirmed from current coordination evidence."
+        : "The latest assessment does not list unconfirmed handoff as a risk factor.",
+      state: unconfirmedHandoff ? "needs-review" : "informational",
+    },
+    {
+      label: "Reachable route option",
+      status: routeOptionStatus,
+      detail: routeOptionDetail,
+      state: reachableRouteExists ? "ready" : "needs-review",
+    },
+    {
+      label: "Recommended next action",
+      status: recommendedNextAction ? "Review before outreach" : "No recommendation loaded",
+      detail: recommendedNextAction
+        ? recommendedNextAction
+        : "Review the current coordination permission before outreach.",
+      state: "informational",
+    },
+  ];
 }
 
 function detailList(parts: Array<string | null | undefined>): string | undefined {
@@ -1457,6 +1543,15 @@ export default function InquiryWorkspace() {
       coordinationPathsQuery.isError,
     ],
   );
+  const operatorReviewChecklistRows = useMemo(
+    () => inquiryDecisionSummary?.label === "Needs operator review"
+      ? buildOperatorReviewChecklist({
+        assessment: selectedPermissionAssessment,
+        networkMatches,
+      })
+      : [],
+    [inquiryDecisionSummary?.label, selectedPermissionAssessment, networkMatches],
+  );
   const routeContactReadinessLabel = networkMatches.some((match) => routeTargetHasReachableContact(match.target))
     ? "Reachable route option exists"
     : networkMatches.some((match) => routeTargetHasKnownButIncompleteContact(match.target))
@@ -1877,6 +1972,48 @@ export default function InquiryWorkspace() {
                         </dl>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {operatorReviewChecklistRows.length > 0 && (
+                  <div className="border border-hairline bg-surface px-4 py-4" data-testid="operator-review-checklist">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <AlertCircle className="w-4 h-4 text-ink/50" />
+                          <h3 className="font-serif text-base tracking-tight">Operator review checklist</h3>
+                        </div>
+                        <p className="max-w-3xl text-xs text-ink/55">
+                          Private and read-only. This checklist does not send, create a route, run preflight, contact anyone, create a client link, contract, or payment.
+                        </p>
+                      </div>
+                      <Pill>Before outreach</Pill>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      {operatorReviewChecklistRows.map((row) => (
+                        <div
+                          key={row.label}
+                          className="border border-hairline bg-bg px-3 py-3 text-sm"
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-xs uppercase tracking-wide text-ink/45">{row.label}</p>
+                            <span
+                              className={
+                                row.state === "ready"
+                                  ? "inline-flex w-fit border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-800"
+                                  : row.state === "needs-review"
+                                    ? "inline-flex w-fit border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-blue-800"
+                                    : "inline-flex w-fit border border-hairline bg-surface px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-ink/60"
+                              }
+                            >
+                              {row.status}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-ink/70 break-words">{row.detail}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
