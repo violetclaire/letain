@@ -695,15 +695,20 @@ function buildInquiryHandoffContext(input: {
   location: string;
   notesBody: string;
   linkedScheduleContext?: string | null;
+  linkedScheduleContextLoading?: boolean;
 }): { date: string; location: string; scheduleContext: string; notes: string } {
   const notes = input.notesBody.trim();
   const inquiryNotes = readHandoffNotes(notes);
   const parsedScheduleContext = readHandoffField(notes, "Schedule context");
   const linkedScheduleContext = cleanText(input.linkedScheduleContext);
+  const scheduleContext = parsedScheduleContext
+    || (input.linkedScheduleContextLoading ? "Checking linked inquiry context" : "")
+    || linkedScheduleContext
+    || "Confirm from inquiry";
   return {
     date: readHandoffField(notes, "Event date") || input.eventDate.trim() || "Not captured yet",
     location: readHandoffField(notes, "Location / venue") || input.location.trim() || "Not captured yet",
-    scheduleContext: parsedScheduleContext || linkedScheduleContext || "Confirm from inquiry",
+    scheduleContext,
     notes: inquiryNotes || notes || "No inquiry notes captured yet",
   };
 }
@@ -1731,9 +1736,16 @@ export default function ScheduleDraftBuilder() {
   const setPeopleToAssign = (names: string[]) => setNotes(composeNotes(notesBody, names));
   const isInquiryHandoffDraft = Boolean(draftQuery.data?.inquiryId);
   const linkedInquiryScheduleContext = buildLinkedInquiryScheduleContext(linkedInquiryQuery.data);
+  const linkedInquiryScheduleContextLoading = Boolean(linkedInquiryId && linkedInquiryQuery.status === "pending");
   const inquiryHandoffContext = useMemo(
-    () => buildInquiryHandoffContext({ eventDate, location, notesBody, linkedScheduleContext: linkedInquiryScheduleContext }),
-    [eventDate, location, notesBody, linkedInquiryScheduleContext],
+    () => buildInquiryHandoffContext({
+      eventDate,
+      location,
+      notesBody,
+      linkedScheduleContext: linkedInquiryScheduleContext,
+      linkedScheduleContextLoading: linkedInquiryScheduleContextLoading,
+    }),
+    [eventDate, location, notesBody, linkedInquiryScheduleContext, linkedInquiryScheduleContextLoading],
   );
 
   // Add an empty block already assigned to a given lane (provider value).
