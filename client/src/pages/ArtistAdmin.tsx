@@ -9,7 +9,6 @@ import type { ArtistProfile } from "@shared/schema";
 import type { InquiryUI } from "@shared/types";
 import QuickGuide from "@/components/QuickGuide";
 import { useTheme } from "@/contexts/ThemeContext";
-import { SecretaryChatbox } from "@/components/SecretaryChatbox";
 
 function ThemeToggleButton() {
   const { theme, toggleTheme } = useTheme();
@@ -66,9 +65,6 @@ export default function ArtistAdmin() {
     notes: "",
   });
   const [creatingClient, setCreatingClient] = useState(false);
-  
-  // Secretary chatbox state
-  const [secretaryChatOpen, setSecretaryChatOpen] = useState(false);
   
   // Client list collapse state (show only 3 on mobile initially)
   const [showAllClients, setShowAllClients] = useState(false);
@@ -455,19 +451,19 @@ export default function ArtistAdmin() {
   };
 
   const pendingCount = inquiries.filter(i => i.status.toLowerCase() === 'pending').length;
-  const acceptedCount = inquiries.filter(i => ['accepted', 'auto_responded'].includes(i.status.toLowerCase())).length;
-  const depositCount = inquiries.filter(i => i.status.toLowerCase() === 'deposit_paid').length;
+  const todayAttentionCount = pendingCount + directChats.length;
+  const settingsHref = useSessionAuth ? "/settings" : `/${getActualSlug()}/settings${authParam}`;
 
   return (
     <div className="min-h-screen bg-bg text-ink" style={{ fontFamily: "'Inter', sans-serif" }}>
       <header className="px-8 md:px-16 py-8 border-b border-hairline relative">
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-ink/40 mb-1">Your Secretary</p>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-ink/40 mb-1">Briarwood</p>
             <h1 className="text-2xl mb-1" style={{ fontFamily: "'Fraunces', serif" }}>
               {artist.businessName}
             </h1>
-            <p className="text-sm text-ink/50">Inquiries Dashboard</p>
+            <p className="text-sm text-ink/50">Private coordination command center</p>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggleButton />
@@ -482,6 +478,15 @@ export default function ArtistAdmin() {
           
           {menuOpen && (
             <div className="absolute top-full right-8 md:right-16 mt-2 w-56 bg-surface border border-ink/20 shadow-lg z-50">
+              <Link
+                href="/inquiry-workspace"
+                className="flex items-center gap-3 px-4 py-3 text-sm text-ink/80 hover:bg-ink/10 transition-colors border-b border-ink/10"
+                onClick={() => setMenuOpen(false)}
+                data-testid="nav-inquiry-workspace"
+              >
+                <Mail className="w-4 h-4" />
+                Inquiry Workspace
+              </Link>
               <Link 
                 href={`/artist/availability${authParam}`}
                 className="flex items-center gap-3 px-4 py-3 text-sm text-ink/80 hover:bg-ink/10 transition-colors border-b border-ink/10"
@@ -491,33 +496,6 @@ export default function ArtistAdmin() {
                 <Calendar className="w-4 h-4" />
                 Availability
               </Link>
-              <Link 
-                href={`/${getActualSlug()}/circle${authParam}`}
-                className="flex items-center gap-3 px-4 py-3 text-sm text-ink/80 hover:bg-ink/10 transition-colors border-b border-ink/10"
-                onClick={() => setMenuOpen(false)}
-                data-testid="nav-circle"
-              >
-                <Users className="w-4 h-4" />
-                Network
-              </Link>
-              <Link 
-                href={`/${getActualSlug()}/revenue${authParam}`}
-                className="flex items-center gap-3 px-4 py-3 text-sm text-ink/80 hover:bg-ink/10 transition-colors border-b border-ink/10"
-                onClick={() => setMenuOpen(false)}
-                data-testid="nav-revenue"
-              >
-                <DollarSign className="w-4 h-4" />
-                Revenue
-              </Link>
-              <Link 
-                href={`/admin/${getActualSlug()}/assistant${authParam}`}
-                className="flex items-center gap-3 px-4 py-3 text-sm text-ink/80 hover:bg-ink/10 transition-colors border-b border-ink/10"
-                onClick={() => setMenuOpen(false)}
-                data-testid="nav-assistant"
-              >
-                <MessageSquare className="w-4 h-4" />
-                Assistant
-              </Link>
               <Link
                 href={`/admin/${getActualSlug()}/network${authParam}`}
                 className="flex items-center gap-3 px-4 py-3 text-sm text-ink/80 hover:bg-ink/10 transition-colors border-b border-ink/10"
@@ -525,16 +503,7 @@ export default function ArtistAdmin() {
                 data-testid="nav-network"
               >
                 <Users className="w-4 h-4" />
-                Routing network
-              </Link>
-              <Link
-                href={`/admin/${getActualSlug()}/archive${authParam}`}
-                className="flex items-center gap-3 px-4 py-3 text-sm text-ink/80 hover:bg-ink/10 transition-colors border-b border-ink/10"
-                onClick={() => setMenuOpen(false)}
-                data-testid="nav-archive"
-              >
-                <FileText className="w-4 h-4" />
-                Clients & Contracts
+                Private network
               </Link>
               <Link
                 href={`/admin/${getActualSlug()}/rolodex${authParam}`}
@@ -543,16 +512,25 @@ export default function ArtistAdmin() {
                 data-testid="nav-rolodex"
               >
                 <Search className="w-4 h-4" />
-                Rolodex
+                People / records
+              </Link>
+              <Link
+                href={`/artist/schedules${authParam}`}
+                className="flex items-center gap-3 px-4 py-3 text-sm text-ink/80 hover:bg-ink/10 transition-colors border-b border-ink/10"
+                onClick={() => setMenuOpen(false)}
+                data-testid="nav-schedule-drafts"
+              >
+                <Clock className="w-4 h-4" />
+                Schedule drafts
               </Link>
               <Link 
-                href={`/${getActualSlug()}/settings${authParam}`}
+                href={settingsHref}
                 className="flex items-center gap-3 px-4 py-3 text-sm text-ink/80 hover:bg-ink/10 transition-colors border-b border-ink/10"
                 onClick={() => setMenuOpen(false)}
                 data-testid="nav-settings"
               >
                 <Settings className="w-4 h-4" />
-                Update Settings
+                Settings / Pricing Info
               </Link>
               <button
                 type="button"
@@ -579,142 +557,129 @@ export default function ArtistAdmin() {
       </header>
 
       <main className="max-w-4xl mx-auto px-8 md:px-16 py-12">
-        {/* Quick Actions */}
-        <div className="mb-10">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-ink/40 mb-4">Quick Actions</p>
-          <div className="grid grid-cols-3 gap-3">
+        <section className="mb-10" data-testid="operator-command-center">
+          <div className="mb-6">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-ink/40 mb-2">
+              Operator Command Center
+            </p>
+            <h2 className="text-2xl mb-2" style={{ fontFamily: "'Fraunces', serif" }}>
+              Needs attention
+            </h2>
+            <p className="text-sm text-ink/60 max-w-2xl">
+              Briarwood is a private coordination system made of bounded service states.
+              Review availability, pricing info, contact readiness, route options, operator
+              review, and schedule readiness before deciding what can happen next.
+            </p>
+            <p className="text-xs text-ink/45 mt-2">
+              External action stays operator-approved. Nothing here decides, sends, schedules,
+              contracts, or collects payment end-to-end.
+            </p>
+          </div>
+
+          <Link
+            href="/inquiry-workspace"
+            className="block border border-[#C4A35A]/50 bg-[#C4A35A]/10 p-5 mb-4 hover:border-[#C4A35A] transition-colors"
+            data-testid="command-center-inquiry-workspace"
+          >
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-[#C4A35A] mb-1">
+                  Inquiry Workspace
+                </p>
+                <h3 className="text-lg" style={{ fontFamily: "'Fraunces', serif" }}>
+                  Review live inquiries and decide what can happen next
+                </h3>
+                <p className="text-sm text-ink/60 mt-1">
+                  Open the private work surface for response readiness, operator review,
+                  route candidates, pricing info, and schedule handoff.
+                </p>
+              </div>
+              <div className="text-sm text-[#C4A35A]">
+                Open workspace
+              </div>
+            </div>
+          </Link>
+
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3" data-testid="command-center-groups">
+            <Link
+              href="/inquiry-workspace"
+              className="border border-ink/10 bg-surface p-4 hover:border-ink/30 transition-colors"
+              data-testid="command-center-needs-attention"
+            >
+              <p className="text-[10px] uppercase tracking-[0.18em] text-ink/40 mb-2">Needs attention</p>
+              <p className="text-sm text-ink">Review queue</p>
+              <p className="text-xs text-ink/50 mt-1">
+                {todayAttentionCount > 0 ? `${todayAttentionCount} item${todayAttentionCount === 1 ? "" : "s"} need review.` : "No urgent review items surfaced."}
+              </p>
+            </Link>
+            <Link
+              href="/inquiry-workspace"
+              className="border border-ink/10 bg-surface p-4 hover:border-ink/30 transition-colors"
+              data-testid="command-center-inquiries"
+            >
+              <p className="text-[10px] uppercase tracking-[0.18em] text-ink/40 mb-2">Inquiries</p>
+              <p className="text-sm text-ink">Response readiness</p>
+              <p className="text-xs text-ink/50 mt-1">Check availability, Pricing / Info Sheet, and operator review.</p>
+            </Link>
             <Link
               href={`/artist/schedules${authParam}`}
-              className="flex items-center justify-center gap-2 p-4 border border-ink/20 bg-surface hover:border-ink/40 transition-colors text-sm"
-              data-testid="action-create-schedule"
+              className="border border-ink/10 bg-surface p-4 hover:border-ink/30 transition-colors"
+              data-testid="command-center-schedule-drafts"
             >
-              <Clock className="w-4 h-4 text-ink/60" />
-              <span>Create Schedule</span>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-ink/40 mb-2">Schedule drafts</p>
+              <p className="text-sm text-ink">Private draft timelines</p>
+              <p className="text-xs text-ink/50 mt-1">Continue schedule readiness and draft review without publishing.</p>
             </Link>
-            <button
-              onClick={() => {
-                if (inquiries.length > 0) {
-                  setPendingAction('payment');
-                  inquiriesRef.current?.scrollIntoView({ behavior: 'smooth' });
-                } else {
-                  setShowStandaloneInvoice(true);
-                }
-              }}
-              className={`flex items-center justify-center gap-2 p-4 border bg-surface transition-colors text-sm ${pendingAction === 'payment' ? 'border-green-500/50 bg-green-900/20' : 'border-ink/20 hover:border-ink/40'}`}
-              data-testid="action-send-payment"
+            <Link
+              href={`/admin/${getActualSlug()}/network${authParam}`}
+              className="border border-ink/10 bg-surface p-4 hover:border-ink/30 transition-colors"
+              data-testid="command-center-private-network"
             >
-              <DollarSign className="w-4 h-4 text-ink/60" />
-              <span>Create Invoice</span>
-            </button>
-            <button
-              onClick={() => {
-                if (inquiries.length > 0) {
-                  setPendingAction('contract');
-                  inquiriesRef.current?.scrollIntoView({ behavior: 'smooth' });
-                } else {
-                  setShowStandaloneContract(true);
-                }
-              }}
-              className={`flex items-center justify-center gap-2 p-4 border bg-surface transition-colors text-sm ${pendingAction === 'contract' ? 'border-blue-500/50 bg-blue-900/20' : 'border-ink/20 hover:border-ink/40'}`}
-              data-testid="action-send-contract"
+              <p className="text-[10px] uppercase tracking-[0.18em] text-ink/40 mb-2">Private network</p>
+              <p className="text-sm text-ink">Contact readiness</p>
+              <p className="text-xs text-ink/50 mt-1">Review reachable route options and missing contact channels.</p>
+            </Link>
+            <Link
+              href={`/admin/${getActualSlug()}/rolodex${authParam}`}
+              className="border border-ink/10 bg-surface p-4 hover:border-ink/30 transition-colors"
+              data-testid="command-center-people-records"
             >
-              <FileText className="w-4 h-4 text-ink/60" />
-              <span>Create Contract</span>
-            </button>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-ink/40 mb-2">People / records</p>
+              <p className="text-sm text-ink">Private records search</p>
+              <p className="text-xs text-ink/50 mt-1">Find existing people, dates, venues, and internal records.</p>
+            </Link>
+            <Link
+              href={settingsHref}
+              className="border border-ink/10 bg-surface p-4 hover:border-ink/30 transition-colors"
+              data-testid="command-center-settings-pricing"
+            >
+              <p className="text-[10px] uppercase tracking-[0.18em] text-ink/40 mb-2">Settings / Pricing Info</p>
+              <p className="text-sm text-ink">Reusable info setup</p>
+              <p className="text-xs text-ink/50 mt-1">Keep services, pricing details, policies, and reusable info ready.</p>
+            </Link>
+            <Link
+              href={`/artist/availability${authParam}`}
+              className="border border-ink/10 bg-surface p-4 hover:border-ink/30 transition-colors"
+              data-testid="command-center-availability"
+            >
+              <p className="text-[10px] uppercase tracking-[0.18em] text-ink/40 mb-2">Availability</p>
+              <p className="text-sm text-ink">Calendar-as-truth</p>
+              <p className="text-xs text-ink/50 mt-1">Keep blocked dates and confirmed commitments current.</p>
+            </Link>
           </div>
-        </div>
-
-        {/* Response Settings - Quick Toggle */}
-        {useSessionAuth && (
-          <div className="mb-10">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-ink/40 mb-4">Response Mode</p>
-            <div className="grid grid-cols-3 gap-3">
-              <label 
-                className={`cursor-pointer p-4 border transition-colors ${
-                  (artist.autoResponderMode === 'smart' || artist.autoResponderMode === 'off' || !artist.autoResponderMode)
-                    ? 'bg-[#F5F0E8] border-ink text-[#1A1A1A]' 
-                    : 'bg-surface border-ink/20 hover:border-ink/40'
-                }`}
-                data-testid="mode-smart"
-                title="You review each inquiry and decide how to respond"
-              >
-                <input 
-                  type="radio" 
-                  name="autoResponderMode" 
-                  value="smart" 
-                  checked={artist.autoResponderMode === 'smart' || artist.autoResponderMode === 'off' || !artist.autoResponderMode} 
-                  onChange={() => updateAutoResponder.mutate('smart')} 
-                  className="sr-only" 
-                />
-                <p className={`font-medium text-sm ${(artist.autoResponderMode === 'smart' || artist.autoResponderMode === 'off' || !artist.autoResponderMode) ? 'text-[#1A1A1A]' : 'text-ink'}`}>Manual</p>
-                <p className={`text-xs mt-1 ${(artist.autoResponderMode === 'smart' || artist.autoResponderMode === 'off' || !artist.autoResponderMode) ? 'text-[#1A1A1A]/60' : 'text-ink/50'}`}>Review each inquiry</p>
-              </label>
-              <label 
-                className={`cursor-pointer p-4 border transition-colors ${
-                  artist.autoResponderMode === 'availability_smart'
-                    ? 'bg-[#F5F0E8] border-ink text-[#1A1A1A]' 
-                    : 'bg-surface border-ink/20 hover:border-ink/40'
-                }`}
-                data-testid="mode-availability-smart"
-                title="Checks your calendar first. If available, sends your pricing. If booked, sends referrals to your circle."
-              >
-                <input 
-                  type="radio" 
-                  name="autoResponderMode" 
-                  value="availability_smart" 
-                  checked={artist.autoResponderMode === 'availability_smart'} 
-                  onChange={() => updateAutoResponder.mutate('availability_smart')} 
-                  className="sr-only" 
-                />
-                <p className={`font-medium text-sm ${artist.autoResponderMode === 'availability_smart' ? 'text-[#1A1A1A]' : 'text-ink'}`}>Calendar Smart</p>
-                <p className={`text-xs mt-1 ${artist.autoResponderMode === 'availability_smart' ? 'text-[#1A1A1A]/60' : 'text-ink/50'}`}>Auto-send pricing or referrals</p>
-              </label>
-              <label 
-                className={`cursor-pointer p-4 border transition-colors ${
-                  (artist.autoResponderMode === 'paused' || artist.autoResponderMode === 'paused_with_referral')
-                    ? 'bg-[#F5F0E8] border-ink text-[#1A1A1A]' 
-                    : 'bg-surface border-ink/20 hover:border-ink/40'
-                }`}
-                data-testid="mode-vacation"
-                title="Sends your away message to all new inquiries"
-              >
-                <input 
-                  type="radio" 
-                  name="autoResponderMode" 
-                  value="paused" 
-                  checked={artist.autoResponderMode === 'paused' || artist.autoResponderMode === 'paused_with_referral'} 
-                  onChange={() => updateAutoResponder.mutate('paused')} 
-                  className="sr-only" 
-                />
-                <p className={`font-medium text-sm ${(artist.autoResponderMode === 'paused' || artist.autoResponderMode === 'paused_with_referral') ? 'text-[#1A1A1A]' : 'text-ink'}`}>Vacation</p>
-                <p className={`text-xs mt-1 ${(artist.autoResponderMode === 'paused' || artist.autoResponderMode === 'paused_with_referral') ? 'text-[#1A1A1A]/60' : 'text-ink/50'}`}>Away message</p>
-              </label>
-            </div>
-          </div>
-        )}
+        </section>
 
         <div className="space-y-4" ref={inquiriesRef}>
           {inquiries.length > 0 && (
             <div className="flex justify-between items-center mb-2">
-              <h3 className="text-sm text-ink/60">Your Clients</h3>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowQuickChat(true)}
-                  className="text-xs text-[#C4A35A] hover:text-[#C4A35A]/80 flex items-center gap-1"
-                  data-testid="button-quick-chat"
-                >
-                  <MessageSquare className="w-3 h-3" />
-                  Quick Chat
-                </button>
-                <button
-                  onClick={() => setShowAddClient(true)}
-                  className="text-xs text-[#C4A35A] hover:text-[#C4A35A]/80 flex items-center gap-1"
-                  data-testid="button-add-client"
-                >
-                  <Users className="w-3 h-3" />
-                  Add Client
-                </button>
-              </div>
+              <h3 className="text-sm text-ink/60">Recent inquiry intake</h3>
+              <Link
+                href="/inquiry-workspace"
+                className="text-xs text-[#C4A35A] hover:text-[#C4A35A]/80"
+                data-testid="link-open-inquiry-workspace-from-intake"
+              >
+                Open Inquiry Workspace
+              </Link>
             </div>
           )}
           {pendingAction && inquiries.length > 0 && (
@@ -729,15 +694,15 @@ export default function ArtistAdmin() {
           {inquiries.length === 0 ? (
             <div className="text-center py-16 border border-dashed border-ink/20 bg-surface">
               <p className="text-ink/50">No inquiries yet</p>
-              <p className="text-sm text-ink/30 mt-2">Share your form link or add a client manually</p>
-              <button
-                onClick={() => setShowAddClient(true)}
+              <p className="text-sm text-ink/30 mt-2">New inquiry intake will appear here for private review.</p>
+              <Link
+                href="/inquiry-workspace"
                 className="mt-4 px-4 py-2 bg-[#C4A35A] text-[#1A1A1A] rounded text-sm hover:bg-[#C4A35A]/90 inline-flex items-center gap-2"
-                data-testid="button-add-first-client"
+                data-testid="link-empty-inquiry-workspace"
               >
-                <Users className="w-4 h-4" />
-                Add Client
-              </button>
+                <Mail className="w-4 h-4" />
+                Open Inquiry Workspace
+              </Link>
             </div>
           ) : (
             (showAllClients ? inquiries : inquiries.slice(0, 3)).map((inquiry) => {
@@ -753,7 +718,7 @@ export default function ArtistAdmin() {
               return (
                 <a
                   key={inquiry.id}
-                  href={`/inquiry/${inquiry.threadToken}`}
+                  href="/inquiry-workspace"
                   onClick={handleInquiryClick}
                   className={`block p-6 border bg-surface transition-all ${pendingAction ? (pendingAction === 'payment' ? 'border-green-500/30 hover:border-green-500/60 hover:bg-green-900/10' : 'border-blue-500/30 hover:border-blue-500/60 hover:bg-blue-900/10') : 'border-ink/10 hover:border-ink/30'}`}
                   data-testid={`inquiry-row-${inquiry.id}`}
@@ -885,7 +850,7 @@ export default function ArtistAdmin() {
         )}
 
         <div className="mt-12 p-6 border border-dashed border-ink/20 text-center bg-surface">
-          <p className="text-[10px] tracking-[0.2em] uppercase text-ink/40 mb-2">Your Form Link</p>
+          <p className="text-[10px] tracking-[0.2em] uppercase text-ink/40 mb-2">Inquiry intake link</p>
           <div className="flex items-center justify-center gap-3">
             <p className="text-sm text-ink/70 font-mono">atbriarwood.com/{artist.artistSlug}</p>
             <button
@@ -903,6 +868,9 @@ export default function ArtistAdmin() {
           {copied && (
             <p className="text-xs text-green-400 mt-2">Link copied!</p>
           )}
+          <p className="text-xs text-ink/40 mt-3">
+            Use intentionally for inbound inquiries. Review live requests in Inquiry Workspace before outreach.
+          </p>
         </div>
       </main>
 
@@ -1386,26 +1354,26 @@ export default function ArtistAdmin() {
       {/* Quick Guide for new users */}
       <QuickGuide
         guideId="artist-dashboard"
-        title="Your Dashboard"
+        title="Operator Command Center"
         steps={[
           {
-            title: "Your Client List",
-            description: "All your inquiries appear here. Click any client to open their conversation thread.",
+            title: "Needs Attention",
+            description: "Start with the private review queue before any outreach.",
             icon: <MessageSquare className="h-5 w-5" />,
           },
           {
-            title: "Manage Your Calendar",
-            description: "Use the Calendar link to block off dates when you're unavailable or see your bookings at a glance.",
+            title: "Availability",
+            description: "Keep blocked dates and confirmed commitments current for inquiry readiness.",
             icon: <CalendarDays className="h-5 w-5" />,
           },
           {
-            title: "Share Your Link",
-            description: "Copy your inquiry link and add it to your Instagram bio or website. New clients will appear here automatically.",
+            title: "Inquiry Workspace",
+            description: "Review response readiness, operator review, route options, and schedule handoff in one place.",
             icon: <Send className="h-5 w-5" />,
           },
           {
-            title: "Build Your Circle",
-            description: "Invite other artists you trust. When you're booked, you can refer clients to them instead of turning them away.",
+            title: "Private Network",
+            description: "Maintain trusted route targets and contact readiness without making the network public.",
             icon: <Users className="h-5 w-5" />,
           },
         ]}
@@ -1440,12 +1408,6 @@ export default function ArtistAdmin() {
           </div>
         </div>
       )}
-      
-      {/* AI Secretary Chatbox */}
-      <SecretaryChatbox 
-        isOpen={secretaryChatOpen} 
-        onToggle={() => setSecretaryChatOpen(!secretaryChatOpen)} 
-      />
     </div>
   );
 }
