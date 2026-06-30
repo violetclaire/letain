@@ -33,6 +33,56 @@ interface Inquiry extends InquiryUI {
   conflictSource?: string;
 }
 
+interface ScheduleDraftSnapshot {
+  id: string;
+  status?: string | null;
+}
+
+interface RouteTargetSnapshot {
+  email?: string | null;
+  phone?: string | null;
+  active?: boolean | null;
+}
+
+interface ArtistProfileReadinessSnapshot {
+  infoSheetEnabled?: boolean | null;
+  infoSheetContent?: string | null;
+  infoSheetPdfUrl?: string | null;
+  pricingInfo?: string | null;
+  plannerInfoSheet?: string | null;
+  plannerPricing?: string | null;
+}
+
+interface ArtistServiceSnapshot {
+  id?: string;
+}
+
+function hasText(value: unknown): boolean {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function plural(count: number, singular: string, pluralLabel = `${singular}s`): string {
+  return `${count} ${count === 1 ? singular : pluralLabel}`;
+}
+
+function isReachableRouteTarget(target: RouteTargetSnapshot): boolean {
+  return target.active !== false && (hasText(target.email) || hasText(target.phone));
+}
+
+function hasReusableInfoMaterial(
+  profile: ArtistProfileReadinessSnapshot | null | undefined,
+  services: ArtistServiceSnapshot[],
+): boolean {
+  return Boolean(
+    services.length > 0 ||
+    hasText(profile?.pricingInfo) ||
+    hasText(profile?.infoSheetContent) ||
+    hasText(profile?.infoSheetPdfUrl) ||
+    hasText(profile?.plannerInfoSheet) ||
+    hasText(profile?.plannerPricing)
+  );
+}
+
 export default function ArtistAdmin() {
   const [, params] = useRoute("/admin/:slug");
   const [, setLocation] = useLocation();
@@ -277,6 +327,55 @@ export default function ArtistAdmin() {
     enabled: !!slug && (!!token || useSessionAuth),
   });
 
+  const scheduleDraftsQuery = useQuery<ScheduleDraftSnapshot[]>({
+    queryKey: ["/api/schedule-drafts", "command-center"],
+    queryFn: async () => {
+      const res = await fetch("/api/schedule-drafts", { credentials: "include" });
+      if (!res.ok) return [];
+      const payload = await res.json();
+      return Array.isArray(payload) ? payload : [];
+    },
+    enabled: useSessionAuth,
+    retry: false,
+  });
+
+  const routeTargetsQuery = useQuery<{ targets: RouteTargetSnapshot[] }>({
+    queryKey: ["/api/route-targets", "command-center"],
+    queryFn: async () => {
+      const res = await fetch("/api/route-targets", { credentials: "include" });
+      if (!res.ok) return { targets: [] };
+      const payload = await res.json();
+      return { targets: Array.isArray(payload?.targets) ? payload.targets : [] };
+    },
+    enabled: useSessionAuth,
+    retry: false,
+  });
+
+  const artistProfileReadinessQuery = useQuery<ArtistProfileReadinessSnapshot | null>({
+    queryKey: ["artistProfile", user?.id, "command-center"],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const res = await fetch(`/api/artist-profiles/${encodeURIComponent(user.id)}`, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json() as Promise<ArtistProfileReadinessSnapshot>;
+    },
+    enabled: useSessionAuth && Boolean(user?.id),
+    retry: false,
+  });
+
+  const artistServicesReadinessQuery = useQuery<ArtistServiceSnapshot[]>({
+    queryKey: ["artistServices", user?.id, "command-center"],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const res = await fetch(`/api/artist-services/${encodeURIComponent(user.id)}`, { credentials: "include" });
+      if (!res.ok) return [];
+      const payload = await res.json();
+      return Array.isArray(payload) ? payload : [];
+    },
+    enabled: useSessionAuth && Boolean(user?.id),
+    retry: false,
+  });
+
   // Show loading while checking auth
   if (authLoading || isLoading) {
     return (
@@ -451,8 +550,47 @@ export default function ArtistAdmin() {
   };
 
   const pendingCount = inquiries.filter(i => i.status.toLowerCase() === 'pending').length;
-  const todayAttentionCount = pendingCount + directChats.length;
+  const activeInquiryCount = inquiries.filter((i) => !["accepted", "declined", "referred", "deposit_paid"].includes(i.status.toLowerCase())).length;
+  const dateConflictCount = inquiries.filter((i) => i.hasDateConflict).length;
+  const todayAttentionCount = pendingCount + directChats.length + dateConflictCount;
+  const scheduleDrafts = scheduleDraftsQuery.data ?? [];
+  const routeTargets = routeTargetsQuery.data?.targets ?? [];
+  const reachableRouteTargets = routeTargets.filter(isReachableRouteTarget).length;
+  const missingContactRouteTargets = routeTargets.filter((target) => target.active !== false && !isReachableRouteTarget(target)).length;
+  const profileReadiness = artistProfileReadinessQuery.data ?? null;
+  const artistServices = artistServicesReadinessQuery.data ?? [];
+  const reusableInfoEnabled = profileReadiness?.infoSheetEnabled === true;
+  const pricingInfoReady = reusableInfoEnabled && hasReusableInfoMaterial(profileReadiness, artistServices);
   const settingsHref = useSessionAuth ? "/settings" : `/${getActualSlug()}/settings${authParam}`;
+
+  const needsAttentionSnapshot = todayAttentionCount > 0
+    ? `${plural(todayAttentionCount, "bounded review signal")} surfaced: ${plural(pendingCount, "pending inquiry", "pending inquiries")}, ${plural(directChats.length, "direct chat")}, ${plural(dateConflictCount, "date conflict")}.`
+    : "No urgent review signals surfaced.";
+  const inquiriesSnapshot = `${plural(activeInquiryCount, "active inquiry", "active inquiries")} in the review queue; ${plural(pendingCount, "pending inquiry", "pending inquiries")}.`;
+  const scheduleDraftsSnapshot = !useSessionAuth
+    ? "Open schedules to review private drafts."
+    : scheduleDraftsQuery.isLoading
+      ? "Checking private draft count."
+      : `${plural(scheduleDrafts.length, "private draft")} available for schedule readiness.`;
+  const privateNetworkSnapshot = !useSessionAuth
+    ? "Open Private network to review contact readiness."
+    : routeTargetsQuery.isLoading
+      ? "Checking route target contact readiness."
+      : routeTargets.length === 0
+        ? "No route targets saved yet; review Private network."
+        : reachableRouteTargets > 0
+          ? `${plural(reachableRouteTargets, "reachable route option")}; ${plural(missingContactRouteTargets, "target")} missing phone or email.`
+          : `${plural(missingContactRouteTargets, "route target")} need phone or email before outreach.`;
+  const settingsSnapshot = !useSessionAuth
+    ? "Open Settings / Pricing Info to review reusable setup."
+    : artistProfileReadinessQuery.isLoading || artistServicesReadinessQuery.isLoading
+      ? "Checking reusable Pricing / Info Sheet setup."
+      : pricingInfoReady
+        ? "Pricing / Info Sheet ready from enabled reusable info."
+        : "Review setup: add reusable info and enable it before relying on readiness.";
+  const availabilitySnapshot = dateConflictCount > 0
+    ? `${plural(dateConflictCount, "inquiry date conflict")} surfaced from calendar checks.`
+    : "No inquiry date conflicts surfaced; open Availability to review setup.";
 
   return (
     <div className="min-h-screen bg-bg text-ink" style={{ fontFamily: "'Inter', sans-serif" }}>
@@ -609,7 +747,7 @@ export default function ArtistAdmin() {
               <p className="text-[10px] uppercase tracking-[0.18em] text-ink/40 mb-2">Needs attention</p>
               <p className="text-sm text-ink">Review queue</p>
               <p className="text-xs text-ink/50 mt-1">
-                {todayAttentionCount > 0 ? `${todayAttentionCount} item${todayAttentionCount === 1 ? "" : "s"} need review.` : "No urgent review items surfaced."}
+                {needsAttentionSnapshot}
               </p>
             </Link>
             <Link
@@ -619,7 +757,8 @@ export default function ArtistAdmin() {
             >
               <p className="text-[10px] uppercase tracking-[0.18em] text-ink/40 mb-2">Inquiries</p>
               <p className="text-sm text-ink">Response readiness</p>
-              <p className="text-xs text-ink/50 mt-1">Check availability, Pricing / Info Sheet, and operator review.</p>
+              <p className="text-xs text-ink/50 mt-1">{inquiriesSnapshot}</p>
+              <p className="text-xs text-ink/40 mt-1">Check availability, Pricing / Info Sheet, and operator review.</p>
             </Link>
             <Link
               href={`/artist/schedules${authParam}`}
@@ -628,7 +767,8 @@ export default function ArtistAdmin() {
             >
               <p className="text-[10px] uppercase tracking-[0.18em] text-ink/40 mb-2">Schedule drafts</p>
               <p className="text-sm text-ink">Private draft timelines</p>
-              <p className="text-xs text-ink/50 mt-1">Continue schedule readiness and draft review without publishing.</p>
+              <p className="text-xs text-ink/50 mt-1">{scheduleDraftsSnapshot}</p>
+              <p className="text-xs text-ink/40 mt-1">Continue schedule readiness and draft review without publishing.</p>
             </Link>
             <Link
               href={`/admin/${getActualSlug()}/network${authParam}`}
@@ -637,7 +777,8 @@ export default function ArtistAdmin() {
             >
               <p className="text-[10px] uppercase tracking-[0.18em] text-ink/40 mb-2">Private network</p>
               <p className="text-sm text-ink">Contact readiness</p>
-              <p className="text-xs text-ink/50 mt-1">Review reachable route options and missing contact channels.</p>
+              <p className="text-xs text-ink/50 mt-1">{privateNetworkSnapshot}</p>
+              <p className="text-xs text-ink/40 mt-1">Review reachable route options and missing contact channels.</p>
             </Link>
             <Link
               href={`/admin/${getActualSlug()}/rolodex${authParam}`}
@@ -646,7 +787,8 @@ export default function ArtistAdmin() {
             >
               <p className="text-[10px] uppercase tracking-[0.18em] text-ink/40 mb-2">People / records</p>
               <p className="text-sm text-ink">Private records search</p>
-              <p className="text-xs text-ink/50 mt-1">Find existing people, dates, venues, and internal records.</p>
+              <p className="text-xs text-ink/50 mt-1">Open records when you need context.</p>
+              <p className="text-xs text-ink/40 mt-1">Find existing people, dates, venues, and internal records.</p>
             </Link>
             <Link
               href={settingsHref}
@@ -655,7 +797,8 @@ export default function ArtistAdmin() {
             >
               <p className="text-[10px] uppercase tracking-[0.18em] text-ink/40 mb-2">Settings / Pricing Info</p>
               <p className="text-sm text-ink">Reusable info setup</p>
-              <p className="text-xs text-ink/50 mt-1">Keep services, pricing details, policies, and reusable info ready.</p>
+              <p className="text-xs text-ink/50 mt-1">{settingsSnapshot}</p>
+              <p className="text-xs text-ink/40 mt-1">Keep services, pricing details, policies, and reusable info ready.</p>
             </Link>
             <Link
               href={`/artist/availability${authParam}`}
@@ -664,7 +807,8 @@ export default function ArtistAdmin() {
             >
               <p className="text-[10px] uppercase tracking-[0.18em] text-ink/40 mb-2">Availability</p>
               <p className="text-sm text-ink">Calendar-as-truth</p>
-              <p className="text-xs text-ink/50 mt-1">Keep blocked dates and confirmed commitments current.</p>
+              <p className="text-xs text-ink/50 mt-1">{availabilitySnapshot}</p>
+              <p className="text-xs text-ink/40 mt-1">Keep blocked dates and confirmed commitments current.</p>
             </Link>
           </div>
         </section>
