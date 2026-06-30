@@ -1850,8 +1850,8 @@ export default function ScheduleDraftBuilder() {
         <div className="max-w-md text-center" data-testid="text-not-available">
           <h1 className="font-serif text-2xl tracking-tight mb-3">Schedule not available</h1>
           <p className="text-ink/70 mb-6">This schedule does not exist or is not one of yours.</p>
-          <Link href={`/admin/${slug}/rolodex${authParam}`} className="underline text-ink" data-testid="link-back-rolodex">
-            Back to network
+          <Link href={`/admin/${slug}${authParam}`} className="underline text-ink" data-testid="link-back-workspace">
+            Back to workspace
           </Link>
         </div>
       </div>
@@ -1906,19 +1906,19 @@ export default function ScheduleDraftBuilder() {
 
   return (
     <div className="min-h-screen bg-bg text-ink">
-      <div className="max-w-[1100px] mx-auto px-6 sm:px-10 py-10">
+      <div className="max-w-[1100px] mx-auto px-4 sm:px-10 py-8 sm:py-10">
         <Link
-          href={`/admin/${slug}/rolodex${authParam}`}
+          href={`/admin/${slug}${authParam}`}
           onClick={confirmLeaveIfDirty}
           className="inline-flex items-center gap-2 text-sm text-ink/70 hover:text-ink mb-6"
-          data-testid="link-back-rolodex"
+          data-testid="link-back-workspace"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to network
+          Back to workspace
         </Link>
 
-        <header className="mb-8 flex items-start justify-between gap-4">
-          <div>
+        <header className="mb-8 flex flex-col items-stretch gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
             <h1 className="font-serif text-3xl tracking-tight mb-2" data-testid="text-page-title">
               Schedule coordination draft
             </h1>
@@ -1927,11 +1927,11 @@ export default function ScheduleDraftBuilder() {
               sent and there is no client link. Add blocks, adjust timing, and save when ready.
             </p>
           </div>
-          <div className="flex flex-col items-end gap-2 shrink-0">
-            <div className="flex items-center gap-2">
+          <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:items-end sm:shrink-0">
+            <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
               <button
                 onClick={() => setShowPreview(true)}
-                className="inline-flex items-center gap-2 border border-hairline px-4 py-2 hover:bg-surface"
+                className="inline-flex flex-1 items-center justify-center gap-2 border border-hairline px-4 py-2 hover:bg-surface sm:flex-none"
                 data-testid="button-preview"
               >
                 <Eye className="w-4 h-4" />
@@ -1940,7 +1940,7 @@ export default function ScheduleDraftBuilder() {
               <button
                 onClick={() => saveMutation.mutate()}
                 disabled={saveMutation.isPending}
-                className="inline-flex items-center gap-2 bg-ink text-bg px-4 py-2 disabled:opacity-60"
+                className="inline-flex flex-1 items-center justify-center gap-2 bg-ink text-bg px-4 py-2 disabled:opacity-60 sm:flex-none"
                 data-testid="button-save"
               >
                 {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
@@ -1948,11 +1948,11 @@ export default function ScheduleDraftBuilder() {
               </button>
             </div>
             {isDirty ? (
-              <span className="text-xs text-oxblood" data-testid="status-unsaved">
+              <span className="text-xs text-oxblood sm:text-right" data-testid="status-unsaved">
                 Unsaved changes
               </span>
             ) : (
-              <span className="text-xs text-ink/45" data-testid="status-saved">
+              <span className="text-xs text-ink/45 sm:text-right" data-testid="status-saved">
                 All changes saved
               </span>
             )}
@@ -2373,11 +2373,11 @@ export default function ScheduleDraftBuilder() {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5 items-start">
+              <div className="grid min-w-0 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5 items-start">
                 {laneList.map((lane) => (
                   <div
                     key={lane.key}
-                    className="border border-hairline bg-surface rounded-sm flex flex-col"
+                    className="min-w-0 border border-hairline bg-surface rounded-sm flex flex-col"
                     data-testid={`lane-${lane.key}`}
                   >
                     <div className="px-4 py-3 border-b border-hairline">
@@ -2401,7 +2401,7 @@ export default function ScheduleDraftBuilder() {
                         return (
                           <div
                             key={row.id}
-                            className={`rounded-sm p-3 bg-bg border ${isBride ? "border-brass" : "border-hairline"}`}
+                            className={`min-w-0 rounded-sm p-3 bg-bg border ${isBride ? "border-brass" : "border-hairline"}`}
                             data-testid={`block-${row.id}`}
                           >
                             {isBride && (
@@ -2429,7 +2429,7 @@ export default function ScheduleDraftBuilder() {
                                 </select>
                               </div>
                             )}
-                            <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+                            <div className="grid min-w-0 grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
                               {laneFields.map((col) => {
                                 const wide =
                                   col.id === "name" || col.id === "service" || col.id === "notes";
@@ -2453,19 +2453,19 @@ export default function ScheduleDraftBuilder() {
                                 );
                               })}
                             </div>
-                            <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-hairline/60">
-                              <label className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-ink/45">
+                            <div className="flex flex-col gap-2 mt-3 pt-2 border-t border-hairline/60 sm:flex-row sm:items-center sm:justify-between">
+                              <label className="flex min-w-0 flex-col gap-1 text-[10px] uppercase tracking-wide text-ink/45 sm:flex-row sm:items-center sm:gap-1.5">
                                 Lane
                                 <input
                                   value={row.cells[providerColId] ?? ""}
                                   onChange={(e) => setCell(row.id, providerColId, e.target.value)}
                                   list="provider-options"
                                   placeholder="Unassigned"
-                                  className="bg-transparent border border-hairline rounded-sm px-2 py-1 text-xs normal-case tracking-normal text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70"
+                                  className="w-full min-w-0 bg-transparent border border-hairline rounded-sm px-2 py-1 text-xs normal-case tracking-normal text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70 sm:w-40"
                                   data-testid={`input-cell-${row.id}-${providerColId}`}
                                 />
                               </label>
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-3 sm:gap-1">
                                 <button
                                   onClick={() => duplicateRow(row.id)}
                                   className="text-ink/50 hover:text-ink"
@@ -2534,27 +2534,27 @@ export default function ScheduleDraftBuilder() {
                   <div className="px-4 py-4 text-ink/40 text-sm">No services yet.</div>
                 )}
                 {serviceDefaults.map((s) => (
-                  <div key={s.id} className="px-4 py-3 flex items-center gap-3" data-testid={`row-service-${s.id}`}>
+                  <div key={s.id} className="px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center" data-testid={`row-service-${s.id}`}>
                     <input
                       value={s.label}
                       onChange={(e) => updateServiceDefault(s.id, { label: e.target.value })}
-                      className="flex-1 bg-bg border border-hairline px-2 py-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70"
+                      className="w-full min-w-0 flex-1 bg-bg border border-hairline px-2 py-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70"
                       data-testid={`input-service-label-${s.id}`}
                     />
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-2 sm:gap-1">
                       <input
                         type="number"
                         min={0}
                         value={s.durationMinutes}
                         onChange={(e) => updateServiceDefault(s.id, { durationMinutes: parseInt(e.target.value || "0", 10) })}
-                        className="w-20 bg-bg border border-hairline px-2 py-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70"
+                        className="w-24 bg-bg border border-hairline px-2 py-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70 sm:w-20"
                         data-testid={`input-service-minutes-${s.id}`}
                       />
                       <span className="text-ink/50 text-sm">min</span>
                     </div>
                     <button
                       onClick={() => deleteServiceDefault(s.id)}
-                      className="text-ink/40 hover:text-oxblood"
+                      className="w-fit text-ink/40 hover:text-oxblood"
                       data-testid={`button-delete-service-${s.id}`}
                     >
                       <Trash2 className="w-4 h-4" />

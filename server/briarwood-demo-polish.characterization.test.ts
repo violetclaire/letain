@@ -7,7 +7,7 @@ const artistLogin = readFileSync("client/src/pages/ArtistLogin.tsx", "utf8");
 
 test("local demo schedule copy frames the draft as coordination infrastructure", () => {
   for (const expectedCopy of [
-    "Back to network",
+    "Back to workspace",
     "Schedule coordination draft",
     "coordination lanes",
     "service roles",
@@ -18,6 +18,7 @@ test("local demo schedule copy frames the draft as coordination infrastructure",
   }
 
   for (const legacyCopy of [
+    "Back to network",
     "Back to Rolodex",
     "Plan the day as editable provider lanes",
     "Providers / artists",
