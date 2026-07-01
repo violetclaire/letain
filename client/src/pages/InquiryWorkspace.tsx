@@ -1629,34 +1629,34 @@ export default function InquiryWorkspace() {
         )}
 
         {!inquiriesQuery.isLoading && !inquiriesQuery.isError && inquiries.length > 0 && (
-          <div className="grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)]" data-testid="workspace-populated">
-            <section className="border border-hairline bg-surface h-fit">
-              <div className="px-4 py-3 border-b border-hairline flex items-center justify-between gap-3">
+          <div className="grid min-w-0 gap-5 lg:grid-cols-[360px_minmax(0,1fr)]" data-testid="workspace-populated">
+            <section className="min-w-0 w-full max-w-full overflow-hidden border border-hairline bg-surface h-fit">
+              <div className="px-4 py-3 border-b border-hairline flex flex-wrap items-center justify-between gap-3">
                 <h2 className="font-serif text-lg tracking-tight">Inquiries</h2>
                 <span className="text-xs text-ink/50">
                   {filteredInquiries.length} / {inquiries.length}
                 </span>
               </div>
               <div className="px-4 py-3 border-b border-hairline space-y-3">
-                <label className="relative block">
+                <label className="relative block min-w-0">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink/35" />
                   <input
                     type="search"
                     value={searchTerm}
                     onChange={(event) => setSearchTerm(event.target.value)}
                     placeholder="Search inquiries"
-                    className="w-full border border-hairline bg-bg pl-9 pr-3 py-2 text-sm text-ink placeholder:text-ink/35 focus:outline-none focus:border-ink/40"
+                    className="w-full max-w-full border border-hairline bg-bg pl-9 pr-3 py-2 text-sm text-ink placeholder:text-ink/35 focus:outline-none focus:border-ink/40"
                     data-testid="input-inquiry-search"
                   />
                 </label>
-                <div className="grid gap-2 sm:grid-cols-2">
+                <div className="grid min-w-0 gap-2 sm:grid-cols-2">
                   {statusOptions.length > 0 && (
-                    <label>
+                    <label className="min-w-0">
                       <span className="block text-[11px] uppercase tracking-wide text-ink/45 mb-1">Status</span>
                       <select
                         value={statusFilter}
                         onChange={(event) => setStatusFilter(event.target.value)}
-                        className="w-full border border-hairline bg-bg px-2 py-2 text-sm text-ink focus:outline-none focus:border-ink/40"
+                        className="w-full max-w-full border border-hairline bg-bg px-2 py-2 text-sm text-ink focus:outline-none focus:border-ink/40"
                         data-testid="select-status-filter"
                       >
                         <option value="all">All statuses</option>
@@ -1667,12 +1667,12 @@ export default function InquiryWorkspace() {
                     </label>
                   )}
                   {sourceOptions.length > 0 && (
-                    <label>
+                    <label className="min-w-0">
                       <span className="block text-[11px] uppercase tracking-wide text-ink/45 mb-1">Source</span>
                       <select
                         value={sourceFilter}
                         onChange={(event) => setSourceFilter(event.target.value)}
-                        className="w-full border border-hairline bg-bg px-2 py-2 text-sm text-ink focus:outline-none focus:border-ink/40"
+                        className="w-full max-w-full border border-hairline bg-bg px-2 py-2 text-sm text-ink focus:outline-none focus:border-ink/40"
                         data-testid="select-source-filter"
                       >
                         <option value="all">All sources</option>
@@ -1682,12 +1682,12 @@ export default function InquiryWorkspace() {
                       </select>
                     </label>
                   )}
-                  <label className={statusOptions.length > 0 && sourceOptions.length > 0 ? "sm:col-span-2" : undefined}>
+                  <label className={statusOptions.length > 0 && sourceOptions.length > 0 ? "min-w-0 sm:col-span-2" : "min-w-0"}>
                     <span className="block text-[11px] uppercase tracking-wide text-ink/45 mb-1">Sort</span>
                     <select
                       value={sortMode}
                       onChange={(event) => setSortMode(event.target.value as SortMode)}
-                      className="w-full border border-hairline bg-bg px-2 py-2 text-sm text-ink focus:outline-none focus:border-ink/40"
+                      className="w-full max-w-full border border-hairline bg-bg px-2 py-2 text-sm text-ink focus:outline-none focus:border-ink/40"
                       data-testid="select-inquiry-sort"
                     >
                       <option value="newest">Newest created</option>
@@ -1698,7 +1698,7 @@ export default function InquiryWorkspace() {
                   </label>
                 </div>
               </div>
-              <div className="divide-y divide-hairline max-h-[70vh] overflow-auto">
+              <div className="min-w-0 divide-y divide-hairline max-h-[70vh] overflow-auto">
                 {filteredInquiries.length === 0 && (
                   <div className="px-4 py-8 text-center" data-testid="text-filter-empty-state">
                     <Inbox className="w-7 h-7 mx-auto mb-3 text-ink/35" />
@@ -1744,7 +1744,7 @@ export default function InquiryWorkspace() {
             </section>
 
             {selectedInquiry && (
-              <section className="space-y-5" data-testid="inquiry-detail-shell">
+              <section className="min-w-0 space-y-5" data-testid="inquiry-detail-shell">
                 <div className="border border-hairline bg-surface">
                   <div className="px-5 py-4 border-b border-hairline flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
