@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRoute, useSearch, Link, useLocation } from "wouter";
+import { useRoute, useSearch, Link } from "wouter";
 import { format } from "date-fns";
-import { Loader2, Settings, Calendar, Users, Copy, Check, Mail, CheckCircle, LogOut, FileText, DollarSign, Clock, ChevronDown, ChevronUp, Menu, X, HelpCircle, Trash2, AlertTriangle, MessageSquare, Send, CalendarDays, Moon, Sun, Search } from "lucide-react";
+import { Loader2, Settings, Calendar, Users, Copy, Check, Mail, CheckCircle, LogOut, Clock, ChevronDown, ChevronUp, Menu, X, HelpCircle, Trash2, AlertTriangle, MessageSquare, Send, CalendarDays, Moon, Sun, Search } from "lucide-react";
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -85,50 +85,20 @@ function hasReusableInfoMaterial(
 
 export default function ArtistAdmin() {
   const [, params] = useRoute("/admin/:slug");
-  const [, setLocation] = useLocation();
   const searchString = useSearch();
   const slug = params?.slug;
   const [copied, setCopied] = useState(false);
   const [email, setEmail] = useState("");
   const [emailSent, setEmailSent] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
-  const [pendingAction, setPendingAction] = useState<'payment' | 'contract' | null>(null);
   const inquiriesRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
-  // Standalone creation modals
-  const [showStandaloneInvoice, setShowStandaloneInvoice] = useState(false);
-  const [showStandaloneContract, setShowStandaloneContract] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [standaloneClientName, setStandaloneClientName] = useState("");
-  const [standaloneClientEmail, setStandaloneClientEmail] = useState("");
-  const [standaloneAmount, setStandaloneAmount] = useState("");
-  const [standaloneDescription, setStandaloneDescription] = useState("");
-  const [creatingStandalone, setCreatingStandalone] = useState(false);
   const [deletingInquiryToken, setDeletingInquiryToken] = useState<string | null>(null);
-  const [showAddClient, setShowAddClient] = useState(false);
-  const [newClientData, setNewClientData] = useState({
-    clientName: "",
-    clientEmail: "",
-    clientPhone: "",
-    eventDate: "",
-    notes: "",
-  });
-  const [creatingClient, setCreatingClient] = useState(false);
   
   // Client list collapse state (show only 3 on mobile initially)
   const [showAllClients, setShowAllClients] = useState(false);
-  
-  // Quick Chat state
-  const [showQuickChat, setShowQuickChat] = useState(false);
-  const [quickChatData, setQuickChatData] = useState({
-    participantName: "",
-    participantEmail: "",
-    participantRole: "planner" as "planner" | "client" | "vendor" | "contact",
-    initialMessage: "",
-  });
-  const [creatingQuickChat, setCreatingQuickChat] = useState(false);
-  const [quickChatLink, setQuickChatLink] = useState<string | null>(null);
   const queryClient = useQueryClient();
   
   // Delete inquiry mutation
@@ -153,35 +123,6 @@ export default function ArtistAdmin() {
     },
   });
 
-  const createClient = useMutation({
-    mutationFn: async (data: typeof newClientData) => {
-      const res = await fetch("/api/artist/create-client", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create client");
-      }
-      return res.json();
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/artists", slug] });
-      toast({ title: "Client added" });
-      setShowAddClient(false);
-      setNewClientData({ clientName: "", clientEmail: "", clientPhone: "", eventDate: "", notes: "" });
-      // Navigate to the new thread
-      if (data.threadToken) {
-        window.location.href = `/inquiry/${data.threadToken}`;
-      }
-    },
-    onError: (error: Error) => {
-      toast({ title: "Failed to add client", description: error.message, variant: "destructive" });
-    },
-  });
-  
   // Get auth state for session-based login
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   
@@ -263,28 +204,6 @@ export default function ArtistAdmin() {
       return res.json();
     },
     enabled: !!slug && (!!token || useSessionAuth),
-  });
-
-  // Delete chat mutation
-  const deleteChatMutation = useMutation({
-    mutationFn: async (chatId: string) => {
-      const endpoint = token 
-        ? `/api/artist/direct-chat/${chatId}?token=${encodeURIComponent(token)}`
-        : `/api/artist/direct-chat/${chatId}`;
-      const res = await fetch(endpoint, { 
-        method: 'DELETE',
-        credentials: 'include' 
-      });
-      if (!res.ok) throw new Error("Failed to delete chat");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/direct-chats', token] });
-      toast({ title: "Chat deleted" });
-    },
-    onError: () => {
-      toast({ title: "Failed to delete chat", variant: "destructive" });
-    }
   });
 
   // Fetch data using token OR session auth
@@ -826,15 +745,6 @@ export default function ArtistAdmin() {
               </Link>
             </div>
           )}
-          {pendingAction && inquiries.length > 0 && (
-            <div className={`p-4 border text-center text-sm ${pendingAction === 'payment' ? 'border-green-500/30 bg-green-900/10 text-green-300' : 'border-blue-500/30 bg-blue-900/10 text-blue-300'}`}>
-              <span className="flex items-center justify-center gap-2">
-                <ChevronDown className="w-4 h-4 animate-bounce" />
-                Select a client to {pendingAction === 'payment' ? 'send payment' : 'send contract'}
-                <button onClick={() => setPendingAction(null)} className="ml-2 text-xs underline opacity-70 hover:opacity-100">Cancel</button>
-              </span>
-            </div>
-          )}
           {inquiries.length === 0 ? (
             <div className="text-center py-16 border border-dashed border-ink/20 bg-surface">
               <p className="text-ink/50">No inquiries yet</p>
@@ -851,20 +761,11 @@ export default function ArtistAdmin() {
           ) : (
             (showAllClients ? inquiries : inquiries.slice(0, 3)).map((inquiry) => {
               const velocity = getVelocity(inquiry);
-              const handleInquiryClick = (e: React.MouseEvent) => {
-                if (pendingAction) {
-                  e.preventDefault();
-                  const tab = pendingAction === 'payment' ? 'payment' : 'contract';
-                  window.location.href = `/inquiry/${inquiry.threadToken}?tab=${tab}`;
-                  setPendingAction(null);
-                }
-              };
               return (
                 <a
                   key={inquiry.id}
                   href="/inquiry-workspace"
-                  onClick={handleInquiryClick}
-                  className={`block p-6 border bg-surface transition-all ${pendingAction ? (pendingAction === 'payment' ? 'border-green-500/30 hover:border-green-500/60 hover:bg-green-900/10' : 'border-blue-500/30 hover:border-blue-500/60 hover:bg-blue-900/10') : 'border-ink/10 hover:border-ink/30'}`}
+                  className="block p-6 border bg-surface transition-all border-ink/10 hover:border-ink/30"
                   data-testid={`inquiry-row-${inquiry.id}`}
                 >
                   {inquiry.hasDateConflict && (
@@ -944,55 +845,6 @@ export default function ArtistAdmin() {
           )}
         </div>
 
-        {/* Quick Chats Section */}
-        {directChats.length > 0 && (
-          <div className="space-y-4 mt-8">
-            <h3 className="text-sm text-ink/60">Quick Chats</h3>
-            {directChats.map((chat) => {
-              const chatLink = token 
-                ? `/quick-chat/${chat.threadToken}?token=${encodeURIComponent(token)}`
-                : `/quick-chat/${chat.threadToken}`;
-              return (
-                <div
-                  key={chat.id}
-                  className="relative p-4 border border-ink/10 bg-surface hover:border-ink/30 transition-colors"
-                  data-testid={`quick-chat-${chat.id}`}
-                >
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (confirm("Delete this chat?")) {
-                        deleteChatMutation.mutate(chat.id);
-                      }
-                    }}
-                    className="absolute top-2 right-2 p-1 text-ink/30 hover:text-red-600 transition-colors"
-                    data-testid={`delete-chat-${chat.id}`}
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                  <Link href={chatLink} className="block">
-                    <div className="flex justify-between items-start pr-6">
-                      <div>
-                        <p className="text-sm font-medium">{chat.participantName}</p>
-                        <p className="text-xs text-ink/50">{chat.participantEmail}</p>
-                        <p className="text-xs text-ink/40 mt-1 capitalize">{chat.participantRole}</p>
-                      </div>
-                      <div className="text-right">
-                        {chat.lastMessageAt && (
-                          <p className="text-xs text-ink/40">
-                            {new Date(chat.lastMessageAt).toLocaleDateString()}
-                          </p>
-                        )}
-                        <p className="text-xs text-[#C4A35A] mt-1">View Chat</p>
-                      </div>
-                    </div>
-                  </Link>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
         <div className="mt-12 p-6 border border-dashed border-ink/20 text-center bg-surface">
           <p className="text-[10px] tracking-[0.2em] uppercase text-ink/40 mb-2">Inquiry intake link</p>
           <div className="flex items-center justify-center gap-3">
@@ -1017,483 +869,6 @@ export default function ArtistAdmin() {
           </p>
         </div>
       </main>
-
-      {/* Standalone Invoice Modal */}
-      {showStandaloneInvoice && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-bg border border-ink/20 rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg mb-4" style={{ fontFamily: "'Fraunces', serif" }}>Create Invoice</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs text-ink/60 mb-1">Client Name</label>
-                <input
-                  type="text"
-                  value={standaloneClientName}
-                  onChange={(e) => setStandaloneClientName(e.target.value)}
-                  placeholder="Jane Smith"
-                  className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
-                  data-testid="input-standalone-client-name"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-ink/60 mb-1">Client Email</label>
-                <input
-                  type="email"
-                  value={standaloneClientEmail}
-                  onChange={(e) => setStandaloneClientEmail(e.target.value)}
-                  placeholder="jane@example.com"
-                  className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
-                  data-testid="input-standalone-client-email"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-ink/60 mb-1">Amount ($)</label>
-                <input
-                  type="number"
-                  value={standaloneAmount}
-                  onChange={(e) => setStandaloneAmount(e.target.value)}
-                  placeholder="500"
-                  className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
-                  data-testid="input-standalone-amount"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-ink/60 mb-1">Description</label>
-                <input
-                  type="text"
-                  value={standaloneDescription}
-                  onChange={(e) => setStandaloneDescription(e.target.value)}
-                  placeholder="Bridal makeup deposit"
-                  className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
-                  data-testid="input-standalone-description"
-                />
-              </div>
-            </div>
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => {
-                  setShowStandaloneInvoice(false);
-                  setStandaloneClientName("");
-                  setStandaloneClientEmail("");
-                  setStandaloneAmount("");
-                  setStandaloneDescription("");
-                }}
-                className="flex-1 px-4 py-2 border border-ink/20 rounded text-sm hover:bg-ink/5"
-                data-testid="button-cancel-standalone-invoice"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  if (!standaloneClientName || !standaloneClientEmail || !standaloneAmount) {
-                    toast({ title: "Missing info", description: "Please fill in client name, email, and amount", variant: "destructive" });
-                    return;
-                  }
-                  setCreatingStandalone(true);
-                  try {
-                    const endpoint = token 
-                      ? `/api/public/standalone-invoice?token=${encodeURIComponent(token)}`
-                      : `/api/artist/standalone-invoice`;
-                    const res = await fetch(endpoint, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      credentials: 'include',
-                      body: JSON.stringify({
-                        clientName: standaloneClientName,
-                        clientEmail: standaloneClientEmail,
-                        amount: standaloneAmount,
-                        description: standaloneDescription,
-                      }),
-                    });
-                    const data = await res.json();
-                    if (!res.ok) throw new Error(data.error || "Failed to create invoice");
-                    toast({ title: "Invoice created", description: data.paymentLink ? "Payment link is ready" : "Invoice created successfully" });
-                    if (data.paymentLink) {
-                      navigator.clipboard.writeText(data.paymentLink);
-                      toast({ title: "Link copied", description: "Payment link copied to clipboard" });
-                    }
-                    setShowStandaloneInvoice(false);
-                    setStandaloneClientName("");
-                    setStandaloneClientEmail("");
-                    setStandaloneAmount("");
-                    setStandaloneDescription("");
-                  } catch (err: any) {
-                    toast({ title: "Error", description: err.message, variant: "destructive" });
-                  } finally {
-                    setCreatingStandalone(false);
-                  }
-                }}
-                disabled={creatingStandalone || !standaloneClientName || !standaloneClientEmail || !standaloneAmount}
-                className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 rounded text-sm disabled:opacity-50 flex items-center justify-center gap-2"
-                data-testid="button-create-standalone-invoice"
-              >
-                {creatingStandalone ? <Loader2 className="w-4 h-4 animate-spin" /> : <DollarSign className="w-4 h-4" />}
-                Create Invoice
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Standalone Contract Modal */}
-      {showStandaloneContract && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-bg border border-ink/20 rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg mb-4" style={{ fontFamily: "'Fraunces', serif" }}>Create Contract</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs text-ink/60 mb-1">Client Name</label>
-                <input
-                  type="text"
-                  value={standaloneClientName}
-                  onChange={(e) => setStandaloneClientName(e.target.value)}
-                  placeholder="Jane Smith"
-                  className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
-                  data-testid="input-standalone-contract-client-name"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-ink/60 mb-1">Client Email</label>
-                <input
-                  type="email"
-                  value={standaloneClientEmail}
-                  onChange={(e) => setStandaloneClientEmail(e.target.value)}
-                  placeholder="jane@example.com"
-                  className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
-                  data-testid="input-standalone-contract-client-email"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-ink/60 mb-1">Total Amount ($)</label>
-                <input
-                  type="number"
-                  value={standaloneAmount}
-                  onChange={(e) => setStandaloneAmount(e.target.value)}
-                  placeholder="1500"
-                  className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
-                  data-testid="input-standalone-contract-amount"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-ink/60 mb-1">Service Description</label>
-                <input
-                  type="text"
-                  value={standaloneDescription}
-                  onChange={(e) => setStandaloneDescription(e.target.value)}
-                  placeholder="Bridal makeup for wedding day"
-                  className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
-                  data-testid="input-standalone-contract-description"
-                />
-              </div>
-            </div>
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => {
-                  setShowStandaloneContract(false);
-                  setStandaloneClientName("");
-                  setStandaloneClientEmail("");
-                  setStandaloneAmount("");
-                  setStandaloneDescription("");
-                }}
-                className="flex-1 px-4 py-2 border border-ink/20 rounded text-sm hover:bg-ink/5"
-                data-testid="button-cancel-standalone-contract"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  if (!standaloneClientName || !standaloneClientEmail) {
-                    toast({ title: "Missing info", description: "Please fill in client name and email", variant: "destructive" });
-                    return;
-                  }
-                  setCreatingStandalone(true);
-                  try {
-                    const endpoint = token 
-                      ? `/api/public/standalone-contract?token=${encodeURIComponent(token)}`
-                      : `/api/artist/standalone-contract`;
-                    const res = await fetch(endpoint, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      credentials: 'include',
-                      body: JSON.stringify({
-                        clientName: standaloneClientName,
-                        clientEmail: standaloneClientEmail,
-                        totalAmount: standaloneAmount,
-                        description: standaloneDescription,
-                      }),
-                    });
-                    const data = await res.json();
-                    if (!res.ok) throw new Error(data.error || "Failed to create contract");
-                    toast({ title: "Contract created", description: data.signingLink ? "Contract sent for signing" : "Contract created successfully" });
-                    if (data.signingLink) {
-                      navigator.clipboard.writeText(data.signingLink);
-                      toast({ title: "Link copied", description: "Signing link copied to clipboard" });
-                    }
-                    setShowStandaloneContract(false);
-                    setStandaloneClientName("");
-                    setStandaloneClientEmail("");
-                    setStandaloneAmount("");
-                    setStandaloneDescription("");
-                  } catch (err: any) {
-                    toast({ title: "Error", description: err.message, variant: "destructive" });
-                  } finally {
-                    setCreatingStandalone(false);
-                  }
-                }}
-                disabled={creatingStandalone || !standaloneClientName || !standaloneClientEmail}
-                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm disabled:opacity-50 flex items-center justify-center gap-2"
-                data-testid="button-create-standalone-contract"
-              >
-                {creatingStandalone ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-                Create Contract
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Client Modal */}
-      {showAddClient && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-bg border border-ink/20 rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg mb-4" style={{ fontFamily: "'Fraunces', serif" }}>Add New Client</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs text-ink/60 mb-1">Client Name *</label>
-                <input
-                  type="text"
-                  value={newClientData.clientName}
-                  onChange={(e) => setNewClientData({ ...newClientData, clientName: e.target.value })}
-                  placeholder="Jane Smith"
-                  className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
-                  data-testid="input-new-client-name"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-ink/60 mb-1">Email *</label>
-                <input
-                  type="email"
-                  value={newClientData.clientEmail}
-                  onChange={(e) => setNewClientData({ ...newClientData, clientEmail: e.target.value })}
-                  placeholder="jane@example.com"
-                  className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
-                  data-testid="input-new-client-email"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-ink/60 mb-1">Phone</label>
-                <input
-                  type="tel"
-                  value={newClientData.clientPhone}
-                  onChange={(e) => setNewClientData({ ...newClientData, clientPhone: e.target.value })}
-                  placeholder="(555) 123-4567"
-                  className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
-                  data-testid="input-new-client-phone"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-ink/60 mb-1">Event Date</label>
-                <input
-                  type="date"
-                  value={newClientData.eventDate}
-                  onChange={(e) => setNewClientData({ ...newClientData, eventDate: e.target.value })}
-                  className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
-                  data-testid="input-new-client-event-date"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-ink/60 mb-1">Notes</label>
-                <textarea
-                  value={newClientData.notes}
-                  onChange={(e) => setNewClientData({ ...newClientData, notes: e.target.value })}
-                  placeholder="Any notes about this client..."
-                  rows={2}
-                  className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40 resize-none"
-                  data-testid="input-new-client-notes"
-                />
-              </div>
-            </div>
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => {
-                  setShowAddClient(false);
-                  setNewClientData({ clientName: "", clientEmail: "", clientPhone: "", eventDate: "", notes: "" });
-                }}
-                className="flex-1 px-4 py-2 border border-ink/20 rounded text-sm hover:bg-ink/5"
-                data-testid="button-cancel-add-client"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => createClient.mutate(newClientData)}
-                disabled={createClient.isPending || !newClientData.clientName || !newClientData.clientEmail}
-                className="flex-1 px-4 py-2 bg-[#C4A35A] hover:bg-[#C4A35A]/90 text-[#1A1A1A] rounded text-sm disabled:opacity-50 flex items-center justify-center gap-2"
-                data-testid="button-create-client"
-              >
-                {createClient.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
-                Add Client
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Quick Chat Modal */}
-      {showQuickChat && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-bg border border-ink/20 rounded-lg p-6 max-w-md w-full">
-            {quickChatLink ? (
-              <div className="space-y-4">
-                <h3 className="text-lg" style={{ fontFamily: "'Fraunces', serif" }}>Chat Created!</h3>
-                <div className="bg-green-900/20 border border-green-500/30 p-4 rounded">
-                  <p className="text-xs text-green-400 mb-2">Share this link with {quickChatData.participantName}:</p>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={quickChatLink}
-                      readOnly
-                      className="flex-1 px-3 py-2 bg-surface border border-ink/20 rounded text-xs text-ink/80"
-                    />
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(quickChatLink);
-                        toast({ title: "Link copied!" });
-                      }}
-                      className="px-3 py-2 bg-[#C4A35A] text-[#1A1A1A] rounded text-xs hover:bg-[#C4A35A]/90 flex items-center gap-1"
-                    >
-                      <Copy className="w-3 h-3" />
-                      Copy
-                    </button>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => {
-                      setQuickChatLink(null);
-                      setQuickChatData({ participantName: "", participantEmail: "", participantRole: "planner", initialMessage: "" });
-                    }}
-                    className="flex-1 py-2 bg-[#C4A35A] text-[#1A1A1A] rounded text-sm hover:bg-[#C4A35A]/90 flex items-center justify-center gap-2"
-                    data-testid="button-start-another-chat"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    Start Another
-                  </button>
-                  <button
-                    onClick={() => { 
-                      setShowQuickChat(false); 
-                      setQuickChatLink(null);
-                      setQuickChatData({ participantName: "", participantEmail: "", participantRole: "planner", initialMessage: "" });
-                    }}
-                    className="flex-1 py-2 border border-ink/20 rounded text-sm hover:bg-ink/5"
-                  >
-                    Done
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <h3 className="text-lg mb-1" style={{ fontFamily: "'Fraunces', serif" }}>Quick Chat</h3>
-                <p className="text-xs text-ink/50 mb-4">Start a conversation with anyone via their email</p>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs text-ink/60 mb-1">Who is this?</label>
-                    <select
-                      value={quickChatData.participantRole}
-                      onChange={(e) => setQuickChatData({ ...quickChatData, participantRole: e.target.value as any })}
-                      className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
-                      data-testid="select-quick-chat-role"
-                    >
-                      <option value="planner">Wedding Planner</option>
-                      <option value="client">Client</option>
-                      <option value="vendor">Other Vendor</option>
-                      <option value="contact">Other Contact</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-ink/60 mb-1">Their Name *</label>
-                    <input
-                      type="text"
-                      value={quickChatData.participantName}
-                      onChange={(e) => setQuickChatData({ ...quickChatData, participantName: e.target.value })}
-                      placeholder="Sarah Johnson"
-                      className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
-                      data-testid="input-quick-chat-name"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-ink/60 mb-1">Their Email *</label>
-                    <input
-                      type="email"
-                      value={quickChatData.participantEmail}
-                      onChange={(e) => setQuickChatData({ ...quickChatData, participantEmail: e.target.value })}
-                      placeholder="sarah@plannerco.com"
-                      className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40"
-                      data-testid="input-quick-chat-email"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-ink/60 mb-1">Initial Message (optional)</label>
-                    <textarea
-                      value={quickChatData.initialMessage}
-                      onChange={(e) => setQuickChatData({ ...quickChatData, initialMessage: e.target.value })}
-                      placeholder="Hi! Let's connect about..."
-                      rows={2}
-                      className="w-full px-3 py-2 bg-surface border border-ink/20 rounded text-sm focus:outline-none focus:border-ink/40 resize-none"
-                      data-testid="input-quick-chat-message"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-3 mt-6">
-                  <button
-                    onClick={() => {
-                      setShowQuickChat(false);
-                      setQuickChatData({ participantName: "", participantEmail: "", participantRole: "planner", initialMessage: "" });
-                    }}
-                    className="flex-1 px-4 py-2 border border-ink/20 rounded text-sm hover:bg-ink/5"
-                    data-testid="button-cancel-quick-chat"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={async () => {
-                      setCreatingQuickChat(true);
-                      try {
-                        const endpoint = token 
-                          ? `/api/public/direct-chats?token=${encodeURIComponent(token)}`
-                          : `/api/artist/direct-chats`;
-                        const res = await fetch(endpoint, {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          credentials: 'include',
-                          body: JSON.stringify(quickChatData),
-                        });
-                        const data = await res.json();
-                        if (res.ok) {
-                          setQuickChatLink(data.participantLink);
-                          queryClient.invalidateQueries({ queryKey: ['/api/direct-chats', token] });
-                          toast({ title: "Chat created!" });
-                        } else {
-                          toast({ title: "Error", description: data.error, variant: "destructive" });
-                        }
-                      } catch (error) {
-                        toast({ title: "Error", description: "Failed to create chat", variant: "destructive" });
-                      } finally {
-                        setCreatingQuickChat(false);
-                      }
-                    }}
-                    disabled={creatingQuickChat || !quickChatData.participantName || !quickChatData.participantEmail}
-                    className="flex-1 px-4 py-2 bg-[#C4A35A] hover:bg-[#C4A35A]/90 text-[#1A1A1A] rounded text-sm disabled:opacity-50 flex items-center justify-center gap-2"
-                    data-testid="button-create-quick-chat"
-                  >
-                    {creatingQuickChat ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    Start Chat
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Quick Guide for new users */}
       <QuickGuide
