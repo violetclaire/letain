@@ -216,6 +216,16 @@ interface CoordinationPathSummary {
   updatedAt?: string | null;
 }
 
+interface CoordinationEventSummary {
+  id: string;
+  eventType: string;
+  eventSource: string;
+  summary: string;
+  signalProvenance?: string[] | null;
+  metadata?: Record<string, unknown> | null;
+  createdAt?: string | null;
+}
+
 interface CoordinationAssessmentSummary {
   id: string;
   pathId: string;
@@ -235,6 +245,10 @@ interface CoordinationPathListItem {
 
 interface CoordinationPathsResponse {
   paths: CoordinationPathListItem[];
+}
+
+interface CoordinationPathDetailResponse {
+  events: CoordinationEventSummary[];
 }
 
 type SortMode = "newest" | "oldest" | "requestedDateAsc" | "requestedDateDesc";
@@ -314,6 +328,10 @@ function scheduleDraftQueryKey(inquiryId?: string | null) {
 
 function coordinationPathsQueryKey(inquiryId?: string | null) {
   return ["/api/inquiries", inquiryId, "coordination-paths"] as const;
+}
+
+function coordinationPathDetailQueryKey(pathId?: string | null) {
+  return ["/api/coordination-paths", pathId, "event-log"] as const;
 }
 
 function composerQueryKey(inquiryId?: string | null) {
@@ -1100,6 +1118,7 @@ export default function InquiryWorkspace() {
   const [sourceFilter, setSourceFilter] = useState("all");
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [internalNoteBody, setInternalNoteBody] = useState("");
+  const [operatorReviewNote, setOperatorReviewNote] = useState("");
   const [scheduleDraftError, setScheduleDraftError] = useState<string | null>(null);
   const isOperator = typeof user?.role === "string" && OPERATOR_ROLES.has(user.role);
   const artistSlug = typeof (user as { artistSlug?: unknown } | undefined)?.artistSlug === "string"
@@ -1368,9 +1387,31 @@ export default function InquiryWorkspace() {
     : null;
   const selectedCoordinationPath = coordinationPathsQuery.data?.paths[0] ?? null;
   const selectedPermissionAssessment = selectedCoordinationPath?.latestAssessment ?? null;
+  const selectedCoordinationPathId = selectedCoordinationPath?.path?.id ?? null;
   const coordinationPathHref = selectedCoordinationPath?.path?.id && artistSlug
     ? `/admin/${artistSlug}/coordination/${selectedCoordinationPath.path.id}`
     : null;
+  const coordinationPathDetailQuery = useQuery<CoordinationPathDetailResponse>({
+    queryKey: coordinationPathDetailQueryKey(selectedCoordinationPathId),
+    queryFn: async () => {
+      if (!selectedCoordinationPathId) return { events: [] };
+      const res = await fetch(`/api/coordination-paths/${encodeURIComponent(selectedCoordinationPathId)}`, { credentials: "include" });
+      if (res.status === 401) throw new Error("401");
+      if (!res.ok) throw new Error("Failed to load private review log");
+      const payload = await res.json();
+      return {
+        events: Array.isArray(payload?.events) ? payload.events : [],
+      };
+    },
+    enabled: isAuthenticated && isOperator && Boolean(selectedCoordinationPathId),
+    retry: false,
+  });
+  const latestOperatorReviewEvent = useMemo(
+    () => (coordinationPathDetailQuery.data?.events ?? [])
+      .filter((event) => event.eventType === "operator_reviewed")
+      .sort((a, b) => (timestamp(b.createdAt) ?? 0) - (timestamp(a.createdAt) ?? 0))[0] ?? null,
+    [coordinationPathDetailQuery.data?.events],
+  );
   const artistProfile = artistProfileQuery.data ?? null;
   const artistServices = artistServicesQuery.data ?? [];
   const infoSheetReadinessIsLoading = artistProfileQuery.isLoading || artistServicesQuery.isLoading;
@@ -1466,6 +1507,45 @@ export default function InquiryWorkspace() {
       : [],
     [inquiryDecisionSummary?.label, selectedPermissionAssessment, networkMatches],
   );
+  const recordOperatorReview = useMutation({
+    mutationFn: async () => {
+      if (!selectedCoordinationPathId) {
+        throw new Error("No coordination path is loaded for this inquiry.");
+      }
+
+      const summary = operatorReviewNote.trim() || "Operator reviewed the private checklist before outreach.";
+      const res = await fetch(`/api/coordination-paths/${encodeURIComponent(selectedCoordinationPathId)}/events`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventType: "operator_reviewed",
+          eventSource: "operator",
+          summary,
+          signalProvenance: [`coordination_path:${selectedCoordinationPathId}`],
+          metadata: {
+            privateReviewLog: true,
+            checklist: operatorReviewChecklistRows.map((row) => ({
+              label: row.label,
+              status: row.status,
+              state: row.state,
+            })),
+            decisionLabel: inquiryDecisionSummary?.label ?? null,
+          },
+        }),
+      });
+      if (res.status === 401) throw new Error("401");
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        throw new Error(typeof payload?.error === "string" ? payload.error : "Failed to record private review log");
+      }
+      return res.json() as Promise<{ event: CoordinationEventSummary }>;
+    },
+    onSuccess: () => {
+      setOperatorReviewNote("");
+      queryClient.invalidateQueries({ queryKey: coordinationPathDetailQueryKey(selectedCoordinationPathId) });
+    },
+  });
   const routeContactReadinessLabel = networkMatches.some((match) => routeTargetHasReachableContact(match.target))
     ? "Reachable route option exists"
     : networkMatches.some((match) => routeTargetHasKnownButIncompleteContact(match.target))
@@ -1537,6 +1617,10 @@ export default function InquiryWorkspace() {
   useEffect(() => {
     setInternalNoteBody(internalNoteQuery.data?.note?.body ?? "");
   }, [selectedInquiryId, internalNoteQuery.data?.note?.body]);
+
+  useEffect(() => {
+    setOperatorReviewNote("");
+  }, [selectedCoordinationPathId]);
 
   if (authLoading) {
     return (
@@ -1913,6 +1997,72 @@ export default function InquiryWorkspace() {
                           <p className="mt-2 text-ink/70 break-words">{row.detail}</p>
                         </div>
                       ))}
+                    </div>
+
+                    <div className="mt-4 border border-hairline bg-bg px-3 py-3 text-sm" data-testid="operator-review-decision-log">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="text-xs uppercase tracking-wide text-ink/45">Private review log</p>
+                          <p className="mt-1 text-xs text-ink/55">
+                            Record a private review note for this coordination state. This does not send, create a route, run preflight, contact anyone, create a client link, contract, or payment.
+                          </p>
+                        </div>
+                        <Pill>Operator-only artifact</Pill>
+                      </div>
+
+                      <div className="mt-3 border border-hairline bg-surface px-3 py-2">
+                        <p className="text-xs uppercase tracking-wide text-ink/45">Latest private review note</p>
+                        {coordinationPathDetailQuery.isLoading ? (
+                          <p className="mt-1 text-ink/60">Checking private review log.</p>
+                        ) : coordinationPathDetailQuery.isError ? (
+                          <p className="mt-1 text-ink/60">Could not load the private review log.</p>
+                        ) : latestOperatorReviewEvent ? (
+                          <p className="mt-1 text-ink/75 break-words">
+                            {formatDateTime(latestOperatorReviewEvent.createdAt)}: {latestOperatorReviewEvent.summary}
+                          </p>
+                        ) : (
+                          <p className="mt-1 text-ink/60">No private review note has been recorded yet.</p>
+                        )}
+                      </div>
+
+                      <label className="mt-3 block">
+                        <span className="text-xs uppercase tracking-wide text-ink/45">Private review note</span>
+                        <textarea
+                          value={operatorReviewNote}
+                          onChange={(event) => setOperatorReviewNote(event.target.value)}
+                          rows={3}
+                          placeholder="Optional note about what you reviewed before outreach"
+                          className="mt-1 w-full resize-y border border-hairline bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink/35 focus:outline-none focus:border-ink/40"
+                          data-testid="textarea-operator-review-note"
+                        />
+                      </label>
+
+                      {recordOperatorReview.isError && (
+                        <p className="mt-2 text-xs text-oxblood">
+                          {(recordOperatorReview.error as Error)?.message || "Could not record private review log."}
+                        </p>
+                      )}
+
+                      <button
+                        type="button"
+                        className="mt-3 inline-flex h-8 w-fit items-center gap-1.5 border border-hairline px-3 text-xs text-ink/70 transition hover:bg-surface disabled:cursor-not-allowed disabled:text-ink/35 disabled:hover:bg-transparent"
+                        disabled={!selectedCoordinationPathId || recordOperatorReview.isPending}
+                        onClick={() => recordOperatorReview.mutate()}
+                        data-testid="button-record-operator-review"
+                      >
+                        {recordOperatorReview.isPending ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Save className="w-3.5 h-3.5" />
+                        )}
+                        {recordOperatorReview.isPending ? "Recording" : "Record private review log"}
+                      </button>
+
+                      {!selectedCoordinationPathId && (
+                        <p className="mt-2 text-xs text-ink/50">
+                          A coordination path is needed before a private review log can be recorded.
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}
