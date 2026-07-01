@@ -262,6 +262,18 @@ interface OperatorReviewChecklistRow {
   state: "needs-review" | "ready" | "informational";
 }
 
+type RouteRecoveryEvidenceEventType =
+  | "route_option_reviewed"
+  | "recovery_coverage_reviewed"
+  | "handoff_reviewed";
+
+interface RouteRecoveryEvidenceAction {
+  eventType: RouteRecoveryEvidenceEventType;
+  label: string;
+  summary: string;
+  detail: string;
+}
+
 type InquiryEventTimelineMarker =
   | "Recorded event"
   | "Current state"
@@ -278,6 +290,31 @@ interface InquiryEventTimelineEntry {
 }
 
 const OPERATOR_ROLES = new Set(["artist"]);
+
+const ROUTE_RECOVERY_EVIDENCE_ACTIONS: RouteRecoveryEvidenceAction[] = [
+  {
+    eventType: "route_option_reviewed",
+    label: "Log route option review",
+    summary: "Operator reviewed private route option evidence before outreach.",
+    detail: "Notes that route evidence was reviewed; provider acceptance stays separate.",
+  },
+  {
+    eventType: "recovery_coverage_reviewed",
+    label: "Log recovery coverage review",
+    summary: "Operator reviewed private recovery coverage evidence before outreach.",
+    detail: "Notes that recovery evidence was reviewed; recovery status stays separate.",
+  },
+  {
+    eventType: "handoff_reviewed",
+    label: "Log handoff review",
+    summary: "Operator reviewed private handoff evidence before outreach.",
+    detail: "Notes that handoff evidence was reviewed; route status stays separate.",
+  },
+];
+
+const ROUTE_RECOVERY_EVIDENCE_EVENT_TYPES = new Set<RouteRecoveryEvidenceEventType>(
+  ROUTE_RECOVERY_EVIDENCE_ACTIONS.map((action) => action.eventType),
+);
 
 const PERMISSION_DECISION_LABELS: Record<PermissionDecision, string> = {
   PROCEED: "Proceed",
@@ -359,6 +396,10 @@ function sentenceLabel(value?: string | null): string {
 function sourceValueLabel(source?: string | null): string {
   if (!source || typeof source !== "string") return "Existing inquiry";
   return valueLabel(source);
+}
+
+function isRouteRecoveryEvidenceEventType(eventType?: string | null): eventType is RouteRecoveryEvidenceEventType {
+  return Boolean(eventType && ROUTE_RECOVERY_EVIDENCE_EVENT_TYPES.has(eventType as RouteRecoveryEvidenceEventType));
 }
 
 function sourceLabel(inquiry: InquiryWorkspaceInquiry): string {
@@ -1010,6 +1051,18 @@ function buildInquiryEventTimeline({
     });
   }
 
+  coordinationEvents
+    .filter((event) => isRouteRecoveryEvidenceEventType(event.eventType))
+    .forEach((event) => {
+      addInquiryEventTimelineEntry(entries, {
+        id: `route-recovery-evidence-${event.id}`,
+        marker: "Private review",
+        label: "Private route/recovery evidence logged",
+        description: detailList([sentenceLabel(event.eventType), event.summary]),
+        at: event.createdAt,
+      });
+    });
+
   return entries.sort((a, b) => {
     const timeA = timestamp(a.at);
     const timeB = timestamp(b.at);
@@ -1319,6 +1372,12 @@ export default function InquiryWorkspace() {
       .sort((a, b) => (timestamp(b.createdAt) ?? 0) - (timestamp(a.createdAt) ?? 0))[0] ?? null,
     [coordinationPathDetailQuery.data?.events],
   );
+  const latestRouteRecoveryEvidenceEvent = useMemo(
+    () => (coordinationPathDetailQuery.data?.events ?? [])
+      .filter((event) => isRouteRecoveryEvidenceEventType(event.eventType))
+      .sort((a, b) => (timestamp(b.createdAt) ?? 0) - (timestamp(a.createdAt) ?? 0))[0] ?? null,
+    [coordinationPathDetailQuery.data?.events],
+  );
   const artistProfile = artistProfileQuery.data ?? null;
   const artistServices = artistServicesQuery.data ?? [];
   const infoSheetReadinessIsLoading = artistProfileQuery.isLoading || artistServicesQuery.isLoading;
@@ -1414,6 +1473,13 @@ export default function InquiryWorkspace() {
       : [],
     [inquiryDecisionSummary?.label, selectedPermissionAssessment, networkMatches],
   );
+  const routeContactReadinessLabel = networkMatches.some((match) => routeTargetHasReachableContact(match.target))
+    ? "Reachable route option exists"
+    : networkMatches.some((match) => routeTargetHasKnownButIncompleteContact(match.target))
+      ? "Route option needs operator review"
+      : networkMatches.length > 0
+        ? "Route blocked by missing contact"
+        : "No route option from existing network data";
   const recordOperatorReview = useMutation({
     mutationFn: async () => {
       if (!selectedCoordinationPathId) {
@@ -1453,13 +1519,41 @@ export default function InquiryWorkspace() {
       queryClient.invalidateQueries({ queryKey: coordinationPathDetailQueryKey(selectedCoordinationPathId) });
     },
   });
-  const routeContactReadinessLabel = networkMatches.some((match) => routeTargetHasReachableContact(match.target))
-    ? "Reachable route option exists"
-    : networkMatches.some((match) => routeTargetHasKnownButIncompleteContact(match.target))
-      ? "Route option needs operator review"
-      : networkMatches.length > 0
-        ? "Route blocked by missing contact"
-        : "No route option from existing network data";
+  const recordRouteRecoveryEvidence = useMutation({
+    mutationFn: async (action: RouteRecoveryEvidenceAction) => {
+      if (!selectedCoordinationPathId) {
+        throw new Error("No coordination path is loaded for this inquiry.");
+      }
+
+      const res = await fetch(`/api/coordination-paths/${encodeURIComponent(selectedCoordinationPathId)}/events`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventType: action.eventType,
+          eventSource: "operator",
+          summary: action.summary,
+          signalProvenance: [`coordination_path:${selectedCoordinationPathId}`],
+          metadata: {
+            privateEvidenceLog: true,
+            evidenceType: action.eventType,
+            evidenceLabel: action.label,
+            routeContactReadiness: routeContactReadinessLabel,
+            decisionLabel: inquiryDecisionSummary?.label ?? null,
+          },
+        }),
+      });
+      if (res.status === 401) throw new Error("401");
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        throw new Error(typeof payload?.error === "string" ? payload.error : "Failed to record private route/recovery evidence");
+      }
+      return res.json() as Promise<{ event: CoordinationEventSummary }>;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: coordinationPathDetailQueryKey(selectedCoordinationPathId) });
+    },
+  });
   const currentPermissionLabel = coordinationPathsQuery.isLoading
     ? "Current coordination permission is loading"
     : coordinationPathsQuery.isError
@@ -1996,6 +2090,73 @@ export default function InquiryWorkspace() {
                       {!selectedCoordinationPathId && (
                         <p className="mt-2 text-xs text-ink/50">
                           A coordination path is needed before a private review log can be recorded.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="mt-4 border border-hairline bg-bg px-3 py-3 text-sm" data-testid="route-recovery-evidence-log">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="text-xs uppercase tracking-wide text-ink/45">Private route / recovery evidence log</p>
+                          <p className="mt-1 text-xs text-ink/55">
+                            Operator-only evidence. These entries do not confirm provider acceptance, create a route, run preflight, contact anyone, send anything, create a client link, or approve contracts or payments.
+                          </p>
+                        </div>
+                        <Pill>Evidence only</Pill>
+                      </div>
+
+                      <div className="mt-3 border border-hairline bg-surface px-3 py-2">
+                        <p className="text-xs uppercase tracking-wide text-ink/45">Latest private route/recovery evidence</p>
+                        {coordinationPathDetailQuery.isLoading ? (
+                          <p className="mt-1 text-ink/60">Checking private evidence log.</p>
+                        ) : coordinationPathDetailQuery.isError ? (
+                          <p className="mt-1 text-ink/60">Could not load private evidence log.</p>
+                        ) : latestRouteRecoveryEvidenceEvent ? (
+                          <p className="mt-1 text-ink/75 break-words">
+                            {formatDateTime(latestRouteRecoveryEvidenceEvent.createdAt)}: {latestRouteRecoveryEvidenceEvent.summary}
+                          </p>
+                        ) : (
+                          <p className="mt-1 text-ink/60">No private route/recovery evidence has been logged yet.</p>
+                        )}
+                      </div>
+
+                      <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                        {ROUTE_RECOVERY_EVIDENCE_ACTIONS.map((action) => {
+                          const isRecording =
+                            recordRouteRecoveryEvidence.isPending &&
+                            recordRouteRecoveryEvidence.variables?.eventType === action.eventType;
+
+                          return (
+                            <div key={action.eventType} className="border border-hairline bg-surface px-3 py-2">
+                              <p className="text-xs text-ink/60 break-words">{action.detail}</p>
+                              <button
+                                type="button"
+                                className="mt-2 inline-flex h-8 w-fit items-center gap-1.5 border border-hairline px-3 text-xs text-ink/70 transition hover:bg-bg disabled:cursor-not-allowed disabled:text-ink/35 disabled:hover:bg-transparent"
+                                disabled={!selectedCoordinationPathId || recordRouteRecoveryEvidence.isPending}
+                                onClick={() => recordRouteRecoveryEvidence.mutate(action)}
+                                data-testid={`button-${action.eventType}`}
+                              >
+                                {isRecording ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <Save className="w-3.5 h-3.5" />
+                                )}
+                                {isRecording ? "Logging" : action.label}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {recordRouteRecoveryEvidence.isError && (
+                        <p className="mt-2 text-xs text-oxblood">
+                          {(recordRouteRecoveryEvidence.error as Error)?.message || "Could not record private route/recovery evidence."}
+                        </p>
+                      )}
+
+                      {!selectedCoordinationPathId && (
+                        <p className="mt-2 text-xs text-ink/50">
+                          A coordination path is needed before private route/recovery evidence can be logged.
                         </p>
                       )}
                     </div>
