@@ -167,31 +167,6 @@ interface ComposerResponse {
   responses: ComposerResponseDraft[];
 }
 
-interface TrustTimelineEntry {
-  id: string;
-  eventType: string;
-  eventCategory?: string | null;
-  dimension?: string | null;
-  signalStrength?: number | null;
-  createdAt?: string | null;
-  source?: string | null;
-  personName?: string | null;
-  personType?: string | null;
-  matchStatus?: string | null;
-  matchConfidence?: number | null;
-  matchReason?: string | null;
-  evidenceText?: string | null;
-  status?: string | null;
-  routeTargetId?: string | null;
-  routeTargetName?: string | null;
-  responseId?: string | null;
-  responseType?: string | null;
-}
-
-interface TrustTimelineResponse {
-  timeline: TrustTimelineEntry[];
-}
-
 type PermissionDecision =
   | "PROCEED"
   | "PROCEED_WITH_OVERSIGHT"
@@ -287,8 +262,16 @@ interface OperatorReviewChecklistRow {
   state: "needs-review" | "ready" | "informational";
 }
 
-interface TimelineEntry {
+type InquiryEventTimelineMarker =
+  | "Recorded event"
+  | "Current state"
+  | "Read-only signal"
+  | "Private review"
+  | "Draft linked";
+
+interface InquiryEventTimelineEntry {
   id: string;
+  marker: InquiryEventTimelineMarker;
   label: string;
   description?: string;
   at?: string | null;
@@ -906,175 +889,124 @@ function detailList(parts: Array<string | null | undefined>): string | undefined
   return details.length > 0 ? details.join(" / ") : undefined;
 }
 
-function addTimelineEntry(entries: TimelineEntry[], entry: TimelineEntry) {
+function addInquiryEventTimelineEntry(entries: InquiryEventTimelineEntry[], entry: InquiryEventTimelineEntry) {
   if (entries.some((existing) => existing.id === entry.id)) return;
   entries.push(entry);
 }
 
-function buildTrustTimelineEntries(entries: TrustTimelineEntry[]): TimelineEntry[] {
-  return entries
-    .map((entry, index) => ({
-      id: `trust-${entry.id || index}`,
-      label: sentenceLabel(entry.eventType),
-      description: detailList([
-        entry.routeTargetName ? `Target: ${entry.routeTargetName}` : null,
-        entry.personName ? `${sentenceLabel(entry.personType || "person")}: ${entry.personName}` : null,
-        entry.responseType ? `Response: ${valueLabel(entry.responseType)}` : null,
-        entry.status ? `Status: ${valueLabel(entry.status)}` : null,
-        entry.matchStatus ? `Match: ${valueLabel(entry.matchStatus)}${typeof entry.matchConfidence === "number" ? ` (${entry.matchConfidence}%)` : ""}` : null,
-        entry.matchReason,
-        entry.evidenceText,
-        entry.source ? `Source: ${valueLabel(entry.source)}` : null,
-      ]),
-      at: entry.createdAt,
-    }))
-    .sort((a, b) => {
-      const timeA = timestamp(a.at);
-      const timeB = timestamp(b.at);
-      if (timeA === null && timeB === null) return 0;
-      if (timeA === null) return 1;
-      if (timeB === null) return -1;
-      return timeA - timeB;
-    });
-}
+function buildInquiryEventTimeline({
+  inquiry,
+  infoSheetReadinessLabel,
+  infoSheetReadinessDescription,
+  routeContactReadinessLabel,
+  currentPermissionLabel,
+  decisionSummary,
+  permissionAssessment,
+  coordinationEvents,
+  scheduleDraft,
+  internalNote,
+}: {
+  inquiry: InquiryWorkspaceInquiry;
+  infoSheetReadinessLabel: string;
+  infoSheetReadinessDescription: string;
+  routeContactReadinessLabel: string;
+  currentPermissionLabel: string;
+  decisionSummary: InquiryDecisionSummary | null;
+  permissionAssessment: CoordinationAssessmentSummary | null;
+  coordinationEvents: CoordinationEventSummary[];
+  scheduleDraft: ScheduleDraft | null;
+  internalNote: InternalNote | null;
+}): InquiryEventTimelineEntry[] {
+  const entries: InquiryEventTimelineEntry[] = [];
 
-function buildTimelineEntries(inquiry: InquiryWorkspaceInquiry): TimelineEntry[] {
-  const entries: TimelineEntry[] = [];
-  const holdPlacedAt = inquiry.hold?.placedAt || inquiry.holdPlacedAt;
-  const holdExpiresAt = inquiry.hold?.expiresAt || inquiry.holdExpiresAt;
-  const holdReason = inquiry.hold?.reason || inquiry.holdReason;
-
-  addTimelineEntry(entries, {
-    id: "created",
+  addInquiryEventTimelineEntry(entries, {
+    id: "inquiry-received",
+    marker: "Recorded event",
     label: "Inquiry received",
     description: detailList([sourceLabel(inquiry), requestSummary(inquiry)]),
     at: inquiry.createdAt,
   });
 
-  if (inquiry.infoSheetSentAt) {
-    addTimelineEntry(entries, {
-      id: "info-sheet",
-      label: "Info sheet recorded as sent",
-      at: inquiry.infoSheetSentAt,
+  addInquiryEventTimelineEntry(entries, {
+    id: "pricing-info-readiness",
+    marker: "Current state",
+    label: infoSheetReadinessLabel,
+    description: `Current read-only state from existing Settings data. ${infoSheetReadinessDescription}`,
+    at: null,
+  });
+
+  addInquiryEventTimelineEntry(entries, {
+    id: "route-contact-readiness",
+    marker: "Read-only signal",
+    label: "Route/contact readiness surfaced",
+    description: routeContactReadinessLabel,
+    at: null,
+  });
+
+  if (permissionAssessment) {
+    addInquiryEventTimelineEntry(entries, {
+      id: `coordination-assessment-${permissionAssessment.id}`,
+      marker: "Recorded event",
+      label: "Coordination permission assessed",
+      description: detailList([
+        currentPermissionLabel,
+        assessmentListSummary(permissionAssessment.riskFactors)
+          ? `Risk factors: ${assessmentListSummary(permissionAssessment.riskFactors)}`
+          : null,
+        assessmentListSummary(permissionAssessment.missingSignals)
+          ? `Missing signals: ${assessmentListSummary(permissionAssessment.missingSignals)}`
+          : null,
+        hasText(permissionAssessment.recommendedNextAction)
+          ? `Recommended next action: ${permissionAssessment.recommendedNextAction}`
+          : null,
+      ]),
+      at: permissionAssessment.createdAt,
     });
   }
 
-  if (inquiry.chatInviteSentAt) {
-    addTimelineEntry(entries, {
-      id: "chat-invite",
-      label: "Chat invite recorded as sent",
-      at: inquiry.chatInviteSentAt,
+  if (decisionSummary?.label === "Needs operator review") {
+    addInquiryEventTimelineEntry(entries, {
+      id: "operator-review-needed",
+      marker: "Current state",
+      label: "Operator review needed",
+      description: "Current decision summary asks the operator to review before outreach. This is guidance only.",
+      at: null,
     });
   }
 
-  if (inquiry.firstResponseAt) {
-    addTimelineEntry(entries, {
-      id: "first-response",
-      label: "First response recorded",
-      at: inquiry.firstResponseAt,
+  coordinationEvents
+    .filter((event) => event.eventType === "operator_reviewed")
+    .forEach((event) => {
+      addInquiryEventTimelineEntry(entries, {
+        id: `operator-review-${event.id}`,
+        marker: "Private review",
+        label: "Private operator review recorded",
+        description: event.summary,
+        at: event.createdAt,
+      });
+    });
+
+  if (scheduleDraft) {
+    addInquiryEventTimelineEntry(entries, {
+      id: `schedule-draft-${scheduleDraft.id}`,
+      marker: "Draft linked",
+      label: "Private schedule draft linked",
+      description: detailList([
+        scheduleDraft.title,
+        scheduleDraft.status ? `Status: ${statusLabel(scheduleDraft.status)}` : null,
+        "Private draft only; no public/client surface is created.",
+      ]),
+      at: scheduleDraft.updatedAt || scheduleDraft.createdAt,
     });
   }
 
-  if (holdPlacedAt) {
-    addTimelineEntry(entries, {
-      id: "hold-placed",
-      label: "Hold placed",
-      description: holdReason || undefined,
-      at: holdPlacedAt,
-    });
-  }
-
-  if (holdExpiresAt) {
-    addTimelineEntry(entries, {
-      id: "hold-expires",
-      label: "Hold expiry recorded",
-      description: holdReason || undefined,
-      at: holdExpiresAt,
-    });
-  }
-
-  if (inquiry.referralSentAt) {
-    addTimelineEntry(entries, {
-      id: "referral",
-      label: "Referral recorded",
-      at: inquiry.referralSentAt,
-    });
-  }
-
-  if (Array.isArray(inquiry.proposedDates) && inquiry.proposedDates.length > 0) {
-    addTimelineEntry(entries, {
-      id: "proposed-dates",
-      label: "Alternative dates recorded",
-      description: `${inquiry.proposedDates.length} date${inquiry.proposedDates.length === 1 ? "" : "s"} proposed`,
-      at: inquiry.lastActionAt || inquiry.updatedAt,
-    });
-  }
-
-  if (inquiry.depositPaidAt) {
-    addTimelineEntry(entries, {
-      id: "deposit",
-      label: "Deposit status recorded",
-      at: inquiry.depositPaidAt,
-    });
-  }
-
-  if (inquiry.bookingId || inquiry.convertedToBookingId) {
-    addTimelineEntry(entries, {
-      id: "booking-reference",
-      label: "Booking reference present",
-      at: inquiry.updatedAt,
-    });
-  }
-
-  if (inquiry.convertedToContractId) {
-    addTimelineEntry(entries, {
-      id: "contract-reference",
-      label: "Contract reference present",
-      at: inquiry.updatedAt,
-    });
-  }
-
-  if (inquiry.proposalId) {
-    addTimelineEntry(entries, {
-      id: "proposal-reference",
-      label: "Proposal reference present",
-      at: inquiry.updatedAt,
-    });
-  }
-
-  if (inquiry.status) {
-    addTimelineEntry(entries, {
-      id: "status",
-      label: `Current status: ${statusLabel(inquiry.status)}`,
-      description: inquiry.statusReason || undefined,
-      at: inquiry.updatedAt || inquiry.createdAt,
-    });
-  }
-
-  if (inquiry.nextAction || inquiry.nextActionDueAt) {
-    addTimelineEntry(entries, {
-      id: "next-action",
-      label: "Next action tracked",
-      description: detailList([valueLabel(inquiry.nextAction), inquiry.ownerName ? `Owner: ${inquiry.ownerName}` : null]),
-      at: inquiry.nextActionDueAt || inquiry.nextSlaDue,
-    });
-  }
-
-  if (Array.isArray(inquiry.breachFlags) && inquiry.breachFlags.length > 0) {
-    addTimelineEntry(entries, {
-      id: "breach-flags",
-      label: "SLA flags recorded",
-      description: inquiry.breachFlags.map(valueLabel).join(", "),
-      at: inquiry.nextSlaDue || inquiry.updatedAt,
-    });
-  }
-
-  if (inquiry.hasDateConflict) {
-    addTimelineEntry(entries, {
-      id: "date-conflict",
-      label: "Date conflict detected",
-      description: inquiry.conflictSource || undefined,
-      at: inquiry.updatedAt,
+  if (internalNote?.updatedAt || internalNote?.createdAt) {
+    addInquiryEventTimelineEntry(entries, {
+      id: `internal-note-${internalNote.id}`,
+      marker: "Private review",
+      label: "Internal note saved",
+      description: "Private operator note metadata is loaded; note content stays in the internal notes card.",
+      at: internalNote.updatedAt || internalNote.createdAt,
     });
   }
 
@@ -1218,7 +1150,6 @@ export default function InquiryWorkspace() {
     [filteredInquiries, selectedId],
   );
   const selectedInquiryId = selectedInquiry?.id ?? null;
-  const selectedThreadToken = selectedInquiry?.threadToken ?? null;
   const draftCandidatesQuery = useQuery<DraftRouteCandidatesResponse>({
     queryKey: draftRouteCandidatesQueryKey(selectedInquiryId),
     queryFn: async () => {
@@ -1293,34 +1224,10 @@ export default function InquiryWorkspace() {
     enabled: isAuthenticated && isOperator && Boolean(selectedInquiryId),
     retry: false,
   });
-  const trustTimelineQuery = useQuery<TrustTimelineResponse>({
-    queryKey: ["/api/inquiries", selectedThreadToken, "trust-timeline"],
-    queryFn: async () => {
-      if (!selectedThreadToken) return { timeline: [] };
-      const res = await fetch(`/api/inquiries/${encodeURIComponent(selectedThreadToken)}/trust-timeline`, { credentials: "include" });
-      if (res.status === 401) throw new Error("401");
-      if (!res.ok) throw new Error("Failed to load trust timeline");
-      const payload = await res.json();
-      return {
-        timeline: Array.isArray(payload?.timeline) ? payload.timeline : [],
-      };
-    },
-    enabled: isAuthenticated && isOperator && Boolean(selectedThreadToken),
-    retry: false,
-  });
   const savedDraftTargetIds = useMemo(
     () => new Set(draftCandidates.map((candidate) => candidate.routeTargetId)),
     [draftCandidates],
   );
-  const localTimelineEntries = useMemo(
-    () => (selectedInquiry ? buildTimelineEntries(selectedInquiry) : []),
-    [selectedInquiry],
-  );
-  const trustTimelineEntries = useMemo(
-    () => buildTrustTimelineEntries(trustTimelineQuery.data?.timeline ?? []),
-    [trustTimelineQuery.data?.timeline],
-  );
-  const timelineEntries = trustTimelineEntries.length > 0 ? trustTimelineEntries : localTimelineEntries;
   const networkMatches = useMemo(
     () => (selectedInquiry ? buildNetworkMatches(routeTargets, selectedInquiry) : []),
     [routeTargets, selectedInquiry],
@@ -1560,6 +1467,34 @@ export default function InquiryWorkspace() {
       : selectedPermissionAssessment
         ? PERMISSION_DECISION_LABELS[selectedPermissionAssessment.decision]
         : "No current coordination permission recorded";
+  const inquiryEventTimelineEntries = useMemo(
+    () => selectedInquiry
+      ? buildInquiryEventTimeline({
+        inquiry: selectedInquiry,
+        infoSheetReadinessLabel,
+        infoSheetReadinessDescription,
+        routeContactReadinessLabel,
+        currentPermissionLabel,
+        decisionSummary: inquiryDecisionSummary,
+        permissionAssessment: selectedPermissionAssessment,
+        coordinationEvents: coordinationPathDetailQuery.data?.events ?? [],
+        scheduleDraft: selectedScheduleDraft,
+        internalNote: internalNoteQuery.data?.note ?? null,
+      })
+      : [],
+    [
+      selectedInquiry,
+      infoSheetReadinessLabel,
+      infoSheetReadinessDescription,
+      routeContactReadinessLabel,
+      currentPermissionLabel,
+      inquiryDecisionSummary,
+      selectedPermissionAssessment,
+      coordinationPathDetailQuery.data?.events,
+      selectedScheduleDraft,
+      internalNoteQuery.data?.note,
+    ],
+  );
   const createScheduleDraft = useMutation({
     mutationFn: async (inquiry: InquiryWorkspaceInquiry) => {
       const titleParts = [
@@ -2066,6 +2001,46 @@ export default function InquiryWorkspace() {
                     </div>
                   </div>
                 )}
+
+                <div className="border border-hairline bg-surface px-4 py-4" data-testid="inquiry-event-timeline-card">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Clock3 className="w-4 h-4 text-ink/50" />
+                        <h3 className="font-serif text-base tracking-tight">Inquiry Event Timeline</h3>
+                      </div>
+                      <p className="max-w-3xl text-xs text-ink/55">
+                        Private and read-only. This timeline separates recorded events from current read-only states and does not send, create routes, contact anyone, create a client link, contract, or payment.
+                      </p>
+                    </div>
+                    <Pill>Private timeline v1</Pill>
+                  </div>
+
+                  {inquiryEventTimelineEntries.length > 0 ? (
+                    <ol className="mt-4 space-y-3">
+                      {inquiryEventTimelineEntries.map((entry) => (
+                        <li key={entry.id} className="grid gap-3 text-sm sm:grid-cols-[8rem_minmax(0,1fr)]">
+                          <time className="text-xs text-ink/50 leading-5">
+                            {entry.at ? formatDateTime(entry.at) : "Current"}
+                          </time>
+                          <div className="border-l border-hairline pl-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Pill>{entry.marker}</Pill>
+                              <p className="text-ink font-medium break-words">{entry.label}</p>
+                            </div>
+                            {entry.description && (
+                              <p className="text-ink/60 mt-1 break-words">{entry.description}</p>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <p className="mt-4 text-sm text-ink/60">
+                      No private inquiry timeline items are available from loaded workspace data yet.
+                    </p>
+                  )}
+                </div>
 
                 <div className="border border-hairline bg-surface px-4 py-4" data-testid="inquiry-readiness-card">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -2766,31 +2741,6 @@ export default function InquiryWorkspace() {
                           );
                         })}
                       </div>
-                    )}
-                  </div>
-                  <div className="border border-hairline bg-surface px-4 py-4 sm:col-span-2" data-testid="coordination-timeline-card">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Clock3 className="w-4 h-4 text-ink/50" />
-                      <h3 className="font-serif text-base tracking-tight">Coordination timeline</h3>
-                    </div>
-                    {timelineEntries.length > 0 ? (
-                      <ol className="space-y-3">
-                        {timelineEntries.map((entry) => (
-                          <li key={entry.id} className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3 text-sm">
-                            <time className="text-xs text-ink/50 leading-5">{formatDateTime(entry.at)}</time>
-                            <div className="border-l border-hairline pl-3">
-                              <p className="text-ink font-medium">{entry.label}</p>
-                              {entry.description && (
-                                <p className="text-ink/60 mt-0.5 break-words">{entry.description}</p>
-                              )}
-                            </div>
-                          </li>
-                        ))}
-                      </ol>
-                    ) : (
-                      <p className="text-sm text-ink/60">
-                        No timeline activity is available from the loaded inquiry record yet.
-                      </p>
                     )}
                   </div>
                 </div>
