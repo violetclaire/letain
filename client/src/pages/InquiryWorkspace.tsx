@@ -262,6 +262,13 @@ interface OperatorReviewChecklistRow {
   state: "needs-review" | "ready" | "informational";
 }
 
+interface AvailabilityReadinessRow {
+  label: string;
+  status: string;
+  detail: string;
+  state: "needs-review" | "informational";
+}
+
 type RouteRecoveryEvidenceEventType =
   | "route_option_reviewed"
   | "recovery_coverage_reviewed"
@@ -925,6 +932,38 @@ function buildOperatorReviewChecklist({
   ];
 }
 
+function buildAvailabilityReadinessRows(inquiry: InquiryWorkspaceInquiry): AvailabilityReadinessRow[] {
+  const hasDate = hasText(inquiry.eventDate);
+  const hasConflict = Boolean(inquiry.hasDateConflict);
+
+  return [
+    {
+      label: "Date signal",
+      status: hasDate ? "Requested date present" : "Needs operator review",
+      detail: hasDate
+        ? `Requested date is captured as ${formatDate(inquiry.eventDate)}. Treat it as a calendar review signal, not a hold.`
+        : "Requested date is missing, so calendar/source-of-truth review still needs operator attention.",
+      state: hasDate ? "informational" : "needs-review",
+    },
+    {
+      label: "Conflict signal",
+      status: hasConflict ? "Needs operator review" : "No conflict surfaced",
+      detail: hasConflict
+        ? inquiry.conflictSource || "A conflict is recorded from existing inquiry checks."
+        : hasDate
+          ? "No conflict surfaced from currently loaded inquiry data. This does not prove the date is open."
+          : "No conflict signal can be trusted until the requested date is captured.",
+      state: hasConflict || !hasDate ? "needs-review" : "informational",
+    },
+    {
+      label: "Calendar/source-of-truth review",
+      status: "Needs operator review",
+      detail: "Review the calendar/source of truth before outreach. No hold created. Nothing sends. No contracted work is created.",
+      state: "needs-review",
+    },
+  ];
+}
+
 function detailList(parts: Array<string | null | undefined>): string | undefined {
   const details = parts.filter((part): part is string => Boolean(part && part.trim().length > 0));
   return details.length > 0 ? details.join(" / ") : undefined;
@@ -1473,6 +1512,10 @@ export default function InquiryWorkspace() {
       : [],
     [inquiryDecisionSummary?.label, selectedPermissionAssessment, networkMatches],
   );
+  const availabilityReadinessRows = useMemo(
+    () => selectedInquiry ? buildAvailabilityReadinessRows(selectedInquiry) : [],
+    [selectedInquiry],
+  );
   const routeContactReadinessLabel = networkMatches.some((match) => routeTargetHasReachableContact(match.target))
     ? "Reachable route option exists"
     : networkMatches.some((match) => routeTargetHasKnownButIncompleteContact(match.target))
@@ -1985,6 +2028,43 @@ export default function InquiryWorkspace() {
                         </dl>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {availabilityReadinessRows.length > 0 && (
+                  <div className="border border-hairline bg-surface px-4 py-4" data-testid="availability-readiness-card">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <CalendarDays className="w-4 h-4 text-ink/50" />
+                          <h3 className="font-serif text-base tracking-tight">Availability readiness</h3>
+                        </div>
+                        <p className="max-w-3xl text-xs text-ink/55">
+                          Read-only calendar signal for operator review. This card does not prove availability, create a hold, send anything, change a schedule, or create contracted work.
+                        </p>
+                      </div>
+                      <Pill>Read-only signal</Pill>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                      {availabilityReadinessRows.map((row) => (
+                        <div key={row.label} className="border border-hairline bg-bg px-3 py-3 text-sm">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-xs uppercase tracking-wide text-ink/45">{row.label}</p>
+                            <span
+                              className={
+                                row.state === "needs-review"
+                                  ? "inline-flex w-fit border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-blue-800"
+                                  : "inline-flex w-fit border border-hairline bg-surface px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-ink/60"
+                              }
+                            >
+                              {row.status}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-ink/70 break-words">{row.detail}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
