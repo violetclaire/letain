@@ -20,6 +20,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { buildInquiryCoordinationState } from "@/lib/inquiryCoordinationState";
 
 interface InquiryWorkspaceInquiry {
   id: string;
@@ -1632,6 +1633,41 @@ export default function InquiryWorkspace() {
       internalNoteQuery.data?.note,
     ],
   );
+  const inquiryCoordinationState = useMemo(
+    () => selectedInquiry
+      ? buildInquiryCoordinationState({
+        inquiry: selectedInquiry,
+        operatorId: user?.id ?? null,
+        artistProfile,
+        artistServices,
+        networkMatches,
+        draftCandidates,
+        permissionAssessment: selectedPermissionAssessment,
+        coordinationEvents: coordinationPathDetailQuery.data?.events ?? [],
+        scheduleDraft: selectedScheduleDraft,
+        internalNote: internalNoteQuery.data?.note ?? null,
+        decisionSummary: inquiryDecisionSummary,
+        operatorReviewChecklistRows,
+        timelineEntries: inquiryEventTimelineEntries,
+      })
+      : null,
+    [
+      selectedInquiry,
+      user?.id,
+      artistProfile,
+      artistServices,
+      networkMatches,
+      draftCandidates,
+      selectedPermissionAssessment,
+      coordinationPathDetailQuery.data?.events,
+      selectedScheduleDraft,
+      internalNoteQuery.data?.note,
+      inquiryDecisionSummary,
+      operatorReviewChecklistRows,
+      inquiryEventTimelineEntries,
+    ],
+  );
+  void inquiryCoordinationState;
   const createScheduleDraft = useMutation({
     mutationFn: async (inquiry: InquiryWorkspaceInquiry) => {
       const titleParts = [
