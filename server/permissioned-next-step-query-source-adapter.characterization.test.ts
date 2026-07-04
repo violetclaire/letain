@@ -229,11 +229,18 @@ test("private evidence and schedule draft queries remain non-actionable", () => 
   assert.ok(scheduleAnswer.forbiddenActions.includes("publish schedule"));
 });
 
-test("adapter remains private, local, and disconnected from UI runtime wiring", () => {
+test("Inquiry Workspace assembles private query answers without rendering them", () => {
   assert.match(queryAdapterSource, /import type \{ InquiryCoordinationState, InquiryCoordinationVisibility \}/);
   assert.doesNotMatch(queryAdapterSource, /from "react"|useMemo|useQuery|useMutation|fetch\(/);
   assert.doesNotMatch(queryAdapterSource, /method: "POST"|method: "PATCH"|method: "PUT"|method: "DELETE"/);
-  assert.doesNotMatch(inquiryWorkspaceSource, /permissionedNextStepQuery|answerPermissionedNextStepQuery|PermissionedNextStepQuery/);
+  assert.match(inquiryWorkspaceSource, /PERMISSIONED_NEXT_STEP_QUERY_TYPES/);
+  assert.match(inquiryWorkspaceSource, /answerPermissionedNextStepQuery/);
+  assert.match(inquiryWorkspaceSource, /const permissionedNextStepQueryAnswers = useMemo/);
+  assert.match(inquiryWorkspaceSource, /PERMISSIONED_NEXT_STEP_QUERY_TYPES\.map/);
+  assert.match(inquiryWorkspaceSource, /answerPermissionedNextStepQuery\(inquiryCoordinationState, queryType\)/);
+  assert.match(inquiryWorkspaceSource, /void permissionedNextStepQueryAnswers/);
+  assert.doesNotMatch(inquiryWorkspaceSource, /data-testid="permissioned-next-step-query/);
+  assert.doesNotMatch(inquiryWorkspaceSource, /\{permissionedNextStepQueryAnswers/);
   assert.doesNotMatch(artistAdminSource, /permissionedNextStepQuery|answerPermissionedNextStepQuery|PermissionedNextStepQuery/);
 });
 

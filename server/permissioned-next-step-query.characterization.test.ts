@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const adapterSource = readFileSync("client/src/lib/inquiryCoordinationState.ts", "utf8");
+const queryAdapterSource = readFileSync("client/src/lib/permissionedNextStepQuery.ts", "utf8");
 const inquiryWorkspaceSource = readFileSync("client/src/pages/InquiryWorkspace.tsx", "utf8");
 const artistAdminSource = readFileSync("client/src/pages/ArtistAdmin.tsx", "utf8");
 const coordinationAssessmentSource = readFileSync("server/coordinationAssessment.ts", "utf8");
@@ -136,6 +137,7 @@ const runtimeSources = [
 test("PermissionedNextStepQuery v1 is characterized as a bounded read-only question, not an action", () => {
   assert.match(adapterSource, /export type InquiryCoordinationState =/);
   assert.match(adapterSource, /export function buildInquiryCoordinationState/);
+  assert.match(queryAdapterSource, /export function answerPermissionedNextStepQuery/);
   assert.match(reductionRulesSource, /allowed\/disallowed next-step rules/);
   assert.deepEqual([...SAFE_QUERY_TYPES], [
     "can_operator_draft_response",
@@ -146,7 +148,8 @@ test("PermissionedNextStepQuery v1 is characterized as a bounded read-only quest
     "is_schedule_draft_private_context_only",
     "what_safe_next_step_label_can_be_shown",
   ]);
-  assert.doesNotMatch(runtimeSources, /PermissionedNextStepQuery|permissionedNextStepQuery/);
+  assert.doesNotMatch(routesSource, /PermissionedNextStepQuery|permissionedNextStepQuery/);
+  assert.doesNotMatch(schemaSource, /PermissionedNextStepQuery|permissionedNextStepQuery/);
 });
 
 test("v1 forbids action-taking queries and external authority", () => {
@@ -281,8 +284,10 @@ test("protected boundaries keep query answers separate from approval, acceptance
 test("source characterization adds no runtime query engine, endpoint, schema, assess call, AI, send, upload, contract, payment, or public behavior", () => {
   assert.doesNotMatch(routesSource, /permissioned-next-step|PermissionedNextStepQuery|next-step-query/);
   assert.doesNotMatch(schemaSource, /permissioned_next_step|PermissionedNextStepQuery|nextStepQuery/);
+  assert.match(queryAdapterSource, /export type PermissionedNextStepQueryAnswer/);
   assert.doesNotMatch(adapterSource, /PermissionedNextStepQuery|permissionedNextStepQuery/);
-  assert.doesNotMatch(inquiryWorkspaceSource, /PermissionedNextStepQuery|permissionedNextStepQuery/);
+  assert.doesNotMatch(inquiryWorkspaceSource, /data-testid="permissioned-next-step-query/);
+  assert.doesNotMatch(inquiryWorkspaceSource, /\{permissionedNextStepQueryAnswers/);
   assert.doesNotMatch(artistAdminSource, /PermissionedNextStepQuery|permissionedNextStepQuery/);
   assert.doesNotMatch(adapterSource, /\/assess|assessCoordinationPath|createCoordinationAssessment/);
   assert.doesNotMatch(inquiryWorkspaceSource, /PermissionedNextStepQuery.*\/assess|permissionedNextStepQuery.*\/assess/);
