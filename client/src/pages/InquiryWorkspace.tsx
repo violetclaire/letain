@@ -512,6 +512,16 @@ function assessmentListSummary(values?: string[] | null): string | null {
   return labels.length > 0 ? labels.join(", ") : null;
 }
 
+function visiblePermissionedItems(values: string[] | undefined, emptyText: string): string[] {
+  if (!values || values.length === 0) return [emptyText];
+  return values.slice(0, 3);
+}
+
+function summarizePermissionedSignals(values: string[] | undefined, label: string): string {
+  if (!values || values.length === 0) return `No ${label} signal surfaced.`;
+  return `${values.length} ${values.length === 1 ? "signal" : "signals"} summarized from current private state.`;
+}
+
 function buildOperatorReviewDetails(assessment: CoordinationAssessmentSummary): InquiryDecisionSummary["reviewDetails"] {
   const details: InquiryDecisionSummary["reviewDetails"] = [];
   const permissionLabel = PERMISSION_DECISION_LABELS[assessment.decision];
@@ -1678,7 +1688,30 @@ export default function InquiryWorkspace() {
       : [],
     [inquiryCoordinationState],
   );
-  void permissionedNextStepQueryAnswers;
+  const safeNextStepAnswer = useMemo(
+    () => permissionedNextStepQueryAnswers.find(
+      (answer) => answer.queryType === "what_safe_next_step_label_can_be_shown",
+    ) ?? null,
+    [permissionedNextStepQueryAnswers],
+  );
+  const blockingIssuesAnswer = useMemo(
+    () => permissionedNextStepQueryAnswers.find(
+      (answer) => answer.queryType === "what_blocks_response_readiness",
+    ) ?? null,
+    [permissionedNextStepQueryAnswers],
+  );
+  const operatorReviewAnswer = useMemo(
+    () => permissionedNextStepQueryAnswers.find(
+      (answer) => answer.queryType === "what_must_be_reviewed_before_outreach",
+    ) ?? null,
+    [permissionedNextStepQueryAnswers],
+  );
+  const humanApprovalAnswer = useMemo(
+    () => permissionedNextStepQueryAnswers.find(
+      (answer) => answer.queryType === "what_human_approval_is_required",
+    ) ?? null,
+    [permissionedNextStepQueryAnswers],
+  );
   const createScheduleDraft = useMutation({
     mutationFn: async (inquiry: InquiryWorkspaceInquiry) => {
       const titleParts = [
@@ -2075,6 +2108,83 @@ export default function InquiryWorkspace() {
                         </dl>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {safeNextStepAnswer && (
+                  <div className="border border-hairline bg-surface px-4 py-4" data-testid="permissioned-next-step-card">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <AlertCircle className="w-4 h-4 text-ink/50" />
+                          <h3 className="font-serif text-base tracking-tight">Permissioned next step</h3>
+                        </div>
+                        <p className="max-w-3xl text-xs text-ink/55">
+                          Private and read-only. This query surfaces what the current coordination state allows the operator to review next. It does not send, approve, route, run preflight, contact anyone, create a client link, contract, payment, public schedule, or AI decision.
+                        </p>
+                      </div>
+                      <Pill>Private read-only query</Pill>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 lg:grid-cols-[0.8fr_1.2fr]">
+                      <div className="border border-blue-200 bg-blue-50 px-3 py-3 text-sm text-blue-900">
+                        <p className="text-xs uppercase tracking-wide opacity-70 mb-1">Safe next-step label</p>
+                        <p className="break-words">{safeNextStepAnswer.safeNextStepLabel}</p>
+                      </div>
+
+                      <div className="grid gap-2 sm:grid-cols-3">
+                        <div className="border border-hairline bg-bg px-3 py-2 text-sm">
+                          <p className="text-xs uppercase tracking-wide text-ink/45">Human approval</p>
+                          <p className="mt-1 text-ink/70 break-words">
+                            {humanApprovalAnswer?.requiresHumanApproval
+                              ? "Required before outreach"
+                              : "No requirement surfaced from private state"}
+                          </p>
+                        </div>
+                        <div className="border border-hairline bg-bg px-3 py-2 text-sm">
+                          <p className="text-xs uppercase tracking-wide text-ink/45">Authoritative signals</p>
+                          <p className="mt-1 text-ink/70 break-words">
+                            {summarizePermissionedSignals(safeNextStepAnswer.authoritativeSignals, "authoritative")}
+                          </p>
+                        </div>
+                        <div className="border border-hairline bg-bg px-3 py-2 text-sm">
+                          <p className="text-xs uppercase tracking-wide text-ink/45">Read-only signals</p>
+                          <p className="mt-1 text-ink/70 break-words">
+                            {summarizePermissionedSignals(safeNextStepAnswer.nonAuthoritativeSignals, "read-only")}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      <div className="border border-hairline bg-bg px-3 py-3 text-sm">
+                        <p className="text-xs uppercase tracking-wide text-ink/45 mb-2">Blocking issues</p>
+                        <ul className="space-y-1 text-ink/70">
+                          {visiblePermissionedItems(
+                            blockingIssuesAnswer?.blockingIssues,
+                            "No blocking issue surfaced from private state.",
+                          ).map((item) => (
+                            <li key={item} className="break-words">{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div className="border border-hairline bg-bg px-3 py-3 text-sm">
+                        <p className="text-xs uppercase tracking-wide text-ink/45 mb-2">Operator review</p>
+                        <ul className="space-y-1 text-ink/70">
+                          {visiblePermissionedItems(
+                            operatorReviewAnswer?.recommendedOperatorReview,
+                            "No operator review item surfaced from private state.",
+                          ).map((item) => (
+                            <li key={item} className="break-words">{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    <p className="mt-3 text-xs text-ink/55">
+                      Review is not approval. Evidence is not acceptance.
+                    </p>
                   </div>
                 )}
 
