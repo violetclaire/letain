@@ -21,6 +21,10 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { buildInquiryCoordinationState } from "@/lib/inquiryCoordinationState";
+import {
+  PERMISSIONED_NEXT_STEP_QUERY_TYPES,
+  answerPermissionedNextStepQuery,
+} from "@/lib/permissionedNextStepQuery";
 
 interface InquiryWorkspaceInquiry {
   id: string;
@@ -1667,7 +1671,14 @@ export default function InquiryWorkspace() {
       inquiryEventTimelineEntries,
     ],
   );
-  void inquiryCoordinationState;
+  const permissionedNextStepQueryAnswers = useMemo(
+    () => inquiryCoordinationState
+      ? PERMISSIONED_NEXT_STEP_QUERY_TYPES.map((queryType) =>
+        answerPermissionedNextStepQuery(inquiryCoordinationState, queryType))
+      : [],
+    [inquiryCoordinationState],
+  );
+  void permissionedNextStepQueryAnswers;
   const createScheduleDraft = useMutation({
     mutationFn: async (inquiry: InquiryWorkspaceInquiry) => {
       const titleParts = [
