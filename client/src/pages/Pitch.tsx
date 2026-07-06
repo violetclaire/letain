@@ -417,7 +417,7 @@ export default function Pitch() {
               letterSpacing: "0.18em", textTransform: "uppercase",
               color: `${BLUE}70`, textShadow: `0 0 8px ${BLUE}` }}>
               <span style={{ display: "inline-block", width: 16, height: 1, background: BLUE, boxShadow: `0 0 6px ${BLUE}` }} />
-              CDI · Patent Pending · atbriarwood.com
+              CDI · Patent Pending · briarwood.ai
               <span style={{ display: "inline-block", width: 16, height: 1, background: BLUE, boxShadow: `0 0 6px ${BLUE}` }} />
             </div>
           </motion.div>

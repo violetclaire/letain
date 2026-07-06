@@ -28,7 +28,7 @@ export const demoUser = {
   },
   admin: {
     id: "demo-admin-001",
-    email: "admin@atbriarwood.com",
+    email: "admin@briarwood.ai",
     firstName: "Admin",
     lastName: "User",
     profileImageUrl: null,

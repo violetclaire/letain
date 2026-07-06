@@ -484,7 +484,7 @@ export default function ArtistSettings() {
             {editingSlug ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-[#777]">atbriarwood.com/</span>
+                  <span className="text-sm text-[#777]">briarwood.ai/</span>
                   <input
                     type="text"
                     value={newSlug}
@@ -516,7 +516,7 @@ export default function ArtistSettings() {
             ) : (
               <div className="flex items-center gap-3">
                 <div className="flex-1 bg-[#F5F2ED] rounded px-4 py-3">
-                  <p className="text-sm font-medium text-black">atbriarwood.com/{settings.artistSlug}</p>
+                  <p className="text-sm font-medium text-black">briarwood.ai/{settings.artistSlug}</p>
                 </div>
                 <Button
                   variant="outline"
@@ -904,7 +904,7 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
                 <div className="mt-4 p-3 bg-[#F5F2ED] border border-[#E8E2D9] rounded">
                   <p className="text-xs text-[#555] font-medium mb-1">For Instagram / Social Media:</p>
                   <p className="text-xs text-[#777]">
-                    Share your direct link: atbriarwood.com/inquire/{settings.artistSlug}
+                    Share your direct link: briarwood.ai/inquire/{settings.artistSlug}
                   </p>
                 </div>
             </div>

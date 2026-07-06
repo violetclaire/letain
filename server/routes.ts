@@ -807,7 +807,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send reset email
       try {
         const { sendPasswordResetEmail } = await import('./emailService');
-        const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
+        const baseUrl = process.env.PUBLIC_BASE_URL || 'https://briarwood.ai';
         
         await sendPasswordResetEmail({
           toEmail: user.email!,
@@ -904,7 +904,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check for reserved words
-      const reservedWords = ['admin', 'artist', 'client', 'planner', 'api', 'login', 'signup', 'register', 'settings', 'profile', 'beauvette', 'support', 'help', 'browse', 'search', 'waitlist', 'onboarding'];
+      const reservedWords = ['admin', 'artist', 'client', 'planner', 'api', 'login', 'signup', 'register', 'settings', 'profile', 'briarwood', 'support', 'help', 'browse', 'search', 'waitlist', 'onboarding'];
       if (reservedWords.includes(username.toLowerCase())) {
         return res.status(400).json({ available: false, error: "This username is reserved" });
       }
@@ -942,7 +942,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check for reserved words
-      const reservedWords = ['admin', 'artist', 'client', 'planner', 'api', 'login', 'signup', 'register', 'settings', 'profile', 'beauvette', 'support', 'help', 'browse', 'search', 'waitlist', 'onboarding'];
+      const reservedWords = ['admin', 'artist', 'client', 'planner', 'api', 'login', 'signup', 'register', 'settings', 'profile', 'briarwood', 'support', 'help', 'browse', 'search', 'waitlist', 'onboarding'];
       if (reservedWords.includes(username.toLowerCase())) {
         return res.status(400).json({ error: "This username is reserved" });
       }
@@ -3099,7 +3099,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const testInquiries = [
         {
           vendorId: userId,
-          clientEmail: "test-bride@beauvette.test",
+          clientEmail: "test-bride@briarwood.test",
           clientName: "Test Client - Emily (Confirm Practice)",
           clientPhone: null,
           eventDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 days from now
@@ -3114,7 +3114,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         {
           vendorId: userId,
-          clientEmail: "test-client2@beauvette.test",
+          clientEmail: "test-client2@briarwood.test",
           clientName: "Test Client - Sarah (Hold Practice)",
           clientPhone: null,
           eventDate: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), // 45 days from now
@@ -3129,7 +3129,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         {
           vendorId: userId,
-          clientEmail: "test-client3@beauvette.test",
+          clientEmail: "test-client3@briarwood.test",
           clientName: "Test Client - Amanda (Propose Practice)",
           clientPhone: null,
           eventDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
@@ -4783,7 +4783,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         : undefined;
 
       // Build chat link - use production URL for client-facing links
-      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://briarwood.ai';
       const chatLink = `${baseUrl}/messages`;
 
       // Send branded email
@@ -5567,7 +5567,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Send signing email
-      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://briarwood.ai';
       const signingUrl = `${baseUrl}/sign/${signingToken}`;
       
       const { sendContractSigningEmail } = await import("./emailService");
@@ -5675,7 +5675,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Send signing email - use production URL for client-facing links
-      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://briarwood.ai';
       const signingUrl = `${baseUrl}/sign/${signingToken}`;
       
       const { sendContractSigningEmail } = await import("./emailService");
@@ -5846,7 +5846,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (artist?.email) {
         try {
-          const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
+          const baseUrl = process.env.PUBLIC_BASE_URL || 'https://briarwood.ai';
           const countersignUrl = `${baseUrl}/countersign/${token}`;
           const { sendContractSignedNotification } = await import("./emailService");
           await sendContractSignedNotification({
@@ -6092,7 +6092,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const artistName = artistProfile?.businessName || (artist?.firstName ? `${artist.firstName} ${artist.lastName || ""}`.trim() : "Beauty Artist");
       
       // Build signing URL - ALWAYS use production URL for client-facing links
-      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://briarwood.ai';
       const signingUrl = `${baseUrl}/sign/${signingToken}`;
       
       console.log("[SEND CONTRACT] Signing URL:", signingUrl);
@@ -6582,7 +6582,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           
           if (proposal) {
-            const shareUrl = `${process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com'}/quote/${shareToken}`;
+            const shareUrl = `${process.env.PUBLIC_BASE_URL || 'https://briarwood.ai'}/quote/${shareToken}`;
             (result as any).quoteCreated = true;
             (result as any).quoteId = proposal.id;
             (result as any).shareUrl = shareUrl;
@@ -6732,7 +6732,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? `\nPREVIOUSLY COLLECTED DATA (use this!):\n${JSON.stringify(collectedData, null, 2)}\n`
         : '';
       
-      const schedulePrompt = `You are Beauvette Secretary, an intelligent schedule creation assistant for wedding beauty artists.
+      const schedulePrompt = `You are Briarwood, an intelligent schedule creation assistant for wedding beauty artists.
 
 Your job is to have a natural conversation with the artist to gather schedule details, then generate a complete schedule with calculated time slots.
 
@@ -8211,7 +8211,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         .join(' • ');
       
       // Build share link
-      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://briarwood.ai';
       
       const shareLink = shareTokens.length === 1
         ? `${baseUrl}/schedule/${shareTokens[0]}`
@@ -8336,7 +8336,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       const eventNames = [...new Set(validSchedules.map(s => s!.eventName))].join(', ');
       
       // Build share link
-      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://briarwood.ai';
       const shareLink = shareTokens.length === 1
         ? `${baseUrl}/schedule/${shareTokens[0]}`
         : `${baseUrl}/schedules/${shareTokens.join(',')}`;
@@ -9203,7 +9203,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       });
       
       // Get base URL for chat link - use production URL
-      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://briarwood.ai';
       const chatLink = `${baseUrl}/chat-invite/${chatInvite.token}`;
       
       // Send email to client
@@ -9509,7 +9509,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         return res.status(400).json({ error: "This team member already exists" });
       }
       
-      // Check if the person has a Beauvette account
+      // Check if the person has a Briarwood account
       const existingUser = await storage.getUserByEmail(memberEmail);
       
       const member = await storage.createTeamMember({
@@ -11323,7 +11323,7 @@ Jessica,Williams,jess@email.com,2026-06-20,Sunset Gardens,3000,600,,,
 Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@events.com`;
 
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', 'attachment; filename="beauvette-booking-template.csv"');
+      res.setHeader('Content-Disposition', 'attachment; filename="briarwood-booking-template.csv"');
       res.send(template);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
@@ -12203,7 +12203,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       } as any);
       
       // Build chat link - use production URL
-      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://briarwood.ai';
       const chatLink = `${baseUrl}/chat-invite/${token}`;
       
       // Get vendor info
@@ -12279,7 +12279,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const vendorName = artistProfile?.businessName || vendor?.firstName || 'The Vendor';
       
       // Build chat link - use production URL
-      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://briarwood.ai';
       const chatLink = `${baseUrl}/chat-invite/${token}`;
       
       // Send chat invite email
@@ -12338,7 +12338,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
       const vendorName = artistProfile?.businessName || 'The Artist';
       
       // Build chat link
-      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://briarwood.ai';
       const chatLink = `${baseUrl}/chat-invite/${token}`;
       
       const eventDate = inquiry.eventDate 
@@ -15088,7 +15088,7 @@ Rules:
           try {
             const { Resend } = await import("resend");
             const resend = new Resend(process.env.RESEND_API_KEY);
-            const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
+            const baseUrl = process.env.PUBLIC_BASE_URL || 'https://briarwood.ai';
             const threadUrl = `${baseUrl}/inquiry/${inquiry.threadToken}`;
 
             const fmtCurrency = (val: number) => `$${val.toFixed(2)}`;
@@ -16309,7 +16309,7 @@ Rules:
       if (email) {
         try {
           const { sendArtistWelcomeEmail } = await import('./emailService');
-          const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
+          const baseUrl = process.env.PUBLIC_BASE_URL || 'https://briarwood.ai';
           const calendarUrl = `${baseUrl}/${artistSlug}`;
           const settingsUrl = `${baseUrl}/${artistSlug}/settings?token=${editToken}`;
           await sendArtistWelcomeEmail({
@@ -16328,7 +16328,7 @@ Rules:
       // Check referral artists - see which ones are not on platform yet
       const referralResults: Array<{ handle: string; isOnPlatform: boolean; inviteLink?: string }> = [];
       if (referralArtists && referralArtists.length > 0) {
-        const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
+        const baseUrl = process.env.PUBLIC_BASE_URL || 'https://briarwood.ai';
         
         for (const refHandle of referralArtists) {
           if (!refHandle || refHandle.trim() === '') continue;
@@ -16795,7 +16795,7 @@ Rules:
         .returning();
       
       // Send invite email to the new member
-      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://briarwood.ai';
       const inviteLink = `${baseUrl}/join?invite=${inviteToken}`;
       
       const { sendCircleInviteEmail } = await import('./emailService');
@@ -16937,7 +16937,7 @@ Rules:
         .returning();
       
       // Send invite email to the new member
-      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://briarwood.ai';
       const inviteLink = `${baseUrl}/join?invite=${inviteToken}`;
       
       const { sendCircleInviteEmail } = await import('./emailService');
@@ -18029,7 +18029,7 @@ Rules:
       const artistProfile = await storage.getArtistProfile(profile.userId);
       
       // Use production URL for notifications
-      const prodUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
+      const prodUrl = process.env.PUBLIC_BASE_URL || 'https://briarwood.ai';
       
       // Dry-run: when the operator has assistant dry-run enabled, suppress the
       // real operator alert SMS/email so nothing leaves the system during a demo.
@@ -18194,7 +18194,7 @@ Rules:
       // Send notifications to artist
       const artist = await storage.getUser(profile.userId);
       const artistProfile = await storage.getArtistProfile(profile.userId);
-      const prodUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
+      const prodUrl = process.env.PUBLIC_BASE_URL || 'https://briarwood.ai';
       
       // Dry-run: when the operator has assistant dry-run enabled, suppress the
       // real operator alert SMS/email so nothing leaves the system during a demo.
@@ -18487,7 +18487,7 @@ Rules:
       });
       
       // Build chat link using production URL
-      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://briarwood.ai';
       const chatLink = `${baseUrl}/chat-invite/${token}`;
       
       // Send email
@@ -18565,7 +18565,7 @@ Rules:
       });
       
       // Build chat link - use production URL
-      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://briarwood.ai';
       const chatLink = `${baseUrl}/chat-invite/${token}`;
       
       // Send chat invite email
@@ -18592,7 +18592,7 @@ Rules:
   // ============================================================
   // PUBLIC WEBHOOK - External Contact Form Submissions
   // This endpoint allows external websites to submit contact forms
-  // directly to Beauvette as inquiries. The "invisible secretary."
+  // directly to Briarwood as inquiries. The "invisible secretary."
   // ============================================================
   
   // CORS preflight for external form submissions
@@ -19420,7 +19420,7 @@ Rules:
 
       res.json({
         exportDate: new Date().toISOString(),
-        platform: "Briarwood / atbriarwood.com",
+        platform: "Briarwood / briarwood.ai",
         description: "CDI Context Graph Export - Decision Traces with Behavioral Signals",
         summary,
         traces: contextTraces,

@@ -171,13 +171,13 @@ export default function ArtistAdmin() {
   };
 
   const handleCopyInquiryLink = () => {
-    navigator.clipboard.writeText(`https://atbriarwood.com/${getActualSlug()}`);
+    navigator.clipboard.writeText(`https://briarwood.ai/${getActualSlug()}`);
     setLinkCopied(true);
     setTimeout(() => setLinkCopied(false), 2000);
   };
   
   const handleCopyLink = () => {
-    const link = `https://atbriarwood.com/${getActualSlug()}`;
+    const link = `https://briarwood.ai/${getActualSlug()}`;
     navigator.clipboard.writeText(link);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -412,12 +412,12 @@ export default function ArtistAdmin() {
                 <p className="text-[10px] uppercase tracking-wide text-ink/50 mb-2">Your Inquiry Link</p>
                 <div className="flex gap-2">
                   <div className="flex-1 bg-[#F5F0E8]/5 px-3 py-2 text-xs text-ink/70 rounded truncate">
-                    atbriarwood.com/{slug}
+                    briarwood.ai/{slug}
                   </div>
                   <button
                     type="button"
                     onClick={() => {
-                      navigator.clipboard.writeText(`https://atbriarwood.com/${slug}`);
+                      navigator.clipboard.writeText(`https://briarwood.ai/${slug}`);
                       setLinkCopied(true);
                       setTimeout(() => setLinkCopied(false), 2000);
                     }}
@@ -848,7 +848,7 @@ export default function ArtistAdmin() {
         <div className="mt-12 p-6 border border-dashed border-ink/20 text-center bg-surface">
           <p className="text-[10px] tracking-[0.2em] uppercase text-ink/40 mb-2">Inquiry intake link</p>
           <div className="flex items-center justify-center gap-3">
-            <p className="text-sm text-ink/70 font-mono">atbriarwood.com/{artist.artistSlug}</p>
+            <p className="text-sm text-ink/70 font-mono">briarwood.ai/{artist.artistSlug}</p>
             <button
               onClick={handleCopyLink}
               className="p-2 rounded hover:bg-ink/5 transition-colors"

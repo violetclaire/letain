@@ -1,13 +1,13 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.atbriarwood.app',
+  appId: 'ai.briarwood.app',
   appName: 'Briarwood',
   webDir: 'dist/public',
   server: {
     androidScheme: 'https',
     iosScheme: 'https',
-    url: 'https://atbriarwood.com',
+    url: 'https://briarwood.ai',
     cleartext: false
   },
   ios: {

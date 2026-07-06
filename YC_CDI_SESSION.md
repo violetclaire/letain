@@ -1,8 +1,8 @@
 # CDI (Choreography Depth Index) Algorithm - Coding Session Transcript
 
-**Project:** Beauvette Secretary - Booking platform for beauty professionals  
+**Project:** Briarwood - Booking platform for beauty professionals
 **Date:** February 4, 2026  
-**AI Tool:** Replit Agent (Claude)
+**AI Tool:** Coding agent (Claude)
 
 ---
 
