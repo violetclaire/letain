@@ -8,6 +8,7 @@ const artistSettingsSource = readFileSync("client/src/pages/ArtistSettings.tsx",
 const artistDashboardSource = readFileSync("client/src/pages/ArtistDashboard.tsx", "utf8");
 const artistDashboardRenderSource = artistDashboardSource.slice(artistDashboardSource.indexOf("return ("));
 const inquiryThreadSource = readFileSync("client/src/pages/InquiryThread.tsx", "utf8");
+const composeEmailModalSource = readFileSync("client/src/components/ComposeEmailModal.tsx", "utf8");
 const artistAdminSource = readFileSync("client/src/pages/ArtistAdmin.tsx", "utf8");
 const inquiryWorkspaceSource = readFileSync("client/src/pages/InquiryWorkspace.tsx", "utf8");
 
@@ -142,6 +143,19 @@ test("inquiry thread hides invoice, payment, and contract next steps behind defa
   assert.match(inquiryThreadSource, /enableContractsUi && \([\s\S]{0,900}Prepare Contract/);
   assert.match(inquiryThreadSource, /enableContractsUi && showContractForm && !showContractReview && \([\s\S]{0,9000}Review Contract/);
   assert.match(inquiryThreadSource, /enableContractsUi && showContractReview && \(/);
+});
+
+test("compose email keeps generic email reachable while gating the invoice template", () => {
+  assert.match(composeEmailModalSource, /import \{ enableInvoicesUi \} from "@\/lib\/demoFeatureFlags";/);
+  assert.match(composeEmailModalSource, /label: "Send Invoice"/);
+  assert.match(composeEmailModalSource, /preSelectedTemplate === "invoice" \? "general" : preSelectedTemplate/);
+  assert.match(
+    composeEmailModalSource,
+    /visibleTemplateKeys = \(Object\.keys\(EMAIL_TEMPLATES\) as Array<keyof typeof EMAIL_TEMPLATES>\)\.filter\(\s*\(key\) => enableInvoicesUi \|\| key !== "invoice",\s*\);/,
+  );
+  assert.match(composeEmailModalSource, /\{visibleTemplateKeys\.map\(\(key\) => \{/);
+  assert.match(artistDashboardSource, /data-testid="button-compose-email"/);
+  assert.match(artistDashboardSource, /data-testid="button-compose-email-mobile"/);
 });
 
 test("core demo-ready operator paths remain visible", () => {
