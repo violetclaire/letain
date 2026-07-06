@@ -1,10 +1,10 @@
-# Beauvette - App Store Submission Guide
+# Briarwood - App Store Submission Guide
 
 ## App Information
 
 ### Basic Details
-- **App Name:** Beauvette
-- **Bundle ID:** com.beauvette.app
+- **App Name:** Briarwood
+- **Bundle ID:** ai.briarwood.app
 - **Category:** Lifestyle > Beauty
 - **Age Rating:** 4+
 
@@ -12,7 +12,7 @@
 
 **Title (30 chars max):**
 ```
-Beauvette
+Briarwood
 ```
 
 **Subtitle (30 chars max):**
@@ -22,7 +22,7 @@ Beauty for Special Events
 
 **Description:**
 ```
-Beauvette connects you with talented beauty artists for life's most important days.
+Briarwood connects you with talented beauty artists for life's most important days.
 
 Whether you're planning a wedding, special event, or photo shoot, find the perfect makeup artist and hair stylist with ease.
 
@@ -38,7 +38,7 @@ FOR BEAUTY ARTISTS:
 • Receive inquiries and manage bookings
 • Build your reputation with reviews
 
-Beauvette makes booking beauty services simple, elegant, and stress-free.
+Briarwood makes booking beauty services simple, elegant, and stress-free.
 ```
 
 **Keywords (100 chars max):**
@@ -48,12 +48,12 @@ beauty,makeup,wedding,bridal,hair,stylist,artist,booking,event,glam
 
 **Support URL:**
 ```
-https://beauvette.com/support
+https://briarwood.ai/support
 ```
 
 **Privacy Policy URL:**
 ```
-https://beauvette.com/privacy
+https://briarwood.ai/privacy
 ```
 
 ---
@@ -71,7 +71,7 @@ You'll need screenshots for these device sizes:
 1. **12.9" Display** - 2048 x 2732 pixels
 
 ### Suggested Screenshots:
-1. Landing page showing "Beauvette" branding
+1. Landing page showing "Briarwood" branding
 2. Artist calendar/booking page
 3. Browse artists page
 4. Chat/messaging interface
@@ -110,7 +110,7 @@ You'll need screenshots for these device sizes:
 
 5. **In Xcode:**
    - Select your Apple Developer Team
-   - Set the Bundle Identifier to `com.beauvette.app`
+   - Set the Bundle Identifier to `ai.briarwood.app`
    - Connect an iPhone or select a simulator
    - Click "Run" to test
 
@@ -149,5 +149,5 @@ Suggested design:
 ## Contact
 
 For questions about the app submission process:
-- Email: violet@beauvette.com
-- Website: https://beauvette.com
+- Email: violet@briarwood.ai
+- Website: https://briarwood.ai

@@ -78,7 +78,7 @@ test("server sources keep the current mixed public URL fallback map while low-ri
 
   assert.match(
     routesText,
-    /process\.env\.PUBLIC_BASE_URL \|\| 'https:\/\/atbriarwood\.com'/,
+    /process\.env\.PUBLIC_BASE_URL \|\| 'https:\/\/briarwood\.ai'/,
   );
   assert.match(
     routesText,
@@ -148,5 +148,5 @@ test("frontend and build sources keep current public URL assumptions until later
   assert.match(artistSettingsText, /const embedApiUrl = 'https:\/\/dateinquiry\.com'/);
   assert.match(viteMetaImagesText, /process\.env\.PUBLIC_BASE_URL\?\.trim\(\)/);
   assert.match(viteMetaImagesText, /invalid PUBLIC_BASE_URL, skipping meta tag updates/);
-  assert.match(capacitorText, /url: 'https:\/\/atbriarwood\.com'/);
+  assert.match(capacitorText, /url: 'https:\/\/briarwood\.ai'/);
 });

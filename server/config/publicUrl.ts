@@ -1,4 +1,4 @@
-export const BRIARWOOD_PUBLIC_BASE_URL = "https://atbriarwood.com";
+export const BRIARWOOD_PUBLIC_BASE_URL = "https://briarwood.ai";
 export const LEGACY_DATEINQUIRY_PUBLIC_BASE_URL = "https://dateinquiry.com";
 
 interface PublicBaseUrlOptions {

@@ -66,7 +66,7 @@ const trackedRuntimeReferences: InventoryEntry[] = [
       /const clientThreadLink = `https:\/\/dateinquiry\.com\/thread\/\$\{inquiry\.clientThreadToken\}`;/,
       /const adminThreadLink = `https:\/\/dateinquiry\.com\/inquiry\/\$\{inquiry\.threadToken\}`;/,
       /const baseUrl = process\.env\.PUBLIC_BASE_URL \|\| 'https:\/\/dateinquiry\.com';/,
-      /const baseUrl = process\.env\.PUBLIC_BASE_URL \|\| 'https:\/\/atbriarwood\.com';/,
+      /const baseUrl = process\.env\.PUBLIC_BASE_URL \|\| 'https:\/\/briarwood\.ai';/,
     ],
   },
   {
@@ -89,7 +89,7 @@ const trackedRuntimeReferences: InventoryEntry[] = [
     file: "server/config/publicUrl.ts",
     classifications: ["public metadata / SEO / branding", "legacy bridge context"],
     markers: [
-      /export const BRIARWOOD_PUBLIC_BASE_URL = "https:\/\/atbriarwood\.com";/,
+      /export const BRIARWOOD_PUBLIC_BASE_URL = "https:\/\/briarwood\.ai";/,
       /export const LEGACY_DATEINQUIRY_PUBLIC_BASE_URL = "https:\/\/dateinquiry\.com";/,
       /export function getLegacyDateInquiryPublicBaseUrl\(\): string/,
     ],
@@ -102,12 +102,12 @@ const trackedRuntimeReferences: InventoryEntry[] = [
   {
     file: "server/index.ts",
     classifications: ["public metadata / SEO / branding"],
-    markers: [/'atbriarwood\.com'/, /'www\.atbriarwood\.com'/],
+    markers: [/'briarwood\.ai'/, /'www\.briarwood\.ai'/],
   },
   {
     file: "capacitor.config.ts",
     classifications: ["public metadata / SEO / branding"],
-    markers: [/url: 'https:\/\/atbriarwood\.com'/],
+    markers: [/url: 'https:\/\/briarwood\.ai'/],
   },
   {
     file: "client/src/pages/ArtistSettings.tsx",
@@ -115,7 +115,7 @@ const trackedRuntimeReferences: InventoryEntry[] = [
     markers: [
       /const embedApiUrl = 'https:\/\/dateinquiry\.com';/,
       /<iframe src="https:\/\/dateinquiry\.com\/inquire\/\$\{settings\.artistSlug\}"/,
-      /atbriarwood\.com\/\{settings\.artistSlug\}/,
+      /briarwood\.ai\/\{settings\.artistSlug\}/,
     ],
   },
   {
@@ -156,27 +156,15 @@ const trackedRuntimeReferences: InventoryEntry[] = [
 ];
 
 const allowedRuntimeReferenceFiles = new Set([
-  "capacitor.config.ts",
   "client/src/App.tsx",
   "client/src/components/AIChatPanel.tsx",
   "client/src/hooks/useDashboard.ts",
-  "client/src/lib/demoData.ts",
-  "client/src/pages/ArtistAdmin.tsx",
   "client/src/pages/ArtistDashboard.tsx",
-  "client/src/pages/ArtistLogin.tsx",
   "client/src/pages/ArtistSettings.tsx",
-  "client/src/pages/ContextGraph.tsx",
-  "client/src/pages/DemoLandingPreview.tsx",
-  "client/src/pages/Landing.tsx",
   "client/src/pages/Login.tsx",
-  "client/src/pages/Memo.tsx",
-  "client/src/pages/Pitch.tsx",
-  "client/src/pages/ProfileSettings.tsx",
   "client/src/pages/Proposals.tsx",
-  "client/src/pages/PublicOnboarding.tsx",
   "client/src/pages/Sandbox.tsx",
   "client/src/pages/SecretaryOnboarding.tsx",
-  "client/src/pages/SetupComplete.tsx",
   "client/src/pages/intake/ArtistIntake.tsx",
   "server/acpHandler.ts",
   "server/agentRoutes.ts",
@@ -186,7 +174,6 @@ const allowedRuntimeReferenceFiles = new Set([
   "server/config/publicUrl.ts",
   "server/cronJobs.ts",
   "server/emailService.ts",
-  "server/index.ts",
   "server/replitAuth.ts",
   "server/routes.ts",
   "server/routingService.ts",
@@ -197,7 +184,7 @@ const allowedRuntimeReferenceFiles = new Set([
 ]);
 
 const trackedRuntimePattern =
-  /dateinquiry\.com|atbriarwood\.com|DateInquiry|The Makeup Dolls|Makeup Dolls/i;
+  /dateinquiry\.com|DateInquiry|The Makeup Dolls|Makeup Dolls/i;
 
 async function readRepoFile(relativePath: string): Promise<string> {
   return readFile(path.join(repoRoot, relativePath), "utf8");

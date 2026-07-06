@@ -2,7 +2,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import pLimit from "p-limit";
 import pRetry from "p-retry";
 
-// Replit AI Integrations - Gemini access without requiring your own API key
+// AI integration - Gemini access without requiring your own API key
 const ai = new GoogleGenAI({
   apiKey: process.env.AI_INTEGRATIONS_GEMINI_API_KEY,
   httpOptions: {

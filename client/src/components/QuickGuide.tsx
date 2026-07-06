@@ -15,7 +15,7 @@ interface QuickGuideProps {
   onComplete?: () => void;
 }
 
-const GUIDE_STORAGE_KEY = "beauvette_guides_seen";
+const GUIDE_STORAGE_KEY = "briarwood_guides_seen";
 
 function getSeenGuides(): string[] {
   try {

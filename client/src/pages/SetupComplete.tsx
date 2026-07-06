@@ -16,7 +16,7 @@ export default function SetupComplete() {
     enabled: !!artistSlug
   });
 
-  const secretaryLink = `https://atbriarwood.com/${artistSlug}`;
+  const secretaryLink = `https://briarwood.ai/${artistSlug}`;
 
   if (isLoading) {
     return (

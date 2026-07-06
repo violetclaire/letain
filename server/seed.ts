@@ -10,21 +10,21 @@ async function seed() {
       {
         username: "makeup_master",
         password: "password123",
-        email: "makeup@beauvette.com",
+        email: "makeup@briarwood.ai",
         role: "artist",
         fullName: "Sophia Martinez"
       },
       {
         username: "hair_guru",
         password: "password123",
-        email: "hair@beauvette.com",
+        email: "hair@briarwood.ai",
         role: "artist",
         fullName: "Emma Williams"
       },
       {
         username: "bridal_beauty",
         password: "password123",
-        email: "bridal@beauvette.com",
+        email: "bridal@briarwood.ai",
         role: "artist",
         fullName: "Isabella Chen"
       }
@@ -83,7 +83,7 @@ async function seed() {
     await db.insert(users).values([{
       username: "planner_pro",
       password: "password123",
-      email: "planner@beauvette.com",
+      email: "planner@briarwood.ai",
       role: "planner",
       fullName: "Victoria Rodriguez"
     }]);
@@ -92,7 +92,7 @@ async function seed() {
     await db.insert(users).values([{
       username: "admin",
       password: "admin123",
-      email: "admin@beauvette.com",
+      email: "admin@briarwood.ai",
       role: "admin",
       fullName: "Admin User"
     }]);

@@ -386,7 +386,7 @@ export default function ContextGraph() {
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div>
-            <p className="text-xs tracking-[0.16em] uppercase text-[#888] mb-2">Briarwood / atbriarwood.com</p>
+            <p className="text-xs tracking-[0.16em] uppercase text-[#888] mb-2">Briarwood / briarwood.ai</p>
             <h1
               className="text-2xl sm:text-3xl tracking-tight"
               style={{ fontFamily: "'Fraunces', serif" }}

@@ -17,7 +17,7 @@ function sectionBetween(source: string, startMarker: string, endMarker: string):
 }
 
 const BRIARWOOD_BASE_URL_FALLBACK =
-  "const baseUrl = process.env.PUBLIC_BASE_URL || 'https://atbriarwood.com';";
+  "const baseUrl = process.env.PUBLIC_BASE_URL || 'https://briarwood.ai';";
 const DATEINQUIRY_BASE_URL_FALLBACK =
   "const baseUrl = process.env.PUBLIC_BASE_URL || 'https://dateinquiry.com';";
 const SIGNING_URL_FROM_TOKEN = "const signingUrl = `${baseUrl}/sign/${signingToken}`;";
@@ -64,7 +64,7 @@ test("contract upload keeps the current relative signing URL response shape", ()
   assert.ok(section.includes("const signingToken = randomUUID();"));
   assert.ok(section.includes("signingToken,"));
   assert.ok(section.includes("signingUrl: `/sign/${signingToken}`"));
-  assert.doesNotMatch(section, /PUBLIC_BASE_URL|atbriarwood\.com|dateinquiry\.com/);
+  assert.doesNotMatch(section, /PUBLIC_BASE_URL|briarwood\.ai|dateinquiry\.com/);
 });
 
 test("authenticated booking contract send paths build Briarwood signing links from signingToken", () => {
@@ -140,7 +140,7 @@ test("contract token URL construction remains excluded from public URL helper mi
   );
   assert.ok(
     publicUrlTestSource.includes(
-      "/process\\.env\\.PUBLIC_BASE_URL \\|\\| 'https:\\/\\/atbriarwood\\.com'/",
+      "/process\\.env\\.PUBLIC_BASE_URL \\|\\| 'https:\\/\\/briarwood\\.ai'/",
     ),
   );
   assert.ok(

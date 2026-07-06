@@ -1,4 +1,4 @@
-# Beauvette Secretary - AI Coding Session Highlights
+# Briarwood - AI Coding Session Highlights
 ## For YC Spring 2026 Application
 
 ---
@@ -92,12 +92,12 @@ Every client interaction uses private links:
 Clients never create accounts. The link IS the authentication.
 
 ### White-Label Design
-Zero Beauvette branding visible to clients. Artists get their own branded:
-- Inquiry forms: `beauvette.app/inquire/{artist-slug}`
+Zero Briarwood branding visible to clients. Artists get their own branded:
+- Inquiry forms: `briarwood.ai/inquire/{artist-slug}`
 - Embed code for existing websites
 - Auto-responder emails
 
-Beauvette is invisible infrastructure.
+Briarwood is invisible infrastructure.
 
 ### The Secretary Architecture
 ```
@@ -147,4 +147,4 @@ This lets AI agents earn trust through performance rather than being constrained
 
 ---
 
-*Beauvette Secretary: "We were taught to do it all ourselves. That was never independence - it was exhaustion. This is real independence."*
+*Briarwood: "We were taught to do it all ourselves. That was never independence - it was exhaustion. This is real independence."*

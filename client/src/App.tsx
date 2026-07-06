@@ -111,7 +111,7 @@ import BriarwoodDemo from "@/pages/BriarwoodDemo";
 import AgentBrief from "@/pages/AgentBrief";
 import HandoffOutcome from "@/pages/HandoffOutcome";
 
-// Domain-aware login - shows "Find Your Thread" on dateinquiry.com, full login on beauvette.app
+// Domain-aware login - shows "Find Your Thread" on dateinquiry.com, full login on briarwood.ai
 function DomainAwareLogin() {
   const isWhiteLabelDomain = window.location.hostname.includes('dateinquiry');
   if (isWhiteLabelDomain) {

@@ -11,12 +11,12 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
-    const stored = localStorage.getItem("beauvette-theme");
+    const stored = localStorage.getItem("briarwood-theme");
     return (stored as Theme) || "dark";
   });
 
   useEffect(() => {
-    localStorage.setItem("beauvette-theme", theme);
+    localStorage.setItem("briarwood-theme", theme);
     document.documentElement.classList.remove("light", "dark");
     document.documentElement.classList.add(theme);
   }, [theme]);

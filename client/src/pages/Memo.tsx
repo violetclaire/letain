@@ -226,7 +226,7 @@ export default function Memo() {
         </div>
 
         <div className="memo-foot">
-          <span>Briarwood AI · atbriarwood.com</span>
+          <span>Briarwood AI · briarwood.ai</span>
           <span>violet@briarwood.ai</span>
           <span>CDI™ Patent Pending</span>
         </div>

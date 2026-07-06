@@ -293,8 +293,8 @@ app.set('trust proxy', 1);
 
 // CORS configuration for external form submissions
 const allowedOrigins = [
-  'https://beauvette.app',
-  'https://www.beauvette.app',
+  'https://briarwood.ai',
+  'https://www.briarwood.ai',
   'https://themakeupdolls.com',
   'https://www.themakeupdolls.com',
   // Allow localhost for development
@@ -334,8 +334,8 @@ const BRIARWOOD_LANDING_HOSTS = new Set([
   'www.briarwood.ai',
   'briarwood.com',
   'www.briarwood.com',
-  'atbriarwood.com',
-  'www.atbriarwood.com',
+  'briarwood.ai',
+  'www.briarwood.ai',
 ]);
 const briarwoodLandingPath = path.join(process.cwd(), 'briarwood-landing', 'index.html');
 app.use((req, res, next) => {
@@ -375,7 +375,7 @@ app.use(helmet({
       imgSrc: ["'self'", "data:", "blob:", "https:"],
       connectSrc: ["'self'", "https:", "wss:"],
       frameSrc: ["'self'"],
-      frameAncestors: ["'self'", "https://themakeupdolls.com", "https://www.themakeupdolls.com", "https://beauvette.app"],
+      frameAncestors: ["'self'", "https://themakeupdolls.com", "https://www.themakeupdolls.com", "https://briarwood.ai"],
     },
   },
   crossOriginEmbedderPolicy: false, // Allow embedding external resources
