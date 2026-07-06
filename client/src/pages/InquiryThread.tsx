@@ -6,6 +6,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Loader2, Send, X, Check, Plus, Trash2, Eye, Pencil, UserPlus, Copy, FileText, Calendar } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { enableContractsUi, enableInvoicesUi, enablePaymentsUi } from "@/lib/demoFeatureFlags";
 import type { Inquiry, ArtistProfile, TrustTimelineEntry } from "@shared/schema";
 import type { ServiceItem, ThreadMessageUI as ThreadMessage } from "@shared/types";
 
@@ -626,31 +627,39 @@ export default function InquiryThread() {
                   </div>
                 </Link>
 
-                <button
-                  onClick={() => setShowInvoiceForm(!showInvoiceForm)}
-                  className="w-full py-4 border border-[#E8E2D9] hover:bg-[#F5F2ED] transition-all text-center rounded"
-                  data-testid="button-create-invoice"
-                >
-                  <p className="text-sm">Create Invoice</p>
-                  <p className="text-[10px] opacity-50 mt-1">For trials, balance, or extras</p>
-                </button>
+                {enableInvoicesUi && (
+                  <button
+                    onClick={() => setShowInvoiceForm(!showInvoiceForm)}
+                    className="w-full py-4 border border-[#E8E2D9] hover:bg-[#F5F2ED] transition-all text-center rounded"
+                    data-testid="button-create-invoice"
+                  >
+                    <p className="text-sm">Create Invoice</p>
+                    <p className="text-[10px] opacity-50 mt-1">For trials, balance, or extras</p>
+                  </button>
+                )}
 
-                {showInvoiceForm && (
+                {enableInvoicesUi && showInvoiceForm && (
                   <div className="border border-[#E8E2D9] rounded p-6">
                     {!artist?.squareAccessToken ? (
                       <div className="text-center py-4">
-                        <p className="text-sm text-[#555] mb-4">Connect Square to send invoices</p>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const currentUrl = window.location.pathname + window.location.search;
-                            window.location.href = `/api/square/connect/start/${artist?.artistSlug}?returnUrl=${encodeURIComponent(currentUrl)}`;
-                          }}
-                          className="w-full py-3 bg-[#1A1A1A] text-white text-sm rounded hover:bg-[#333] transition-all"
-                          data-testid="button-connect-square-invoice"
-                        >
-                          Connect Square
-                        </button>
+                        {enablePaymentsUi ? (
+                          <>
+                            <p className="text-sm text-[#555] mb-4">Connect Square to send invoices</p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const currentUrl = window.location.pathname + window.location.search;
+                                window.location.href = `/api/square/connect/start/${artist?.artistSlug}?returnUrl=${encodeURIComponent(currentUrl)}`;
+                              }}
+                              className="w-full py-3 bg-[#1A1A1A] text-white text-sm rounded hover:bg-[#333] transition-all"
+                              data-testid="button-connect-square-invoice"
+                            >
+                              Connect Square
+                            </button>
+                          </>
+                        ) : (
+                          <p className="text-sm text-[#555]">Invoice setup is unavailable in this demo.</p>
+                        )}
                       </div>
                     ) : (
                       <form
@@ -708,47 +717,51 @@ export default function InquiryThread() {
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <button
-                    onClick={prepareContract}
-                    disabled={isPreparing}
-                    className="w-full py-4 bg-[#1A1A1A] text-white hover:bg-[#333] transition-all text-center rounded disabled:opacity-50"
-                    data-testid="button-prepare-contract"
-                  >
-                    {isPreparing ? (
-                      <div className="flex items-center justify-center gap-2">
-                        <Loader2 size={16} className="animate-spin" />
-                        <p className="text-sm">Reading conversation...</p>
+                {enableContractsUi && (
+                  <>
+                    <div className="space-y-2">
+                      <button
+                        onClick={prepareContract}
+                        disabled={isPreparing}
+                        className="w-full py-4 bg-[#1A1A1A] text-white hover:bg-[#333] transition-all text-center rounded disabled:opacity-50"
+                        data-testid="button-prepare-contract"
+                      >
+                        {isPreparing ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <Loader2 size={16} className="animate-spin" />
+                            <p className="text-sm">Reading conversation...</p>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="text-sm">Prepare Contract</p>
+                            <p className="text-[10px] opacity-70 mt-1">Secretary reads the conversation and drafts it for you</p>
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => { setShowContractForm(!showContractForm); setAvailabilityWarning(null); setPrepareNotes(null); }}
+                        className="w-full py-2 text-[#666] text-xs underline hover:text-[#1A1A1A] transition-all text-center"
+                        data-testid="button-manual-contract"
+                      >
+                        or fill in manually
+                      </button>
+                    </div>
+
+                    {availabilityWarning && showContractForm && (
+                      <div className="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-800">
+                        <strong>Calendar conflict:</strong> {availabilityWarning}
                       </div>
-                    ) : (
-                      <>
-                        <p className="text-sm">Prepare Contract</p>
-                        <p className="text-[10px] opacity-70 mt-1">Secretary reads the conversation and drafts it for you</p>
-                      </>
                     )}
-                  </button>
-                  <button
-                    onClick={() => { setShowContractForm(!showContractForm); setAvailabilityWarning(null); setPrepareNotes(null); }}
-                    className="w-full py-2 text-[#666] text-xs underline hover:text-[#1A1A1A] transition-all text-center"
-                    data-testid="button-manual-contract"
-                  >
-                    or fill in manually
-                  </button>
-                </div>
 
-                {availabilityWarning && showContractForm && (
-                  <div className="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-800">
-                    <strong>Calendar conflict:</strong> {availabilityWarning}
-                  </div>
-                )}
-                
-                {prepareNotes && showContractForm && (
-                  <div className="bg-amber-50 border border-amber-200 rounded p-3 text-sm text-amber-800">
-                    <strong>Notes:</strong> {prepareNotes}
-                  </div>
+                    {prepareNotes && showContractForm && (
+                      <div className="bg-amber-50 border border-amber-200 rounded p-3 text-sm text-amber-800">
+                        <strong>Notes:</strong> {prepareNotes}
+                      </div>
+                    )}
+                  </>
                 )}
 
-                {showContractForm && !showContractReview && (
+                {enableContractsUi && showContractForm && !showContractReview && (
                   <div className="border border-[#E8E2D9] rounded p-6">
                     <div className="space-y-5">
                       <div className="flex items-center justify-between mb-4">
@@ -872,7 +885,7 @@ export default function InquiryThread() {
                   </div>
                 )}
                 
-                {showContractReview && (
+                {enableContractsUi && showContractReview && (
                   <div className="border border-[#E8E2D9] rounded p-6">
                     <h4 className="text-sm font-medium text-[#1A1A1A] mb-4">Contract Review</h4>
                     

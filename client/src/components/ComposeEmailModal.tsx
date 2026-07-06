@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { enableInvoicesUi } from "@/lib/demoFeatureFlags";
 
 interface ComposeEmailModalProps {
   isOpen: boolean;
@@ -66,12 +67,16 @@ export default function ComposeEmailModal({
   preSelectedTemplate = "general",
 }: ComposeEmailModalProps) {
   const { toast } = useToast();
-  const [selectedTemplate, setSelectedTemplate] = useState<keyof typeof EMAIL_TEMPLATES>(preSelectedTemplate);
+  const initialTemplate = !enableInvoicesUi && preSelectedTemplate === "invoice" ? "general" : preSelectedTemplate;
+  const [selectedTemplate, setSelectedTemplate] = useState<keyof typeof EMAIL_TEMPLATES>(initialTemplate);
   const [toEmail, setToEmail] = useState(preSelectedEmail);
-  const [subject, setSubject] = useState(EMAIL_TEMPLATES[preSelectedTemplate].subject);
-  const [body, setBody] = useState(EMAIL_TEMPLATES[preSelectedTemplate].body);
+  const [subject, setSubject] = useState(EMAIL_TEMPLATES[initialTemplate].subject);
+  const [body, setBody] = useState(EMAIL_TEMPLATES[initialTemplate].body);
   const [sending, setSending] = useState(false);
   const [showContacts, setShowContacts] = useState(false);
+  const visibleTemplateKeys = (Object.keys(EMAIL_TEMPLATES) as Array<keyof typeof EMAIL_TEMPLATES>).filter(
+    (key) => enableInvoicesUi || key !== "invoice",
+  );
 
   if (!isOpen) return null;
 
@@ -161,7 +166,7 @@ export default function ComposeEmailModal({
 
         <div className="p-4 space-y-4">
           <div className="flex gap-2 flex-wrap">
-            {(Object.keys(EMAIL_TEMPLATES) as Array<keyof typeof EMAIL_TEMPLATES>).map((key) => {
+            {visibleTemplateKeys.map((key) => {
               const template = EMAIL_TEMPLATES[key];
               const Icon = template.icon;
               return (
