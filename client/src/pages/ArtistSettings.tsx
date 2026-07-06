@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { FormDesigner } from "@/components/FormDesigner";
+import { enableLegacyClientCreationUi, enablePaymentsUi } from "@/lib/demoFeatureFlags";
 
 function escapeHtml(str: string): string {
   return str
@@ -587,54 +588,57 @@ export default function ArtistSettings() {
             )}
           </section>
 
-          {/* Square Payment Connection */}
-          <section className="border border-[#E8E2D9] rounded p-6">
-            <h2 className="text-lg font-serif text-black mb-2">Payment Processing</h2>
-            <p className="text-[#666] text-sm mb-4">
-              Connect Square to send invoices and collect payments from clients.
-            </p>
-            
-            {(squareStatus?.connected || squareConnected) ? (
-              <div className="flex items-center gap-3 p-4 bg-emerald-900/20 border border-emerald-500/30 rounded">
-                <Check className="w-5 h-5 text-emerald-400" />
-                <div>
-                  <p className="text-emerald-400 font-medium">Square Connected</p>
-                  <p className="text-[#777] text-xs">You can now send invoices from inquiry threads</p>
+          {enablePaymentsUi && (
+            <section className="border border-[#E8E2D9] rounded p-6">
+              <h2 className="text-lg font-serif text-black mb-2">Payment Processing</h2>
+              <p className="text-[#666] text-sm mb-4">
+                Connect Square to send invoices and collect payments from clients.
+              </p>
+
+              {(squareStatus?.connected || squareConnected) ? (
+                <div className="flex items-center gap-3 p-4 bg-emerald-900/20 border border-emerald-500/30 rounded">
+                  <Check className="w-5 h-5 text-emerald-400" />
+                  <div>
+                    <p className="text-emerald-400 font-medium">Square Connected</p>
+                    <p className="text-[#777] text-xs">You can now send invoices from inquiry threads</p>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <Button
-                onClick={handleSquareConnect}
-                disabled={squareConnecting}
-                className="bg-[#F5F0E8] text-[#1A1A1A] hover:bg-white"
-                data-testid="button-connect-square"
-              >
-                {squareConnecting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Connecting...
-                  </>
-                ) : (
-                  "Connect Square"
-                )}
-              </Button>
-            )}
-          </section>
+              ) : (
+                <Button
+                  onClick={handleSquareConnect}
+                  disabled={squareConnecting}
+                  className="bg-[#F5F0E8] text-[#1A1A1A] hover:bg-white"
+                  data-testid="button-connect-square"
+                >
+                  {squareConnecting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Connecting...
+                    </>
+                  ) : (
+                    "Connect Square"
+                  )}
+                </Button>
+              )}
+            </section>
+          )}
 
           {/* Add Client */}
-          <section className="border border-[#E8E2D9] rounded p-6">
-            <h2 className="text-lg font-serif text-black mb-2">Add New Client</h2>
-            <p className="text-[#666] text-sm mb-4">
-              Manually add a client to send them an invoice or contract.
-            </p>
-            <Button
-              onClick={() => setShowAddClient(true)}
-              className="bg-[#F5F0E8] text-[#1A1A1A] hover:bg-white"
-              data-testid="button-add-client-settings"
-            >
-              Add Client
-            </Button>
-          </section>
+          {enableLegacyClientCreationUi && (
+            <section className="border border-[#E8E2D9] rounded p-6">
+              <h2 className="text-lg font-serif text-black mb-2">Add New Client</h2>
+              <p className="text-[#666] text-sm mb-4">
+                Manually add a client to send them an invoice or contract.
+              </p>
+              <Button
+                onClick={() => setShowAddClient(true)}
+                className="bg-[#F5F0E8] text-[#1A1A1A] hover:bg-white"
+                data-testid="button-add-client-settings"
+              >
+                Add Client
+              </Button>
+            </section>
+          )}
 
           {/* Upload Your Info Sheet */}
           <section className="border border-[#E8E2D9] rounded p-6">
@@ -913,7 +917,7 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
       </main>
 
       {/* Add Client Modal */}
-      {showAddClient && (
+      {enableLegacyClientCreationUi && showAddClient && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-[#FAF8F5] border border-[#E8E2D9] rounded-lg p-6 max-w-md w-full">
             <h3 className="text-lg font-serif text-black mb-4">Add New Client</h3>

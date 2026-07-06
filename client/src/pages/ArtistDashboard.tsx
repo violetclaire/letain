@@ -8,6 +8,7 @@ import BusinessChatPanel from "../components/BusinessChatPanel";
 import ComposeEmailModal from "../components/ComposeEmailModal";
 import DeclineReferralModal from "../components/DeclineReferralModal";
 import { useDashboard } from "@/hooks/useDashboard";
+import { enableContractsUi, enableInvoicesUi, enablePaymentsUi } from "@/lib/demoFeatureFlags";
 import Uppy from "@uppy/core";
 import AwsS3 from "@uppy/aws-s3";
 import DOMPurify from "dompurify";
@@ -2279,9 +2280,11 @@ export default function ArtistDashboard() {
               <Link href="/artist/schedules" className="text-xs ink-soft hover:ink-main flex items-center gap-1 transition-colors" data-testid="link-schedule-maker">
                 <Clock size={14} /> Day-Of Schedule
               </Link>
-              <Link href="/artist/contracts" className="text-xs ink-soft hover:ink-main flex items-center gap-1 transition-colors" data-testid="link-contracts">
-                <FileText size={14} /> Contracts
-              </Link>
+              {enableContractsUi && (
+                <Link href="/artist/contracts" className="text-xs ink-soft hover:ink-main flex items-center gap-1 transition-colors" data-testid="link-contracts">
+                  <FileText size={14} /> Contracts
+                </Link>
+              )}
               <Link href="/settings" className="text-xs ink-soft hover:ink-main flex items-center gap-1 transition-colors" data-testid="link-settings">
                 <Settings size={14} /> Settings
               </Link>
@@ -2370,10 +2373,12 @@ export default function ArtistDashboard() {
                     <Clock size={16} className="ink-soft" /> 
                     <span>Day-Of Schedule</span>
                   </Link>
-                  <Link href="/artist/contracts" className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 border-b border-[#e5e8f2]">
-                    <FileText size={16} className="ink-soft" /> 
-                    <span>Contracts</span>
-                  </Link>
+                  {enableContractsUi && (
+                    <Link href="/artist/contracts" className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 border-b border-[#e5e8f2]">
+                      <FileText size={16} className="ink-soft" />
+                      <span>Contracts</span>
+                    </Link>
+                  )}
                   <a href="/api/logout" className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 text-red-600">
                     <LogOut size={16} /> 
                     <span>Logout</span>
@@ -2781,7 +2786,11 @@ export default function ArtistDashboard() {
                           <span className="flex items-center gap-2 font-header text-md ink-main">
                             <Settings size={16} className="text-[#6B4A55]" />
                             Manage
-                            <span className="text-[0.65rem] font-normal ink-soft">(Portfolio, Contracts, Payments)</span>
+                            <span className="text-[0.65rem] font-normal ink-soft">
+                              {enableContractsUi || enableInvoicesUi || enablePaymentsUi
+                                ? "(Portfolio and enabled tools)"
+                                : "(Portfolio)"}
+                            </span>
                           </span>
                           {showManageSection ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                         </button>
@@ -2843,56 +2852,65 @@ export default function ArtistDashboard() {
                               )}
                             </div>
 
-                            {/* Contracts & Payments - Compact Row */}
-                            <div className="px-5 py-4 grid grid-cols-2 gap-4">
+                            {(enableContractsUi || enableInvoicesUi || enablePaymentsUi) && (
+                              <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                               {/* Contracts */}
-                              <div>
-                                <h3 className="font-header text-sm ink-main mb-2 flex items-center gap-2">
-                                  <FileText size={14} /> Contracts
-                                </h3>
-                                <Link 
-                                  href="/artist/contracts"
-                                  className="bg-[#fbfcff] border border-dashed border-[#c5ccd8] rounded-md p-3 flex items-center justify-center gap-2 text-center cursor-pointer hover:bg-white hover:border-black transition-colors group"
-                                  data-testid="link-create-contract"
-                                >
-                                  <Plus size={14} className="group-hover:text-black" />
-                                  <span className="text-xs font-medium ink-main">New Contract</span>
-                                </Link>
-                              </div>
+                                {enableContractsUi && (
+                                  <div>
+                                    <h3 className="font-header text-sm ink-main mb-2 flex items-center gap-2">
+                                      <FileText size={14} /> Contracts
+                                    </h3>
+                                    <Link
+                                      href="/artist/contracts"
+                                      className="bg-[#fbfcff] border border-dashed border-[#c5ccd8] rounded-md p-3 flex items-center justify-center gap-2 text-center cursor-pointer hover:bg-white hover:border-black transition-colors group"
+                                      data-testid="link-create-contract"
+                                    >
+                                      <Plus size={14} className="group-hover:text-black" />
+                                      <span className="text-xs font-medium ink-main">New Contract</span>
+                                    </Link>
+                                  </div>
+                                )}
 
                               {/* Payments */}
-                              <div>
-                                <h3 className="font-header text-sm ink-main mb-2 flex items-center gap-2">
-                                  <DollarSign size={14} /> Payments
-                                </h3>
-                                <div className="flex gap-2">
-                                  <button 
-                                    className="flex-1 flex items-center justify-center gap-1.5 p-2.5 border border-[#c5ccd8] rounded bg-white hover:border-black transition-colors text-xs"
-                                    onClick={() => setShowInvoiceModal(true)}
-                                    data-testid="button-send-invoice"
-                                  >
-                                    <Send size={12} />
-                                    Invoice
-                                  </button>
-                                  
-                                  <button 
-                                    onClick={handleSquareConnect}
-                                    disabled={squareLoading}
-                                    className="flex-1 flex items-center justify-center gap-1.5 p-2.5 border border-[#c5ccd8] rounded bg-white hover:border-black transition-colors disabled:opacity-50 text-xs"
-                                    data-testid="button-square-connect"
-                                  >
-                                    <CreditCard size={12} />
-                                    {squareLoading ? '...' : 'Setup'}
-                                  </button>
-                                </div>
-                                {squareStatus?.connected && squareStatus.paymentsEnabled && (
-                                  <div className="flex items-center gap-1 mt-2 text-[0.6rem] text-green-600">
-                                    <Check size={10} />
-                                    Square ready
+                                {(enableInvoicesUi || enablePaymentsUi) && (
+                                  <div>
+                                    <h3 className="font-header text-sm ink-main mb-2 flex items-center gap-2">
+                                      <DollarSign size={14} /> Payments
+                                    </h3>
+                                    <div className="flex gap-2">
+                                      {enableInvoicesUi && (
+                                        <button
+                                          className="flex-1 flex items-center justify-center gap-1.5 p-2.5 border border-[#c5ccd8] rounded bg-white hover:border-black transition-colors text-xs"
+                                          onClick={() => setShowInvoiceModal(true)}
+                                          data-testid="button-send-invoice"
+                                        >
+                                          <Send size={12} />
+                                          Invoice
+                                        </button>
+                                      )}
+
+                                      {enablePaymentsUi && (
+                                        <button
+                                          onClick={handleSquareConnect}
+                                          disabled={squareLoading}
+                                          className="flex-1 flex items-center justify-center gap-1.5 p-2.5 border border-[#c5ccd8] rounded bg-white hover:border-black transition-colors disabled:opacity-50 text-xs"
+                                          data-testid="button-square-connect"
+                                        >
+                                          <CreditCard size={12} />
+                                          {squareLoading ? '...' : 'Setup'}
+                                        </button>
+                                      )}
+                                    </div>
+                                    {enablePaymentsUi && squareStatus?.connected && squareStatus.paymentsEnabled && (
+                                      <div className="flex items-center gap-1 mt-2 text-[0.6rem] text-green-600">
+                                        <Check size={10} />
+                                        Square ready
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                               </div>
-                            </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -3287,7 +3305,8 @@ export default function ArtistDashboard() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="card-frame rounded-md px-4 py-3">
+                    {enableContractsUi && (
+                      <div className="card-frame rounded-md px-4 py-3">
                       <h3 className="font-header text-sm ink-main mb-2 flex items-center gap-2">
                         <FileText size={12} /> Contract & E-Signature
                       </h3>
@@ -3334,22 +3353,25 @@ export default function ArtistDashboard() {
                         )}
                       </div>
                     </div>
+                    )}
                     <div className="card-frame rounded-md px-4 py-3">
                       <h3 className="font-header text-sm ink-main mb-2 flex items-center gap-2">
                         <Mail size={12} /> Communication
                       </h3>
                       <div className="flex flex-col gap-2">
-                        <button 
-                          onClick={() => {
-                            if (selectedBooking?.id) {
-                              setInvoiceBookingId(selectedBooking.id);
-                              setShowInvoiceModal(true);
-                            }
-                          }}
-                          className="text-[0.65rem] uppercase tracking-wide underline text-blue-600"
-                        >
-                          Send Invoice
-                        </button>
+                        {enableInvoicesUi && (
+                          <button
+                            onClick={() => {
+                              if (selectedBooking?.id) {
+                                setInvoiceBookingId(selectedBooking.id);
+                                setShowInvoiceModal(true);
+                              }
+                            }}
+                            className="text-[0.65rem] uppercase tracking-wide underline text-blue-600"
+                          >
+                            Send Invoice
+                          </button>
+                        )}
                         <button 
                           onClick={() => setShowEmailModal(true)}
                           className="text-[0.65rem] uppercase tracking-wide underline text-blue-600"
@@ -3395,7 +3417,8 @@ export default function ArtistDashboard() {
                   </div>
 
                   {/* Contracts Section */}
-                  <div className="card-frame rounded-md px-5 py-4">
+                  {enableContractsUi && (
+                    <div className="card-frame rounded-md px-5 py-4">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="font-header text-md ink-main flex items-center gap-2">
                         <FileText size={14} /> Contracts
@@ -3550,6 +3573,7 @@ export default function ArtistDashboard() {
                       </div>
                     )}
                   </div>
+                  )}
 
                   <div className="card-frame rounded-md px-5 py-4">
                     <h3 className="font-header text-md ink-main mb-2">Day of Reminders Memo</h3>
@@ -3911,7 +3935,7 @@ export default function ArtistDashboard() {
       )}
 
       {/* Contract Creation Modal */}
-      {showContractCreationModal && selectedBooking && (
+      {enableContractsUi && showContractCreationModal && selectedBooking && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full shadow-xl my-4">
             <div className="flex items-center gap-3 mb-4">
@@ -4075,7 +4099,7 @@ export default function ArtistDashboard() {
       )}
 
       {/* View Contract Modal */}
-      {viewingContract && (
+      {enableContractsUi && viewingContract && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full shadow-xl my-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
@@ -4252,7 +4276,7 @@ export default function ArtistDashboard() {
       )}
 
       {/* DocuSign Contract Modal */}
-      {showDocusignModal && (
+      {enableContractsUi && showDocusignModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
             <div className="flex items-center gap-3 mb-4">
@@ -4679,7 +4703,7 @@ export default function ArtistDashboard() {
       )}
 
       {/* Invoice Modal */}
-      {showInvoiceModal && (
+      {enableInvoicesUi && showInvoiceModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
             <div className="flex items-center gap-3 mb-4">

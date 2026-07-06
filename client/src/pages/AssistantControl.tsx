@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { DemoModeBanner } from "@/components/DemoModeBanner";
+import { enableAssistantDelayedPromptControls } from "@/lib/demoFeatureFlags";
 import {
   Select,
   SelectContent,
@@ -777,88 +778,92 @@ export default function AssistantControl() {
                 />
               </div>
 
-              <div>
-                <div className="font-medium mb-2">Prompt timing</div>
-                <div className="text-sm text-ink/60 mb-3">
-                  Send each prompt right away, or gather them into a digest.
-                </div>
-                <Select
-                  value={form.assistantPromptMode}
-                  onValueChange={(v) =>
-                    setForm({ ...form, assistantPromptMode: v as AssistantSettings["assistantPromptMode"] })
-                  }
-                >
-                  <SelectTrigger className="w-full sm:w-64 bg-bg border-hairline" data-testid="select-mode">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="immediate">Immediate</SelectItem>
-                    <SelectItem value="digest">Digest</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {enableAssistantDelayedPromptControls && (
+                <>
+                  <div>
+                    <div className="font-medium mb-2">Prompt timing</div>
+                    <div className="text-sm text-ink/60 mb-3">
+                      Send each prompt right away, or gather them into a digest.
+                    </div>
+                    <Select
+                      value={form.assistantPromptMode}
+                      onValueChange={(v) =>
+                        setForm({ ...form, assistantPromptMode: v as AssistantSettings["assistantPromptMode"] })
+                      }
+                    >
+                      <SelectTrigger className="w-full sm:w-64 bg-bg border-hairline" data-testid="select-mode">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="immediate">Immediate</SelectItem>
+                        <SelectItem value="digest">Digest</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div>
-                <div className="font-medium mb-2">Quiet hours</div>
-                <div className="text-sm text-ink/60 mb-3">
-                  Optional. Hours when prompts should hold (24-hour clock, 0 to 23).
-                </div>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="number"
-                    min={0}
-                    max={23}
-                    placeholder="Start"
-                    value={form.assistantQuietHoursStart ?? ""}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        assistantQuietHoursStart: e.target.value === "" ? null : Number(e.target.value),
-                      })
-                    }
-                    className="w-24 px-3 py-2 bg-bg border border-hairline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70"
-                    data-testid="input-quiet-start"
-                  />
-                  <span className="text-ink/50">to</span>
-                  <input
-                    type="number"
-                    min={0}
-                    max={23}
-                    placeholder="End"
-                    value={form.assistantQuietHoursEnd ?? ""}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        assistantQuietHoursEnd: e.target.value === "" ? null : Number(e.target.value),
-                      })
-                    }
-                    className="w-24 px-3 py-2 bg-bg border border-hairline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70"
-                    data-testid="input-quiet-end"
-                  />
-                  {(form.assistantQuietHoursStart !== null || form.assistantQuietHoursEnd !== null) && (
-                    <span className="text-sm text-ink/50">
-                      {hourLabel(form.assistantQuietHoursStart)} to {hourLabel(form.assistantQuietHoursEnd)}
-                    </span>
-                  )}
-                </div>
-              </div>
+                  <div>
+                    <div className="font-medium mb-2">Quiet hours</div>
+                    <div className="text-sm text-ink/60 mb-3">
+                      Optional. Hours when prompts should hold (24-hour clock, 0 to 23).
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        min={0}
+                        max={23}
+                        placeholder="Start"
+                        value={form.assistantQuietHoursStart ?? ""}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            assistantQuietHoursStart: e.target.value === "" ? null : Number(e.target.value),
+                          })
+                        }
+                        className="w-24 px-3 py-2 bg-bg border border-hairline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70"
+                        data-testid="input-quiet-start"
+                      />
+                      <span className="text-ink/50">to</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={23}
+                        placeholder="End"
+                        value={form.assistantQuietHoursEnd ?? ""}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            assistantQuietHoursEnd: e.target.value === "" ? null : Number(e.target.value),
+                          })
+                        }
+                        className="w-24 px-3 py-2 bg-bg border border-hairline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70"
+                        data-testid="input-quiet-end"
+                      />
+                      {(form.assistantQuietHoursStart !== null || form.assistantQuietHoursEnd !== null) && (
+                        <span className="text-sm text-ink/50">
+                          {hourLabel(form.assistantQuietHoursStart)} to {hourLabel(form.assistantQuietHoursEnd)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
 
-              <div>
-                <div className="font-medium mb-2">Timezone</div>
-                <div className="text-sm text-ink/60 mb-3">
-                  Optional. Used for quiet hours (for example, America/New_York).
-                </div>
-                <input
-                  type="text"
-                  placeholder="America/New_York"
-                  value={form.assistantTimezone ?? ""}
-                  onChange={(e) =>
-                    setForm({ ...form, assistantTimezone: e.target.value === "" ? null : e.target.value })
-                  }
-                  className="w-full sm:w-80 px-3 py-2 bg-bg border border-hairline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70"
-                  data-testid="input-timezone"
-                />
-              </div>
+                  <div>
+                    <div className="font-medium mb-2">Timezone</div>
+                    <div className="text-sm text-ink/60 mb-3">
+                      Optional. Used for quiet hours (for example, America/New_York).
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="America/New_York"
+                      value={form.assistantTimezone ?? ""}
+                      onChange={(e) =>
+                        setForm({ ...form, assistantTimezone: e.target.value === "" ? null : e.target.value })
+                      }
+                      className="w-full sm:w-80 px-3 py-2 bg-bg border border-hairline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70"
+                      data-testid="input-timezone"
+                    />
+                  </div>
+                </>
+              )}
 
               <div className="pt-2">
                 <button

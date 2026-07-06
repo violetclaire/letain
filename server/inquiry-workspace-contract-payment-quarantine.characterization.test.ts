@@ -3,6 +3,10 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const inquiryWorkspaceSource = readFileSync("client/src/pages/InquiryWorkspace.tsx", "utf8");
+const inquiryWorkspaceActionSource = inquiryWorkspaceSource.replace(
+  /It does not send, approve, route, run preflight, contact anyone, create a client link, contract, payment, public schedule, or AI decision\./g,
+  "",
+);
 
 test("Inquiry Workspace quarantines passive contract and payment panels", () => {
   assert.doesNotMatch(inquiryWorkspaceSource, /data-testid="contract-summary-card"/);
@@ -34,5 +38,10 @@ test("contract and payment quarantine does not add risky systems", () => {
   assert.doesNotMatch(inquiryWorkspaceSource, /ObjectUploader|\/api\/objects|uploadURL|getUploadParameters/);
   assert.doesNotMatch(inquiryWorkspaceSource, /createPayment|Square|squarePaymentLink|sendPaymentLink/);
   assert.doesNotMatch(inquiryWorkspaceSource, /scheduleAI|processScheduleChat|\/api\/schedule-ai|OpenAI|Anthropic/);
-  assert.doesNotMatch(inquiryWorkspaceSource, /public schedule|client link created|create client link/i);
+  assert.doesNotMatch(inquiryWorkspaceActionSource, /create public schedule|publish schedule|public schedule button|public schedule link/i);
+  assert.doesNotMatch(inquiryWorkspaceActionSource, /client link created|create client link|client link action/i);
+  assert.doesNotMatch(inquiryWorkspaceActionSource, /create\s+(?:a\s+)?contract\b|open contract|contract action/i);
+  assert.doesNotMatch(inquiryWorkspaceActionSource, /create payment|collect payment|payment action|payment link action/i);
+  assert.doesNotMatch(inquiryWorkspaceActionSource, /create invoice|send invoice|invoice action/i);
+  assert.doesNotMatch(inquiryWorkspaceActionSource, /send action|send now/i);
 });
