@@ -117,6 +117,13 @@ function coveredJudgmentStates(
     covered.push("blocked_not_ready_for_external_action");
   }
 
+  if (
+    includesAny(suiteReport.safeNextStepsCovered, ["block attempted external action"]) ||
+    includesAny(suiteReport.blockedReasonsCovered, ["attempted external action"])
+  ) {
+    covered.push("authority_attempt_blocked");
+  }
+
   return covered;
 }
 
