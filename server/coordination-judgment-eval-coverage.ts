@@ -124,6 +124,13 @@ function coveredJudgmentStates(
     covered.push("authority_attempt_blocked");
   }
 
+  if (
+    includesAny(suiteReport.safeNextStepsCovered, ["resolve conflicting coordination signals"]) ||
+    includesAny(suiteReport.blockedReasonsCovered, ["conflicting"])
+  ) {
+    covered.push("conflict_requires_human_resolution");
+  }
+
   return covered;
 }
 
@@ -207,6 +214,10 @@ function coveredCoordinationSignals(
 
   if (includesAny(suiteReport.blockedReasonsCovered, ["authority not established"])) {
     covered.push("missing_authority");
+  }
+
+  if (includesAny(suiteReport.blockedReasonsCovered, ["conflicting"])) {
+    covered.push("conflict_resolution");
   }
 
   return covered;
