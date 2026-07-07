@@ -108,7 +108,7 @@ test("trace eval suite fails deterministically when forbidden actions are not pr
 
   assert.equal(report.passed, 0);
   assert.equal(report.failed, 1);
-  assert.equal(report.failures[0]?.stage, "evaluation");
+  assert.equal(report.failures[0]?.stage, "harness_check");
   assert.ok(
     report.failures[0]?.findings.some((finding) => finding.mode === "FORBIDDEN_ACTION_NOT_PRESERVED"),
     JSON.stringify(report.failures[0]?.findings, null, 2),
@@ -136,7 +136,7 @@ test("trace eval suite fails deterministically when review becomes send or actio
 
   assert.equal(report.passed, 0);
   assert.equal(report.failed, 1);
-  assert.equal(report.failures[0]?.stage, "evaluation");
+  assert.equal(report.failures[0]?.stage, "harness_check");
   assert.ok(
     report.failures[0]?.findings.some((finding) => finding.mode === "REVIEW_BECAME_SEND_AUTHORITY"),
     JSON.stringify(report.failures[0]?.findings, null, 2),

@@ -14,7 +14,7 @@ export const COORDINATION_JUDGMENT_TRACE_EVAL_SUITE_ID = "coordination-judgment-
 export const COORDINATION_JUDGMENT_TRACE_EVAL_SUITE_VERSION = "coordination-judgment-trace-eval-suite-v1";
 export const COORDINATION_JUDGMENT_TRACE_EVAL_SUITE_EVALUATED_AT = "deterministic:trace-eval-suite-v1";
 
-type CoordinationJudgmentTraceEvalFailureStage = "validation" | "conversion" | "evaluation";
+type CoordinationJudgmentTraceEvalFailureStage = "validation" | "conversion" | "harness_check";
 
 export type CoordinationJudgmentTraceEvalSuiteFailure = {
   sourceTraceId: string;
@@ -116,7 +116,7 @@ export function runCoordinationJudgmentTraceEvalSuite(
     if (!evaluation.passed) {
       failures.push(failureFor(
         traceFixture,
-        "evaluation",
+        "harness_check",
         evaluation.findings.map((finding) => finding.message),
         evaluation.findings,
       ));
