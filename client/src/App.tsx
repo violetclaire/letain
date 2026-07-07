@@ -5,6 +5,7 @@ import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { fetchAuthUser } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 
 import Landing from "@/pages/Landing";
@@ -125,11 +126,7 @@ function InviteRedirectHandler() {
   const { data: user } = useQuery({
     queryKey: ["/api/auth/user"],
     enabled: !location.startsWith("/demo"),
-    queryFn: async () => {
-      const res = await fetch("/api/auth/user");
-      if (!res.ok) return null;
-      return res.json();
-    },
+    queryFn: fetchAuthUser,
   });
 
   useEffect(() => {

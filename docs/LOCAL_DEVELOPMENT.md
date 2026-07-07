@@ -78,6 +78,8 @@ Useful local paths:
 - Route target network: `http://localhost:5173/admin/:slug/network`
 - Schedule draft builder: `http://localhost:5173/admin/:slug/schedules/:scheduleId`
 
+For the seeded Briarwood local demo, a fresh localhost preview session can open `http://localhost:5173/admin/briarwood-demo` or `http://localhost:5173/inquiry-workspace` directly. Those pages may bootstrap a local-only `demo-operator-briarwood` session through `POST /api/demo/local-access` when no user is signed in. The bootstrap is disabled in production and only creates the same private operator session used by the local demo; it does not send email/SMS, create invoices, create contracts, create payment links, create client links, run AI, or contact providers.
+
 ## Safety Notes
 
 - Do not test email, SMS, payments, contract sends, Square, or public-token delivery against production services from local preview.
