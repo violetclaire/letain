@@ -49,6 +49,44 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+const LOCAL_DEMO_OPERATOR_ID = "demo-operator-briarwood";
+const LOCAL_DEMO_ARTIST_SLUG = "briarwood-demo";
+const LOCAL_DEMO_ALLOWED_REDIRECT_PREFIXES = [
+  `/admin/${LOCAL_DEMO_ARTIST_SLUG}`,
+  "/inquiry-workspace",
+  "/settings",
+  "/artist/availability",
+];
+
+function isLocalDemoAccessEnabled(req: Request): boolean {
+  if (process.env.NODE_ENV === "production") {
+    return false;
+  }
+
+  const forwardedHost = Array.isArray(req.headers["x-forwarded-host"])
+    ? req.headers["x-forwarded-host"][0]
+    : req.headers["x-forwarded-host"];
+  const rawHost = `${forwardedHost || req.headers.host || ""}`.split(",")[0].trim().toLowerCase();
+  const host = rawHost.startsWith("[::1]") ? "::1" : rawHost.split(":")[0];
+
+  return (
+    process.env.BRIARWOOD_DEMO_MODE === "true" ||
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === "::1"
+  );
+}
+
+function safeLocalDemoRedirect(redirectTo: unknown): string {
+  if (typeof redirectTo !== "string" || !redirectTo.startsWith("/")) {
+    return `/admin/${LOCAL_DEMO_ARTIST_SLUG}`;
+  }
+
+  return LOCAL_DEMO_ALLOWED_REDIRECT_PREFIXES.some((prefix) => redirectTo === prefix || redirectTo.startsWith(`${prefix}/`))
+    ? redirectTo
+    : `/admin/${LOCAL_DEMO_ARTIST_SLUG}`;
+}
+
 const coordinationPathCreateSchema = z.object({
   routeTargetId: z.string().optional().nullable(),
   candidateRouteId: z.string().optional().nullable(),
@@ -605,6 +643,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("[Demo] Error:", error.message);
       res.status(500).json({ message: "Failed to access demo" });
+    }
+  });
+
+  app.post('/api/demo/local-access', async (req: Request, res: Response) => {
+    try {
+      if (!isLocalDemoAccessEnabled(req)) {
+        return res.status(404).json({ message: "Local demo access is unavailable" });
+      }
+
+      const [profile] = await db.select().from(artistProfiles)
+        .where(eq(artistProfiles.artistSlug, LOCAL_DEMO_ARTIST_SLUG));
+
+      if (!profile || profile.userId !== LOCAL_DEMO_OPERATOR_ID) {
+        return res.status(404).json({ message: "Local demo operator profile not found" });
+      }
+
+      const user = await storage.getUser(profile.userId);
+      if (!user || user.id !== LOCAL_DEMO_OPERATOR_ID || user.role !== "artist") {
+        return res.status(404).json({ message: "Local demo operator not found" });
+      }
+
+      req.session.userId = user.id;
+
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err: Error) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+
+      res.json({
+        message: "Local demo session started",
+        user: { ...user, password: undefined },
+        artistSlug: profile.artistSlug,
+        redirectTo: safeLocalDemoRedirect(req.body?.redirectTo),
+      });
+    } catch (error: any) {
+      console.error("[LocalDemoAccess] Error:", error.message);
+      res.status(500).json({ message: "Failed to start local demo session" });
     }
   });
 
