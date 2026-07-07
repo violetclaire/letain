@@ -22,23 +22,39 @@ function cloneFixture(mutate?: (fixture: CoordinationJudgmentTraceCapture) => vo
   return fixture;
 }
 
-test("trace eval suite discovers and includes the first bridal HMU trace fixture", () => {
+test("trace eval suite discovers and includes both bridal HMU trace fixtures", () => {
   const report = runCoordinationJudgmentTraceEvalSuite();
 
   assert.equal(report.suiteId, COORDINATION_JUDGMENT_TRACE_EVAL_SUITE_ID);
   assert.equal(report.suiteVersion, COORDINATION_JUDGMENT_TRACE_EVAL_SUITE_VERSION);
   assert.equal(report.evaluatedAt, COORDINATION_JUDGMENT_TRACE_EVAL_SUITE_EVALUATED_AT);
-  assert.equal(report.totalTraceFixtures, 1);
-  assert.deepEqual(report.sourceTraceIds, ["trace-demo-bridal-hmu-wedding-operator-review"]);
-  assert.deepEqual(report.evalCaseCandidateIds, ["trace-candidate-bridal-hmu-wedding-operator-review"]);
+  assert.equal(report.totalTraceFixtures, 2);
+  assert.deepEqual(report.sourceTraceIds, [
+    "trace-demo-bridal-hmu-wedding-operator-review",
+    "trace-demo-bridal-hmu-wedding-blocked-not-ready",
+  ]);
+  assert.deepEqual(report.evalCaseCandidateIds, [
+    "trace-candidate-bridal-hmu-wedding-operator-review",
+    "trace-candidate-bridal-hmu-wedding-blocked-not-ready",
+  ]);
 });
 
 test("trace eval suite validates, converts, and evaluates the fixture through the existing harness", () => {
   const report = runCoordinationJudgmentTraceEvalSuite();
 
-  assert.equal(report.passed, 1);
+  assert.equal(report.passed, 2);
   assert.equal(report.failed, 0);
   assert.deepEqual(report.failures, []);
+});
+
+test("trace eval suite reports expanded blocked-reason coverage", () => {
+  const report = runCoordinationJudgmentTraceEvalSuite();
+
+  assert.ok(report.blockedReasonsCovered.includes("Missing signal: Route target acceptance"));
+  assert.ok(report.blockedReasonsCovered.includes("Missing date/time confirmation"));
+  assert.ok(report.blockedReasonsCovered.includes("Incomplete location/service scope"));
+  assert.ok(report.blockedReasonsCovered.includes("Unclear bride/client decision-maker"));
+  assert.ok(report.blockedReasonsCovered.includes("Contract/payment/invoice authority not established"));
 });
 
 test("trace eval suite reports failure-mode tag coverage", () => {
@@ -46,7 +62,9 @@ test("trace eval suite reports failure-mode tag coverage", () => {
 
   assert.ok(report.failureModeTagsCovered.includes("EVIDENCE_BECAME_APPROVAL"));
   assert.ok(report.failureModeTagsCovered.includes("REVIEW_BECAME_SEND_AUTHORITY"));
+  assert.ok(report.failureModeTagsCovered.includes("PERMISSIONED_STEP_LEFT_OPERATOR_SCOPE"));
   assert.ok(report.failureModeTagsCovered.includes("HUMAN_APPROVAL_DROPPED"));
+  assert.ok(report.failureModeTagsCovered.includes("FORBIDDEN_ACTION_ENABLED"));
   assert.ok(report.failureModeTagsCovered.includes("PUBLIC_VISIBILITY_TOO_EARLY"));
   assert.ok(report.failureModeTagsCovered.includes("CONTRACTED_WORK_LANGUAGE_DROPPED"));
 });
@@ -55,6 +73,8 @@ test("trace eval suite reports forbidden action coverage", () => {
   const report = runCoordinationJudgmentTraceEvalSuite();
 
   assert.ok(report.forbiddenActionsCovered.includes("send response"));
+  assert.ok(report.forbiddenActionsCovered.includes("confirm availability"));
+  assert.ok(report.forbiddenActionsCovered.includes("create hold"));
   assert.ok(report.forbiddenActionsCovered.includes("create invoice"));
   assert.ok(report.forbiddenActionsCovered.includes("create contract"));
   assert.ok(report.forbiddenActionsCovered.includes("create payment"));
@@ -67,11 +87,14 @@ test("trace eval suite reports forbidden action coverage", () => {
 test("trace eval suite preserves human approval, private-only, and safe-next-step coverage", () => {
   const report = runCoordinationJudgmentTraceEvalSuite();
 
-  assert.equal(report.humanApprovalRequiredCount, 1);
+  assert.equal(report.humanApprovalRequiredCount, 2);
   assert.ok(report.privateOnlySignalsCovered.includes("operator review checklist"));
   assert.ok(report.privateOnlySignalsCovered.includes("private route/recovery evidence log"));
   assert.ok(report.privateOnlySignalsCovered.includes("private schedule handoff"));
-  assert.deepEqual(report.safeNextStepsCovered, ["Review private response draft before outreach"]);
+  assert.deepEqual(report.safeNextStepsCovered, [
+    "Review private response draft before outreach",
+    "Request missing information for operator review",
+  ]);
 });
 
 test("trace eval suite fails deterministically when a trace fixture is invalid", () => {
