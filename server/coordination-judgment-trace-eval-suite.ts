@@ -34,6 +34,7 @@ export type CoordinationJudgmentTraceEvalSuiteResult = {
   failures: CoordinationJudgmentTraceEvalSuiteFailure[];
   evalCaseCandidateIds: string[];
   sourceTraceIds: string[];
+  blockedReasonsCovered: string[];
   failureModeTagsCovered: string[];
   forbiddenActionsCovered: string[];
   humanApprovalRequiredCount: number;
@@ -78,6 +79,7 @@ export function runCoordinationJudgmentTraceEvalSuite(
 
   const evalCaseCandidateIds: string[] = [];
   const sourceTraceIds: string[] = [];
+  const blockedReasonsCovered: string[] = [];
   const failureModeTagsCovered: string[] = [];
   const forbiddenActionsCovered: string[] = [];
   const privateOnlySignalsCovered: string[] = [];
@@ -87,6 +89,7 @@ export function runCoordinationJudgmentTraceEvalSuite(
   for (const traceFixture of traceFixtures) {
     sourceTraceIds.push(traceFixture.sourceTraceId);
     if (traceFixture.evalCaseCandidateId) evalCaseCandidateIds.push(traceFixture.evalCaseCandidateId);
+    blockedReasonsCovered.push(...traceFixture.blockedReasons);
     failureModeTagsCovered.push(...traceFixture.failureModeTags);
     forbiddenActionsCovered.push(...traceFixture.forbiddenActions);
     privateOnlySignalsCovered.push(...traceFixture.privateOnlySignals);
@@ -136,6 +139,7 @@ export function runCoordinationJudgmentTraceEvalSuite(
     failures,
     evalCaseCandidateIds: unique(evalCaseCandidateIds),
     sourceTraceIds: unique(sourceTraceIds),
+    blockedReasonsCovered: unique(blockedReasonsCovered),
     failureModeTagsCovered: unique(failureModeTagsCovered),
     forbiddenActionsCovered: unique(forbiddenActionsCovered),
     humanApprovalRequiredCount,
