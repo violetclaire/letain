@@ -125,6 +125,13 @@ function coveredJudgmentStates(
   }
 
   if (
+    includesAny(suiteReport.safeNextStepsCovered, ["escalate high-risk coordination issue"]) ||
+    includesAny(suiteReport.blockedReasonsCovered, ["escalation required"])
+  ) {
+    covered.push("escalation_required");
+  }
+
+  if (
     includesAny(suiteReport.safeNextStepsCovered, ["resolve conflicting coordination signals"]) ||
     includesAny(suiteReport.blockedReasonsCovered, ["conflicting"])
   ) {
