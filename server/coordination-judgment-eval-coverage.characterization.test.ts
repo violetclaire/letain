@@ -23,13 +23,14 @@ test("coverage assessor consumes the current trace-derived eval suite report", (
   assert.equal(coverage.taxonomyVersion, COORDINATION_JUDGMENT_EVAL_COVERAGE_TAXONOMY_VERSION);
   assert.equal(coverage.suiteId, suiteReport.suiteId);
   assert.equal(coverage.suiteVersion, suiteReport.suiteVersion);
-  assert.equal(coverage.fixtureCount, 5);
+  assert.equal(coverage.fixtureCount, 6);
   assert.deepEqual(coverage.sourceTraceIds, [
     "trace-demo-bridal-hmu-wedding-operator-review",
     "trace-demo-bridal-hmu-wedding-blocked-not-ready",
     "trace-demo-bridal-hmu-wedding-authority-attempt-blocked",
     "trace-demo-bridal-hmu-wedding-conflict-human-resolution",
     "trace-demo-bridal-hmu-wedding-escalation-required",
+    "trace-demo-bridal-hmu-wedding-recovery-needed",
   ]);
   assert.deepEqual(coverage.evalCaseCandidateIds, [
     "trace-candidate-bridal-hmu-wedding-operator-review",
@@ -37,6 +38,7 @@ test("coverage assessor consumes the current trace-derived eval suite report", (
     "trace-candidate-bridal-hmu-wedding-authority-attempt-blocked",
     "trace-candidate-bridal-hmu-wedding-conflict-human-resolution",
     "trace-candidate-bridal-hmu-wedding-escalation-required",
+    "trace-candidate-bridal-hmu-wedding-recovery-needed",
   ]);
 });
 
@@ -49,10 +51,9 @@ test("coverage assessor reports covered judgment states from current trace fixtu
     "authority_attempt_blocked",
     "escalation_required",
     "conflict_requires_human_resolution",
-  ]);
-  assert.deepEqual(coverage.missingJudgmentStates, [
     "recovery_needed",
   ]);
+  assert.deepEqual(coverage.missingJudgmentStates, []);
 });
 
 test("coverage assessor reports covered permission boundaries from current trace fixtures", () => {
@@ -83,10 +84,10 @@ test("coverage assessor reports covered and missing real-world coordination sign
     "operator_approval_required",
     "missing_authority",
     "conflict_resolution",
+    "recovery_capacity",
   ]);
   assert.deepEqual(coverage.missingCoordinationSignals, [
     "provider_acceptance_state",
-    "recovery_capacity",
   ]);
 });
 
@@ -100,9 +101,9 @@ test("coverage assessor returns deterministic aggregate counts and coverage perc
 
   assert.deepEqual(first, second);
   assert.equal(first.totalRequiredCoverageItems, expectedTotal);
-  assert.equal(first.coveredItems.length, 21);
-  assert.equal(first.missingItems.length, 3);
-  assert.equal(first.coveragePercent, 87.5);
+  assert.equal(first.coveredItems.length, 23);
+  assert.equal(first.missingItems.length, 1);
+  assert.equal(first.coveragePercent, 95.83);
   assert.equal(first.readyForExpandedEvalSuite, true);
 });
 
@@ -115,6 +116,7 @@ test("coverage assessor lists all covered and missing items in taxonomy order", 
     "authority_attempt_blocked",
     "escalation_required",
     "conflict_requires_human_resolution",
+    "recovery_needed",
     "evidence_does_not_mean_approval",
     "review_does_not_mean_send_authority",
     "no_invoice_contract_payment_without_authority",
@@ -131,11 +133,10 @@ test("coverage assessor lists all covered and missing items in taxonomy order", 
     "operator_approval_required",
     "missing_authority",
     "conflict_resolution",
+    "recovery_capacity",
   ]);
   assert.deepEqual(coverage.missingItems, [
-    "recovery_needed",
     "provider_acceptance_state",
-    "recovery_capacity",
   ]);
 });
 

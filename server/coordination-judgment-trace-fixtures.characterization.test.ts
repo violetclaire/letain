@@ -10,6 +10,7 @@ import {
   conflictRequiresHumanResolutionBridalHairMakeupWeddingTraceFixture,
   coordinationJudgmentTraceFixtures,
   escalationRequiredBridalHairMakeupWeddingTraceFixture,
+  recoveryNeededBridalHairMakeupWeddingTraceFixture,
 } from "./coordination-judgment-trace-fixtures";
 
 const fixturesSource = readFileSync("server/coordination-judgment-trace-fixtures.ts", "utf8");
@@ -38,8 +39,12 @@ function draftEscalationRequiredFixtureEvalCase() {
   return traceCaptureToDraftEvalCase(escalationRequiredBridalHairMakeupWeddingTraceFixture);
 }
 
-test("all five bridal hair and makeup wedding trace fixtures validate as trace captures", () => {
-  assert.equal(coordinationJudgmentTraceFixtures.length, 5);
+function draftRecoveryNeededFixtureEvalCase() {
+  return traceCaptureToDraftEvalCase(recoveryNeededBridalHairMakeupWeddingTraceFixture);
+}
+
+test("all six bridal hair and makeup wedding trace fixtures validate as trace captures", () => {
+  assert.equal(coordinationJudgmentTraceFixtures.length, 6);
 
   for (const traceFixture of coordinationJudgmentTraceFixtures) {
     const validation = validateCoordinationJudgmentTraceCapture(traceFixture);
@@ -66,6 +71,10 @@ test("all five bridal hair and makeup wedding trace fixtures validate as trace c
     escalationRequiredBridalHairMakeupWeddingTraceFixture.evalCaseCandidateId,
     "trace-candidate-bridal-hmu-wedding-escalation-required",
   );
+  assert.equal(
+    recoveryNeededBridalHairMakeupWeddingTraceFixture.evalCaseCandidateId,
+    "trace-candidate-bridal-hmu-wedding-recovery-needed",
+  );
   assert.match(bridalHairMakeupWeddingTraceFixture.inquiryEvidenceSummary, /bridal hair and makeup wedding inquiry/);
   assert.match(
     blockedBridalHairMakeupWeddingTraceFixture.inquiryEvidenceSummary,
@@ -84,12 +93,16 @@ test("all five bridal hair and makeup wedding trace fixtures validate as trace c
     /high-value contracted work, disputed decision-maker authority/,
   );
   assert.match(
+    recoveryNeededBridalHairMakeupWeddingTraceFixture.inquiryEvidenceSummary,
+    /prior apparent alignment degraded/,
+  );
+  assert.match(
     bridalHairMakeupWeddingTraceFixture.observedCoordinationState.nonAuthoritativeSignals.join("\n"),
     /bridal hair and makeup \/ wedding/,
   );
 });
 
-test("all five fixtures convert into draft eval cases compatible with the judgment harness", () => {
+test("all six fixtures convert into draft eval cases compatible with the judgment harness", () => {
   const convertedDrafts = coordinationJudgmentTraceFixtures.map((traceFixture) => ({
     traceFixture,
     draftEvalCase: traceCaptureToDraftEvalCase(traceFixture),
@@ -313,6 +326,53 @@ test("escalation fixture preserves human approval and high-risk contracted-work 
     "disputed decision-maker context",
     "material contract/payment ambiguity",
     "venue timeline risk context",
+    "private schedule handoff",
+  ]) {
+    assert.ok(answer.sourceArtifacts.operatorOnly.includes(privateSignal), `missing private signal: ${privateSignal}`);
+  }
+
+  assert.ok(answer.forbiddenActions.includes("send response"));
+  assert.ok(answer.forbiddenActions.includes("create invoice"));
+  assert.ok(answer.forbiddenActions.includes("create contract"));
+  assert.ok(answer.forbiddenActions.includes("create payment"));
+  assert.ok(answer.forbiddenActions.includes("create client link"));
+  assert.ok(answer.forbiddenActions.includes("run preflight"));
+  assert.ok(answer.forbiddenActions.includes("mark provider accepted"));
+  assert.ok(answer.forbiddenActions.includes("AI decision"));
+  assert.ok(answer.forbiddenActions.includes("create client"));
+});
+
+test("recovery fixture preserves human approval and degraded coordination recovery", () => {
+  const draftEvalCase = draftRecoveryNeededFixtureEvalCase();
+  const answer = draftEvalCase.candidate.queryAnswer;
+
+  assert.equal(answer.requiresHumanApproval, true);
+  assert.equal(draftEvalCase.expected.requiresHumanApproval, true);
+  assert.equal(answer.safeNextStepLabel, "Run human recovery review before external coordination");
+  assert.match(answer.recommendedOperatorReview.join("\n"), /stale and degraded coordination state/);
+  assert.match(answer.authoritativeSignals.join("\n"), /permission outcome: RECOVERY_NEEDED/);
+  assert.match(answer.authoritativeSignals.join("\n"), /recovery needed: degraded coordination path/);
+
+  for (const blockedReason of [
+    "Recovery needed for degraded coordination path",
+    "Prior alignment is stale and requires human recovery review",
+    "Missed response window requires recovery before external action",
+    "Stale hold date requires source-of-truth review",
+    "Changed event time after prior apparent agreement requires recovery",
+    "Service count changed after pricing context",
+    "Payment/contract expectation drift requires recovery",
+    "Private recovery context cannot become public/client-facing",
+    "Human approval required before external action",
+    "Contracted work authority not established",
+  ]) {
+    assert.ok(answer.blockingIssues.includes(blockedReason), `missing blocked reason: ${blockedReason}`);
+  }
+
+  for (const privateSignal of [
+    "private recovery note",
+    "stale hold context",
+    "changed event time context",
+    "payment/contract expectation drift",
     "private schedule handoff",
   ]) {
     assert.ok(answer.sourceArtifacts.operatorOnly.includes(privateSignal), `missing private signal: ${privateSignal}`);
@@ -565,6 +625,91 @@ test("escalation fixture fails when forbidden actions are removed", () => {
 
 test("escalation fixture fails when escalation evidence becomes external action authority", () => {
   const draftEvalCase = draftEscalationRequiredFixtureEvalCase();
+  draftEvalCase.candidate.queryAnswer.safeNextStepLabel = "Safe to send response now";
+  draftEvalCase.candidate.operatorSurface.actionLabels = [
+    "send response",
+    "create invoice",
+    "create contract",
+    "create payment",
+    "create client link",
+    "run preflight",
+    "create route",
+    "mark provider accepted",
+    "AI decision",
+    "create client",
+  ];
+
+  const result = evaluateCoordinationJudgmentCase(draftEvalCase);
+
+  assert.equal(result.passed, false);
+  assert.ok(
+    result.findings.some((finding) => finding.mode === "REVIEW_BECAME_SEND_AUTHORITY"),
+    JSON.stringify(result.findings, null, 2),
+  );
+  assert.ok(
+    result.findings.some((finding) => finding.mode === "FORBIDDEN_ACTION_ENABLED"),
+    JSON.stringify(result.findings, null, 2),
+  );
+  assert.ok(
+    result.findings.some((finding) => finding.mode === "EVIDENCE_BECAME_APPROVAL"),
+    JSON.stringify(result.findings, null, 2),
+  );
+});
+
+test("recovery fixture fails if recovery is treated as ordinary forward motion", () => {
+  const draftEvalCase = draftRecoveryNeededFixtureEvalCase();
+  draftEvalCase.candidate.queryAnswer.requiresHumanApproval = false;
+  draftEvalCase.candidate.queryAnswer.safeNextStepLabel = "Continue with ordinary forward motion";
+  draftEvalCase.candidate.operatorSurface.actionLabels = ["send response"];
+
+  const result = evaluateCoordinationJudgmentCase(draftEvalCase);
+
+  assert.equal(result.passed, false);
+  assert.ok(
+    result.findings.some((finding) => finding.mode === "HUMAN_APPROVAL_DROPPED"),
+    JSON.stringify(result.findings, null, 2),
+  );
+  assert.ok(
+    result.findings.some((finding) => finding.mode === "FORBIDDEN_ACTION_ENABLED"),
+    JSON.stringify(result.findings, null, 2),
+  );
+});
+
+test("recovery fixture fails if stale evidence becomes approval", () => {
+  const draftEvalCase = draftRecoveryNeededFixtureEvalCase();
+  draftEvalCase.candidate.queryAnswer.safeNextStepLabel = "Previously approved and ready to send";
+
+  const result = evaluateCoordinationJudgmentCase(draftEvalCase);
+
+  assert.equal(result.passed, false);
+  assert.ok(
+    result.findings.some((finding) => finding.mode === "EVIDENCE_BECAME_APPROVAL"),
+    JSON.stringify(result.findings, null, 2),
+  );
+  assert.ok(
+    result.findings.some((finding) => finding.mode === "REVIEW_BECAME_SEND_AUTHORITY"),
+    JSON.stringify(result.findings, null, 2),
+  );
+});
+
+test("recovery fixture fails when forbidden actions are removed", () => {
+  const draftEvalCase = draftRecoveryNeededFixtureEvalCase();
+  draftEvalCase.candidate.queryAnswer.forbiddenActions = draftEvalCase.candidate.queryAnswer.forbiddenActions.filter(
+    (action) => action !== "create payment",
+  );
+
+  const result = evaluateCoordinationJudgmentCase(draftEvalCase);
+
+  assert.equal(result.passed, false);
+  assert.ok(
+    result.findings.some((finding) => finding.mode === "FORBIDDEN_ACTION_NOT_PRESERVED" &&
+      finding.message.includes("create payment")),
+    JSON.stringify(result.findings, null, 2),
+  );
+});
+
+test("recovery fixture fails when recovery evidence becomes external action authority", () => {
+  const draftEvalCase = draftRecoveryNeededFixtureEvalCase();
   draftEvalCase.candidate.queryAnswer.safeNextStepLabel = "Safe to send response now";
   draftEvalCase.candidate.operatorSurface.actionLabels = [
     "send response",

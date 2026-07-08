@@ -22,19 +22,20 @@ function cloneFixture(mutate?: (fixture: CoordinationJudgmentTraceCapture) => vo
   return fixture;
 }
 
-test("trace eval suite discovers and includes all five bridal HMU trace fixtures", () => {
+test("trace eval suite discovers and includes all six bridal HMU trace fixtures", () => {
   const report = runCoordinationJudgmentTraceEvalSuite();
 
   assert.equal(report.suiteId, COORDINATION_JUDGMENT_TRACE_EVAL_SUITE_ID);
   assert.equal(report.suiteVersion, COORDINATION_JUDGMENT_TRACE_EVAL_SUITE_VERSION);
   assert.equal(report.evaluatedAt, COORDINATION_JUDGMENT_TRACE_EVAL_SUITE_EVALUATED_AT);
-  assert.equal(report.totalTraceFixtures, 5);
+  assert.equal(report.totalTraceFixtures, 6);
   assert.deepEqual(report.sourceTraceIds, [
     "trace-demo-bridal-hmu-wedding-operator-review",
     "trace-demo-bridal-hmu-wedding-blocked-not-ready",
     "trace-demo-bridal-hmu-wedding-authority-attempt-blocked",
     "trace-demo-bridal-hmu-wedding-conflict-human-resolution",
     "trace-demo-bridal-hmu-wedding-escalation-required",
+    "trace-demo-bridal-hmu-wedding-recovery-needed",
   ]);
   assert.deepEqual(report.evalCaseCandidateIds, [
     "trace-candidate-bridal-hmu-wedding-operator-review",
@@ -42,13 +43,14 @@ test("trace eval suite discovers and includes all five bridal HMU trace fixtures
     "trace-candidate-bridal-hmu-wedding-authority-attempt-blocked",
     "trace-candidate-bridal-hmu-wedding-conflict-human-resolution",
     "trace-candidate-bridal-hmu-wedding-escalation-required",
+    "trace-candidate-bridal-hmu-wedding-recovery-needed",
   ]);
 });
 
 test("trace eval suite validates, converts, and evaluates the fixture through the existing harness", () => {
   const report = runCoordinationJudgmentTraceEvalSuite();
 
-  assert.equal(report.passed, 5);
+  assert.equal(report.passed, 6);
   assert.equal(report.failed, 0);
   assert.deepEqual(report.failures, []);
 });
@@ -74,6 +76,10 @@ test("trace eval suite reports expanded blocked-reason coverage", () => {
   assert.ok(report.blockedReasonsCovered.includes("Disputed decision-maker authority requires senior operator handling"));
   assert.ok(report.blockedReasonsCovered.includes("Material contract/payment ambiguity requires escalation"));
   assert.ok(report.blockedReasonsCovered.includes("Venue timeline constraint may break service delivery"));
+  assert.ok(report.blockedReasonsCovered.includes("Recovery needed for degraded coordination path"));
+  assert.ok(report.blockedReasonsCovered.includes("Prior alignment is stale and requires human recovery review"));
+  assert.ok(report.blockedReasonsCovered.includes("Missed response window requires recovery before external action"));
+  assert.ok(report.blockedReasonsCovered.includes("Payment/contract expectation drift requires recovery"));
 });
 
 test("trace eval suite reports failure-mode tag coverage", () => {
@@ -108,7 +114,7 @@ test("trace eval suite reports forbidden action coverage", () => {
 test("trace eval suite preserves human approval, private-only, and safe-next-step coverage", () => {
   const report = runCoordinationJudgmentTraceEvalSuite();
 
-  assert.equal(report.humanApprovalRequiredCount, 5);
+  assert.equal(report.humanApprovalRequiredCount, 6);
   assert.ok(report.privateOnlySignalsCovered.includes("operator review checklist"));
   assert.ok(report.privateOnlySignalsCovered.includes("private route/recovery evidence log"));
   assert.ok(report.privateOnlySignalsCovered.includes("private schedule handoff"));
@@ -122,12 +128,16 @@ test("trace eval suite preserves human approval, private-only, and safe-next-ste
   assert.ok(report.privateOnlySignalsCovered.includes("disputed decision-maker context"));
   assert.ok(report.privateOnlySignalsCovered.includes("material contract/payment ambiguity"));
   assert.ok(report.privateOnlySignalsCovered.includes("venue timeline risk context"));
+  assert.ok(report.privateOnlySignalsCovered.includes("private recovery note"));
+  assert.ok(report.privateOnlySignalsCovered.includes("stale hold context"));
+  assert.ok(report.privateOnlySignalsCovered.includes("payment/contract expectation drift"));
   assert.deepEqual(report.safeNextStepsCovered, [
     "Review private response draft before outreach",
     "Request missing information for operator review",
     "Block attempted external action for human review",
     "Resolve conflicting coordination signals with human review",
     "Escalate high-risk coordination issue for senior operator review",
+    "Run human recovery review before external coordination",
   ]);
 });
 

@@ -138,6 +138,13 @@ function coveredJudgmentStates(
     covered.push("conflict_requires_human_resolution");
   }
 
+  if (
+    includesAny(suiteReport.safeNextStepsCovered, ["human recovery review"]) ||
+    includesAny(suiteReport.blockedReasonsCovered, ["recovery needed", "requires recovery"])
+  ) {
+    covered.push("recovery_needed");
+  }
+
   return covered;
 }
 
@@ -225,6 +232,13 @@ function coveredCoordinationSignals(
 
   if (includesAny(suiteReport.blockedReasonsCovered, ["conflicting"])) {
     covered.push("conflict_resolution");
+  }
+
+  if (
+    includesAny(suiteReport.blockedReasonsCovered, ["recovery needed", "requires recovery"]) ||
+    includesAny(suiteReport.privateOnlySignalsCovered, ["private recovery note"])
+  ) {
+    covered.push("recovery_capacity");
   }
 
   return covered;
