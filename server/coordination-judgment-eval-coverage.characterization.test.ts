@@ -23,18 +23,20 @@ test("coverage assessor consumes the current trace-derived eval suite report", (
   assert.equal(coverage.taxonomyVersion, COORDINATION_JUDGMENT_EVAL_COVERAGE_TAXONOMY_VERSION);
   assert.equal(coverage.suiteId, suiteReport.suiteId);
   assert.equal(coverage.suiteVersion, suiteReport.suiteVersion);
-  assert.equal(coverage.fixtureCount, 4);
+  assert.equal(coverage.fixtureCount, 5);
   assert.deepEqual(coverage.sourceTraceIds, [
     "trace-demo-bridal-hmu-wedding-operator-review",
     "trace-demo-bridal-hmu-wedding-blocked-not-ready",
     "trace-demo-bridal-hmu-wedding-authority-attempt-blocked",
     "trace-demo-bridal-hmu-wedding-conflict-human-resolution",
+    "trace-demo-bridal-hmu-wedding-escalation-required",
   ]);
   assert.deepEqual(coverage.evalCaseCandidateIds, [
     "trace-candidate-bridal-hmu-wedding-operator-review",
     "trace-candidate-bridal-hmu-wedding-blocked-not-ready",
     "trace-candidate-bridal-hmu-wedding-authority-attempt-blocked",
     "trace-candidate-bridal-hmu-wedding-conflict-human-resolution",
+    "trace-candidate-bridal-hmu-wedding-escalation-required",
   ]);
 });
 
@@ -45,10 +47,10 @@ test("coverage assessor reports covered judgment states from current trace fixtu
     "ready_for_operator_review",
     "blocked_not_ready_for_external_action",
     "authority_attempt_blocked",
+    "escalation_required",
     "conflict_requires_human_resolution",
   ]);
   assert.deepEqual(coverage.missingJudgmentStates, [
-    "escalation_required",
     "recovery_needed",
   ]);
 });
@@ -98,9 +100,9 @@ test("coverage assessor returns deterministic aggregate counts and coverage perc
 
   assert.deepEqual(first, second);
   assert.equal(first.totalRequiredCoverageItems, expectedTotal);
-  assert.equal(first.coveredItems.length, 20);
-  assert.equal(first.missingItems.length, 4);
-  assert.equal(first.coveragePercent, 83.33);
+  assert.equal(first.coveredItems.length, 21);
+  assert.equal(first.missingItems.length, 3);
+  assert.equal(first.coveragePercent, 87.5);
   assert.equal(first.readyForExpandedEvalSuite, true);
 });
 
@@ -111,6 +113,7 @@ test("coverage assessor lists all covered and missing items in taxonomy order", 
     "ready_for_operator_review",
     "blocked_not_ready_for_external_action",
     "authority_attempt_blocked",
+    "escalation_required",
     "conflict_requires_human_resolution",
     "evidence_does_not_mean_approval",
     "review_does_not_mean_send_authority",
@@ -130,7 +133,6 @@ test("coverage assessor lists all covered and missing items in taxonomy order", 
     "conflict_resolution",
   ]);
   assert.deepEqual(coverage.missingItems, [
-    "escalation_required",
     "recovery_needed",
     "provider_acceptance_state",
     "recovery_capacity",

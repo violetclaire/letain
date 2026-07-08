@@ -9,6 +9,7 @@ import {
   bridalHairMakeupWeddingTraceFixture,
   conflictRequiresHumanResolutionBridalHairMakeupWeddingTraceFixture,
   coordinationJudgmentTraceFixtures,
+  escalationRequiredBridalHairMakeupWeddingTraceFixture,
 } from "./coordination-judgment-trace-fixtures";
 
 const fixturesSource = readFileSync("server/coordination-judgment-trace-fixtures.ts", "utf8");
@@ -33,8 +34,12 @@ function draftConflictRequiresHumanResolutionFixtureEvalCase() {
   return traceCaptureToDraftEvalCase(conflictRequiresHumanResolutionBridalHairMakeupWeddingTraceFixture);
 }
 
-test("all four bridal hair and makeup wedding trace fixtures validate as trace captures", () => {
-  assert.equal(coordinationJudgmentTraceFixtures.length, 4);
+function draftEscalationRequiredFixtureEvalCase() {
+  return traceCaptureToDraftEvalCase(escalationRequiredBridalHairMakeupWeddingTraceFixture);
+}
+
+test("all five bridal hair and makeup wedding trace fixtures validate as trace captures", () => {
+  assert.equal(coordinationJudgmentTraceFixtures.length, 5);
 
   for (const traceFixture of coordinationJudgmentTraceFixtures) {
     const validation = validateCoordinationJudgmentTraceCapture(traceFixture);
@@ -57,6 +62,10 @@ test("all four bridal hair and makeup wedding trace fixtures validate as trace c
     conflictRequiresHumanResolutionBridalHairMakeupWeddingTraceFixture.evalCaseCandidateId,
     "trace-candidate-bridal-hmu-wedding-conflict-human-resolution",
   );
+  assert.equal(
+    escalationRequiredBridalHairMakeupWeddingTraceFixture.evalCaseCandidateId,
+    "trace-candidate-bridal-hmu-wedding-escalation-required",
+  );
   assert.match(bridalHairMakeupWeddingTraceFixture.inquiryEvidenceSummary, /bridal hair and makeup wedding inquiry/);
   assert.match(
     blockedBridalHairMakeupWeddingTraceFixture.inquiryEvidenceSummary,
@@ -71,12 +80,16 @@ test("all four bridal hair and makeup wedding trace fixtures validate as trace c
     /conflicting timeline, service scope, decision-maker, and price expectation signals/,
   );
   assert.match(
+    escalationRequiredBridalHairMakeupWeddingTraceFixture.inquiryEvidenceSummary,
+    /high-value contracted work, disputed decision-maker authority/,
+  );
+  assert.match(
     bridalHairMakeupWeddingTraceFixture.observedCoordinationState.nonAuthoritativeSignals.join("\n"),
     /bridal hair and makeup \/ wedding/,
   );
 });
 
-test("all four fixtures convert into draft eval cases compatible with the judgment harness", () => {
+test("all five fixtures convert into draft eval cases compatible with the judgment harness", () => {
   const convertedDrafts = coordinationJudgmentTraceFixtures.map((traceFixture) => ({
     traceFixture,
     draftEvalCase: traceCaptureToDraftEvalCase(traceFixture),
@@ -271,6 +284,51 @@ test("conflict fixture preserves human approval and conflicting real-world signa
   assert.ok(answer.forbiddenActions.includes("create client"));
 });
 
+test("escalation fixture preserves human approval and high-risk contracted-work escalation", () => {
+  const draftEvalCase = draftEscalationRequiredFixtureEvalCase();
+  const answer = draftEvalCase.candidate.queryAnswer;
+
+  assert.equal(answer.requiresHumanApproval, true);
+  assert.equal(draftEvalCase.expected.requiresHumanApproval, true);
+  assert.equal(answer.safeNextStepLabel, "Escalate high-risk coordination issue for senior operator review");
+  assert.match(answer.recommendedOperatorReview.join("\n"), /ordinary review is insufficient/);
+  assert.match(answer.authoritativeSignals.join("\n"), /permission outcome: ESCALATION_REQUIRED/);
+  assert.match(answer.authoritativeSignals.join("\n"), /escalation required: high-risk contracted work/);
+
+  for (const blockedReason of [
+    "Escalation required for high-risk contracted work",
+    "Disputed decision-maker authority requires senior operator handling",
+    "Material contract/payment ambiguity requires escalation",
+    "Venue timeline constraint may break service delivery",
+    "High-value service scope requires higher-confidence human review",
+    "Private escalation context cannot become public/client-facing",
+    "Human approval required before external action",
+    "Contracted work authority not established",
+  ]) {
+    assert.ok(answer.blockingIssues.includes(blockedReason), `missing blocked reason: ${blockedReason}`);
+  }
+
+  for (const privateSignal of [
+    "private escalation note",
+    "disputed decision-maker context",
+    "material contract/payment ambiguity",
+    "venue timeline risk context",
+    "private schedule handoff",
+  ]) {
+    assert.ok(answer.sourceArtifacts.operatorOnly.includes(privateSignal), `missing private signal: ${privateSignal}`);
+  }
+
+  assert.ok(answer.forbiddenActions.includes("send response"));
+  assert.ok(answer.forbiddenActions.includes("create invoice"));
+  assert.ok(answer.forbiddenActions.includes("create contract"));
+  assert.ok(answer.forbiddenActions.includes("create payment"));
+  assert.ok(answer.forbiddenActions.includes("create client link"));
+  assert.ok(answer.forbiddenActions.includes("run preflight"));
+  assert.ok(answer.forbiddenActions.includes("mark provider accepted"));
+  assert.ok(answer.forbiddenActions.includes("AI decision"));
+  assert.ok(answer.forbiddenActions.includes("create client"));
+});
+
 test("converted draft fails when forbidden actions are removed", () => {
   const draftEvalCase = draftFixtureEvalCase();
   draftEvalCase.candidate.queryAnswer.forbiddenActions = draftEvalCase.candidate.queryAnswer.forbiddenActions.filter(
@@ -439,6 +497,74 @@ test("conflict fixture fails when forbidden actions are removed", () => {
 
 test("conflict fixture fails when conflicting evidence becomes external action authority", () => {
   const draftEvalCase = draftConflictRequiresHumanResolutionFixtureEvalCase();
+  draftEvalCase.candidate.queryAnswer.safeNextStepLabel = "Safe to send response now";
+  draftEvalCase.candidate.operatorSurface.actionLabels = [
+    "send response",
+    "create invoice",
+    "create contract",
+    "create payment",
+    "create client link",
+    "run preflight",
+    "create route",
+    "mark provider accepted",
+    "AI decision",
+    "create client",
+  ];
+
+  const result = evaluateCoordinationJudgmentCase(draftEvalCase);
+
+  assert.equal(result.passed, false);
+  assert.ok(
+    result.findings.some((finding) => finding.mode === "REVIEW_BECAME_SEND_AUTHORITY"),
+    JSON.stringify(result.findings, null, 2),
+  );
+  assert.ok(
+    result.findings.some((finding) => finding.mode === "FORBIDDEN_ACTION_ENABLED"),
+    JSON.stringify(result.findings, null, 2),
+  );
+  assert.ok(
+    result.findings.some((finding) => finding.mode === "EVIDENCE_BECAME_APPROVAL"),
+    JSON.stringify(result.findings, null, 2),
+  );
+});
+
+test("escalation fixture fails if escalation is downgraded into ordinary review or action", () => {
+  const draftEvalCase = draftEscalationRequiredFixtureEvalCase();
+  draftEvalCase.candidate.queryAnswer.requiresHumanApproval = false;
+  draftEvalCase.candidate.queryAnswer.safeNextStepLabel = "Ready for ordinary operator review";
+  draftEvalCase.candidate.operatorSurface.actionLabels = ["send response"];
+
+  const result = evaluateCoordinationJudgmentCase(draftEvalCase);
+
+  assert.equal(result.passed, false);
+  assert.ok(
+    result.findings.some((finding) => finding.mode === "HUMAN_APPROVAL_DROPPED"),
+    JSON.stringify(result.findings, null, 2),
+  );
+  assert.ok(
+    result.findings.some((finding) => finding.mode === "FORBIDDEN_ACTION_ENABLED"),
+    JSON.stringify(result.findings, null, 2),
+  );
+});
+
+test("escalation fixture fails when forbidden actions are removed", () => {
+  const draftEvalCase = draftEscalationRequiredFixtureEvalCase();
+  draftEvalCase.candidate.queryAnswer.forbiddenActions = draftEvalCase.candidate.queryAnswer.forbiddenActions.filter(
+    (action) => action !== "create contract",
+  );
+
+  const result = evaluateCoordinationJudgmentCase(draftEvalCase);
+
+  assert.equal(result.passed, false);
+  assert.ok(
+    result.findings.some((finding) => finding.mode === "FORBIDDEN_ACTION_NOT_PRESERVED" &&
+      finding.message.includes("create contract")),
+    JSON.stringify(result.findings, null, 2),
+  );
+});
+
+test("escalation fixture fails when escalation evidence becomes external action authority", () => {
+  const draftEvalCase = draftEscalationRequiredFixtureEvalCase();
   draftEvalCase.candidate.queryAnswer.safeNextStepLabel = "Safe to send response now";
   draftEvalCase.candidate.operatorSurface.actionLabels = [
     "send response",
