@@ -9,9 +9,8 @@ coordinate, verify, or trigger real-world work, they need a way to preserve the
 human judgment that determines whether action is actually allowed.
 
 This document defines internal language and evaluation concepts only. It does
-not claim that customer-facing trust scoring, verifier behavior, permission
-gates, automated agent action, or CDI-style scoring are shipped product
-features.
+not claim that customer-facing trust scoring, verification behavior,
+automated agent action, or scoring systems are shipped product features.
 
 ## Current State
 
@@ -213,9 +212,9 @@ accept a provider, create a client, or execute AI.
 It also does not hide remaining taxonomy gaps. It is a reporting checkpoint,
 not a runtime decision engine.
 
-It does not ship CDI scoring, permission gates, automated agent action,
-customer-facing verification behavior, public trust scores, or autonomous
-fulfillment decisions.
+It does not ship scoring systems, automated agent action, customer-facing
+verification behavior, public trust scores, or autonomous fulfillment
+decisions.
 
 The checkpoint's prohibited runtime behavior list includes:
 
@@ -246,10 +245,9 @@ silently turning route or schedule context into acceptance authority.
 
 ## Future Direction
 
-These concepts may inform future eval infrastructure, verifier behavior, and
-product development. Future product work should keep the same separation:
-evidence can inform judgment, but it should not silently become permission to
-act.
+These concepts may inform future eval infrastructure and product development.
+Future product work should keep the same separation: evidence can inform
+judgment, but it should not silently become permission to act.
 
 Future work may expand the taxonomy, add more synthetic traces, harden
 coordination-signal coverage, or connect these ideas to product surfaces only
@@ -306,8 +304,7 @@ npm.cmd run build
 
 This document does not ship:
 
-- CDI scoring
-- permission gates
+- scoring systems
 - automated agent action
 - customer-facing verification behavior
 - public/client trust labels
