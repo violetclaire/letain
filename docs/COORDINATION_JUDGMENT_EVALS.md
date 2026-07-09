@@ -1,7 +1,22 @@
 # Coordination Judgment Evals
 
-This document explains Briarwood's completed coordination judgment eval loop.
-It is documentation only. It does not add runtime behavior, UI, schema,
+This document is internal category and evaluation framing. It does not
+introduce runtime behavior or customer-facing verification features.
+
+Briarwood believes coordination judgment is a missing eval layer for real-world
+agent action. Before software or agents can safely help route, recommend,
+coordinate, verify, or trigger real-world work, they need a way to preserve the
+human judgment that determines whether action is actually allowed.
+
+This document defines internal language and evaluation concepts only. It does
+not claim that customer-facing trust scoring, verifier behavior, permission
+gates, automated agent action, or CDI-style scoring are shipped product
+features.
+
+## Current State
+
+The current repository includes source/test/eval infrastructure for checking
+coordination judgment boundaries. It does not add runtime behavior, UI, schema,
 routes, auth, sends, contracts, payments, public links, AI execution,
 route/preflight behavior, provider acceptance, or client-create behavior.
 
@@ -17,15 +32,20 @@ redacted trace fixture
 -> checkpoint summary
 ```
 
-The loop checks whether Briarwood preserves human judgment before real-world
-contracted work moves forward.
+The implemented eval layer checks whether internal eval candidates preserve
+human judgment before real-world contracted work would be allowed to move
+forward. It does not move that work forward.
 
-## What The Eval Loop Is
+## Thesis
 
-The coordination judgment eval loop is a source/test/eval infrastructure layer
-for checking operator-facing coordination states. It asks whether a candidate
-state preserves the right boundaries between evidence, review, approval, and
-external action.
+Briarwood's thesis is that real-world agent action needs an evaluation layer
+for coordination judgment, not just answer quality.
+
+In contracted work, the hard question is often not "what is the answer?" It is
+"what can safely happen next, and who has the authority to make that happen?"
+The coordination judgment eval framing exists to keep that question explicit.
+
+## Implemented
 
 The core question is:
 
@@ -33,15 +53,20 @@ The core question is:
 Did the system preserve the human judgment needed before moving real-world coordination forward?
 ```
 
+The implemented source/test/eval layer checks candidate coordination states
+against that question. It treats evidence, review, approval, and external
+action as separate concepts.
+
 This matters because real-world service work often runs through private,
 messy, high-context coordination: texts, emails, referrals, handoffs, recovery
 moments, pricing context, schedule context, and relationship trust. In that
-setting, shallow evidence can look actionable when it is not. The eval loop is
-designed to catch that drift.
+setting, shallow evidence can look actionable when it is not. The eval framing
+is designed to catch that drift before any product behavior relies on it.
 
 ## Why Trace-Derived Evals Matter
 
-Briarwood is evaluating contracted work, not abstract content classification.
+Briarwood is developing eval language for contracted work, not abstract content
+classification.
 The important failures are coordination failures:
 
 - evidence quietly becoming approval
@@ -53,15 +78,13 @@ The important failures are coordination failures:
 - invoices, contracts, payments, routes, provider acceptance, public links,
   client creation, or AI execution appearing without human approval
 
-Trace-derived evals keep the test cases close to the shape of real coordination
-while staying redacted, synthetic, and safe. Each trace fixture captures the
-operator judgment, blocked reasons, private-only signals, forbidden actions,
-safe next step, and failure-mode expectations that must survive conversion into
-an eval case.
+Trace-derived evals keep internal test cases close to the shape of real
+coordination while staying redacted, synthetic, and safe. Each fixture captures
+the judgment boundary that must survive conversion into an eval case.
 
 ## Pipeline
 
-The current pipeline is:
+The current source/test/eval pipeline is:
 
 1. Redacted/synthetic trace fixture
 
@@ -156,8 +179,8 @@ permissioned next step != external action
 ## What The Checkpoint Proves
 
 The checkpoint proves that the planned coordination judgment taxonomy is
-represented by trace-derived eval fixtures and that those converted draft eval
-cases pass the deterministic coordination judgment harness.
+represented by internal trace-derived eval fixtures and that those converted
+draft eval cases pass the deterministic coordination judgment harness.
 
 It also proves that the reporting layer can summarize:
 
@@ -190,6 +213,10 @@ accept a provider, create a client, or execute AI.
 It also does not hide remaining taxonomy gaps. It is a reporting checkpoint,
 not a runtime decision engine.
 
+It does not ship CDI scoring, permission gates, automated agent action,
+customer-facing verification behavior, public trust scores, or autonomous
+fulfillment decisions.
+
 The checkpoint's prohibited runtime behavior list includes:
 
 - no sends
@@ -217,9 +244,20 @@ That gap is not a missing judgment state. It remains visible so future work can
 decide whether and how to characterize provider acceptance state without
 silently turning route or schedule context into acceptance authority.
 
-## Source Files
+## Future Direction
 
-The completed eval loop is implemented across these source/test/eval files:
+These concepts may inform future eval infrastructure, verifier behavior, and
+product development. Future product work should keep the same separation:
+evidence can inform judgment, but it should not silently become permission to
+act.
+
+Future work may expand the taxonomy, add more synthetic traces, harden
+coordination-signal coverage, or connect these ideas to product surfaces only
+after the authority boundaries are explicit and reviewed.
+
+## Maintainer References
+
+For maintainers, the current source/test/eval implementation is grouped around:
 
 - `server/coordination-judgment-eval-cases.ts`
 - `server/coordination-judgment-eval-harness.ts`
@@ -234,6 +272,8 @@ The completed eval loop is implemented across these source/test/eval files:
 - `server/coordination-judgment-eval-coverage.characterization.test.ts`
 - `server/coordination-judgment-eval-checkpoint.ts`
 - `server/coordination-judgment-eval-checkpoint.characterization.test.ts`
+
+These are implementation references, not product entry points.
 
 ## How To Run The Eval Tests
 
@@ -262,13 +302,25 @@ git diff --check
 npm.cmd run build
 ```
 
-## Why This Remains Source/Test/Eval Infrastructure Only
+## Non-Goals
 
-The eval loop is intentionally separate from product authority. It contains no
-UI, schema changes, migrations, backend endpoints, production auth changes,
-sends, invoices, contracts, payments, public/client links, AI execution,
-route/preflight/provider acceptance, client-create behavior, self-improving
-harness behavior, automated harness mutation, or `/assess` calls.
+This document does not ship:
+
+- CDI scoring
+- permission gates
+- automated agent action
+- customer-facing verification behavior
+- public/client trust labels
+- runtime trust decisions
+- sends, invoices, contracts, payments, public links, provider acceptance,
+  client creation, route/preflight behavior, or AI execution
+
+The eval loop remains intentionally separate from product authority. It
+contains no UI, schema changes, migrations, backend endpoints, production auth
+changes, sends, invoices, contracts, payments, public/client links, AI
+execution, route/preflight/provider acceptance, client-create behavior,
+self-improving harness behavior, automated harness mutation, or `/assess`
+calls.
 
 Its job is to make the safety and judgment loop legible and repeatable:
 
