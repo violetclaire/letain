@@ -3,6 +3,12 @@ import { pgTable, text, varchar, integer, timestamp, boolean, jsonb, index, uniq
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import type {
+  OptionalPeopleMode,
+  ProviderServiceDurations,
+  ScheduleOperatorDefaults,
+  TouchupMode,
+} from "./schedulingIntelligence";
 
 // Session storage table (for Replit Auth)
 export const sessions = pgTable(
@@ -36,6 +42,15 @@ export type ScheduleEngineMetadata = {
   readyByTime?: string;
   ceremonyTime?: string;
   firstLookTime?: string;
+  sourceRequest?: string;
+  optionalPeopleMode?: OptionalPeopleMode;
+  touchupMode?: TouchupMode;
+  assignPrimaryToLead?: boolean;
+  protectLeadBeforePrimary?: boolean;
+  fixedBlocksReviewed?: boolean;
+  evidenceDay?: string;
+  useEvidencePlaceholders?: boolean;
+  evidenceAdditionsMode?: "undecided" | "exclude" | "include";
 };
 
 // Vendor SLA targets type
@@ -61,6 +76,7 @@ export type VendorOnboardingPreferences = {
     slaWarnings: boolean;
     bookingConfirmations: boolean;
   };
+  scheduleDefaults?: ScheduleOperatorDefaults;
 };
 
 // Users - represents all personas (clients, artists, planners, admins)
@@ -620,7 +636,13 @@ export const scheduleDrafts = pgTable("schedule_drafts", {
   // Editable default durations per service (not hard-coded)
   serviceDefaults: jsonb("service_defaults").$type<Array<{ id: string; label: string; durationMinutes: number }>>().default([]),
   // Optional providers/artists for assignment
-  providers: jsonb("providers").$type<Array<{ id: string; name: string; capability?: "ALL" | "HAIR_ONLY" | "MAKEUP_ONLY"; isPrimary?: boolean }>>().default([]),
+  providers: jsonb("providers").$type<Array<{
+    id: string;
+    name: string;
+    capability?: "ALL" | "HAIR_ONLY" | "MAKEUP_ONLY";
+    isPrimary?: boolean;
+    serviceDurations?: ProviderServiceDurations;
+  }>>().default([]),
   // Structured timing context for future backward-planning schedule generation.
   engineMetadata: jsonb("engine_metadata").$type<ScheduleEngineMetadata>().default({}),
   status: text("status").default("draft"), // 'draft' only for now (no sending)
