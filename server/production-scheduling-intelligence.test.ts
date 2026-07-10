@@ -64,7 +64,6 @@ function completeConfig(): ScheduleProductionConfig {
     ],
     assignPrimaryToLead: true,
     protectLeadBeforePrimary: true,
-    preferMinimumStaff: true,
     fixedBlocksReviewed: true,
     fixedBlocks: [
       {
@@ -130,7 +129,6 @@ test("production questions ask for missing variables instead of guessing", () =>
     providers: [],
     assignPrimaryToLead: null,
     protectLeadBeforePrimary: true,
-    preferMinimumStaff: true,
     fixedBlocksReviewed: false,
     fixedBlocks: [],
     optionalPeopleMode: "undecided",
@@ -205,7 +203,62 @@ test("overlapping fixed blocks are not emitted as a double-booked production sch
 
   const result = generateProductionSchedule(parsed, config);
   assert.equal(result.lanes.flatMap((lane) => lane.blocks).some((block) => block.id === "fixed-overlap"), false);
-  assert.ok(result.warnings.some((warning) => warning.code === "fixed_block" && warning.message.includes("overlaps")));
+  const overlapWarning = result.warnings.find((warning) => warning.code === "fixed_block" && warning.message.includes("overlaps"));
+  assert.equal(overlapWarning?.blocking, true);
+  assert.ok(
+    result.lanes.flatMap((lane) => lane.blocks).some(
+      (block) => block.personName === "Alejandra Zamora" && block.service === "hair" && !block.fixed,
+    ),
+    "a rejected fixed block must not silently remove the underlying required service",
+  );
+});
+
+test("a fixed block after the hard ready time is rejected without dropping the required service", () => {
+  const parsed = parsedWithBrideServices();
+  const config = completeConfig();
+  config.fixedBlocks[0] = {
+    ...config.fixedBlocks[0],
+    startTime: "11:30 AM",
+    endTime: "1:00 PM",
+  };
+
+  const result = generateProductionSchedule(parsed, config);
+  const brideBlocks = result.lanes.flatMap((lane) => lane.blocks).filter((block) => block.personName === "Bride");
+
+  assert.equal(brideBlocks.some((block) => block.fixed), false);
+  assert.ok(brideBlocks.some((block) => block.service === "hair_makeup" && block.endMinutes <= 12 * 60 + 30));
+  assert.ok(result.warnings.some((warning) => warning.code === "fixed_block" && warning.blocking));
+});
+
+test("an unscheduled required service is a hard production blocker", () => {
+  const parsed = parseScheduleRequest(`
+- Maya (Bride) Hair only
+- Lena (Bridesmaid) Makeup only
+`);
+  const result = generateProductionSchedule(parsed, {
+    readyTime: "12:30 PM",
+    providers: [
+      {
+        id: "hair-artist",
+        name: "Hair Artist",
+        capability: "HAIR_ONLY",
+        isLead: true,
+        serviceDurations: { hair: 45 },
+      },
+    ],
+    assignPrimaryToLead: false,
+    protectLeadBeforePrimary: true,
+    fixedBlocksReviewed: true,
+    fixedBlocks: [],
+    optionalPeopleMode: "exclude",
+    touchupMode: "quote_only",
+  });
+
+  assert.equal(result.questions.length, 0);
+  assert.equal(result.lanes.flatMap((lane) => lane.blocks).some((block) => block.personName === "Lena"), false);
+  assert.ok(result.warnings.some((warning) => warning.code === "provider_capability" && warning.blocking));
+  assert.ok(result.warnings.some((warning) => warning.code === "missing_required_service" && warning.blocking));
+  assert.ok(result.warnings.some((warning) => warning.code === "missing_confirmed_person" && warning.blocking));
 });
 
 test("the scheduler never invents staff when configured capacity is insufficient", () => {

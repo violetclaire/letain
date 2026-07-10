@@ -139,6 +139,48 @@ test("Emily multi-day thread deduplicates quoted content and preserves later day
   }
 });
 
+test("selected-day reduction excludes other-day readiness and person context", () => {
+  const fixture = {
+    id: "selected-day-isolation",
+    sourceKind: "thread" as const,
+    messages: [
+      {
+        id: "friday-evidence",
+        sequence: 1,
+        dayContext: "friday_welcome_party",
+        text: `
+Ready-by time: 3:00 PM
+- Maya (Bride) Hair only
+Maya receives services in a separate room.
+`,
+      },
+      {
+        id: "saturday-evidence",
+        sequence: 2,
+        dayContext: "saturday_wedding_day",
+        text: `
+Ready-by time: 12:00 PM
+- Maya (Bride) Makeup only
+`,
+      },
+    ],
+  };
+
+  const friday = reduceScheduleEvidence({ ...fixture, selectedDay: "friday_welcome_party" });
+  const saturday = reduceScheduleEvidence({ ...fixture, selectedDay: "saturday_wedding_day" });
+
+  assert.deepEqual(friday.people[0]?.services, ["hair"]);
+  assert.equal(friday.people[0]?.separateRoom, true);
+  assert.deepEqual(friday.readyConstraints.map((constraint) => constraint.time), ["3:00 PM"]);
+  assert.deepEqual(friday.sourceMessageIds, ["friday-evidence"]);
+
+  assert.deepEqual(saturday.people[0]?.services, ["makeup"]);
+  assert.equal(saturday.people[0]?.separateRoom, false);
+  assert.deepEqual(saturday.readyConstraints.map((constraint) => constraint.time), ["12:00 PM"]);
+  assert.deepEqual(saturday.sourceMessageIds, ["saturday-evidence"]);
+  assert.ok(saturday.dayContexts.includes("friday_welcome_party") && saturday.dayContexts.includes("saturday_wedding_day"));
+});
+
 test("all five fixtures remain private deterministic source/test inputs", () => {
   assert.equal(productionScheduleEvidenceFixtures.length, 5);
   assert.equal(new Set(productionScheduleEvidenceFixtures.map((fixture) => fixture.id)).size, 5);

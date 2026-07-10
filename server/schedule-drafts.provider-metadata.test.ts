@@ -388,7 +388,6 @@ test("schedule draft PATCH preserves sanitized schedule engine metadata", async 
     touchupMode: "quote_only",
     assignPrimaryToLead: true,
     protectLeadBeforePrimary: true,
-    preferMinimumStaff: true,
     fixedBlocksReviewed: false,
     evidenceDay: "saturday_wedding_day",
     useEvidencePlaceholders: true,
@@ -441,6 +440,7 @@ test("operator schedule defaults preserve per-artist timing and merge with exist
   assert.equal(savedPreferences.keepMe, "preserved");
   assert.equal(savedPreferences.scheduleDefaults.preferredLayout, "artist_columns");
   assert.equal(savedPreferences.scheduleDefaults.allowUnrequestedBuffers, false);
+  assert.equal("preferMinimumStaff" in savedPreferences.scheduleDefaults, false);
   assert.equal(savedPreferences.scheduleDefaults.providers[0].serviceDurations.primaryClient, 120);
 
   const getResult = await invoke(getScheduleDefaultsHandler, { session: { userId: "artist-a" } });

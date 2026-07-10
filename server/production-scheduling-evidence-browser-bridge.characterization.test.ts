@@ -186,6 +186,11 @@ test("Schedule Draft Builder renders private reduced evidence and blocks unresol
   assert.match(builderSource, /data-testid="select-evidence-day"/);
   assert.match(builderSource, /data-testid="select-evidence-placeholders"/);
   assert.match(builderSource, /evidenceBlocksPreview/);
+  assert.match(builderSource, /blockingProductionWarnings/);
+  assert.match(builderSource, /productionBlocksPreview/);
+  assert.match(builderSource, /!productionBlocksPreview/);
+  assert.match(builderSource, /data-testid="list-production-blockers"/);
+  assert.match(builderSource, /Resolve production blockers before applying/);
   assert.match(builderSource, /Evidence review does not approve, send, publish, create a client link, or make a provider commitment\./);
   assert.doesNotMatch(builderSource, /GoogleGenAI|OpenAI|chat\.completions|responses\.create|\/assess/);
   assert.doesNotMatch(builderSource, /sendEmail|sendSMS|sendInfoSheet|createClientLink|\/api\/(?:contracts|payments|square|emails|sms)/);

@@ -66,7 +66,6 @@ export type SchedulingProvider = {
 
 export type ScheduleOperatorDefaults = {
   providers: SchedulingProvider[];
-  preferMinimumStaff: boolean;
   protectLeadBeforePrimary: boolean;
   assignPrimaryToLead: boolean;
   preferredLayout: "artist_columns";
@@ -94,7 +93,6 @@ export type ScheduleProductionConfig = {
   providers: SchedulingProvider[];
   assignPrimaryToLead: boolean | null;
   protectLeadBeforePrimary: boolean;
-  preferMinimumStaff: boolean;
   fixedBlocksReviewed: boolean;
   fixedBlocks: FixedScheduleBlock[];
   optionalPeopleMode: OptionalPeopleMode;
@@ -150,8 +148,13 @@ export type ProductionScheduleWarning = {
     | "fixed_block"
     | "starts_before_access"
     | "special_constraint"
-    | "touchup_timing";
+    | "touchup_timing"
+    | "missing_required_service"
+    | "missing_confirmed_person"
+    | "ready_time_violation"
+    | "schedule_overlap";
   message: string;
+  blocking: boolean;
 };
 
 export type ProductionScheduleResult = {
@@ -638,6 +641,7 @@ export function generateProductionSchedule(
     warnings.push({
       code: "missing_production_input",
       message: "Answer the production questions before generating a schedule. Briarwood will not guess missing timing or authority.",
+      blocking: true,
     });
     return emptyResult();
   }
@@ -648,6 +652,7 @@ export function generateProductionSchedule(
   ];
   const fixedByProvider = new Map<string, ReservedInterval[]>();
   const fixedByPerson = new Map<string, ReservedInterval[]>();
+  const acceptedFixedBlockIds = new Set<string>();
   const blocks: ProductionScheduleBlock[] = [];
   const providerById = new Map(config.providers.map((provider) => [provider.id, provider]));
 
@@ -657,7 +662,19 @@ export function generateProductionSchedule(
     const provider = providerById.get(fixed.providerId);
     const person = includedPeople.find((candidate) => personKey(candidate.name) === personKey(fixed.personName));
     if (start === null || end === null || end <= start || !provider || !person) {
-      warnings.push({ code: "fixed_block", message: `Review fixed block ${fixed.personName || fixed.id}; its person, provider, or time is incomplete.` });
+      warnings.push({
+        code: "fixed_block",
+        message: `Review fixed block ${fixed.personName || fixed.id}; its person, provider, or time is incomplete.`,
+        blocking: true,
+      });
+      continue;
+    }
+    if (!providerCanPerform(provider, fixed.service)) {
+      warnings.push({
+        code: "fixed_block",
+        message: `${provider.name} cannot take ${fixed.personName}'s fixed ${serviceLabel(fixed.service)} block with the configured capability.`,
+        blocking: true,
+      });
       continue;
     }
     const interval = { start, end };
@@ -671,17 +688,21 @@ export function generateProductionSchedule(
       warnings.push({
         code: "fixed_block",
         message: `${fixed.personName}'s fixed block overlaps another fixed ${providerConflict ? "artist" : "person"} block and was left out of the generated draft.`,
+        blocking: true,
       });
       continue;
     }
     if (end > readyTimeMinutes) {
       warnings.push({
         code: "fixed_block",
-        message: `${fixed.personName}'s fixed block ends after the ready time. Review the fixed time before using this draft.`,
+        message: `${fixed.personName}'s fixed block ends after the ready time and was left out of the generated draft. Review the fixed time before using this draft.`,
+        blocking: true,
       });
+      continue;
     }
     fixedByProvider.set(provider.id, [...(fixedByProvider.get(provider.id) ?? []), interval]);
     fixedByPerson.set(person.id, [...(fixedByPerson.get(person.id) ?? []), interval]);
+    acceptedFixedBlockIds.add(fixed.id);
     blocks.push({
       id: fixed.id,
       personId: person.id,
@@ -713,7 +734,9 @@ export function generateProductionSchedule(
     }
   }
   for (const person of includedPeople) {
-    const fixedForPerson = config.fixedBlocks.filter((fixed) => personKey(fixed.personName) === personKey(person.name));
+    const fixedForPerson = config.fixedBlocks.filter(
+      (fixed) => acceptedFixedBlockIds.has(fixed.id) && personKey(fixed.personName) === personKey(person.name),
+    );
     const services = [...person.services];
     if (isPrimaryPerson(person) && config.assignPrimaryToLead && services.includes("hair") && services.includes("makeup")) {
       services.splice(0, services.length, "hair_makeup");
@@ -735,6 +758,7 @@ export function generateProductionSchedule(
     warnings.push({
       code: "touchup_timing",
       message: "Touchups remain outside the schedule until a fixed touchup time and duration are entered.",
+      blocking: true,
     });
   }
 
@@ -762,12 +786,20 @@ export function generateProductionSchedule(
   for (const task of tasks) {
     const provider = chooseProvider(task);
     if (!provider) {
-      warnings.push({ code: "provider_capability", message: `No configured artist can take ${task.person.name}'s ${serviceLabel(task.service)} block with a confirmed duration.` });
+      warnings.push({
+        code: "provider_capability",
+        message: `No configured artist can take ${task.person.name}'s ${serviceLabel(task.service)} block with a confirmed duration.`,
+        blocking: true,
+      });
       continue;
     }
     const duration = durationForProvider(provider, task.service, isPrimaryPerson(task.person));
     if (duration === null) {
-      warnings.push({ code: "provider_timing", message: `${provider.name}'s ${serviceLabel(task.service)} duration is missing.` });
+      warnings.push({
+        code: "provider_timing",
+        message: `${provider.name}'s ${serviceLabel(task.service)} duration is missing.`,
+        blocking: true,
+      });
       continue;
     }
     task.provider = provider;
@@ -836,7 +868,64 @@ export function generateProductionSchedule(
     warnings.push({
       code: "starts_before_access",
       message: `The current artists and timings require a ${formatScheduleClock(earliestStart)} start, before the ${formatScheduleClock(earliestAllowed)} access time. Review staffing or scope; no artist was added automatically.`,
+      blocking: true,
     });
+  }
+
+  for (const person of includedPeople) {
+    const expectedServices = [...person.services];
+    if (
+      isPrimaryPerson(person) &&
+      config.assignPrimaryToLead &&
+      expectedServices.includes("hair") &&
+      expectedServices.includes("makeup")
+    ) {
+      expectedServices.splice(0, expectedServices.length, "hair_makeup");
+    }
+    const personBlocks = blocks.filter((block) => block.personId === person.id);
+    for (const service of expectedServices) {
+      if (personBlocks.some((block) => serviceCovers(block.service, service))) continue;
+      warnings.push({
+        code: "missing_required_service",
+        message: `${person.name}'s required ${serviceLabel(service)} service is not scheduled.`,
+        blocking: true,
+      });
+    }
+    if (person.status === "confirmed" && expectedServices.length > 0 && personBlocks.length === 0) {
+      warnings.push({
+        code: "missing_confirmed_person",
+        message: `${person.name} is confirmed but has no service block in the generated draft.`,
+        blocking: true,
+      });
+    }
+  }
+
+  for (const block of blocks) {
+    if (block.endMinutes <= readyTimeMinutes) continue;
+    warnings.push({
+      code: "ready_time_violation",
+      message: `${block.personName}'s ${block.serviceLabel} block ends after the hard ready time.`,
+      blocking: true,
+    });
+  }
+
+  const addOverlapWarning = (label: string, groupedBlocks: ProductionScheduleBlock[]) => {
+    const ordered = [...groupedBlocks].sort((a, b) => a.startMinutes - b.startMinutes || a.endMinutes - b.endMinutes);
+    for (let index = 1; index < ordered.length; index++) {
+      if (ordered[index - 1].endMinutes <= ordered[index].startMinutes) continue;
+      warnings.push({
+        code: "schedule_overlap",
+        message: `${label} has overlapping service blocks in the generated draft.`,
+        blocking: true,
+      });
+      return;
+    }
+  };
+  for (const provider of config.providers) {
+    addOverlapWarning(provider.name, blocks.filter((block) => block.providerId === provider.id));
+  }
+  for (const person of includedPeople) {
+    addOverlapWarning(person.name, blocks.filter((block) => block.personId === person.id));
   }
 
   for (const person of includedPeople) {
@@ -852,6 +941,7 @@ export function generateProductionSchedule(
         warnings.push({
           code: "special_constraint",
           message: `${person.name} is more than 60 minutes from ${constraint.relatedPersonName} in this draft. Review the language/proximity constraint.`,
+          blocking: false,
         });
       }
     }
@@ -893,10 +983,11 @@ export function generateProductionSchedule(
 export function defaultScheduleOperatorDefaults(): ScheduleOperatorDefaults {
   return {
     providers: [],
-    preferMinimumStaff: true,
     protectLeadBeforePrimary: true,
     assignPrimaryToLead: true,
     preferredLayout: "artist_columns",
     allowUnrequestedBuffers: false,
   };
 }
+
+// TODO: Add a tested staff-minimization strategy in a separate scheduling-optimization slice.

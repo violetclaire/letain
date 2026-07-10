@@ -51,6 +51,16 @@ test("artist-specific timings and reusable defaults remain editable per event", 
   assert.match(schemaSource, /serviceDurations\?: ProviderServiceDurations/);
 });
 
+test("hard production failures block preview application and fake optimization controls stay hidden", () => {
+  assert.match(intelligenceSource, /blocking: true/);
+  assert.match(intelligenceSource, /missing_required_service/);
+  assert.match(intelligenceSource, /missing_confirmed_person/);
+  assert.match(builderSource, /blockingProductionWarnings/);
+  assert.match(builderSource, /data-testid="list-production-blockers"/);
+  assert.doesNotMatch(builderSource, /checkbox-minimum-staff/);
+  assert.doesNotMatch(schemaSource, /preferMinimumStaff/);
+});
+
 test("production output is independent horizontal artist lanes without invented staff, gaps, or buffers", () => {
   assert.match(intelligenceSource, /export function generateProductionSchedule/);
   assert.match(intelligenceSource, /providerCursor/);

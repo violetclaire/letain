@@ -525,10 +525,15 @@ function candidateWarnings(
 }
 
 export function reduceScheduleEvidence(input: ScheduleEvidenceInput): ReducedScheduleEvidence {
-  const messages = uniqueBy(
+  const allMessages = uniqueBy(
     [...(input.messages ?? [])].sort((a, b) => a.sequence - b.sequence || a.id.localeCompare(b.id)),
     (message) => `${message.dayContext ?? "unspecified"}:${normalize(message.text)}`,
   );
+  const messages = input.selectedDay
+    ? allMessages.filter(
+        (message) => !message.dayContext || key(message.dayContext) === key(input.selectedDay ?? ""),
+      )
+    : allMessages;
   const people = new Map<string, MutableParticipant>();
   const removed = new Map<string, RemovedScheduleParticipant>();
   const readyConstraints: ScheduleReadyConstraint[] = [];
@@ -639,7 +644,7 @@ export function reduceScheduleEvidence(input: ScheduleEvidenceInput): ReducedSch
   }
 
   const dayContexts = unique([
-    ...messages.map((message) => message.dayContext).filter((value): value is string => Boolean(value)),
+    ...allMessages.map((message) => message.dayContext).filter((value): value is string => Boolean(value)),
     ...scheduleableSpreadsheetRows.map((row) => row.dayContext).filter((value): value is string => Boolean(value)),
   ]);
   let activePeople = [...people.values()]
@@ -661,16 +666,22 @@ export function reduceScheduleEvidence(input: ScheduleEvidenceInput): ReducedSch
       });
   }
   const removedPeople = [...removed.values()].sort((a, b) => a.name.localeCompare(b.name));
+  const candidateBlocks = (input.candidateBlocks ?? []).filter(
+    (block) => !input.selectedDay || !block.dayContext || key(block.dayContext) === key(input.selectedDay),
+  );
   const warnings = candidateWarnings(
     activePeople,
     removedPeople,
     readyConstraints,
-    input.candidateBlocks ?? [],
+    candidateBlocks,
     input.candidateScheduleScope,
   );
 
-  const originalRows = scheduleableSpreadsheetRows.filter((row) => row.section === "original");
-  const additionRows = scheduleableSpreadsheetRows.filter((row) => row.section === "additions");
+  const selectedDayRows = scheduleableSpreadsheetRows.filter(
+    (row) => !input.selectedDay || !row.dayContext || key(row.dayContext) === key(input.selectedDay),
+  );
+  const originalRows = selectedDayRows.filter((row) => row.section === "original");
+  const additionRows = selectedDayRows.filter((row) => row.section === "additions");
   for (const addition of additionRows) {
     const duplicate = originalRows.find(
       (original) =>
@@ -793,7 +804,7 @@ export function reduceScheduleEvidence(input: ScheduleEvidenceInput): ReducedSch
     arrivalGuidance: unique(arrivalGuidance),
     scheduleableSpreadsheetRows,
     ignoredSpreadsheetRowIds,
-    candidateBlocks: [...(input.candidateBlocks ?? [])],
+    candidateBlocks,
     warnings: uniqueBy(warnings, (warning) => `${warning.code}:${warning.message}`),
     questions,
     scheduleReadiness: conflict ? "conflict_requires_resolution" : questions.length > 0 ? "needs_operator_input" : "ready_for_operator_review",

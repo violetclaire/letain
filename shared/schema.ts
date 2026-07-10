@@ -47,7 +47,6 @@ export type ScheduleEngineMetadata = {
   touchupMode?: TouchupMode;
   assignPrimaryToLead?: boolean;
   protectLeadBeforePrimary?: boolean;
-  preferMinimumStaff?: boolean;
   fixedBlocksReviewed?: boolean;
   evidenceDay?: string;
   useEvidencePlaceholders?: boolean;

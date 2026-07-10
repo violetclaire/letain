@@ -42,7 +42,6 @@ type ScheduleEngineMetadata = {
   touchupMode?: "undecided" | "quote_only" | "schedule_fixed_only";
   assignPrimaryToLead?: boolean;
   protectLeadBeforePrimary?: boolean;
-  preferMinimumStaff?: boolean;
   fixedBlocksReviewed?: boolean;
   evidenceDay?: string;
   useEvidencePlaceholders?: boolean;
@@ -870,7 +869,6 @@ function normalizeScheduleEngineMetadata(metadata?: ScheduleEngineMetadata | nul
     touchupMode: metadata?.touchupMode ?? "undecided",
     assignPrimaryToLead: metadata?.assignPrimaryToLead,
     protectLeadBeforePrimary: metadata?.protectLeadBeforePrimary,
-    preferMinimumStaff: metadata?.preferMinimumStaff,
     fixedBlocksReviewed: metadata?.fixedBlocksReviewed ?? false,
     evidenceDay: metadata?.evidenceDay ?? "",
     useEvidencePlaceholders: metadata?.useEvidencePlaceholders ?? false,
@@ -1839,7 +1837,6 @@ export default function ScheduleDraftBuilder() {
     mutationFn: async () => {
       const payload: ScheduleOperatorDefaults = {
         providers: schedulingProviders(providers),
-        preferMinimumStaff: engineMetadata.preferMinimumStaff ?? operatorScheduleDefaultsQuery.data?.preferMinimumStaff ?? true,
         protectLeadBeforePrimary: engineMetadata.protectLeadBeforePrimary ?? operatorScheduleDefaultsQuery.data?.protectLeadBeforePrimary ?? true,
         assignPrimaryToLead: engineMetadata.assignPrimaryToLead ?? operatorScheduleDefaultsQuery.data?.assignPrimaryToLead ?? true,
         preferredLayout: "artist_columns",
@@ -1964,10 +1961,6 @@ export default function ScheduleDraftBuilder() {
               engineMetadata.protectLeadBeforePrimary ??
               operatorScheduleDefaultsQuery.data?.protectLeadBeforePrimary ??
               true,
-            preferMinimumStaff:
-              engineMetadata.preferMinimumStaff ??
-              operatorScheduleDefaultsQuery.data?.preferMinimumStaff ??
-              true,
             fixedBlocksReviewed:
               Boolean(engineMetadata.fixedBlocksReviewed) && markedFixedRowCount === fixedScheduleBlocks.length,
             fixedBlocks: fixedScheduleBlocks,
@@ -2023,16 +2016,28 @@ export default function ScheduleDraftBuilder() {
       ].includes(question.id))
     ),
   );
-  const canApplyFirstDraftPreview = hasFirstDraftPreview && hasFirstDraftServiceBlocks && rowsCanAcceptFirstDraftPreview && !evidenceBlocksPreview;
+  const blockingProductionWarnings = productionSchedule?.warnings.filter((warning) => warning.blocking) ?? [];
+  const advisoryFirstDraftWarnings = productionSchedule
+    ? productionSchedule.warnings.filter((warning) => !warning.blocking).map((warning) => warning.message)
+    : firstDraftPreview.warnings;
+  const productionBlocksPreview = blockingProductionWarnings.length > 0;
+  const canApplyFirstDraftPreview =
+    hasFirstDraftPreview &&
+    hasFirstDraftServiceBlocks &&
+    rowsCanAcceptFirstDraftPreview &&
+    !evidenceBlocksPreview &&
+    !productionBlocksPreview;
   const firstDraftApplyMessage = evidenceBlocksPreview
     ? "Resolve the private evidence warnings and blocking questions before applying a preview."
-    : !hasFirstDraftPreview
-    ? "Generate a first draft preview before applying it."
-    : !hasFirstDraftServiceBlocks
-      ? "Add service blocks before applying a preview."
-      : !rowsCanAcceptFirstDraftPreview
-        ? "Apply is locked because editable rows already contain manual details."
-        : "Ready to copy preview blocks into editable rows. Save draft after review.";
+    : productionBlocksPreview
+      ? `Resolve production blockers before applying: ${blockingProductionWarnings[0].message}`
+      : !hasFirstDraftPreview
+        ? "Generate a first draft preview before applying it."
+        : !hasFirstDraftServiceBlocks
+          ? "Add service blocks before applying a preview."
+          : !rowsCanAcceptFirstDraftPreview
+            ? "Apply is locked because editable rows already contain manual details."
+            : "Ready to copy preview blocks into editable rows. Save draft after review.";
 
   // Name pool ("People to assign") lives inside notes as one delimited line so
   // no schema changes are needed. Parse it out for its own section and keep the
@@ -2177,7 +2182,6 @@ export default function ScheduleDraftBuilder() {
       ...prev,
       assignPrimaryToLead: defaults.assignPrimaryToLead,
       protectLeadBeforePrimary: defaults.protectLeadBeforePrimary,
-      preferMinimumStaff: defaults.preferMinimumStaff,
     }));
     toast({ title: "Operator defaults loaded", description: "These values are event overrides until you save the draft." });
   };
@@ -2761,16 +2765,6 @@ export default function ScheduleDraftBuilder() {
                       />
                       <span>Protect the lead artist before the primary client block</span>
                     </label>
-                    <label className="inline-flex items-start gap-2 border border-hairline bg-bg px-3 py-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={engineMetadata.preferMinimumStaff ?? operatorScheduleDefaultsQuery.data?.preferMinimumStaff ?? true}
-                        onChange={(event) => setEngineMetadata((prev) => ({ ...prev, preferMinimumStaff: event.target.checked }))}
-                        className="mt-0.5 h-4 w-4 accent-oxblood"
-                        data-testid="checkbox-minimum-staff"
-                      />
-                      <span>Use only the configured artists; warn if the timing cannot fit</span>
-                    </label>
                   </div>
 
                   {productionSchedule && productionSchedule.questions.length > 0 && (
@@ -2952,9 +2946,22 @@ export default function ScheduleDraftBuilder() {
                     </button>
                   </div>
 
-                  {firstDraftPreview.warnings.length > 0 && (
+                  {blockingProductionWarnings.length > 0 && (
+                    <div className="border border-oxblood/40 bg-oxblood/10 p-4" data-testid="list-production-blockers">
+                      <h3 className="text-sm font-medium text-oxblood">Resolve before applying</h3>
+                      <ul className="mt-2 space-y-1.5 text-sm text-ink/75">
+                        {blockingProductionWarnings.map((warning, index) => (
+                          <li key={`${warning.code}-${warning.message}`} data-testid={`production-blocker-${index}`}>
+                            {warning.message}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {advisoryFirstDraftWarnings.length > 0 && (
                     <ul className="space-y-2" data-testid="list-first-draft-warnings">
-                      {firstDraftPreview.warnings.map((warning, index) => (
+                      {advisoryFirstDraftWarnings.map((warning, index) => (
                         <li
                           key={`${warning}-${index}`}
                           className="border border-brass/40 bg-brass/10 px-3 py-2 text-sm text-ink/70"
@@ -3344,7 +3351,7 @@ export default function ScheduleDraftBuilder() {
             <section data-testid="section-providers">
               <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h2 className="font-serif text-xl tracking-tight">Artists and timing</h2>
+                  <h2 className="font-serif text-xl tracking-tight">Service roles and timing</h2>
                   <p className="mt-1 text-xs text-ink/50">Durations belong to each artist, not to the service globally.</p>
                 </div>
                 <div className="flex flex-wrap gap-2">

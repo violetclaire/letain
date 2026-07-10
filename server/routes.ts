@@ -7328,7 +7328,6 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       : [];
     return {
       providers,
-      preferMinimumStaff: source.preferMinimumStaff !== false,
       protectLeadBeforePrimary: source.protectLeadBeforePrimary !== false,
       assignPrimaryToLead: source.assignPrimaryToLead !== false,
       preferredLayout: "artist_columns",
@@ -7347,7 +7346,6 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   const scheduleEngineBooleanFields = [
     "assignPrimaryToLead",
     "protectLeadBeforePrimary",
-    "preferMinimumStaff",
     "fixedBlocksReviewed",
     "useEvidencePlaceholders",
   ] as const;
