@@ -14,6 +14,7 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import { GoogleGenAI, Modality } from "@google/genai";
 import { coordinationRiskFactorValues } from "@shared/schema";
+import { defaultScheduleOperatorDefaults, type ScheduleOperatorDefaults } from "@shared/schedulingIntelligence";
 import * as smsService from "./smsService";
 import { processInboundSms } from "./inboundProcessor";
 import * as iqsService from "./iqsService";
@@ -7273,19 +7274,66 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     return value === "ALL" || value === "HAIR_ONLY" || value === "MAKEUP_ONLY" ? value : undefined;
   }
 
+  function sanitizeScheduleProviderDurations(value: unknown) {
+    const sanitized: Record<string, number> = {};
+    if (!value || typeof value !== "object" || Array.isArray(value)) return sanitized;
+    const source = value as Record<string, unknown>;
+    for (const field of ["hair", "makeup", "hairMakeup", "primaryClient", "touchup"] as const) {
+      const minutes = Number(source[field]);
+      if (Number.isFinite(minutes) && minutes > 0 && minutes <= 480) {
+        sanitized[field] = Math.floor(minutes);
+      }
+    }
+    return sanitized;
+  }
+
   function sanitizeScheduleProviders(providers: unknown) {
     if (!Array.isArray(providers)) return [];
     return providers
       .filter((p: any) => p && typeof p === "object")
       .map((p: any) => {
         const capability = sanitizeScheduleProviderCapability(p.capability);
+        const serviceDurations = sanitizeScheduleProviderDurations(p.serviceDurations);
         return {
           id: String(p.id ?? "").slice(0, 64) || `prov_${Math.random().toString(36).slice(2, 9)}`,
           name: String(p.name ?? "").slice(0, 120),
           ...(capability ? { capability } : {}),
           isPrimary: p.isPrimary === true,
+          ...(Object.keys(serviceDurations).length > 0 ? { serviceDurations } : {}),
         };
-      });
+      })
+      .slice(0, 24);
+  }
+
+  function sanitizeScheduleOperatorDefaults(value: unknown): ScheduleOperatorDefaults {
+    const fallback = defaultScheduleOperatorDefaults();
+    if (!value || typeof value !== "object" || Array.isArray(value)) return fallback;
+    const source = value as Record<string, unknown>;
+    const providers = Array.isArray(source.providers)
+      ? source.providers
+          .filter((provider: any) => provider && typeof provider === "object")
+          .map((provider: any) => {
+            const capability = sanitizeScheduleProviderCapability(provider.capability);
+            const serviceDurations = sanitizeScheduleProviderDurations(provider.serviceDurations);
+            return {
+              id: String(provider.id ?? "").slice(0, 64) || `provider-${Math.random().toString(36).slice(2, 9)}`,
+              name: String(provider.name ?? "").trim().slice(0, 120),
+              ...(capability ? { capability } : {}),
+              isLead: provider.isLead === true,
+              ...(Object.keys(serviceDurations).length > 0 ? { serviceDurations } : {}),
+            };
+          })
+          .filter((provider) => provider.name)
+          .slice(0, 24)
+      : [];
+    return {
+      providers,
+      preferMinimumStaff: source.preferMinimumStaff !== false,
+      protectLeadBeforePrimary: source.protectLeadBeforePrimary !== false,
+      assignPrimaryToLead: source.assignPrimaryToLead !== false,
+      preferredLayout: "artist_columns",
+      allowUnrequestedBuffers: false,
+    };
   }
 
   const scheduleEngineMetadataFields = [
@@ -7296,8 +7344,15 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     "firstLookTime",
   ] as const;
 
+  const scheduleEngineBooleanFields = [
+    "assignPrimaryToLead",
+    "protectLeadBeforePrimary",
+    "preferMinimumStaff",
+    "fixedBlocksReviewed",
+  ] as const;
+
   function sanitizeScheduleEngineMetadata(metadata: unknown) {
-    const sanitized: Record<string, string> = {};
+    const sanitized: Record<string, string | boolean> = {};
     if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return sanitized;
     const source = metadata as Record<string, unknown>;
     for (const field of scheduleEngineMetadataFields) {
@@ -7307,6 +7362,18 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       } else if (typeof value === "string") {
         sanitized[field] = value.trim().slice(0, 40);
       }
+    }
+    if (typeof source.sourceRequest === "string") {
+      sanitized.sourceRequest = source.sourceRequest.slice(0, 20000);
+    }
+    if (source.optionalPeopleMode === "undecided" || source.optionalPeopleMode === "exclude" || source.optionalPeopleMode === "include") {
+      sanitized.optionalPeopleMode = source.optionalPeopleMode;
+    }
+    if (source.touchupMode === "undecided" || source.touchupMode === "quote_only" || source.touchupMode === "schedule_fixed_only") {
+      sanitized.touchupMode = source.touchupMode;
+    }
+    for (const field of scheduleEngineBooleanFields) {
+      if (typeof source[field] === "boolean") sanitized[field] = source[field];
     }
     return sanitized;
   }
@@ -7363,6 +7430,42 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     return draft;
   }
 
+  // Reusable operator scheduling defaults. These are private, owner-scoped, and
+  // stored inside the existing onboarding_preferences JSON object. Event drafts
+  // remain free to override every value.
+  app.get("/api/vendor/schedule-defaults", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const profile = await storage.getArtistProfile(userId);
+      const saved = (profile?.onboardingPreferences as any)?.scheduleDefaults;
+      res.json(sanitizeScheduleOperatorDefaults(saved));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
+    }
+  });
+
+  app.patch("/api/vendor/schedule-defaults", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getAuthUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const scheduleDefaults = sanitizeScheduleOperatorDefaults(req.body);
+      const profile = await storage.getArtistProfile(userId);
+      const onboardingPreferences = {
+        ...((profile?.onboardingPreferences as any) ?? {}),
+        scheduleDefaults,
+      };
+      const updated = profile
+        ? await storage.updateArtistProfile(userId, { onboardingPreferences } as any)
+        : await storage.createArtistProfile({ userId, onboardingPreferences } as any);
+      res.json({ scheduleDefaults: (updated?.onboardingPreferences as any)?.scheduleDefaults ?? scheduleDefaults });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
+    }
+  });
+
   // Create a new schedule draft (owner = current user). Optional links to
   // inquiry/contract/booking. Starts as a usable placeholder table.
   app.post("/api/schedule-drafts", isAuthenticated, async (req: Request, res: Response) => {
@@ -7382,6 +7485,22 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
 
       const requester = await storage.getUser(userId);
       const isAdmin = requester?.role === "admin";
+      let requestedProviders = Array.isArray(body.providers) ? sanitizeScheduleProviders(body.providers) : [];
+      if (!Array.isArray(body.providers)) {
+        try {
+          const profile = await storage.getArtistProfile(userId);
+          const savedScheduleDefaults = sanitizeScheduleOperatorDefaults((profile?.onboardingPreferences as any)?.scheduleDefaults);
+          requestedProviders = savedScheduleDefaults.providers.map((provider) => ({
+            id: provider.id,
+            name: provider.name,
+            capability: provider.capability,
+            isPrimary: provider.isLead === true,
+            serviceDurations: provider.serviceDurations,
+          }));
+        } catch {
+          requestedProviders = [];
+        }
+      }
 
       if (contractId) {
         const contract = await storage.getContract(contractId);
@@ -7423,7 +7542,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         columns: defaultScheduleColumns(),
         rows: placeholderRows(3),
         serviceDefaults: defaultServiceDefaults(),
-        providers: sanitizeScheduleProviders(body.providers),
+        providers: requestedProviders,
         engineMetadata: sanitizeScheduleEngineMetadata(body.engineMetadata),
         status: "draft",
       } as any);

@@ -4,18 +4,42 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Loader2, Plus, Trash2, Copy, X, Save, Eye, Printer } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import {
+  generateProductionSchedule,
+  parseScheduleRequest,
+  serviceLabel,
+  type FixedScheduleBlock,
+  type ProductionScheduleResult,
+  type ProviderServiceDurations,
+  type ScheduleOperatorDefaults,
+  type ScheduleServiceKind,
+  type SchedulingProvider,
+} from "@shared/schedulingIntelligence";
 
 type Column = { id: string; label: string; type: string };
 type Row = { id: string; sortOrder: number; cells: Record<string, string> };
 type ServiceDefault = { id: string; label: string; durationMinutes: number };
 type ProviderCapability = "ALL" | "HAIR_ONLY" | "MAKEUP_ONLY";
-type Provider = { id: string; name: string; capability?: ProviderCapability | ""; isPrimary?: boolean };
+type Provider = {
+  id: string;
+  name: string;
+  capability?: ProviderCapability | "";
+  isPrimary?: boolean;
+  serviceDurations?: ProviderServiceDurations;
+};
 type ScheduleEngineMetadata = {
   venueAccessTime?: string;
   photographerArrivalTime?: string;
   readyByTime?: string;
   ceremonyTime?: string;
   firstLookTime?: string;
+  sourceRequest?: string;
+  optionalPeopleMode?: "undecided" | "exclude" | "include";
+  touchupMode?: "undecided" | "quote_only" | "schedule_fixed_only";
+  assignPrimaryToLead?: boolean;
+  protectLeadBeforePrimary?: boolean;
+  preferMinimumStaff?: boolean;
+  fixedBlocksReviewed?: boolean;
 };
 type AuditSeverity = "info" | "warning" | "critical";
 
@@ -70,6 +94,7 @@ type PreviewBlock = PreviewSourceBlock & {
   start: number | null;
   end: number | null;
   isSetup?: boolean;
+  isFixed?: boolean;
 };
 
 type PreviewLane = {
@@ -122,6 +147,17 @@ const SCHEDULE_ENGINE_METADATA_FIELDS: Array<{
   { id: "readyByTime", label: "Ready by / hard stop" },
   { id: "ceremonyTime", label: "Ceremony" },
   { id: "firstLookTime", label: "First look" },
+];
+
+const PROVIDER_DURATION_FIELDS: Array<{
+  id: keyof ProviderServiceDurations;
+  label: string;
+}> = [
+  { id: "hair", label: "Hair" },
+  { id: "makeup", label: "Makeup" },
+  { id: "hairMakeup", label: "Hair + makeup" },
+  { id: "primaryClient", label: "Primary client" },
+  { id: "touchup", label: "Touchup" },
 ];
 
 const VIOLET_SERVICE_DEFAULTS: ServiceDefault[] = [
@@ -605,6 +641,7 @@ function isEmptyOrPlaceholderOnlyRows(rows: Row[], providerColId: string): boole
   const allowedStarterCells = new Set(["name", "service", "duration", providerColId]);
   return rows.every((row) => {
     const cells = row.cells ?? {};
+    if (cells._fixed === "true") return true;
     const name = (cells.name ?? "").trim();
     if (!isStarterScheduleName(name)) return false;
     return Object.entries(cells).every(([key, value]) => {
@@ -640,6 +677,7 @@ function firstDraftPreviewToRows(preview: FirstDraftPreview, columns: Column[], 
       cells.end = block.end === null ? "" : formatClockTime(block.end);
       cells.duration = String(block.duration);
       cells.notes = block.notes;
+      if (block.isFixed) cells._fixed = "true";
       rows.push({
         id: uid("row"),
         sortOrder: rows.length,
@@ -648,6 +686,86 @@ function firstDraftPreviewToRows(preview: FirstDraftPreview, columns: Column[], 
     }
   }
   return rows;
+}
+
+function scheduleServiceKindFromText(value: string): ScheduleServiceKind {
+  const text = value.toLowerCase().replace(/make\s+up/g, "makeup");
+  if (/touch\s*-?\s*up/.test(text)) return "touchup";
+  const hasHair = /\bhair\b|\bhmu\b/.test(text);
+  const hasMakeup = /\bmakeup\b|\bhmu\b/.test(text);
+  if (hasHair && hasMakeup) return "hair_makeup";
+  if (hasHair) return "hair";
+  if (hasMakeup) return "makeup";
+  return "other";
+}
+
+function fixedScheduleBlocksFromRows(rows: Row[], providers: Provider[], providerColId: string): FixedScheduleBlock[] {
+  const providersByName = new Map(providers.map((provider) => [provider.name.trim().toLowerCase(), provider]));
+  return rows.flatMap((row) => {
+    const cells = row.cells ?? {};
+    if (cells._fixed !== "true") return [];
+    const personName = (cells.name ?? "").trim();
+    const providerName = (cells[providerColId] ?? "").trim();
+    const provider = providersByName.get(providerName.toLowerCase());
+    const start = parseClockTime(cells.start ?? "");
+    const explicitEnd = parseClockTime(cells.end ?? "");
+    const duration = parseDurationMinutes(cells.duration ?? "");
+    const end = explicitEnd ?? (start !== null && duration !== null ? start + duration : null);
+    if (!personName || !provider || start === null || end === null || end <= start) return [];
+    return [{
+      id: row.id,
+      personName,
+      service: scheduleServiceKindFromText(`${cells.service ?? ""} ${cells.notes ?? ""}`),
+      providerId: provider.id,
+      providerName: provider.name,
+      startTime: formatClockTime(start),
+      endTime: formatClockTime(end),
+      notes: (cells.notes ?? "").trim(),
+    }];
+  });
+}
+
+function schedulingProviders(providers: Provider[]): SchedulingProvider[] {
+  return providers.map((provider) => ({
+    id: provider.id,
+    name: provider.name,
+    capability: provider.capability,
+    isLead: provider.isPrimary,
+    serviceDurations: provider.serviceDurations,
+  }));
+}
+
+function productionScheduleToPreview(result: ProductionScheduleResult): FirstDraftPreview {
+  return {
+    lanes: result.lanes.map((lane) => ({
+      provider: lane.providerName,
+      label: lane.providerName,
+      capability: lane.capability || undefined,
+      isPrimary: lane.isLead,
+      blocks: lane.blocks.map((block, order) => ({
+        id: block.id,
+        name: block.personName,
+        service: block.serviceLabel,
+        notes: uniquePreviewNotes([...block.notes, block.optional ? "Optional person included for this event" : ""]),
+        originalProvider: block.providerName,
+        kind: block.service === "hair_makeup" ? "both" : block.service === "hair" || block.service === "makeup" ? block.service : "other",
+        category: firstDraftCategory(`${block.roleLabel} ${block.personName}`),
+        duration: block.durationMinutes,
+        order,
+        provider: block.providerName,
+        start: block.startMinutes,
+        end: block.endMinutes,
+        isFixed: block.fixed,
+      })),
+    })),
+    warnings: result.warnings.map((warning) => warning.message),
+    readyBy: result.readyTimeMinutes,
+    setupMinutes: 0,
+  };
+}
+
+function uniquePreviewNotes(notes: string[]): string {
+  return Array.from(new Set(notes.map((note) => note.trim()).filter(Boolean))).join("; ");
 }
 
 // The "People to assign" pool is persisted inside the notes string as one
@@ -720,11 +838,15 @@ function normalizeProviderCapability(value: unknown): ProviderCapability | undef
 function normalizeProviders(providers?: Provider[] | null): Provider[] {
   return (providers ?? []).map((provider) => {
     const capability = normalizeProviderCapability(provider.capability);
+    const serviceDurations = Object.fromEntries(
+      Object.entries(provider.serviceDurations ?? {}).filter(([, value]) => typeof value === "number" && value > 0),
+    ) as ProviderServiceDurations;
     return {
       id: provider.id,
       name: provider.name,
       ...(capability ? { capability } : {}),
       ...(provider.isPrimary ? { isPrimary: true } : {}),
+      ...(Object.keys(serviceDurations).length > 0 ? { serviceDurations } : {}),
     };
   });
 }
@@ -736,6 +858,13 @@ function normalizeScheduleEngineMetadata(metadata?: ScheduleEngineMetadata | nul
     readyByTime: metadata?.readyByTime ?? "",
     ceremonyTime: metadata?.ceremonyTime ?? "",
     firstLookTime: metadata?.firstLookTime ?? "",
+    sourceRequest: metadata?.sourceRequest ?? "",
+    optionalPeopleMode: metadata?.optionalPeopleMode ?? "undecided",
+    touchupMode: metadata?.touchupMode ?? "undecided",
+    assignPrimaryToLead: metadata?.assignPrimaryToLead,
+    protectLeadBeforePrimary: metadata?.protectLeadBeforePrimary,
+    preferMinimumStaff: metadata?.preferMinimumStaff,
+    fixedBlocksReviewed: metadata?.fixedBlocksReviewed ?? false,
   };
 }
 
@@ -1206,6 +1335,7 @@ function buildScheduleAudit(input: {
   engineMetadata: ScheduleEngineMetadata;
 }): ScheduleAuditIssue[] {
   const issues: ScheduleAuditIssue[] = [];
+  const usesProductionRequest = Boolean(input.engineMetadata.sourceRequest?.trim());
   const blocks = auditBlocksFromRows(input.rows, input.providerColId);
   const providerNames = new Set<string>();
   const providersByName = new Map<string, Provider>();
@@ -1294,7 +1424,23 @@ function buildScheduleAudit(input: {
       }
     }
 
-    if (isBride && hasHair && hasMakeup) {
+    if (usesProductionRequest) {
+      const provider = providersByName.get(block.provider);
+      const timings = provider?.serviceDurations;
+      const expected =
+        isBride && hasHair && hasMakeup
+          ? timings?.primaryClient ?? timings?.hairMakeup
+          : hasHair && hasMakeup
+            ? timings?.hairMakeup
+            : hasHair
+              ? timings?.hair
+              : hasMakeup
+                ? timings?.makeup
+                : undefined;
+      if (expected) {
+        addDurationIssue(issues, block, expected, `${auditBlockLabel(block)} is under ${provider?.name ?? "the assigned artist"}'s baseline timing`);
+      }
+    } else if (isBride && hasHair && hasMakeup) {
       addDurationIssue(issues, block, 120, "Bride hair + makeup is under 120 minutes", "critical");
     } else if (isBride && hasMakeup) {
       addDurationIssue(issues, block, 60, "Bride makeup-only block is under 60 minutes", "critical");
@@ -1320,7 +1466,7 @@ function buildScheduleAudit(input: {
 
   const setupBlocks = blocks.filter(isSetupBlock);
   const setupMin = providerCount >= 3 ? 30 : 15;
-  if (setupBlocks.length === 0) {
+  if (setupBlocks.length === 0 && !usesProductionRequest) {
     issues.push({
       id: "missing-setup",
       severity: "warning",
@@ -1372,25 +1518,27 @@ function buildScheduleAudit(input: {
     }
   }
 
-  for (const provider of providerNames) {
-    const laneBlocks = timedBlocks
-      .filter((block) => block.provider === provider && isServiceBlock(block))
-      .sort((a, b) => (a.start ?? 0) - (b.start ?? 0));
-    let chain = 1;
-    for (let i = 1; i < laneBlocks.length; i++) {
-      if (laneBlocks[i - 1].end === laneBlocks[i].start) {
-        chain += 1;
-        if (chain === 3) {
-          issues.push({
-            id: `zero-buffer-${auditId(provider)}`,
-            severity: "warning",
-            title: "0-buffer cascade",
-            detail: `${provider} has 3+ service blocks back-to-back with no visible buffer.`,
-          });
-          break;
+  if (!usesProductionRequest) {
+    for (const provider of providerNames) {
+      const laneBlocks = timedBlocks
+        .filter((block) => block.provider === provider && isServiceBlock(block))
+        .sort((a, b) => (a.start ?? 0) - (b.start ?? 0));
+      let chain = 1;
+      for (let i = 1; i < laneBlocks.length; i++) {
+        if (laneBlocks[i - 1].end === laneBlocks[i].start) {
+          chain += 1;
+          if (chain === 3) {
+            issues.push({
+              id: `zero-buffer-${auditId(provider)}`,
+              severity: "warning",
+              title: "0-buffer cascade",
+              detail: `${provider} has 3+ service blocks back-to-back with no visible buffer.`,
+            });
+            break;
+          }
+        } else {
+          chain = 1;
         }
-      } else {
-        chain = 1;
       }
     }
   }
@@ -1524,6 +1672,7 @@ export default function ScheduleDraftBuilder() {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [engineMetadata, setEngineMetadata] = useState<ScheduleEngineMetadata>(normalizeScheduleEngineMetadata());
   const [pasteText, setPasteText] = useState("");
+  const [requestText, setRequestText] = useState("");
   const [showPreview, setShowPreview] = useState(false);
   const [showFirstDraftPreview, setShowFirstDraftPreview] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -1550,6 +1699,16 @@ export default function ScheduleDraftBuilder() {
     retry: false,
   });
   const linkedInquiryId = draftQuery.data?.inquiryId ?? null;
+  const operatorScheduleDefaultsQuery = useQuery<ScheduleOperatorDefaults>({
+    queryKey: ["/api/vendor/schedule-defaults"],
+    queryFn: async () => {
+      const res = await fetch("/api/vendor/schedule-defaults", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load schedule defaults");
+      return res.json();
+    },
+    enabled: isAuthenticated,
+    retry: false,
+  });
   const linkedInquiryQuery = useQuery<LinkedInquiryContext | null>({
     queryKey: ["/api/inquiries", linkedInquiryId, "schedule-context"],
     queryFn: async () => {
@@ -1579,6 +1738,7 @@ export default function ScheduleDraftBuilder() {
       setServiceDefaults(normalizedDefaults);
       setProviders(normalizedProviders);
       setEngineMetadata(normalizedEngineMetadata);
+      setRequestText(normalizedEngineMetadata.sourceRequest ?? "");
       setLoadedUpdatedAt(d.updatedAt ?? null);
       // Capture the baseline so we can detect unsaved edits from here on.
       setSavedSnapshot(
@@ -1665,6 +1825,37 @@ export default function ScheduleDraftBuilder() {
     },
   });
 
+  const saveOperatorDefaultsMutation = useMutation({
+    mutationFn: async () => {
+      const payload: ScheduleOperatorDefaults = {
+        providers: schedulingProviders(providers),
+        preferMinimumStaff: engineMetadata.preferMinimumStaff ?? operatorScheduleDefaultsQuery.data?.preferMinimumStaff ?? true,
+        protectLeadBeforePrimary: engineMetadata.protectLeadBeforePrimary ?? operatorScheduleDefaultsQuery.data?.protectLeadBeforePrimary ?? true,
+        assignPrimaryToLead: engineMetadata.assignPrimaryToLead ?? operatorScheduleDefaultsQuery.data?.assignPrimaryToLead ?? true,
+        preferredLayout: "artist_columns",
+        allowUnrequestedBuffers: false,
+      };
+      const res = await fetch("/api/vendor/schedule-defaults", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to save schedule defaults");
+      }
+      return payload;
+    },
+    onSuccess: (payload) => {
+      queryClient.setQueryData(["/api/vendor/schedule-defaults"], payload);
+      toast({ title: "Operator defaults saved", description: "New drafts can start from these artist timings. This event remains editable." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Could not save operator defaults", description: err.message, variant: "destructive" });
+    },
+  });
+
   // --- Table editing helpers ---
   const emptyCells = useMemo(() => {
     const c: Record<string, string> = {};
@@ -1711,9 +1902,53 @@ export default function ScheduleDraftBuilder() {
 
   // Provider column id used to group rows (blocks) into coordination lanes.
   const providerColId = columns.find((c) => c.type === "provider")?.id ?? "provider";
-  const firstDraftPreview = useMemo(
+  const parsedScheduleRequest = useMemo(
+    () => (requestText.trim() ? parseScheduleRequest(requestText) : null),
+    [requestText],
+  );
+  const fixedScheduleBlocks = useMemo(
+    () => fixedScheduleBlocksFromRows(rows, providers, providerColId),
+    [rows, providers, providerColId],
+  );
+  const markedFixedRowCount = useMemo(
+    () => rows.filter((row) => row.cells?._fixed === "true").length,
+    [rows],
+  );
+  const productionSchedule = useMemo(
+    () =>
+      parsedScheduleRequest
+        ? generateProductionSchedule(parsedScheduleRequest, {
+            readyTime: engineMetadata.readyByTime ?? "",
+            earliestStartTime: engineMetadata.venueAccessTime ?? "",
+            providers: schedulingProviders(providers),
+            assignPrimaryToLead:
+              engineMetadata.assignPrimaryToLead ??
+              operatorScheduleDefaultsQuery.data?.assignPrimaryToLead ??
+              null,
+            protectLeadBeforePrimary:
+              engineMetadata.protectLeadBeforePrimary ??
+              operatorScheduleDefaultsQuery.data?.protectLeadBeforePrimary ??
+              true,
+            preferMinimumStaff:
+              engineMetadata.preferMinimumStaff ??
+              operatorScheduleDefaultsQuery.data?.preferMinimumStaff ??
+              true,
+            fixedBlocksReviewed:
+              Boolean(engineMetadata.fixedBlocksReviewed) && markedFixedRowCount === fixedScheduleBlocks.length,
+            fixedBlocks: fixedScheduleBlocks,
+            optionalPeopleMode: engineMetadata.optionalPeopleMode ?? "undecided",
+            touchupMode: engineMetadata.touchupMode ?? "undecided",
+          })
+        : null,
+    [parsedScheduleRequest, engineMetadata, providers, fixedScheduleBlocks, markedFixedRowCount, operatorScheduleDefaultsQuery.data],
+  );
+  const legacyFirstDraftPreview = useMemo(
     () => buildFirstDraftPreview({ rows, providers, serviceDefaults, engineMetadata, providerColId }),
     [rows, providers, serviceDefaults, engineMetadata, providerColId],
+  );
+  const firstDraftPreview = useMemo(
+    () => (productionSchedule ? productionScheduleToPreview(productionSchedule) : legacyFirstDraftPreview),
+    [productionSchedule, legacyFirstDraftPreview],
   );
   const hasFirstDraftPreview = firstDraftPreview.lanes.length > 0;
   const hasFirstDraftServiceBlocks = firstDraftHasMeaningfulServiceBlocks(firstDraftPreview);
@@ -1773,6 +2008,11 @@ export default function ScheduleDraftBuilder() {
     toast({ title: "Preview applied", description: "Review and save when ready." });
   };
 
+  const updateRequestText = (value: string) => {
+    setRequestText(value);
+    setEngineMetadata((prev) => ({ ...prev, sourceRequest: value }));
+  };
+
   const applyPaste = () => {
     const built = buildScheduleFromInput(pasteText, serviceDefaults);
     const { providers: laneDefs, blocks, personRows, namePool } = built;
@@ -1830,7 +2070,39 @@ export default function ScheduleDraftBuilder() {
     setProviders((prev) => [...prev, { id: uid("prov"), name: `Service Role ${prev.length + 1}`, capability: "", isPrimary: false }]);
   const updateProvider = (id: string, patch: Partial<Provider>) =>
     setProviders((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+  const updateProviderDuration = (id: string, field: keyof ProviderServiceDurations, value: string) => {
+    const minutes = Number(value);
+    setProviders((prev) =>
+      prev.map((provider) => {
+        if (provider.id !== id) return provider;
+        const serviceDurations = { ...(provider.serviceDurations ?? {}) };
+        if (Number.isFinite(minutes) && minutes > 0) serviceDurations[field] = Math.floor(minutes);
+        else delete serviceDurations[field];
+        return { ...provider, serviceDurations };
+      }),
+    );
+  };
   const deleteProvider = (id: string) => setProviders((prev) => prev.filter((p) => p.id !== id));
+  const loadOperatorDefaults = () => {
+    const defaults = operatorScheduleDefaultsQuery.data;
+    if (!defaults) return;
+    setProviders(
+      defaults.providers.map((provider) => ({
+        id: provider.id,
+        name: provider.name,
+        capability: provider.capability,
+        isPrimary: provider.isLead,
+        serviceDurations: provider.serviceDurations,
+      })),
+    );
+    setEngineMetadata((prev) => ({
+      ...prev,
+      assignPrimaryToLead: defaults.assignPrimaryToLead,
+      protectLeadBeforePrimary: defaults.protectLeadBeforePrimary,
+      preferMinimumStaff: defaults.preferMinimumStaff,
+    }));
+    toast({ title: "Operator defaults loaded", description: "These values are event overrides until you save the draft." });
+  };
 
   if (authLoading || !isAuthenticated) {
     return (
@@ -2069,6 +2341,207 @@ export default function ScheduleDraftBuilder() {
               </section>
             )}
 
+            <section className="border border-hairline bg-surface p-6 sm:p-8" data-testid="section-request-intake">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h2 className="font-serif text-xl tracking-tight">Request intake</h2>
+                  <p className="mt-1 max-w-[70ch] text-sm text-ink/60">
+                    Paste the inbound request as it arrived. Briarwood separates confirmed people, optional people, services, constraints, and quote-only requests before it builds a schedule.
+                  </p>
+                </div>
+                <span className="inline-flex w-fit border border-hairline bg-bg px-2.5 py-1 text-xs uppercase tracking-wide text-ink/55">
+                  Private draft input
+                </span>
+              </div>
+              <textarea
+                value={requestText}
+                onChange={(event) => updateRequestText(event.target.value)}
+                rows={10}
+                placeholder="Paste the email, text thread summary, or service request here."
+                className="mt-5 w-full border border-hairline bg-bg px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70"
+                data-testid="input-source-request"
+              />
+              <p className="mt-2 text-xs text-ink/50">
+                Extraction is deterministic and editable through the source request. It does not send, contact anyone, create contracted work, or publish a schedule.
+              </p>
+
+              {parsedScheduleRequest && (
+                <div className="mt-6 space-y-6" data-testid="panel-parsed-request">
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <div className="border border-hairline bg-bg p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="text-sm font-medium">Confirmed people</h3>
+                        <span className="text-xs text-ink/50">{parsedScheduleRequest.confirmedPeople.length}</span>
+                      </div>
+                      <ul className="mt-3 space-y-2" data-testid="list-confirmed-people">
+                        {parsedScheduleRequest.confirmedPeople.map((person) => (
+                          <li key={person.id} className="border-t border-hairline pt-2 first:border-0 first:pt-0">
+                            <div className="flex flex-wrap items-baseline justify-between gap-2">
+                              <span className="text-sm font-medium">{person.name}</span>
+                              <span className="text-xs text-ink/50">{person.roleLabel}</span>
+                            </div>
+                            <p className="mt-0.5 text-xs text-ink/60">
+                              {person.services.length > 0 ? person.services.map(serviceLabel).join(" + ") : "Service details to confirm"}
+                            </p>
+                            {(person.notes.length > 0 || person.constraints.length > 0) && (
+                              <p className="mt-1 text-xs text-ink/50">
+                                {Array.from(new Set([...person.notes, ...person.constraints.map((constraint) => constraint.detail)])).join("; ")}
+                              </p>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="border border-hairline bg-bg p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="text-sm font-medium">Optional people</h3>
+                        <span className="text-xs text-ink/50">{parsedScheduleRequest.optionalPeople.length}</span>
+                      </div>
+                      {parsedScheduleRequest.optionalPeople.length === 0 ? (
+                        <p className="mt-3 text-sm text-ink/50">No optional people detected.</p>
+                      ) : (
+                        <ul className="mt-3 space-y-2" data-testid="list-optional-people">
+                          {parsedScheduleRequest.optionalPeople.map((person) => (
+                            <li key={person.id} className="border-t border-hairline pt-2 text-sm first:border-0 first:pt-0">
+                              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                                <span className="font-medium">{person.name}</span>
+                                <span className="text-xs text-ink/50">{person.roleLabel}</span>
+                              </div>
+                              <p className="mt-0.5 text-xs text-ink/60">
+                                {person.services.length > 0 ? person.services.map(serviceLabel).join(" + ") : "Service details to confirm"}
+                              </p>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+
+                  {parsedScheduleRequest.quoteOnlyRequests.length > 0 && (
+                    <div className="border border-hairline bg-bg p-4" data-testid="section-quote-only-scenarios">
+                      <h3 className="text-sm font-medium">Quote-only add-on scenarios</h3>
+                      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        {parsedScheduleRequest.quoteOnlyRequests.map((scenario) => (
+                          <div key={scenario.id} className="border border-hairline bg-surface px-3 py-2">
+                            <p className="text-sm font-medium">{scenario.label}</p>
+                            <p className="mt-1 text-xs text-ink/55">
+                              {scenario.participants.length > 0 ? scenario.participants.join(", ") : "Participants to confirm"}
+                            </p>
+                            <p className="mt-1 text-xs text-ink/50">Not placed on the schedule without a fixed time and duration.</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" data-testid="section-production-decisions">
+                    <label className="block">
+                      <span className="text-xs uppercase tracking-wide text-ink/50">Primary client assignment</span>
+                      <select
+                        value={
+                          engineMetadata.assignPrimaryToLead === undefined
+                            ? operatorScheduleDefaultsQuery.data?.assignPrimaryToLead === undefined
+                              ? "undecided"
+                              : operatorScheduleDefaultsQuery.data.assignPrimaryToLead ? "lead" : "flexible"
+                            : engineMetadata.assignPrimaryToLead ? "lead" : "flexible"
+                        }
+                        onChange={(event) =>
+                          setEngineMetadata((prev) => ({
+                            ...prev,
+                            assignPrimaryToLead: event.target.value === "undecided" ? undefined : event.target.value === "lead",
+                          }))
+                        }
+                        className="mt-1 w-full border border-hairline bg-bg px-3 py-2 text-sm"
+                        data-testid="select-primary-assignment"
+                      >
+                        <option value="undecided">Confirm assignment</option>
+                        <option value="lead">Assign to lead artist</option>
+                        <option value="flexible">Operator will assign</option>
+                      </select>
+                    </label>
+                    {parsedScheduleRequest.optionalPeople.length > 0 && (
+                      <label className="block">
+                        <span className="text-xs uppercase tracking-wide text-ink/50">Optional people</span>
+                        <select
+                          value={engineMetadata.optionalPeopleMode ?? "undecided"}
+                          onChange={(event) => setEngineMetadata((prev) => ({ ...prev, optionalPeopleMode: event.target.value as ScheduleEngineMetadata["optionalPeopleMode"] }))}
+                          className="mt-1 w-full border border-hairline bg-bg px-3 py-2 text-sm"
+                          data-testid="select-optional-people-mode"
+                        >
+                          <option value="undecided">Choose for this event</option>
+                          <option value="exclude">Keep as quote add-ons</option>
+                          <option value="include">Include in schedule</option>
+                        </select>
+                      </label>
+                    )}
+                    {parsedScheduleRequest.quoteOnlyRequests.length > 0 && (
+                      <label className="block">
+                        <span className="text-xs uppercase tracking-wide text-ink/50">Touchups</span>
+                        <select
+                          value={engineMetadata.touchupMode ?? "undecided"}
+                          onChange={(event) => setEngineMetadata((prev) => ({ ...prev, touchupMode: event.target.value as ScheduleEngineMetadata["touchupMode"] }))}
+                          className="mt-1 w-full border border-hairline bg-bg px-3 py-2 text-sm"
+                          data-testid="select-touchup-mode"
+                        >
+                          <option value="undecided">Choose for this event</option>
+                          <option value="quote_only">Quote only</option>
+                          <option value="schedule_fixed_only">Schedule fixed blocks only</option>
+                        </select>
+                      </label>
+                    )}
+                    <label className="inline-flex items-start gap-2 border border-hairline bg-bg px-3 py-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(engineMetadata.fixedBlocksReviewed)}
+                        onChange={(event) => setEngineMetadata((prev) => ({ ...prev, fixedBlocksReviewed: event.target.checked }))}
+                        className="mt-0.5 h-4 w-4 accent-oxblood"
+                        data-testid="checkbox-fixed-blocks-reviewed"
+                      />
+                      <span>
+                        Fixed blocks reviewed
+                        <span className="mt-0.5 block text-xs text-ink/50">
+                          {markedFixedRowCount > fixedScheduleBlocks.length
+                            ? "Complete the name, service, lane, start, and end for every marked fixed row."
+                            : "Mark any fixed row below with its Fixed time checkbox."}
+                        </span>
+                      </span>
+                    </label>
+                    <label className="inline-flex items-start gap-2 border border-hairline bg-bg px-3 py-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={engineMetadata.protectLeadBeforePrimary ?? operatorScheduleDefaultsQuery.data?.protectLeadBeforePrimary ?? true}
+                        onChange={(event) => setEngineMetadata((prev) => ({ ...prev, protectLeadBeforePrimary: event.target.checked }))}
+                        className="mt-0.5 h-4 w-4 accent-oxblood"
+                        data-testid="checkbox-protect-lead"
+                      />
+                      <span>Protect the lead artist before the primary client block</span>
+                    </label>
+                    <label className="inline-flex items-start gap-2 border border-hairline bg-bg px-3 py-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={engineMetadata.preferMinimumStaff ?? operatorScheduleDefaultsQuery.data?.preferMinimumStaff ?? true}
+                        onChange={(event) => setEngineMetadata((prev) => ({ ...prev, preferMinimumStaff: event.target.checked }))}
+                        className="mt-0.5 h-4 w-4 accent-oxblood"
+                        data-testid="checkbox-minimum-staff"
+                      />
+                      <span>Use only the configured artists; warn if the timing cannot fit</span>
+                    </label>
+                  </div>
+
+                  {productionSchedule && productionSchedule.questions.length > 0 && (
+                    <div className="border border-brass/40 bg-brass/10 p-4" data-testid="section-production-questions">
+                      <h3 className="text-sm font-medium">Needed before scheduling</h3>
+                      <ul className="mt-2 space-y-1.5 text-sm text-ink/70">
+                        {productionSchedule.questions.map((question, index) => (
+                          <li key={`${question.id}-${index}`}>{question.prompt}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+
             <section className="border border-hairline bg-surface p-6" data-testid="section-schedule-readiness">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
@@ -2156,9 +2629,13 @@ export default function ScheduleDraftBuilder() {
             <section className="border border-hairline bg-surface p-6" data-testid="section-first-draft-preview">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <h2 className="font-serif text-xl tracking-tight">First draft preview</h2>
+                  <h2 className="font-serif text-xl tracking-tight">
+                    {productionSchedule ? "Production schedule preview" : "First draft preview"}
+                  </h2>
                   <p className="mt-1 text-sm text-ink/60">
-                    Preview works backward from ready time. Lane headers use provider/service-lane metadata; role, person, and service details stay inside timed blocks. Domain-specific rules apply when the schedule type is known or inferred. Preview stays separate until applied.
+                    {productionSchedule
+                      ? "Each artist column is an independent timeline. Times stay inside each service block; rows are only visual stacking. The preview uses the pasted request, artist-specific timing, fixed blocks, and ready time without inventing staff, gaps, or buffers."
+                      : "Preview works backward from ready time. Lane headers use provider/service-lane metadata; role, person, and service details stay inside timed blocks. Domain-specific rules apply when the schedule type is known or inferred. Preview stays separate until applied."}
                   </p>
                 </div>
                 <button
@@ -2177,10 +2654,43 @@ export default function ScheduleDraftBuilder() {
                     <span className="border border-hairline bg-bg px-2.5 py-1">
                       Ready by: {firstDraftPreview.readyBy === null ? "Pending" : formatClockTime(firstDraftPreview.readyBy)}
                     </span>
-                    <span className="border border-hairline bg-bg px-2.5 py-1">
-                      Setup: {firstDraftPreview.setupMinutes} min
-                    </span>
+                    {!productionSchedule && (
+                      <span className="border border-hairline bg-bg px-2.5 py-1">
+                        Setup: {firstDraftPreview.setupMinutes} min
+                      </span>
+                    )}
                   </div>
+
+                  {productionSchedule && (
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2" data-testid="production-schedule-summary">
+                      <div className="border border-hairline bg-bg p-4">
+                        <h3 className="text-sm font-medium">Service count</h3>
+                        {Object.keys(productionSchedule.serviceCounts).length === 0 ? (
+                          <p className="mt-2 text-sm text-ink/50">Answer the production questions to calculate services.</p>
+                        ) : (
+                          <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                            {Object.entries(productionSchedule.serviceCounts).map(([label, count]) => (
+                              <div key={label} className="contents">
+                                <dt className="text-ink/60">{label}</dt>
+                                <dd className="text-right font-medium">{count}</dd>
+                              </div>
+                            ))}
+                          </dl>
+                        )}
+                      </div>
+                      <div className="border border-hairline bg-bg p-4">
+                        <h3 className="text-sm font-medium">Artist assignments</h3>
+                        <ul className="mt-2 space-y-1 text-sm">
+                          {productionSchedule.assignmentSummary.map((assignment) => (
+                            <li key={assignment.providerId} className="flex items-baseline justify-between gap-3">
+                              <span className="text-ink/60">{assignment.providerName}</span>
+                              <span>{assignment.serviceCount} blocks / {assignment.totalServiceMinutes} min</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex flex-col gap-2 border border-hairline bg-bg px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm text-ink/60" data-testid="text-first-draft-apply-status">
@@ -2216,7 +2726,7 @@ export default function ScheduleDraftBuilder() {
                       No preview blocks yet.
                     </p>
                   ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5 items-start" data-testid="grid-first-draft-lanes">
+                    <div className="grid grid-flow-col auto-cols-[minmax(270px,1fr)] gap-5 items-start overflow-x-auto pb-2" data-testid="grid-first-draft-lanes">
                       {firstDraftPreview.lanes.map((lane) => (
                         <div key={lane.provider} className="border border-hairline bg-bg rounded-sm" data-testid={`first-draft-lane-${auditId(lane.provider)}`}>
                           <div className="border-b border-hairline px-4 py-3">
@@ -2265,6 +2775,11 @@ export default function ScheduleDraftBuilder() {
                                     <div>{block.duration} min</div>
                                   </div>
                                 </div>
+                                {block.isFixed && (
+                                  <span className="mt-2 inline-flex border border-brass/40 bg-brass/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-ink/60">
+                                    Fixed block
+                                  </span>
+                                )}
                                 {block.notes && <p className="mt-1.5 text-xs text-ink/55 whitespace-pre-wrap">{block.notes}</p>}
                               </div>
                             ))}
@@ -2465,7 +2980,17 @@ export default function ScheduleDraftBuilder() {
                                   data-testid={`input-cell-${row.id}-${providerColId}`}
                                 />
                               </label>
-                              <div className="flex items-center gap-3 sm:gap-1">
+                              <div className="flex flex-wrap items-center gap-3 sm:gap-2">
+                                <label className="inline-flex items-center gap-1.5 text-xs text-ink/60">
+                                  <input
+                                    type="checkbox"
+                                    checked={row.cells._fixed === "true"}
+                                    onChange={(event) => setCell(row.id, "_fixed", event.target.checked ? "true" : "")}
+                                    className="h-4 w-4 accent-oxblood"
+                                    data-testid={`checkbox-fixed-row-${row.id}`}
+                                  />
+                                  Fixed time
+                                </label>
                                 <button
                                   onClick={() => duplicateRow(row.id)}
                                   className="text-ink/50 hover:text-ink"
@@ -2517,7 +3042,7 @@ export default function ScheduleDraftBuilder() {
             </section>
 
             {/* Service defaults */}
-            <section data-testid="section-service-defaults">
+            {!parsedScheduleRequest && <section data-testid="section-service-defaults">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-serif text-xl tracking-tight">Default durations</h2>
                 <button
@@ -2568,20 +3093,41 @@ export default function ScheduleDraftBuilder() {
                 for bride hair + makeup, 30 minutes for Violet single services, and no buffer unless
                 you add one.
               </p>
-            </section>
+            </section>}
 
             {/* Providers */}
             <section data-testid="section-providers">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="font-serif text-xl tracking-tight">Service roles</h2>
-                <button
-                  onClick={addProvider}
-                  className="inline-flex items-center gap-1 text-sm border border-hairline px-2.5 py-1.5 hover:bg-surface"
-                  data-testid="button-add-provider"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Provider
-                </button>
+              <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="font-serif text-xl tracking-tight">Artists and timing</h2>
+                  <p className="mt-1 text-xs text-ink/50">Durations belong to each artist, not to the service globally.</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={loadOperatorDefaults}
+                    disabled={!operatorScheduleDefaultsQuery.data}
+                    className="inline-flex items-center gap-1 border border-hairline px-2.5 py-1.5 text-sm hover:bg-surface disabled:opacity-50"
+                    data-testid="button-load-schedule-defaults"
+                  >
+                    Load saved defaults
+                  </button>
+                  <button
+                    onClick={() => saveOperatorDefaultsMutation.mutate()}
+                    disabled={saveOperatorDefaultsMutation.isPending || providers.length === 0}
+                    className="inline-flex items-center gap-1 border border-hairline px-2.5 py-1.5 text-sm hover:bg-surface disabled:opacity-50"
+                    data-testid="button-save-schedule-defaults"
+                  >
+                    Save as operator defaults
+                  </button>
+                  <button
+                    onClick={addProvider}
+                    className="inline-flex items-center gap-1 border border-hairline px-2.5 py-1.5 text-sm hover:bg-surface"
+                    data-testid="button-add-provider"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Artist
+                  </button>
+                </div>
               </div>
               <div className="border border-hairline bg-surface divide-y divide-hairline">
                 {providers.length === 0 && (
@@ -2626,7 +3172,7 @@ export default function ScheduleDraftBuilder() {
                         className="h-4 w-4 accent-oxblood"
                         data-testid={`checkbox-provider-primary-${p.id}`}
                       />
-                      Primary
+                      Lead artist
                     </label>
                     <button
                       onClick={() => deleteProvider(p.id)}
@@ -2635,11 +3181,34 @@ export default function ScheduleDraftBuilder() {
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
+                    <div className="md:col-span-4">
+                      <span className="text-[10px] uppercase tracking-wide text-ink/45">Baseline timing for this artist</span>
+                      <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                        {PROVIDER_DURATION_FIELDS.map((field) => (
+                          <label key={field.id} className="block border border-hairline bg-bg px-2 py-1.5">
+                            <span className="block text-[10px] text-ink/50">{field.label}</span>
+                            <span className="mt-0.5 flex items-center gap-1">
+                              <input
+                                type="number"
+                                min={1}
+                                max={480}
+                                value={p.serviceDurations?.[field.id] ?? ""}
+                                onChange={(event) => updateProviderDuration(p.id, field.id, event.target.value)}
+                                className="w-full min-w-0 bg-transparent text-sm focus-visible:outline-none"
+                                placeholder="--"
+                                data-testid={`input-provider-${p.id}-${field.id}-minutes`}
+                              />
+                              <span className="text-xs text-ink/40">min</span>
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
               <p className="text-xs text-ink/50 mt-2">
-                Add the people working the day. Use Capability to mark what each provider handles for this schedule type, then assign them in the Provider column per row. Wedding beauty or HMU schedules can use Hair, Makeup, or Hair + makeup capabilities.
+                Use Capability to mark what each provider handles for this schedule type. Wedding beauty or HMU schedules can use Hair, Makeup, or Hair + makeup capabilities. Saved defaults start future private drafts, and every timing remains editable for this event. The scheduler uses only the artists listed here and warns when the requested scope cannot fit; it never adds staff automatically.
               </p>
             </section>
 
@@ -2668,6 +3237,7 @@ export default function ScheduleDraftBuilder() {
               body * { visibility: hidden !important; }
               #schedule-print, #schedule-print * { visibility: visible !important; }
               #schedule-print { position: absolute !important; left: 0; top: 0; width: 100%; }
+              #schedule-lanes { grid-auto-columns: minmax(0, 1fr) !important; overflow: visible !important; }
               .no-print { display: none !important; }
             }
           `}</style>
@@ -2675,7 +3245,7 @@ export default function ScheduleDraftBuilder() {
           <div className="min-h-screen flex items-start justify-center p-4 sm:p-8">
             <div
               id="schedule-print"
-              className="w-full max-w-[820px] bg-bg border border-hairline rounded-sm shadow-sm"
+              className="w-full max-w-[1200px] bg-bg border border-hairline rounded-sm shadow-sm"
             >
               <div className="no-print flex items-center justify-between gap-2 px-6 py-3 border-b border-hairline">
                 <span className="text-xs uppercase tracking-wide text-ink/45">Read-only preview</span>
@@ -2723,7 +3293,11 @@ export default function ScheduleDraftBuilder() {
                   </p>
                 )}
 
-                <div className="mt-8 space-y-8">
+                <div
+                  id="schedule-lanes"
+                  className="mt-8 grid grid-flow-col auto-cols-[minmax(270px,1fr)] items-start gap-6 overflow-x-auto pb-2"
+                  data-testid="preview-artist-columns"
+                >
                   {laneList.length === 0 && (
                     <p className="text-ink/50 italic" data-testid="text-preview-empty">
                       No appointment blocks yet.

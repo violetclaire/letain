@@ -19,12 +19,15 @@ type TestScheduleDraft = {
     name: string;
     capability?: "ALL" | "HAIR_ONLY" | "MAKEUP_ONLY";
     isPrimary?: boolean;
+    serviceDurations?: Record<string, number>;
   }>;
   engineMetadata?: Record<string, string>;
 };
 
 let postScheduleDraftHandler: Handler;
 let patchScheduleDraftHandler: Handler;
+let getScheduleDefaultsHandler: Handler;
+let patchScheduleDefaultsHandler: Handler;
 let storage: any;
 
 function createRecordingApp(): Express & { routes: RouteRecord[] } {
@@ -93,6 +96,14 @@ before(async () => {
   const patchRoute = app.routes.find((record) => record.method === "patch" && record.path === "/api/schedule-drafts/:id");
   assert.ok(patchRoute, "PATCH /api/schedule-drafts/:id should be registered");
   patchScheduleDraftHandler = patchRoute.handlers.at(-1) as Handler;
+
+  const getDefaultsRoute = app.routes.find((record) => record.method === "get" && record.path === "/api/vendor/schedule-defaults");
+  assert.ok(getDefaultsRoute, "GET /api/vendor/schedule-defaults should be registered");
+  getScheduleDefaultsHandler = getDefaultsRoute.handlers.at(-1) as Handler;
+
+  const patchDefaultsRoute = app.routes.find((record) => record.method === "patch" && record.path === "/api/vendor/schedule-defaults");
+  assert.ok(patchDefaultsRoute, "PATCH /api/vendor/schedule-defaults should be registered");
+  patchScheduleDefaultsHandler = patchDefaultsRoute.handlers.at(-1) as Handler;
 });
 
 afterEach(() => {
@@ -168,7 +179,11 @@ function stubScheduleDraftStorage() {
     getScheduleDraft: [] as string[],
     createScheduleDraft: [] as any[],
     updateScheduleDraft: [] as Array<[string, any]>,
+    updateArtistProfile: [] as Array<[string, any]>,
   };
+  const profiles = new Map<string, any>([
+    ["artist-a", { userId: "artist-a", onboardingPreferences: { calendarConnected: false, keepMe: "preserved" } }],
+  ]);
 
   mock.method(storage, "getUser", async (userId: string) => {
     calls.getUser.push(userId);
@@ -192,8 +207,19 @@ function stubScheduleDraftStorage() {
     drafts.set(draftId, updated);
     return updated;
   });
+  mock.method(storage, "getArtistProfile", async (userId: string) => profiles.get(userId));
+  mock.method(storage, "updateArtistProfile", async (userId: string, update: any) => {
+    calls.updateArtistProfile.push([userId, update]);
+    const updated = { ...(profiles.get(userId) ?? { userId }), ...update };
+    profiles.set(userId, updated);
+    return updated;
+  });
+  mock.method(storage, "createArtistProfile", async (profile: any) => {
+    profiles.set(profile.userId, profile);
+    return profile;
+  });
 
-  return { calls, drafts };
+  return { calls, drafts, profiles };
 }
 
 test("schedule draft PATCH preserves valid provider capability metadata", async () => {
@@ -204,7 +230,13 @@ test("schedule draft PATCH preserves valid provider capability metadata", async 
     params: { id: "draft-a" },
     body: {
       providers: [
-        { id: "prov-violet", name: "Violet", capability: "ALL", isPrimary: true },
+        {
+          id: "prov-violet",
+          name: "Violet",
+          capability: "ALL",
+          isPrimary: true,
+          serviceDurations: { hair: 30, makeup: 30, primaryClient: 120, touchup: 15, invalid: 999 },
+        },
         { id: "prov-marta", name: "Marta", capability: "HAIR_ONLY" },
         { id: "prov-erika", name: "Erika", capability: "MAKEUP_ONLY", isPrimary: false },
       ],
@@ -214,7 +246,13 @@ test("schedule draft PATCH preserves valid provider capability metadata", async 
   assert.equal(result.statusCode, 200);
   assert.equal(calls.updateScheduleDraft.length, 1);
   assert.deepEqual(calls.updateScheduleDraft[0]?.[1].providers, [
-    { id: "prov-violet", name: "Violet", capability: "ALL", isPrimary: true },
+    {
+      id: "prov-violet",
+      name: "Violet",
+      capability: "ALL",
+      isPrimary: true,
+      serviceDurations: { hair: 30, makeup: 30, primaryClient: 120, touchup: 15 },
+    },
     { id: "prov-marta", name: "Marta", capability: "HAIR_ONLY", isPrimary: false },
     { id: "prov-erika", name: "Erika", capability: "MAKEUP_ONLY", isPrimary: false },
   ]);
@@ -323,6 +361,13 @@ test("schedule draft PATCH preserves sanitized schedule engine metadata", async 
         readyByTime: null,
         ceremonyTime: "4".repeat(80),
         firstLookTime: "2:00 PM",
+        sourceRequest: "Bride Hair + Makeup\nAssistant timing to confirm",
+        optionalPeopleMode: "exclude",
+        touchupMode: "quote_only",
+        assignPrimaryToLead: true,
+        protectLeadBeforePrimary: true,
+        preferMinimumStaff: true,
+        fixedBlocksReviewed: false,
         ignoredField: "not stored",
       },
     },
@@ -335,6 +380,13 @@ test("schedule draft PATCH preserves sanitized schedule engine metadata", async 
     readyByTime: "",
     ceremonyTime: "4".repeat(40),
     firstLookTime: "2:00 PM",
+    sourceRequest: "Bride Hair + Makeup\nAssistant timing to confirm",
+    optionalPeopleMode: "exclude",
+    touchupMode: "quote_only",
+    assignPrimaryToLead: true,
+    protectLeadBeforePrimary: true,
+    preferMinimumStaff: true,
+    fixedBlocksReviewed: false,
   });
 });
 
@@ -352,6 +404,48 @@ test("schedule draft PATCH can clear schedule engine metadata", async () => {
   assert.equal(result.statusCode, 200);
   assert.equal(calls.updateScheduleDraft.length, 1);
   assert.deepEqual(calls.updateScheduleDraft[0]?.[1].engineMetadata, {});
+});
+
+test("operator schedule defaults preserve per-artist timing and merge with existing private preferences", async () => {
+  const { calls } = stubScheduleDraftStorage();
+
+  const patchResult = await invoke(patchScheduleDefaultsHandler, {
+    session: { userId: "artist-a" },
+    body: {
+      providers: [
+        {
+          id: "violet",
+          name: "Violet",
+          capability: "ALL",
+          isLead: true,
+          serviceDurations: { hair: 30, makeup: 30, hairMakeup: 60, primaryClient: 120, touchup: 15 },
+        },
+      ],
+      preferMinimumStaff: true,
+      protectLeadBeforePrimary: true,
+      assignPrimaryToLead: true,
+      preferredLayout: "anything-else-is-rejected",
+      allowUnrequestedBuffers: true,
+    },
+  });
+
+  assert.equal(patchResult.statusCode, 200);
+  assert.equal(calls.updateArtistProfile.length, 1);
+  const savedPreferences = calls.updateArtistProfile[0][1].onboardingPreferences;
+  assert.equal(savedPreferences.keepMe, "preserved");
+  assert.equal(savedPreferences.scheduleDefaults.preferredLayout, "artist_columns");
+  assert.equal(savedPreferences.scheduleDefaults.allowUnrequestedBuffers, false);
+  assert.equal(savedPreferences.scheduleDefaults.providers[0].serviceDurations.primaryClient, 120);
+
+  const getResult = await invoke(getScheduleDefaultsHandler, { session: { userId: "artist-a" } });
+  assert.equal(getResult.statusCode, 200);
+  assert.deepEqual((getResult.body as any).providers[0].serviceDurations, {
+    hair: 30,
+    makeup: 30,
+    hairMakeup: 60,
+    primaryClient: 120,
+    touchup: 15,
+  });
 });
 
 test("schedule draft POST accepts sanitized provider metadata for the creating operator", async () => {
