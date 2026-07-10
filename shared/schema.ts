@@ -49,6 +49,9 @@ export type ScheduleEngineMetadata = {
   protectLeadBeforePrimary?: boolean;
   preferMinimumStaff?: boolean;
   fixedBlocksReviewed?: boolean;
+  evidenceDay?: string;
+  useEvidencePlaceholders?: boolean;
+  evidenceAdditionsMode?: "undecided" | "exclude" | "include";
 };
 
 // Vendor SLA targets type

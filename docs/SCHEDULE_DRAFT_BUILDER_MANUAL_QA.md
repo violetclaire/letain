@@ -96,6 +96,17 @@ Fail if a removed person remains confirmed, a separate-room service silently mov
 
 Use the normalized private spreadsheet fixture. Treat highlight state and row type as evidence supplied by the workbook reader; this PR does not add a workbook upload surface.
 
+Paste normalized rows into Request Intake with this private tabular contract:
+
+```text
+Highlighted | Row type | Section | Day | Person | Role | Services | Amount | Notes
+Yes | Service | Original | Saturday | Example Person | Bridesmaid | Hair + Makeup | 350 |
+Yes | Hotel | Original | Saturday | | | | 900 | Hotel
+No | Service | Additions | Saturday | Example Addition | Officiant | Makeup | 175 |
+```
+
+The adapter accepts pipe-delimited or tab-delimited rows. Highlight and row-type metadata must come from a trusted local workbook normalization step; the builder does not fetch or upload a workbook in this PR.
+
 Verify:
 
 - Only selected or highlighted service rows become active schedule candidates.

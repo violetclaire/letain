@@ -57,6 +57,8 @@ export type ScheduleEvidenceInput = {
   selectedDay?: string;
   highlightedRowsAreActive?: boolean;
   readyTime?: string;
+  usePlaceholders?: boolean;
+  includeUnselectedAdditions?: boolean;
   candidateBlocks?: CandidateScheduleBlock[];
   candidateScheduleScope?: "provided_only" | "all_active";
 };
@@ -258,7 +260,12 @@ function personFromAddition(name: string, serviceText: string, index: number): P
 function rosterTextOnly(text: string): string {
   return normalize(text)
     .split("\n")
-    .filter((line) => !new RegExp(`^\\s*${TIME_PATTERN}\\s*[-to]+`, "i").test(line))
+    .filter((line) => {
+      if (/^\s*(?:[-*]\s*)?\d{1,2}(?::\d{2})?\s*(?:AM|PM)\s*(?:-|to)\s*\d{1,2}(?::\d{2})?\s*(?:AM|PM)/i.test(line)) return false;
+      if (/^\s*\d+\s*[.)-]\s*.+/.test(line)) return true;
+      if (/^\s*[-*]\s+.+/.test(line)) return true;
+      return false;
+    })
     .join("\n");
 }
 
@@ -269,7 +276,7 @@ function parseReadyConstraints(message: ScheduleEvidenceMessage): ScheduleReadyC
     const personMatch = line.match(
       new RegExp(`^([^:,.]{2,90}?)\\s+(?:must|needs? to|has to)\\s+(?:have\\s+hair\\s+and\\s+makeup\\s+)?(?:be\\s+)?(?:completed?|complete|done|ready)\\s+(?:by|at)\\s+${TIME_PATTERN}`, "i"),
     );
-    if (personMatch) {
+    if (personMatch && !/^(?:all\s+\d+|everyone|the\s+(?:rest|group)|main\s+group)\b/i.test(line)) {
       const label = personMatch[1].trim();
       const time = personMatch[2].trim();
       const minutes = parseScheduleClock(time);
@@ -334,7 +341,7 @@ function parseReadyConstraints(message: ScheduleEvidenceMessage): ScheduleReadyC
       }
     }
 
-    const eventReady = line.match(new RegExp(`(?:ready[- ]?by(?:\\s+time)?|hard\\s+finish)\\s*[:=]?\\s*${TIME_PATTERN}`, "i"));
+    const eventReady = line.match(new RegExp(`^(?:ready[- ]?by(?:\\s+time)?|hard\\s+finish)\\s*[:=]?\\s*${TIME_PATTERN}`, "i"));
     if (eventReady) {
       const minutes = parseScheduleClock(eventReady[1]);
       if (minutes !== null) {
@@ -375,21 +382,25 @@ function addPersonContext(person: MutableParticipant, message: ScheduleEvidenceM
   const text = normalize(message.text);
   const namePattern = new RegExp(`\\b${person.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
   if (!namePattern.test(text)) return;
-  if (/hotel room|separate room|her room|their room/i.test(text)) {
+  const personText = text
+    .split(/\n|(?<=[.!?])\s+/)
+    .filter((fragment) => namePattern.test(fragment))
+    .join(" ");
+  if (/hotel room|separate room|her room|their room/i.test(personText)) {
     person.separateRoom = true;
     person.locationContexts = unique([...person.locationContexts, "separate_room"]);
     person.notes = unique([...person.notes, "Separate-room service"]);
   }
-  if (new RegExp(`${namePattern.source}[^.\n]*(?:at the end|to the end)`, "i").test(text)) {
+  if (new RegExp(`${namePattern.source}[^.\n]*(?:at the end|to the end)`, "i").test(personText)) {
     person.preferredPlacement = "end";
   }
-  if (new RegExp(`${namePattern.source}[^.\n]*(?:earlier|east coast)`, "i").test(text)) {
+  if (new RegExp(`${namePattern.source}[^.\n]*(?:earlier|east coast)`, "i").test(personText)) {
     person.preferredPlacement = "early";
   }
-  if (new RegExp(`${namePattern.source}[^.\n]*(?:later|after (?:the )?bride)`, "i").test(text)) {
+  if (new RegExp(`${namePattern.source}[^.\n]*(?:later|after (?:the )?bride)`, "i").test(personText)) {
     person.preferredPlacement = "late";
   }
-  const startMatch = text.match(new RegExp(`${namePattern.source}[^.\n]*(?:start|starts|at)\\s+${TIME_PATTERN}`, "i"));
+  const startMatch = personText.match(new RegExp(`${namePattern.source}[^.\n]*(?:start|starts|at)\\s+${TIME_PATTERN}`, "i"));
   if (startMatch) {
     const start = parseScheduleClock(startMatch[1]);
     if (start !== null) person.explicitStartTime = formatScheduleClock(start);
@@ -524,9 +535,9 @@ export function reduceScheduleEvidence(input: ScheduleEvidenceInput): ReducedSch
   const quoteOnlyRequests: ScheduleQuoteScenario[] = [];
   const locations: Array<{ kind: "venue" | "getting_ready"; value: string; sourceId: string }> = [];
   const arrivalGuidance: string[] = [];
-  const declaredCounts: number[] = [];
+  const declaredCounts: Array<{ count: number; dayContext?: string; sourceId: string }> = [];
   let artistCount: number | null = null;
-  let unnamedAdditions = 0;
+  const unnamedAdditions: Array<{ dayContext?: string; sourceId: string }> = [];
   let externalLinksIgnored = false;
 
   for (const message of messages) {
@@ -546,7 +557,9 @@ export function reduceScheduleEvidence(input: ScheduleEvidenceInput): ReducedSch
       removed.delete(key(person.name));
       mergeParticipant(people, person, message.id, message.sequence, message.dayContext);
     }
-    if (/\badd(?:ed|s)?\s+(?:her|his|the)\s+(?:sister|friend|aunt|grandma)\b/i.test(text)) unnamedAdditions += 1;
+    if (/\badd(?:ed|s)?\s+(?:her|his|the)\s+(?:sister|friend|aunt|grandma)\b/i.test(text)) {
+      unnamedAdditions.push({ ...(message.dayContext ? { dayContext: message.dayContext } : {}), sourceId: message.id });
+    }
 
     for (const name of extractRemovalNames(text)) {
       people.delete(key(name));
@@ -554,7 +567,13 @@ export function reduceScheduleEvidence(input: ScheduleEvidenceInput): ReducedSch
     }
 
     const countMatch = text.match(/\b(?:bride\s*\+\s*(\d+)|(\d+)\s+people\s+need)\b/i);
-    if (countMatch) declaredCounts.push(countMatch[1] ? Number(countMatch[1]) + 1 : Number(countMatch[2]));
+    if (countMatch) {
+      declaredCounts.push({
+        count: countMatch[1] ? Number(countMatch[1]) + 1 : Number(countMatch[2]),
+        ...(message.dayContext ? { dayContext: message.dayContext } : {}),
+        sourceId: message.id,
+      });
+    }
     const artistMatch = text.match(/\b(\d+)\s+artists?\b/i);
     if (artistMatch) artistCount = Number(artistMatch[1]);
     if (/\b(?:arrive|arrival)[^.\n]*\d+\s*[-to]+\s*\d+\s+minutes?\s+before\s+setup/i.test(text)) {
@@ -583,7 +602,11 @@ export function reduceScheduleEvidence(input: ScheduleEvidenceInput): ReducedSch
     .map((row) => ({
       ...row,
       active:
-        (!input.highlightedRowsAreActive || row.highlighted === true) &&
+        (
+          !input.highlightedRowsAreActive ||
+          row.highlighted === true ||
+          (input.includeUnselectedAdditions === true && row.section === "additions")
+        ) &&
         (!input.selectedDay || !row.dayContext || key(row.dayContext) === key(input.selectedDay)),
     }));
   const ignoredSpreadsheetRowIds = spreadsheetRows.filter((row) => row.kind !== "service").map((row) => row.id);
@@ -615,9 +638,28 @@ export function reduceScheduleEvidence(input: ScheduleEvidenceInput): ReducedSch
     }
   }
 
-  const activePeople = [...people.values()]
+  const dayContexts = unique([
+    ...messages.map((message) => message.dayContext).filter((value): value is string => Boolean(value)),
+    ...scheduleableSpreadsheetRows.map((row) => row.dayContext).filter((value): value is string => Boolean(value)),
+  ]);
+  let activePeople = [...people.values()]
     .map(({ lastSequence: _lastSequence, ...person }) => person)
     .sort((a, b) => a.name.localeCompare(b.name));
+  if (input.selectedDay) {
+    activePeople = activePeople
+      .filter((person) => person.dayContexts.length === 0 || person.dayContexts.some((day) => key(day) === key(input.selectedDay ?? "")))
+      .map((person) => {
+        const matchingContexts = person.serviceContexts.filter(
+          (context) => !context.dayContext || key(context.dayContext) === key(input.selectedDay ?? ""),
+        );
+        return {
+          ...person,
+          services: unique(matchingContexts.flatMap((context) => context.services)),
+          serviceContexts: matchingContexts,
+          dayContexts: person.dayContexts.filter((day) => key(day) === key(input.selectedDay ?? "")),
+        };
+      });
+  }
   const removedPeople = [...removed.values()].sort((a, b) => a.name.localeCompare(b.name));
   const warnings = candidateWarnings(
     activePeople,
@@ -644,13 +686,19 @@ export function reduceScheduleEvidence(input: ScheduleEvidenceInput): ReducedSch
     }
   }
 
-  const declaredPeopleCount = declaredCounts.at(-1) ?? null;
-  if (declaredCounts.length > 0 && unnamedAdditions > 0) {
-    const original = declaredCounts[0];
+  const scopedDeclaredCounts = declaredCounts.filter(
+    (entry) => !input.selectedDay || !entry.dayContext || key(entry.dayContext) === key(input.selectedDay),
+  );
+  const scopedUnnamedAdditions = unnamedAdditions.filter(
+    (entry) => !input.selectedDay || !entry.dayContext || key(entry.dayContext) === key(input.selectedDay),
+  );
+  const declaredPeopleCount = scopedDeclaredCounts.at(-1)?.count ?? null;
+  if (scopedDeclaredCounts.length > 0 && scopedUnnamedAdditions.length > 0) {
+    const original = scopedDeclaredCounts[0].count;
     warnings.push({
       code: "count_changed",
-      message: `The stated count changed from ${original} to ${original + unnamedAdditions} after later additions. Confirm the active roster before scheduling.`,
-      sourceIds: messages.map((message) => message.id),
+      message: `The stated count changed from ${original} to ${original + scopedUnnamedAdditions.length} after later additions. Confirm the active roster before scheduling.`,
+      sourceIds: unique([scopedDeclaredCounts[0].sourceId, ...scopedUnnamedAdditions.map((entry) => entry.sourceId)]),
     });
   }
   if (declaredPeopleCount !== null && activePeople.length > 1 && activePeople.length !== declaredPeopleCount) {
@@ -662,7 +710,10 @@ export function reduceScheduleEvidence(input: ScheduleEvidenceInput): ReducedSch
   }
 
   const questions: ScheduleEvidenceQuestion[] = [];
-  if (input.sourceKind === "spreadsheet" && !input.selectedDay) {
+  const scopedMessages = messages.filter(
+    (message) => !input.selectedDay || !message.dayContext || key(message.dayContext) === key(input.selectedDay),
+  );
+  if (dayContexts.length > 1 && !input.selectedDay) {
     addQuestion(questions, "schedule_day", "Which service day is being scheduled: trial, Friday, Saturday, or all selected days?");
   }
   if (!readyConstraints.some((constraint) => constraint.kind === "hard")) {
@@ -681,19 +732,19 @@ export function reduceScheduleEvidence(input: ScheduleEvidenceInput): ReducedSch
     addQuestion(questions, "roster", "Provide the missing names and service breakdown for the confirmed count.");
     addQuestion(questions, "placeholder_mode", "Should a clearly labeled working placeholder schedule be used until names are known?");
   }
-  if (additionRows.some((row) => !row.active)) {
+  if (additionRows.some((row) => !row.active) && input.includeUnselectedAdditions === undefined) {
     addQuestion(questions, "additions_inclusion", "Should unselected additions be included in the active schedule?");
   }
-  if (messages.some((message) => /push\s+(?:friday|the start|start).*?\d+\s+minutes/i.test(message.text))) {
+  if (scopedMessages.some((message) => /push\s+(?:friday|the start|start).*?\d+\s+minutes/i.test(message.text))) {
     addQuestion(questions, "corrected_start_time", "Confirm the corrected start time before changing the schedule.");
   }
-  if (messages.some((message) => /ready by[^.\n]*(?:only|everyone|all)/i.test(message.text))) {
+  if (scopedMessages.some((message) => /ready by[^.\n]*(?:only|everyone|all)/i.test(message.text))) {
     addQuestion(questions, "ready_time_scope", "Does the corrected ready time apply to the primary client only or to the full group?");
   }
   if (activePeople.some((person) => person.name.toLowerCase() === "grandma" && person.separateRoom)) {
     addQuestion(questions, "separate_room_assignment", "Should Grandma be part of the main schedule or a separate-room assignment scenario?");
   }
-  if (messages.some((message) => /blowout/i.test(message.text))) {
+  if (scopedMessages.some((message) => /blowout/i.test(message.text))) {
     addQuestion(questions, "blowout_scope", "Is the blowout included in the primary hair timing or a separate prep block?");
   }
 
@@ -701,6 +752,28 @@ export function reduceScheduleEvidence(input: ScheduleEvidenceInput): ReducedSch
     ["ready_time_conflict", "group_ready_time_conflict", "removed_person_present", "separate_room_conflict"].includes(warning.code),
   );
   const placeholderScheduleAllowed = input.sourceKind === "count_only" && declaredPeopleCount !== null;
+
+  if (placeholderScheduleAllowed && input.usePlaceholders && declaredPeopleCount !== null) {
+    const primary = activePeople.find((person) => person.role === "bride" || person.role === "client_primary");
+    const existingNonPrimary = activePeople.filter((person) => person !== primary);
+    const missing = Math.max(0, declaredPeopleCount - (primary ? 1 : 0) - existingNonPrimary.length);
+    const placeholders: ReducedScheduleParticipant[] = Array.from({ length: missing }, (_, index) => ({
+      id: `placeholder-guest-${index + 1}`,
+      name: `Guest ${index + 1}`,
+      role: "unspecified",
+      roleLabel: "Placeholder guest",
+      status: "confirmed",
+      services: [],
+      notes: ["Final name and services required"],
+      constraints: [],
+      dayContexts: input.selectedDay ? [input.selectedDay] : [],
+      serviceContexts: [],
+      sourceIds: [input.id],
+      locationContexts: [],
+      separateRoom: false,
+    }));
+    activePeople = [...activePeople, ...placeholders];
+  }
 
   return {
     sourceId: input.id,
@@ -712,10 +785,7 @@ export function reduceScheduleEvidence(input: ScheduleEvidenceInput): ReducedSch
     optionalPeople: activePeople.filter((person) => person.status === "optional"),
     removedPeople,
     quoteOnlyRequests: uniqueBy(quoteOnlyRequests, (request) => `${request.label}:${request.participants.join("|")}`),
-    dayContexts: unique([
-      ...messages.map((message) => message.dayContext).filter((value): value is string => Boolean(value)),
-      ...scheduleableSpreadsheetRows.map((row) => row.dayContext).filter((value): value is string => Boolean(value)),
-    ]),
+    dayContexts,
     readyConstraints: uniqueBy(readyConstraints, (constraint) => `${constraint.scope}:${constraint.personName ?? "group"}:${constraint.dayContext ?? "all"}:${constraint.kind}:${constraint.minutes}`),
     artistCount,
     declaredPeopleCount,
@@ -731,5 +801,192 @@ export function reduceScheduleEvidence(input: ScheduleEvidenceInput): ReducedSch
     ...(placeholderScheduleAllowed ? { placeholderLabel: "Working schedule using placeholders - final names/services needed." } : {}),
     externalLinksIgnored,
     sourceMessageIds: messages.map((message) => message.id),
+  };
+}
+
+export type ScheduleEvidenceTextOptions = {
+  sourceId?: string;
+  eventName?: string;
+  selectedDay?: string;
+  readyTime?: string;
+  usePlaceholders?: boolean;
+  includeUnselectedAdditions?: boolean;
+};
+
+function dayContextFromHeading(value: string, current?: string): string | undefined {
+  if (/\bfriday\b|welcome party/i.test(value)) return "friday_welcome_party";
+  if (/\bsaturday\b|wedding day/i.test(value)) return "saturday_wedding_day";
+  if (/\btrial\b/i.test(value)) return "trial";
+  if (/quoted repeat|forwarded content/i.test(value)) return current;
+  return current;
+}
+
+function messagesFromPastedEvidence(rawSource: string, sourceId: string): ScheduleEvidenceMessage[] {
+  const lines = normalize(rawSource).split("\n");
+  const messages: ScheduleEvidenceMessage[] = [];
+  let currentLines: string[] = [];
+  let currentDay: string | undefined;
+  let currentLabel = "evidence";
+
+  const flush = () => {
+    const text = currentLines.join("\n").trim();
+    if (!text) return;
+    messages.push({
+      id: `${sourceId}-${messages.length + 1}-${key(currentLabel).replace(/ /g, "-") || "evidence"}`,
+      sequence: messages.length + 1,
+      ...(currentDay ? { dayContext: currentDay } : {}),
+      text,
+    });
+    currentLines = [];
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const heading = /^(?:message\s+\d+\b.*|original roster|correction|final planner correction|proposed schedule|quoted repeat|friday(?:\s*\/.*)?|saturday(?:\s*\/.*)?|trial(?:\s*\/.*)?)$/i.test(trimmed);
+    if (heading) {
+      flush();
+      currentDay = dayContextFromHeading(trimmed, currentDay);
+      currentLabel = trimmed;
+      continue;
+    }
+    currentLines.push(line);
+  }
+  flush();
+
+  return messages.length > 0
+    ? messages
+    : [{ id: `${sourceId}-1-evidence`, sequence: 1, text: normalize(rawSource) }];
+}
+
+function candidateBlocksFromPastedEvidence(messages: ScheduleEvidenceMessage[]): CandidateScheduleBlock[] {
+  const blocks: CandidateScheduleBlock[] = [];
+  const linePattern = /^\s*(?:[-*]\s*)?(\d{1,2}(?::\d{2})?\s*(?:AM|PM))\s*(?:-|to)\s*(\d{1,2}(?::\d{2})?\s*(?:AM|PM))\s*(?:-|:)?\s*(.+?)\s+(Hair\s*\+\s*Makeup|Hair\s*(?:only)?|Makeup\s*(?:only)?|Touchups?)\s*$/i;
+  for (const message of messages) {
+    for (const line of normalize(message.text).split("\n")) {
+      const match = line.match(linePattern);
+      if (!match) continue;
+      const serviceText = match[4].toLowerCase();
+      const service: ScheduleServiceKind = /touch/.test(serviceText)
+        ? "touchup"
+        : /hair/.test(serviceText) && /makeup/.test(serviceText)
+          ? "hair_makeup"
+          : /hair/.test(serviceText)
+            ? "hair"
+            : "makeup";
+      blocks.push({
+        id: `${message.id}-candidate-${blocks.length + 1}`,
+        personName: match[3].trim().replace(/\s*[-:]\s*$/, ""),
+        service,
+        startTime: match[1].trim(),
+        endTime: match[2].trim(),
+        ...(message.dayContext ? { dayContext: message.dayContext } : {}),
+        order: blocks.length + 1,
+      });
+    }
+  }
+  return blocks;
+}
+
+function servicesFromEvidenceCell(value: string): ScheduleServiceKind[] {
+  const normalized = value.toLowerCase().replace(/make\s+up/g, "makeup");
+  const hasHair = /\bhair\b|\bhmu\b/.test(normalized);
+  const hasMakeup = /\bmakeup\b|\bhmu\b/.test(normalized);
+  if (/touch\s*-?\s*up/.test(normalized)) return ["touchup"];
+  if (hasHair && hasMakeup) return ["hair", "makeup"];
+  if (hasHair) return ["hair"];
+  if (hasMakeup) return ["makeup"];
+  return [];
+}
+
+function spreadsheetRowsFromPastedEvidence(rawSource: string): ScheduleSpreadsheetRow[] | null {
+  const lines = normalize(rawSource).split("\n").map((line) => line.trim()).filter(Boolean);
+  const headerIndex = lines.findIndex((line) => /highlight/i.test(line) && /row\s*type/i.test(line) && /person/i.test(line) && /services?/i.test(line));
+  if (headerIndex < 0) return null;
+  const delimiter = lines[headerIndex].includes("\t") ? "\t" : "|";
+  const split = (line: string) => line.split(delimiter).map((cell) => cell.trim()).filter((cell, index, cells) => !(cell === "" && (index === 0 || index === cells.length - 1)));
+  const headers = split(lines[headerIndex]).map((header) => key(header));
+  const valueAt = (cells: string[], name: string) => cells[headers.indexOf(name)] ?? "";
+  const rows: ScheduleSpreadsheetRow[] = [];
+
+  for (const [index, line] of lines.slice(headerIndex + 1).entries()) {
+    if (/^[-|\s]+$/.test(line)) continue;
+    const cells = split(line);
+    const kindValue = valueAt(cells, "row type").toLowerCase();
+    const kind: ScheduleSpreadsheetRowKind = /hotel/.test(kindValue)
+      ? "hotel"
+      : /subtotal/.test(kindValue)
+        ? "subtotal"
+        : /^total$/.test(kindValue)
+          ? "total"
+          : /cost|price/.test(kindValue)
+            ? "cost"
+            : "service";
+    const highlightedValue = valueAt(cells, "highlighted");
+    const sectionValue = valueAt(cells, "section").toLowerCase();
+    const services = servicesFromEvidenceCell(valueAt(cells, "services"));
+    const amount = valueAt(cells, "amount");
+    rows.push({
+      id: `pasted-sheet-row-${index + 1}`,
+      kind,
+      highlighted: /^(?:yes|true|x|selected|blue)$/i.test(highlightedValue),
+      ...(sectionValue === "additions" ? { section: "additions" as const } : sectionValue ? { section: "original" as const } : {}),
+      ...(valueAt(cells, "person") ? { personName: valueAt(cells, "person") } : {}),
+      ...(valueAt(cells, "role") ? { role: valueAt(cells, "role") } : {}),
+      ...(services.length > 0 ? { services } : {}),
+      ...(valueAt(cells, "day") ? { dayContext: key(valueAt(cells, "day")).replace(/ /g, "_") } : {}),
+      ...(amount ? { pricingMetadata: { amount } } : {}),
+      ...(valueAt(cells, "notes") ? { note: valueAt(cells, "notes") } : {}),
+    });
+  }
+  return rows;
+}
+
+function eventNameFromPastedEvidence(rawSource: string): string | undefined {
+  const lines = normalize(rawSource).split("\n").map((line) => line.trim()).filter(Boolean);
+  const labeled = lines.find((line) => /^(?:event|wedding)\s*:/i.test(line));
+  if (labeled) return labeled.replace(/^(?:event|wedding)\s*:\s*/i, "").trim();
+  const weddingLine = lines.find((line) => /\bwedding\b/i.test(line) && /\+|\band\b|&/.test(line));
+  return weddingLine?.replace(/\s+wedding.*$/i, "").trim();
+}
+
+export function scheduleEvidenceInputFromText(
+  rawSource: string,
+  options: ScheduleEvidenceTextOptions = {},
+): ScheduleEvidenceInput | null {
+  const source = normalize(rawSource);
+  if (!source) return null;
+  const sourceId = options.sourceId ?? "private-pasted-schedule-evidence";
+  const spreadsheetRows = spreadsheetRowsFromPastedEvidence(source);
+  const countOnly = /\b(?:bride|primary client)\s*\+\s*\d+\b/i.test(source) && !/^\s*(?:\d+[.)-]|[-*])\s+.+\b(?:hair|makeup|hmu)\b/im.test(source);
+  const sourceKind: ScheduleEvidenceSourceKind = spreadsheetRows ? "spreadsheet" : countOnly ? "count_only" : "thread";
+  const messages = sourceKind === "spreadsheet" ? [] : messagesFromPastedEvidence(source, sourceId);
+  const candidateBlocks = candidateBlocksFromPastedEvidence(messages);
+  return {
+    id: sourceId,
+    sourceKind,
+    eventName: options.eventName ?? eventNameFromPastedEvidence(source),
+    messages,
+    ...(spreadsheetRows ? { spreadsheetRows, highlightedRowsAreActive: true } : {}),
+    ...(options.selectedDay ? { selectedDay: options.selectedDay } : {}),
+    ...(options.readyTime ? { readyTime: options.readyTime } : {}),
+    ...(options.usePlaceholders !== undefined ? { usePlaceholders: options.usePlaceholders } : {}),
+    ...(options.includeUnselectedAdditions !== undefined ? { includeUnselectedAdditions: options.includeUnselectedAdditions } : {}),
+    candidateBlocks,
+    candidateScheduleScope: /\bmissing from (?:the )?(?:hair )?schedule\b/i.test(source) ? "all_active" : "provided_only",
+  };
+}
+
+export function parsedScheduleRequestFromEvidence(state: ReducedScheduleEvidence): import("./schedulingIntelligence").ParsedScheduleRequest {
+  return {
+    sourceKind: "pasted_request",
+    people: state.people,
+    confirmedPeople: state.confirmedPeople,
+    optionalPeople: state.optionalPeople,
+    quoteOnlyRequests: state.quoteOnlyRequests,
+    touchupNotes: state.quoteOnlyRequests.flatMap((request) => request.notes),
+    uncertainties: unique([
+      ...state.questions.map((question) => question.prompt),
+      ...state.warnings.map((warning) => warning.message),
+    ]),
   };
 }

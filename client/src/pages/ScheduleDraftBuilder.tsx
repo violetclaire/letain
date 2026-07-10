@@ -6,7 +6,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import {
   generateProductionSchedule,
-  parseScheduleRequest,
   serviceLabel,
   type FixedScheduleBlock,
   type ProductionScheduleResult,
@@ -15,6 +14,11 @@ import {
   type ScheduleServiceKind,
   type SchedulingProvider,
 } from "@shared/schedulingIntelligence";
+import {
+  parsedScheduleRequestFromEvidence,
+  reduceScheduleEvidence,
+  scheduleEvidenceInputFromText,
+} from "@shared/schedulingEvidence";
 
 type Column = { id: string; label: string; type: string };
 type Row = { id: string; sortOrder: number; cells: Record<string, string> };
@@ -40,6 +44,9 @@ type ScheduleEngineMetadata = {
   protectLeadBeforePrimary?: boolean;
   preferMinimumStaff?: boolean;
   fixedBlocksReviewed?: boolean;
+  evidenceDay?: string;
+  useEvidencePlaceholders?: boolean;
+  evidenceAdditionsMode?: "undecided" | "exclude" | "include";
 };
 type AuditSeverity = "info" | "warning" | "critical";
 
@@ -865,6 +872,9 @@ function normalizeScheduleEngineMetadata(metadata?: ScheduleEngineMetadata | nul
     protectLeadBeforePrimary: metadata?.protectLeadBeforePrimary,
     preferMinimumStaff: metadata?.preferMinimumStaff,
     fixedBlocksReviewed: metadata?.fixedBlocksReviewed ?? false,
+    evidenceDay: metadata?.evidenceDay ?? "",
+    useEvidencePlaceholders: metadata?.useEvidencePlaceholders ?? false,
+    evidenceAdditionsMode: metadata?.evidenceAdditionsMode ?? "undecided",
   };
 }
 
@@ -1902,9 +1912,34 @@ export default function ScheduleDraftBuilder() {
 
   // Provider column id used to group rows (blocks) into coordination lanes.
   const providerColId = columns.find((c) => c.type === "provider")?.id ?? "provider";
+  const scheduleEvidenceInput = useMemo(
+    () =>
+      scheduleEvidenceInputFromText(requestText, {
+        selectedDay: engineMetadata.evidenceDay || undefined,
+        readyTime: engineMetadata.readyByTime || undefined,
+        usePlaceholders: engineMetadata.useEvidencePlaceholders,
+        includeUnselectedAdditions:
+          engineMetadata.evidenceAdditionsMode === "include"
+            ? true
+            : engineMetadata.evidenceAdditionsMode === "exclude"
+              ? false
+              : undefined,
+      }),
+    [
+      requestText,
+      engineMetadata.evidenceDay,
+      engineMetadata.readyByTime,
+      engineMetadata.useEvidencePlaceholders,
+      engineMetadata.evidenceAdditionsMode,
+    ],
+  );
+  const scheduleEvidenceState = useMemo(
+    () => (scheduleEvidenceInput ? reduceScheduleEvidence(scheduleEvidenceInput) : null),
+    [scheduleEvidenceInput],
+  );
   const parsedScheduleRequest = useMemo(
-    () => (requestText.trim() ? parseScheduleRequest(requestText) : null),
-    [requestText],
+    () => (scheduleEvidenceState ? parsedScheduleRequestFromEvidence(scheduleEvidenceState) : null),
+    [scheduleEvidenceState],
   );
   const fixedScheduleBlocks = useMemo(
     () => fixedScheduleBlocksFromRows(rows, providers, providerColId),
@@ -1942,6 +1977,26 @@ export default function ScheduleDraftBuilder() {
         : null,
     [parsedScheduleRequest, engineMetadata, providers, fixedScheduleBlocks, markedFixedRowCount, operatorScheduleDefaultsQuery.data],
   );
+  const unresolvedEvidenceQuestions = (scheduleEvidenceState?.questions ?? []).filter((question) => {
+    if (question.id === "ready_time") return !engineMetadata.readyByTime?.trim();
+    if (question.id === "artist_count") return providers.length === 0;
+    if (question.id === "lead_artist") {
+      return !providers.some((provider) => provider.isPrimary) || engineMetadata.assignPrimaryToLead === undefined;
+    }
+    if (question.id === "provider_timing") {
+      return Boolean(productionSchedule?.questions.some((productionQuestion) => productionQuestion.id === "provider_timing"));
+    }
+    if (question.id === "primary_fixed_block") return !engineMetadata.fixedBlocksReviewed;
+    if (question.id === "schedule_day") return !engineMetadata.evidenceDay;
+    if (question.id === "additions_inclusion") return (engineMetadata.evidenceAdditionsMode ?? "undecided") === "undecided";
+    if (question.id === "placeholder_mode") return !engineMetadata.useEvidencePlaceholders;
+    return true;
+  });
+  const visibleEvidenceReadiness = scheduleEvidenceState?.scheduleReadiness === "conflict_requires_resolution"
+    ? "conflict_requires_resolution"
+    : unresolvedEvidenceQuestions.length > 0
+      ? "needs_operator_input"
+      : "ready_for_operator_review";
   const legacyFirstDraftPreview = useMemo(
     () => buildFirstDraftPreview({ rows, providers, serviceDefaults, engineMetadata, providerColId }),
     [rows, providers, serviceDefaults, engineMetadata, providerColId],
@@ -1953,8 +2008,25 @@ export default function ScheduleDraftBuilder() {
   const hasFirstDraftPreview = firstDraftPreview.lanes.length > 0;
   const hasFirstDraftServiceBlocks = firstDraftHasMeaningfulServiceBlocks(firstDraftPreview);
   const rowsCanAcceptFirstDraftPreview = isEmptyOrPlaceholderOnlyRows(rows, providerColId);
-  const canApplyFirstDraftPreview = hasFirstDraftPreview && hasFirstDraftServiceBlocks && rowsCanAcceptFirstDraftPreview;
-  const firstDraftApplyMessage = !hasFirstDraftPreview
+  const evidenceBlocksPreview = Boolean(
+    scheduleEvidenceState && (
+      visibleEvidenceReadiness === "conflict_requires_resolution" ||
+      unresolvedEvidenceQuestions.some((question) => [
+        "schedule_day",
+        "roster",
+        "service_breakdown",
+        "additions_inclusion",
+        "corrected_start_time",
+        "ready_time_scope",
+        "separate_room_assignment",
+        "blowout_scope",
+      ].includes(question.id))
+    ),
+  );
+  const canApplyFirstDraftPreview = hasFirstDraftPreview && hasFirstDraftServiceBlocks && rowsCanAcceptFirstDraftPreview && !evidenceBlocksPreview;
+  const firstDraftApplyMessage = evidenceBlocksPreview
+    ? "Resolve the private evidence warnings and blocking questions before applying a preview."
+    : !hasFirstDraftPreview
     ? "Generate a first draft preview before applying it."
     : !hasFirstDraftServiceBlocks
       ? "Add service blocks before applying a preview."
@@ -2010,7 +2082,13 @@ export default function ScheduleDraftBuilder() {
 
   const updateRequestText = (value: string) => {
     setRequestText(value);
-    setEngineMetadata((prev) => ({ ...prev, sourceRequest: value }));
+    setEngineMetadata((prev) => ({
+      ...prev,
+      sourceRequest: value,
+      evidenceDay: "",
+      useEvidencePlaceholders: false,
+      evidenceAdditionsMode: "undecided",
+    }));
   };
 
   const applyPaste = () => {
@@ -2364,6 +2442,173 @@ export default function ScheduleDraftBuilder() {
               <p className="mt-2 text-xs text-ink/50">
                 Extraction is deterministic and editable through the source request. It does not send, contact anyone, create contracted work, or publish a schedule.
               </p>
+
+              {scheduleEvidenceState && (
+                <div className="mt-5 border-t border-hairline pt-5" data-testid="section-schedule-evidence-review">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h3 className="text-sm font-medium">Evidence review</h3>
+                      <p className="mt-1 text-xs text-ink/55">
+                        Current private state reduced from the pasted evidence. Review corrections and blockers before applying a schedule preview.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-xs uppercase tracking-wide text-ink/55">
+                      <span className="border border-hairline bg-bg px-2 py-1">{scheduleEvidenceState.sourceKind.replace(/_/g, " ")}</span>
+                      <span className="border border-hairline bg-bg px-2 py-1" data-testid="status-evidence-readiness">
+                        {visibleEvidenceReadiness.replace(/_/g, " ")}
+                      </span>
+                    </div>
+                  </div>
+
+                  {(scheduleEvidenceState.dayContexts.length > 1 || scheduleEvidenceState.placeholderScheduleAllowed || scheduleEvidenceState.scheduleableSpreadsheetRows.some((row) => row.section === "additions")) && (
+                    <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3" data-testid="section-evidence-decisions">
+                      {scheduleEvidenceState.dayContexts.length > 1 && (
+                        <label className="block">
+                          <span className="text-xs uppercase tracking-wide text-ink/50">Schedule day</span>
+                          <select
+                            value={engineMetadata.evidenceDay ?? ""}
+                            onChange={(event) => setEngineMetadata((prev) => ({ ...prev, evidenceDay: event.target.value }))}
+                            className="mt-1 w-full border border-hairline bg-bg px-3 py-2 text-sm"
+                            data-testid="select-evidence-day"
+                          >
+                            <option value="">Choose a day</option>
+                            {scheduleEvidenceState.dayContexts.map((day) => (
+                              <option key={day} value={day}>{day.replace(/_/g, " ")}</option>
+                            ))}
+                          </select>
+                        </label>
+                      )}
+                      {scheduleEvidenceState.placeholderScheduleAllowed && (
+                        <label className="block">
+                          <span className="text-xs uppercase tracking-wide text-ink/50">Count-only roster</span>
+                          <select
+                            value={engineMetadata.useEvidencePlaceholders ? "include" : "undecided"}
+                            onChange={(event) => setEngineMetadata((prev) => ({ ...prev, useEvidencePlaceholders: event.target.value === "include" }))}
+                            className="mt-1 w-full border border-hairline bg-bg px-3 py-2 text-sm"
+                            data-testid="select-evidence-placeholders"
+                          >
+                            <option value="undecided">Names and services required</option>
+                            <option value="include">Use working placeholders</option>
+                          </select>
+                          {engineMetadata.useEvidencePlaceholders && scheduleEvidenceState.placeholderLabel && (
+                            <span className="mt-1 block text-xs text-ink/55">{scheduleEvidenceState.placeholderLabel}</span>
+                          )}
+                        </label>
+                      )}
+                      {scheduleEvidenceState.scheduleableSpreadsheetRows.some((row) => row.section === "additions") && (
+                        <label className="block">
+                          <span className="text-xs uppercase tracking-wide text-ink/50">Spreadsheet additions</span>
+                          <select
+                            value={engineMetadata.evidenceAdditionsMode ?? "undecided"}
+                            onChange={(event) => setEngineMetadata((prev) => ({ ...prev, evidenceAdditionsMode: event.target.value as ScheduleEngineMetadata["evidenceAdditionsMode"] }))}
+                            className="mt-1 w-full border border-hairline bg-bg px-3 py-2 text-sm"
+                            data-testid="select-evidence-additions"
+                          >
+                            <option value="undecided">Review additions</option>
+                            <option value="exclude">Keep unselected</option>
+                            <option value="include">Include additions</option>
+                          </select>
+                        </label>
+                      )}
+                    </div>
+                  )}
+
+                  <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3" data-testid="summary-schedule-evidence">
+                    <div>
+                      <dt className="text-xs uppercase tracking-wide text-ink/45">Current people</dt>
+                      <dd className="mt-0.5 text-ink/75">{scheduleEvidenceState.confirmedPeople.length} confirmed, {scheduleEvidenceState.optionalPeople.length} optional</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs uppercase tracking-wide text-ink/45">Source count</dt>
+                      <dd className="mt-0.5 text-ink/75">{scheduleEvidenceState.declaredPeopleCount ?? "Not stated"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs uppercase tracking-wide text-ink/45">Artist count</dt>
+                      <dd className="mt-0.5 text-ink/75">{scheduleEvidenceState.artistCount ?? "Not stated"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs uppercase tracking-wide text-ink/45">Candidate blocks</dt>
+                      <dd className="mt-0.5 text-ink/75">{scheduleEvidenceState.candidateBlocks.length}</dd>
+                    </div>
+                    {scheduleEvidenceState.scheduleableSpreadsheetRows.length > 0 && (
+                      <div>
+                        <dt className="text-xs uppercase tracking-wide text-ink/45">Spreadsheet rows</dt>
+                        <dd className="mt-0.5 text-ink/75">
+                          {scheduleEvidenceState.scheduleableSpreadsheetRows.filter((row) => row.active).length} active services; {scheduleEvidenceState.ignoredSpreadsheetRowIds.length} non-service rows ignored
+                        </dd>
+                      </div>
+                    )}
+                    {scheduleEvidenceState.externalLinksIgnored && (
+                      <div>
+                        <dt className="text-xs uppercase tracking-wide text-ink/45">External references</dt>
+                        <dd className="mt-0.5 text-ink/75">Link recorded as evidence only; nothing fetched</dd>
+                      </div>
+                    )}
+                  </dl>
+
+                  {scheduleEvidenceState.readyConstraints.length > 0 && (
+                    <div className="mt-4" data-testid="list-evidence-ready-constraints">
+                      <h4 className="text-xs uppercase tracking-wide text-ink/45">Readiness constraints</h4>
+                      <ul className="mt-2 space-y-1.5 text-sm text-ink/70">
+                        {scheduleEvidenceState.readyConstraints.map((constraint, index) => (
+                          <li key={`${constraint.sourceId}-${constraint.kind}-${index}`}>
+                            {constraint.personLabel ?? constraint.personName ?? constraint.scope}: {constraint.kind} by {constraint.time}
+                            {constraint.dayContext ? ` (${constraint.dayContext.replace(/_/g, " ")})` : ""}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {scheduleEvidenceState.locations.length > 0 && (
+                    <div className="mt-4" data-testid="list-evidence-locations">
+                      <h4 className="text-xs uppercase tracking-wide text-ink/45">Locations</h4>
+                      <ul className="mt-2 space-y-1.5 text-sm text-ink/70">
+                        {scheduleEvidenceState.locations.map((entry) => (
+                          <li key={`${entry.kind}-${entry.value}`}>{entry.kind.replace(/_/g, " ")}: {entry.value}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {scheduleEvidenceState.removedPeople.length > 0 && (
+                    <div className="mt-4" data-testid="list-removed-evidence-people">
+                      <h4 className="text-xs uppercase tracking-wide text-ink/45">Removed by later correction</h4>
+                      <ul className="mt-2 space-y-1.5 text-sm text-ink/70">
+                        {scheduleEvidenceState.removedPeople.map((person) => (
+                          <li key={`${person.sourceId}-${person.name}`}>{person.name}: {person.reason}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {scheduleEvidenceState.warnings.length > 0 && (
+                    <div className="mt-4 border-l-2 border-oxblood pl-3" data-testid="list-evidence-warnings">
+                      <h4 className="text-xs uppercase tracking-wide text-oxblood">Warnings and conflicts</h4>
+                      <ul className="mt-2 space-y-2 text-sm text-ink/75">
+                        {scheduleEvidenceState.warnings.map((warning, index) => (
+                          <li key={`${warning.code}-${index}`}>{warning.message}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {unresolvedEvidenceQuestions.length > 0 && (
+                    <div className="mt-4" data-testid="list-evidence-questions">
+                      <h4 className="text-xs uppercase tracking-wide text-ink/45">Missing evidence to confirm</h4>
+                      <ul className="mt-2 space-y-1.5 text-sm text-ink/70">
+                        {unresolvedEvidenceQuestions.map((question) => (
+                          <li key={question.id}>{question.prompt}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  <p className="mt-4 text-xs text-ink/50">
+                    Evidence review does not approve, send, publish, create a client link, or make a provider commitment.
+                  </p>
+                </div>
+              )}
 
               {parsedScheduleRequest && (
                 <div className="mt-6 space-y-6" data-testid="panel-parsed-request">

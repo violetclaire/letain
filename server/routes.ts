@@ -7349,6 +7349,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     "protectLeadBeforePrimary",
     "preferMinimumStaff",
     "fixedBlocksReviewed",
+    "useEvidencePlaceholders",
   ] as const;
 
   function sanitizeScheduleEngineMetadata(metadata: unknown) {
@@ -7371,6 +7372,12 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     }
     if (source.touchupMode === "undecided" || source.touchupMode === "quote_only" || source.touchupMode === "schedule_fixed_only") {
       sanitized.touchupMode = source.touchupMode;
+    }
+    if (typeof source.evidenceDay === "string") {
+      sanitized.evidenceDay = source.evidenceDay.trim().slice(0, 80);
+    }
+    if (source.evidenceAdditionsMode === "undecided" || source.evidenceAdditionsMode === "exclude" || source.evidenceAdditionsMode === "include") {
+      sanitized.evidenceAdditionsMode = source.evidenceAdditionsMode;
     }
     for (const field of scheduleEngineBooleanFields) {
       if (typeof source[field] === "boolean") sanitized[field] = source[field];

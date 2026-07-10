@@ -368,6 +368,9 @@ test("schedule draft PATCH preserves sanitized schedule engine metadata", async 
         protectLeadBeforePrimary: true,
         preferMinimumStaff: true,
         fixedBlocksReviewed: false,
+        evidenceDay: " saturday_wedding_day ",
+        useEvidencePlaceholders: true,
+        evidenceAdditionsMode: "exclude",
         ignoredField: "not stored",
       },
     },
@@ -387,6 +390,9 @@ test("schedule draft PATCH preserves sanitized schedule engine metadata", async 
     protectLeadBeforePrimary: true,
     preferMinimumStaff: true,
     fixedBlocksReviewed: false,
+    evidenceDay: "saturday_wedding_day",
+    useEvidencePlaceholders: true,
+    evidenceAdditionsMode: "exclude",
   });
 });
 
