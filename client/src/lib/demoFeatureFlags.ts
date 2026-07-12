@@ -13,3 +13,7 @@ export const enableContractsUi = envFlag(import.meta.env.VITE_ENABLE_CONTRACTS_U
 export const enableLegacyClientCreationUi = envFlag(
   import.meta.env.VITE_ENABLE_LEGACY_CLIENT_CREATION_UI,
 );
+
+export const enableGmailReadonlyIngestion = envFlag(
+  import.meta.env.VITE_ENABLE_GMAIL_READONLY_INGESTION,
+);

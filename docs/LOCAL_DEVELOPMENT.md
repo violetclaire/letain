@@ -80,6 +80,17 @@ Useful local paths:
 
 For the seeded Briarwood local demo, a fresh localhost preview session can open `http://localhost:5173/admin/briarwood-demo` or `http://localhost:5173/inquiry-workspace` directly. Those pages may bootstrap a local-only `demo-operator-briarwood` session through `POST /api/demo/local-access` when no user is signed in. The bootstrap is disabled in production and only creates the same private operator session used by the local demo; it does not send email/SMS, create invoices, create contracts, create payment links, create client links, run AI, or contact providers.
 
+## Optional Read-Only Gmail Evidence
+
+The Schedule Draft Builder has a private Gmail thread reader behind a default-off frontend flag. To expose it in a local session, configure a Google web OAuth client for the local frontend origin and add both values to `.env.local`:
+
+```env
+VITE_ENABLE_GMAIL_READONLY_INGESTION=true
+VITE_GOOGLE_GMAIL_CLIENT_ID=replace-with-google-web-client-id
+```
+
+The reader requests only `https://www.googleapis.com/auth/gmail.readonly`, fetches one operator-selected thread with a `GET` request, and copies its message text into the existing private source-request field. The short-lived access token stays in browser memory and is not sent to the Briarwood backend or stored by this path. Importing does not save a draft, generate or apply a schedule preview, send or modify email, contact anyone, or create a public/client-facing artifact.
+
 ## Safety Notes
 
 - Do not test email, SMS, payments, contract sends, Square, or public-token delivery against production services from local preview.
