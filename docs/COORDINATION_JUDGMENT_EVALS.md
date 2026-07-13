@@ -1,169 +1,296 @@
 # Coordination Judgment Evals
 
-This note explains the current Briarwood demo and the first versioned
-coordination judgment eval harness. It is documentation only. It does not add
-runtime behavior, UI, schema, routes, auth, sends, contracts, payments, public
-links, AI execution, route/preflight behavior, provider acceptance, or
-client-create behavior.
+This document is internal category and evaluation framing. It does not
+introduce runtime behavior or customer-facing verification features.
 
-## What The Viewer Sees
+Briarwood believes coordination judgment is a missing eval layer for real-world
+agent action. Before software or agents can safely help route, recommend,
+coordinate, verify, or trigger real-world work, they need a way to preserve the
+human judgment that determines whether action is actually allowed.
 
-The local read-only demo is an operator coordination workspace.
+This document defines internal language and evaluation concepts only. It does
+not claim that customer-facing trust scoring, verification behavior,
+automated agent action, or scoring systems are shipped product features.
 
-The best demo path is:
+## Current State
 
-```text
-/admin/briarwood-demo
--> Inquiry Workspace
--> Can I respond yet?
--> Permissioned next step
--> Availability readiness
--> Operator review checklist
--> Private review log
--> Inquiry Event Timeline
--> Route/recovery evidence
--> Private schedule handoff
-```
+The current repository includes source/test/eval infrastructure for checking
+coordination judgment boundaries. It does not add runtime behavior, UI, schema,
+routes, auth, sends, contracts, payments, public links, AI execution,
+route/preflight behavior, provider acceptance, or client-create behavior.
 
-The viewer sees that Briarwood does not just manage inquiries. It makes the
-current coordination state visible before anyone moves real-world work forward.
-
-The important product story is:
+The short version:
 
 ```text
-inquiry evidence
--> reduced coordination state
--> permissioned next-step guidance
--> readiness / review / evidence / timeline
--> human decision
+redacted trace fixture
+-> trace capture validation
+-> draft eval case
+-> deterministic judgment harness
+-> trace-derived eval suite report
+-> coverage taxonomy and gap report
+-> checkpoint summary
 ```
 
-The operator surface stays private and read-only for this demo. It explains
-what is known, what is missing, what needs review, and what must not happen yet.
-It does not create sends, invoices, contracts, payments, public/client links,
-AI actions, route acceptance, provider acceptance, or client-create paths.
+The implemented eval layer checks whether internal eval candidates preserve
+human judgment before real-world contracted work would be allowed to move
+forward. It does not move that work forward.
 
-## What The Eval Checks
+## Thesis
 
-The core eval question is:
+Briarwood's thesis is that real-world agent action needs an evaluation layer
+for coordination judgment, not just answer quality.
+
+In contracted work, the hard question is often not "what is the answer?" It is
+"what can safely happen next, and who has the authority to make that happen?"
+The coordination judgment eval framing exists to keep that question explicit.
+
+## Implemented
+
+The core question is:
 
 ```text
 Did the system preserve the human judgment needed before moving real-world coordination forward?
 ```
 
-The coordination judgment eval harness checks whether a candidate
-operator-facing state preserves the right authority boundaries.
+The implemented source/test/eval layer checks candidate coordination states
+against that question. It treats evidence, review, approval, and external
+action as separate concepts.
 
-It checks that:
+This matters because real-world service work often runs through private,
+messy, high-context coordination: texts, emails, referrals, handoffs, recovery
+moments, pricing context, schedule context, and relationship trust. In that
+setting, shallow evidence can look actionable when it is not. The eval framing
+is designed to catch that drift before any product behavior relies on it.
 
-- evidence does not become approval
-- review does not become send authority
+## Why Trace-Derived Evals Matter
+
+Briarwood is developing eval language for contracted work, not abstract content
+classification.
+The important failures are coordination failures:
+
+- evidence quietly becoming approval
+- a review state becoming permission to send
+- private context leaking into a client-facing surface
+- stale alignment becoming current authority
+- conflicting signals getting collapsed into a single answer
+- recovery or escalation being downgraded into ordinary forward motion
+- invoices, contracts, payments, routes, provider acceptance, public links,
+  client creation, or AI execution appearing without human approval
+
+Trace-derived evals keep internal test cases close to the shape of real
+coordination while staying redacted, synthetic, and safe. Each fixture captures
+the judgment boundary that must survive conversion into an eval case.
+
+## Pipeline
+
+The current source/test/eval pipeline is:
+
+1. Redacted/synthetic trace fixture
+
+   A trace fixture describes a safe, synthetic coordination scenario. It names
+   the source trace id, eval case candidate id, operator judgment, permission
+   outcome, blocked reasons, private-only signals, forbidden actions, failure
+   modes, and safe next step.
+
+2. Trace capture validation
+
+   `server/coordination-judgment-trace-capture.ts` validates that the trace has
+   the required judgment fields before it can become an eval candidate.
+
+3. Conversion into a draft eval case
+
+   The same trace capture module converts the validated trace into a draft
+   coordination judgment eval case. The conversion preserves operator judgment,
+   blocked reasons, private-only signals, forbidden actions, human approval
+   requirements, and contracted-work safety language.
+
+4. Deterministic eval harness
+
+   `server/coordination-judgment-eval-harness.ts` checks the draft eval case
+   against the stable failure-mode taxonomy. It does not act. It only reports
+   whether the candidate preserved the expected judgment boundaries.
+
+5. Trace-derived eval suite report
+
+   `server/coordination-judgment-trace-eval-suite.ts` discovers the trace
+   fixtures, validates them, converts them into draft eval cases, runs the
+   harness, and reports fixture counts, pass/fail counts, source trace ids,
+   candidate ids, blocked reasons, private-only signals, forbidden actions,
+   safe next steps, and failure-mode coverage.
+
+6. Coverage taxonomy and gap report
+
+   `server/coordination-judgment-eval-coverage.ts` consumes the suite report
+   and maps it into covered and missing taxonomy items: judgment states,
+   permission boundaries, and coordination signals.
+
+7. Checkpoint summary
+
+   `server/coordination-judgment-eval-checkpoint.ts` consumes the suite report
+   and coverage report to summarize the completed checkpoint. It states what is
+   covered, what remains visible, and what the checkpoint explicitly does not
+   authorize.
+
+## Covered Judgment States
+
+The planned judgment-state taxonomy is covered by six trace-derived fixtures:
+
+- `ready_for_operator_review`
+- `blocked_not_ready_for_external_action`
+- `authority_attempt_blocked`
+- `conflict_requires_human_resolution`
+- `escalation_required`
+- `recovery_needed`
+
+The checkpoint reports:
+
+- `fixtureCount = 6`
+- `passedCount = 6`
+- `failedCount = 0`
+- all six planned judgment states covered
+- `missingJudgmentStates = []`
+
+## Permission Boundaries Preserved
+
+The eval loop preserves these boundaries:
+
+- evidence does not mean approval
+- review does not mean send or action authority
 - private context remains private
 - blocked reasons remain visible
 - forbidden actions remain forbidden
-- contracted-work language is preserved where applicable
 - permissioned next steps remain operator-facing
 - public/client visibility is forbidden too early
 - human approval remains required where the state requires it
+- invoices, contracts, payments, public links, provider acceptance,
+  client-create behavior, and AI action cannot appear without authority
 
-This is the Shreya/evals story in one line:
-
-```text
-Briarwood now checks whether the system preserved human judgment before moving real-world coordination forward.
-```
-
-## How The Surface And Harness Relate
-
-The operator surface is what the reviewer sees. The eval harness is the
-repeatable check underneath it.
-
-```text
-real inquiry/evidence trace
--> reduced coordination state
--> permissioned next step
--> operator review
--> human decision
--> versioned eval case
--> deterministic checker
--> reusable judgment loop
-```
-
-The eval harness does not act. It does not send, route, approve, collect,
-publish, generate, or contact anyone. It checks whether the state and surface
-preserve the human judgment needed before any real-world coordination moves
-forward.
-
-The first versioned harness lives in:
-
-- `server/coordination-judgment-eval-cases.ts`
-- `server/coordination-judgment-eval-harness.ts`
-- `server/coordination-judgment-eval.characterization.test.ts`
-
-The harness has three parts:
-
-- versioned synthetic eval cases
-- a stable failure-mode taxonomy
-- a deterministic checker
-
-The failure modes include authority-boundary drift such as evidence becoming
-approval, review becoming send authority, private fields leaking, public
-visibility appearing too early, forbidden actions appearing, and
-contracted-work language disappearing.
-
-## What Changed In PRs
-
-`#147` fixed demo access.
-
-Fresh local preview sessions can open the seeded read-only demo directly:
-
-```text
-http://localhost:5173/admin/briarwood-demo
-http://localhost:5173/inquiry-workspace
-```
-
-That access is local/demo-only and does not enable product actions.
-
-`#148` added the first explicit coordination judgment eval harness.
-
-Before `#148`, Briarwood had operator judgment embedded across rules, gates,
-tests, and review surfaces. After `#148`, Briarwood also has a formal,
-versioned eval harness that turns operator judgment into repeatable checks.
-
-## Why This Matters
-
-Real-world coordination fails when evidence quietly becomes authority.
-
-Briarwood keeps those concepts separate:
+In one line:
 
 ```text
 evidence != approval
 review != send authority
-route reachable != provider accepted
-schedule draft != client-visible schedule
+route context != provider acceptance
+schedule draft != public/client schedule
 permissioned next step != external action
 ```
 
-The operator sees the coordination state. The eval checks that the state still
-requires human judgment where the work requires it. The human decides.
+## What The Checkpoint Proves
 
-## How To Run The Checks
+The checkpoint proves that the planned coordination judgment taxonomy is
+represented by internal trace-derived eval fixtures and that those converted
+draft eval cases pass the deterministic coordination judgment harness.
 
-Run the focused coordination judgment eval:
+It also proves that the reporting layer can summarize:
 
-```powershell
-npx.cmd tsx --test server\coordination-judgment-eval.characterization.test.ts
+- suite id and version
+- coverage taxonomy version
+- fixture count
+- source trace ids
+- eval case candidate ids
+- pass/fail counts
+- covered and missing judgment states
+- covered and missing permission boundaries
+- covered and missing coordination signals
+- remaining non-judgment gaps
+- prohibited runtime behavior
+- deterministic/static generated-at policy
+
+The checkpoint safe conclusion is intentionally narrow:
+
+```text
+The planned judgment-state taxonomy is covered by trace-derived eval fixtures, but this does not grant runtime authority or product behavior.
 ```
 
-Run the related characterization checks that protect the current loop:
+## What The Checkpoint Does Not Prove
+
+The checkpoint does not prove that Briarwood should take action in production.
+It does not approve a provider, send a message, create an invoice, create a
+contract, collect payment, publish a client link, run preflight, create a route,
+accept a provider, create a client, or execute AI.
+
+It also does not hide remaining taxonomy gaps. It is a reporting checkpoint,
+not a runtime decision engine.
+
+It does not ship scoring systems, automated agent action, customer-facing
+verification behavior, public trust scores, or autonomous fulfillment
+decisions.
+
+The checkpoint's prohibited runtime behavior list includes:
+
+- no sends
+- no SMS/email
+- no invoices
+- no contracts
+- no payments
+- no public/client links
+- no AI execution
+- no route/preflight/provider acceptance
+- no client-create behavior
+- no self-improving harness behavior
+- no automated harness mutation
+- no `/assess` calls
+
+## Remaining Non-Judgment Gap
+
+The planned judgment-state taxonomy is complete, but the coverage report still
+keeps non-judgment coordination signal gaps visible. The current remaining
+coordination signal gap is:
+
+- `provider_acceptance_state`
+
+That gap is not a missing judgment state. It remains visible so future work can
+decide whether and how to characterize provider acceptance state without
+silently turning route or schedule context into acceptance authority.
+
+## Future Direction
+
+These concepts may inform future eval infrastructure and product development.
+Future product work should keep the same separation: evidence can inform
+judgment, but it should not silently become permission to act.
+
+Future work may expand the taxonomy, add more synthetic traces, harden
+coordination-signal coverage, or connect these ideas to product surfaces only
+after the authority boundaries are explicit and reviewed.
+
+## Maintainer References
+
+For maintainers, the current source/test/eval implementation is grouped around:
+
+- `server/coordination-judgment-eval-cases.ts`
+- `server/coordination-judgment-eval-harness.ts`
+- `server/coordination-judgment-eval.characterization.test.ts`
+- `server/coordination-judgment-trace-capture.ts`
+- `server/coordination-judgment-trace-capture.characterization.test.ts`
+- `server/coordination-judgment-trace-fixtures.ts`
+- `server/coordination-judgment-trace-fixtures.characterization.test.ts`
+- `server/coordination-judgment-trace-eval-suite.ts`
+- `server/coordination-judgment-trace-eval-suite.characterization.test.ts`
+- `server/coordination-judgment-eval-coverage.ts`
+- `server/coordination-judgment-eval-coverage.characterization.test.ts`
+- `server/coordination-judgment-eval-checkpoint.ts`
+- `server/coordination-judgment-eval-checkpoint.characterization.test.ts`
+
+These are implementation references, not product entry points.
+
+## How To Run The Eval Tests
+
+Run the checkpoint test:
 
 ```powershell
-npx.cmd tsx --test server\coordination-reduction-rules.characterization.test.ts
-npx.cmd tsx --test server\permissioned-next-step-query.characterization.test.ts
-npx.cmd tsx --test server\permissioned-next-step-query-source-adapter.characterization.test.ts
-npx.cmd tsx --test server\permissioned-next-step-query-operator-surface.characterization.test.ts
-npx.cmd tsx --test server\inquiry-workspace-contract-payment-quarantine.characterization.test.ts
-npx.cmd tsx --test server\unreachable-path-gating.characterization.test.ts
-npx.cmd tsx --test server\operator-command-center-action-quarantine.characterization.test.ts
+npx.cmd tsx --test server\coordination-judgment-eval-checkpoint.characterization.test.ts
+```
+
+Run the existing eval, coverage, fixture, trace capture, and harness stack:
+
+```powershell
+npx.cmd tsx --test server\coordination-judgment-eval-coverage.characterization.test.ts server\coordination-judgment-trace-eval-suite.characterization.test.ts server\coordination-judgment-trace-fixtures.characterization.test.ts server\coordination-judgment-trace-capture.characterization.test.ts server\coordination-judgment-eval.characterization.test.ts
+```
+
+Run the related reduction, permission, and quarantine guardrails:
+
+```powershell
+npx.cmd tsx --test server\coordination-reduction-rules.characterization.test.ts server\permissioned-next-step-query.characterization.test.ts server\permissioned-next-step-query-operator-surface.characterization.test.ts server\inquiry-workspace-contract-payment-quarantine.characterization.test.ts
 ```
 
 Run the docs-safe repo checks:
@@ -172,3 +299,37 @@ Run the docs-safe repo checks:
 git diff --check
 npm.cmd run build
 ```
+
+## Non-Goals
+
+This document does not ship:
+
+- scoring systems
+- automated agent action
+- customer-facing verification behavior
+- public/client trust labels
+- runtime trust decisions
+- sends, invoices, contracts, payments, public links, provider acceptance,
+  client creation, route/preflight behavior, or AI execution
+
+The eval loop remains intentionally separate from product authority. It
+contains no UI, schema changes, migrations, backend endpoints, production auth
+changes, sends, invoices, contracts, payments, public/client links, AI
+execution, route/preflight/provider acceptance, client-create behavior,
+self-improving harness behavior, automated harness mutation, or `/assess`
+calls.
+
+Its job is to make the safety and judgment loop legible and repeatable:
+
+```text
+trace evidence
+-> operator judgment
+-> draft eval case
+-> deterministic check
+-> coverage report
+-> checkpoint summary
+```
+
+The eval loop helps maintainers, technical reviewers, grant/eval reviewers, and
+investors understand why Briarwood's coordination layer treats trust as a
+permissioned real-world judgment problem instead of a simple automation problem.
