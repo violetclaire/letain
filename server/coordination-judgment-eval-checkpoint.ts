@@ -13,14 +13,14 @@ import {
 export const COORDINATION_JUDGMENT_EVAL_CHECKPOINT_ID =
   "coordination-judgment-eval-taxonomy-checkpoint";
 export const COORDINATION_JUDGMENT_EVAL_CHECKPOINT_VERSION =
-  "coordination-judgment-eval-taxonomy-checkpoint-v1";
+  "coordination-judgment-eval-taxonomy-checkpoint-v2";
 export const COORDINATION_JUDGMENT_EVAL_CHECKPOINT_GENERATED_AT_POLICY =
   "deterministic:static-checkpoint-v1";
 export const COORDINATION_JUDGMENT_EVAL_CHECKPOINT_READINESS_LABEL =
-  "planned_judgment_taxonomy_covered";
+  "planned_judgment_taxonomy_and_provider_acceptance_signal_covered";
 
 export const COORDINATION_JUDGMENT_EVAL_CHECKPOINT_SAFE_CONCLUSION =
-  "The planned judgment-state taxonomy is covered by trace-derived eval fixtures, but this does not grant runtime authority or product behavior.";
+  "The planned judgment-state taxonomy and provider acceptance evidence signal are covered by deterministic source-level fixtures, but this does not grant runtime authority or product behavior.";
 
 export const COORDINATION_JUDGMENT_EVAL_CHECKPOINT_PROHIBITED_RUNTIME_BEHAVIOR = [
   "no sends",
@@ -54,6 +54,13 @@ export type CoordinationJudgmentEvalCheckpointSummary = {
   evalCaseCandidateIds: string[];
   passedCount: number;
   failedCount: number;
+  providerAcceptanceSuiteVersion: CoordinationJudgmentEvalCoverageReport["providerAcceptanceSuiteVersion"];
+  providerAcceptanceFixtureCount: number;
+  providerAcceptancePassedCount: number;
+  providerAcceptanceFailedCount: number;
+  providerAcceptanceSourceTraceIds: string[];
+  providerAcceptanceStatesCovered: CoordinationJudgmentEvalCoverageReport["providerAcceptanceStatesCovered"];
+  providerAcceptanceAuthorityBoundaryPreserved: boolean;
   coveredJudgmentStates: CoordinationJudgmentCoverageJudgmentState[];
   missingJudgmentStates: CoordinationJudgmentCoverageJudgmentState[];
   coveredPermissionBoundaries: CoordinationJudgmentCoveragePermissionBoundary[];
@@ -89,6 +96,13 @@ export function summarizeCoordinationJudgmentEvalCheckpoint(
     evalCaseCandidateIds: suiteReport.evalCaseCandidateIds,
     passedCount: suiteReport.passed,
     failedCount: suiteReport.failed,
+    providerAcceptanceSuiteVersion: coverageReport.providerAcceptanceSuiteVersion,
+    providerAcceptanceFixtureCount: coverageReport.providerAcceptanceFixtureCount,
+    providerAcceptancePassedCount: coverageReport.providerAcceptancePassedCount,
+    providerAcceptanceFailedCount: coverageReport.providerAcceptanceFailedCount,
+    providerAcceptanceSourceTraceIds: coverageReport.providerAcceptanceSourceTraceIds,
+    providerAcceptanceStatesCovered: coverageReport.providerAcceptanceStatesCovered,
+    providerAcceptanceAuthorityBoundaryPreserved: coverageReport.providerAcceptanceAuthorityBoundaryPreserved,
     coveredJudgmentStates: coverageReport.coveredJudgmentStates,
     missingJudgmentStates: coverageReport.missingJudgmentStates,
     coveredPermissionBoundaries: coverageReport.coveredPermissionBoundaries,
