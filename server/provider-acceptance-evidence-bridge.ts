@@ -56,6 +56,7 @@ export type ProviderAcceptanceEvidenceCapture = {
 
 export type ProviderAcceptanceEvidenceBridgeInput = {
   sourceTraceId: string;
+  subjectProviderId: string;
   characterizedAt: string;
   currentContextVersion: string;
   captures: ProviderAcceptanceEvidenceCapture[];
@@ -89,6 +90,7 @@ export type ProviderAcceptanceEvidenceBridgeReason = {
 
 export type ProviderAcceptanceCaptureProvenance = {
   captureId: string;
+  subjectProviderId: string;
   originalAuthoredAt: string;
   capturedAt: string;
   capturedByOperatorId: string;
@@ -101,6 +103,7 @@ export type ProviderAcceptanceCaptureProvenance = {
 export type PrivateProviderAcceptanceReviewResult = {
   bridgeVersion: typeof PROVIDER_ACCEPTANCE_EVIDENCE_BRIDGE_VERSION;
   sourceTraceId: string;
+  subjectProviderId: string;
   normalizedCharacterizationInput: ProviderAcceptanceStateCharacterizationInput;
   characterization: ProviderAcceptanceStateCharacterizationResult;
   captureChronology: ProviderAcceptanceEvidenceCapture[];
@@ -204,6 +207,7 @@ export function validateProviderAcceptanceEvidenceBridgeInput(
   const capturesById = new Map<string, ProviderAcceptanceEvidenceCapture>();
 
   if (!hasText(input.sourceTraceId)) issues.push("sourceTraceId is required");
+  if (!hasText(input.subjectProviderId)) issues.push("subjectProviderId is required");
   if (!isoTimestampPattern.test(input.characterizedAt)) {
     issues.push("characterizedAt must be a fixed ISO timestamp");
   }
@@ -271,6 +275,14 @@ export function validateProviderAcceptanceEvidenceBridgeInput(
     if (!hasText(capture.claimedOriginalAuthor?.authorId)) {
       issues.push(`claimed original author identity is required: ${captureId}`);
     }
+    if (
+      capture.sourceBasis === "direct_provider_message" &&
+      hasText(input.subjectProviderId) &&
+      hasText(capture.claimedOriginalAuthor?.authorId) &&
+      capture.claimedOriginalAuthor.authorId !== input.subjectProviderId
+    ) {
+      issues.push(`direct provider author must match subjectProviderId: ${captureId}`);
+    }
     if (!PROVIDER_ACCEPTANCE_CAPTURE_SOURCE_BASES.includes(capture.sourceBasis)) {
       issues.push(`sourceBasis is invalid: ${captureId}`);
     }
@@ -280,8 +292,15 @@ export function validateProviderAcceptanceEvidenceBridgeInput(
     if (!hasText(capture.sourceArtifact?.channel)) {
       issues.push(`source channel is required: ${captureId}`);
     }
-    if (capture.signalKind === "conditional_acceptance" && unique(capture.conditions ?? []).length === 0) {
+    const nonEmptyConditions = unique(capture.conditions ?? []);
+    if ((capture.conditions ?? []).some((condition) => !hasText(condition))) {
+      issues.push(`conditions must contain non-empty values: ${captureId}`);
+    }
+    if (capture.signalKind === "conditional_acceptance" && nonEmptyConditions.length === 0) {
       issues.push(`conditional acceptance requires conditions: ${captureId}`);
+    }
+    if (capture.signalKind === "acceptance" && nonEmptyConditions.length > 0) {
+      issues.push(`acceptance with conditions must be labeled conditional_acceptance: ${captureId}`);
     }
     if ((capture.supersedesCaptureIds ?? []).includes(capture.captureId)) {
       issues.push(`capture cannot supersede itself: ${captureId}`);
@@ -362,11 +381,13 @@ export function buildPrivateProviderAcceptanceReview(
   return {
     bridgeVersion: PROVIDER_ACCEPTANCE_EVIDENCE_BRIDGE_VERSION,
     sourceTraceId: input.sourceTraceId,
+    subjectProviderId: input.subjectProviderId,
     normalizedCharacterizationInput,
     characterization,
     captureChronology,
     captureProvenance: captureChronology.map((capture) => ({
       captureId: capture.captureId,
+      subjectProviderId: input.subjectProviderId,
       originalAuthoredAt: capture.originalAuthoredAt,
       capturedAt: capture.capturedAt,
       capturedByOperatorId: capture.capturedBy.authorId,

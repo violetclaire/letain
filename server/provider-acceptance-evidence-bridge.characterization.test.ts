@@ -39,10 +39,10 @@ test("bridge fixtures cover every required state and fail-closed input determini
   const second = runProviderAcceptanceEvidenceBridgeFixtureSuite();
 
   assert.deepEqual(first, second);
-  assert.equal(first.totalFixtures, 20);
-  assert.equal(first.validFixtures, 16);
-  assert.equal(first.invalidFixtures, 4);
-  assert.equal(first.passed, 20);
+  assert.equal(first.totalFixtures, 28);
+  assert.equal(first.validFixtures, 17);
+  assert.equal(first.invalidFixtures, 11);
+  assert.equal(first.passed, 28);
   assert.equal(first.failed, 0);
   assert.deepEqual(first.failures, []);
   assert.deepEqual(first.statesCovered, [...PROVIDER_ACCEPTANCE_STATES]);
@@ -100,6 +100,7 @@ test("only a complete direct-provider-message envelope normalizes as provider-me
 
 test("missing required direct-message provenance fails closed", () => {
   const mutations: Array<[string, (input: ProviderAcceptanceEvidenceBridgeInput) => void]> = [
+    ["subjectProviderId is required", (input) => { input.subjectProviderId = ""; }],
     ["claimed original author identity is required", (input) => { input.captures[0].claimedOriginalAuthor.authorId = ""; }],
     ["originalAuthoredAt must be a fixed ISO timestamp", (input) => { input.captures[0].originalAuthoredAt = ""; }],
     ["contextVersion is required", (input) => { input.captures[0].contextVersion = ""; }],
@@ -151,11 +152,77 @@ test("source basis cannot relabel operator or client captures as direct provider
   );
 });
 
-test("conditional acceptance requires explicit non-empty conditions", () => {
+test("subject provider identity isolates direct provider voice and survives into provenance", () => {
+  for (const fixtureId of [
+    "bridge-malformed-provider-a-acceptance-provider-b-decline",
+    "bridge-malformed-provider-b-withdraws-provider-a",
+    "bridge-malformed-provider-a-acceptance-provider-b-conditional",
+    "bridge-malformed-direct-author-does-not-match-subject",
+  ]) {
+    const input = validInput(fixtureId);
+    const validation = validateProviderAcceptanceEvidenceBridgeInput(input);
+    assert.equal(validation.valid, false, fixtureId);
+    assert.ok(
+      validation.issues.some((issue) => issue.includes("direct provider author must match subjectProviderId")),
+      fixtureId,
+    );
+    assert.throws(
+      () => buildPrivateProviderAcceptanceReview(input),
+      (error) => error instanceof ProviderAcceptanceEvidenceBridgeValidationError,
+      fixtureId,
+    );
+  }
+
+  const missingSubject = validInput("bridge-malformed-missing-subject-provider-id");
+  assert.ok(
+    validateProviderAcceptanceEvidenceBridgeInput(missingSubject).issues.some((issue) =>
+      issue.includes("subjectProviderId is required")),
+  );
+
+  const sameProvider = buildPrivateProviderAcceptanceReview(
+    validInput("bridge-multiple-messages-same-subject-provider"),
+  );
+  assert.equal(sameProvider.characterization.state, "explicit_acceptance_signal");
+  assert.equal(sameProvider.subjectProviderId, "synthetic-provider");
+  assert.ok(sameProvider.normalizedCharacterizationInput.evidence.every(
+    (evidence) => evidence.authorId === sameProvider.subjectProviderId,
+  ));
+  assert.ok(sameProvider.captureProvenance.every(
+    (provenance) => provenance.subjectProviderId === sameProvider.subjectProviderId,
+  ));
+});
+
+test("conditional acceptance cannot be missing, blank, or downgraded to acceptance", () => {
   const malformed = fixture("bridge-malformed-conditional-without-conditions").input;
   const validation = validateProviderAcceptanceEvidenceBridgeInput(malformed);
   assert.equal(validation.valid, false);
   assert.ok(validation.issues.some((issue) => issue.includes("conditional acceptance requires conditions")));
+
+  const downgraded = validInput("bridge-malformed-acceptance-with-conditions");
+  assert.ok(
+    validateProviderAcceptanceEvidenceBridgeInput(downgraded).issues.some((issue) =>
+      issue.includes("acceptance with conditions must be labeled conditional_acceptance")),
+  );
+  assert.throws(
+    () => buildPrivateProviderAcceptanceReview(downgraded),
+    (error) => error instanceof ProviderAcceptanceEvidenceBridgeValidationError,
+  );
+
+  const whitespaceOnly = validInput("bridge-malformed-acceptance-whitespace-condition");
+  assert.ok(
+    validateProviderAcceptanceEvidenceBridgeInput(whitespaceOnly).issues.some((issue) =>
+      issue.includes("conditions must contain non-empty values")),
+  );
+
+  const conditional = buildPrivateProviderAcceptanceReview(
+    validInput("bridge-direct-conditional-acceptance"),
+  );
+  assert.equal(conditional.characterization.state, "conditional_acceptance_signal");
+  assert.deepEqual(conditional.characterization.chronology[0]?.conditions, ["Start remains 8:00 AM"]);
+
+  const unconditional = buildPrivateProviderAcceptanceReview(validInput());
+  assert.equal(unconditional.characterization.state, "explicit_acceptance_signal");
+  assert.equal(unconditional.characterization.chronology[0]?.conditions, undefined);
 });
 
 test("capture chronology and original authored chronology remain separate", () => {
