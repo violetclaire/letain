@@ -284,11 +284,17 @@ export function characterizeProviderAcceptanceState(
 
   const chronology = sortEvidence(input.evidence);
   const providerSignals = chronology.filter(isExplicitProviderStatement);
-  const supersededIds = new Set(chronology.flatMap((evidence) => evidence.supersedesEvidenceIds ?? []));
+  const supersededIds = new Set(
+    providerSignals.flatMap((evidence) => evidence.supersedesEvidenceIds ?? []),
+  );
   const activeSignals = providerSignals.filter((evidence) => !supersededIds.has(evidence.evidenceId));
   const activeWithdrawals = activeSignals.filter((evidence) => evidence.kind === "withdrawal");
   const activeDecisionSignals = activeSignals.filter((evidence) => evidence.kind !== "withdrawal");
-  const materialChanges = chronology.filter((evidence) => evidence.kind === "material_context_change");
+  const materialChanges = chronology.filter(
+    (evidence) =>
+      evidence.kind === "material_context_change" &&
+      evidence.contextVersion === input.currentContextVersion,
+  );
   const latestMaterialChange = materialChanges.at(-1);
   const currentContextSignals = activeDecisionSignals.filter(
     (evidence) => evidence.contextVersion === input.currentContextVersion,

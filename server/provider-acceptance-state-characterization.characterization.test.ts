@@ -80,7 +80,7 @@ test("conflict, withdrawal, and stale context do not leave acceptance current", 
   );
 });
 
-test("an explicit later superseding provider message replaces the earlier signal", () => {
+test("a provider-authored decline may explicitly supersede provider acceptance", () => {
   const fixture = providerAcceptanceStateFixtures.find(
     (candidate) => candidate.fixtureId === "provider-conflicting-signals",
   );
@@ -92,6 +92,135 @@ test("an explicit later superseding provider message replaces the earlier signal
 
   assert.equal(result.state, "explicit_decline_signal");
   assert.deepEqual(result.characterizingEvidenceIds, ["evidence-conflict-decline"]);
+  assert.equal(result.grantsRuntimeAuthority, false);
+});
+
+test("operator, client, route, schedule, and system evidence cannot supersede provider voice", () => {
+  const acceptanceFixture = providerAcceptanceStateFixtures.find(
+    (candidate) => candidate.fixtureId === "provider-explicit-acceptance",
+  );
+  assert.ok(acceptanceFixture);
+
+  const nonProviderSupersedingEvidence = [
+    {
+      authorType: "operator" as const,
+      source: "operator_note" as const,
+      kind: "acceptance" as const,
+      statement: "Operator note claims the provider response is superseded.",
+    },
+    {
+      authorType: "client" as const,
+      source: "client_message" as const,
+      kind: "decline" as const,
+      statement: "Client message claims the provider changed their response.",
+    },
+    {
+      authorType: "operator" as const,
+      source: "route_record" as const,
+      kind: "route_assignment" as const,
+      statement: "A route record claims it replaces provider evidence.",
+    },
+    {
+      authorType: "operator" as const,
+      source: "schedule_draft" as const,
+      kind: "schedule_placement" as const,
+      statement: "A schedule record claims it replaces provider evidence.",
+    },
+    {
+      authorType: "operator" as const,
+      source: "invitation_record" as const,
+      kind: "invitation_sent" as const,
+      statement: "An invitation record claims it replaces provider evidence.",
+    },
+    {
+      authorType: "operator" as const,
+      source: "relationship_record" as const,
+      kind: "prior_work_history" as const,
+      statement: "Relationship history claims it replaces provider evidence.",
+    },
+    {
+      authorType: "operator" as const,
+      source: "commercial_record" as const,
+      kind: "payment_contract_context" as const,
+      statement: "Commercial context claims it replaces provider evidence.",
+    },
+    {
+      authorType: "system" as const,
+      source: "material_context" as const,
+      kind: "other" as const,
+      statement: "System evidence claims it replaces provider evidence.",
+    },
+  ];
+
+  for (const [index, evidence] of nonProviderSupersedingEvidence.entries()) {
+    const input = structuredClone(acceptanceFixture.input);
+    input.evidence.push({
+      evidenceId: `non-provider-supersession-${index}`,
+      authoredAt: `2026-07-10T08:${String(index + 1).padStart(2, "0")}:00Z`,
+      authorType: evidence.authorType,
+      authorId: `synthetic-non-provider-${index}`,
+      source: evidence.source,
+      kind: evidence.kind,
+      statement: evidence.statement,
+      contextVersion: "terms-v1",
+      supersedesEvidenceIds: ["evidence-provider-acceptance"],
+    });
+
+    const result = characterizeProviderAcceptanceState(input);
+    assert.equal(result.state, "explicit_acceptance_signal", evidence.source);
+    assert.deepEqual(result.characterizingEvidenceIds, ["evidence-provider-acceptance"]);
+    assert.equal(result.grantsRuntimeAuthority, false);
+  }
+});
+
+test("an unrelated material context record does not stale a current provider signal", () => {
+  const fixture = providerAcceptanceStateFixtures.find(
+    (candidate) => candidate.fixtureId === "provider-explicit-acceptance",
+  );
+  assert.ok(fixture);
+
+  const input = structuredClone(fixture.input);
+  input.currentContextVersion = "terms-v2";
+  input.evidence[0].contextVersion = "terms-v2";
+  input.evidence.push({
+    evidenceId: "unrelated-material-change",
+    authoredAt: "2026-07-10T08:01:00Z",
+    authorType: "operator",
+    authorId: "synthetic-operator",
+    source: "material_context",
+    kind: "material_context_change",
+    statement: "An older context changed, unrelated to the current provider response.",
+    contextVersion: "terms-v1",
+  });
+
+  const result = characterizeProviderAcceptanceState(input);
+  assert.equal(result.state, "explicit_acceptance_signal");
+  assert.deepEqual(result.characterizingEvidenceIds, ["evidence-provider-acceptance"]);
+});
+
+test("a relevant later material change makes current-context acceptance stale", () => {
+  const fixture = providerAcceptanceStateFixtures.find(
+    (candidate) => candidate.fixtureId === "provider-explicit-acceptance",
+  );
+  assert.ok(fixture);
+
+  const input = structuredClone(fixture.input);
+  input.currentContextVersion = "terms-v2";
+  input.evidence[0].contextVersion = "terms-v2";
+  input.evidence.push({
+    evidenceId: "relevant-material-change",
+    authoredAt: "2026-07-10T08:01:00Z",
+    authorType: "operator",
+    authorId: "synthetic-operator",
+    source: "material_context",
+    kind: "material_context_change",
+    statement: "The current timing and terms materially changed after the provider response.",
+    contextVersion: "terms-v2",
+  });
+
+  const result = characterizeProviderAcceptanceState(input);
+  assert.equal(result.state, "stale_signal_requires_review");
+  assert.ok(result.characterizingEvidenceIds.includes("relevant-material-change"));
   assert.equal(result.grantsRuntimeAuthority, false);
 });
 
