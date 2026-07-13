@@ -9,6 +9,8 @@ import {
   assessCoordinationJudgmentEvalCoverage,
 } from "./coordination-judgment-eval-coverage";
 import { runCoordinationJudgmentTraceEvalSuite } from "./coordination-judgment-trace-eval-suite";
+import { PROVIDER_ACCEPTANCE_STATES } from "./provider-acceptance-state-characterization";
+import { runProviderAcceptanceStateFixtureSuite } from "./provider-acceptance-state-characterization.fixtures";
 
 const coverageSource = readFileSync("server/coordination-judgment-eval-coverage.ts", "utf8");
 const coverageTestSource = readFileSync("server/coordination-judgment-eval-coverage.characterization.test.ts", "utf8");
@@ -18,6 +20,7 @@ const inquiryWorkspaceSource = readFileSync("client/src/pages/InquiryWorkspace.t
 
 test("coverage assessor consumes the current trace-derived eval suite report", () => {
   const suiteReport = runCoordinationJudgmentTraceEvalSuite();
+  const providerAcceptanceReport = runProviderAcceptanceStateFixtureSuite();
   const coverage = assessCoordinationJudgmentEvalCoverage(suiteReport);
 
   assert.equal(coverage.taxonomyVersion, COORDINATION_JUDGMENT_EVAL_COVERAGE_TAXONOMY_VERSION);
@@ -40,6 +43,13 @@ test("coverage assessor consumes the current trace-derived eval suite report", (
     "trace-candidate-bridal-hmu-wedding-escalation-required",
     "trace-candidate-bridal-hmu-wedding-recovery-needed",
   ]);
+  assert.equal(coverage.providerAcceptanceFixtureCount, 9);
+  assert.equal(coverage.providerAcceptancePassedCount, 9);
+  assert.equal(coverage.providerAcceptanceFailedCount, 0);
+  assert.equal(coverage.providerAcceptanceSuiteVersion, providerAcceptanceReport.suiteVersion);
+  assert.deepEqual(coverage.providerAcceptanceSourceTraceIds, providerAcceptanceReport.sourceTraceIds);
+  assert.deepEqual(coverage.providerAcceptanceStatesCovered, [...PROVIDER_ACCEPTANCE_STATES]);
+  assert.equal(coverage.providerAcceptanceAuthorityBoundaryPreserved, true);
 });
 
 test("coverage assessor reports covered judgment states from current trace fixtures", () => {
@@ -83,12 +93,11 @@ test("coverage assessor reports covered and missing real-world coordination sign
     "private_schedule_context",
     "operator_approval_required",
     "missing_authority",
+    "provider_acceptance_state",
     "conflict_resolution",
     "recovery_capacity",
   ]);
-  assert.deepEqual(coverage.missingCoordinationSignals, [
-    "provider_acceptance_state",
-  ]);
+  assert.deepEqual(coverage.missingCoordinationSignals, []);
 });
 
 test("coverage assessor returns deterministic aggregate counts and coverage percent", () => {
@@ -101,10 +110,10 @@ test("coverage assessor returns deterministic aggregate counts and coverage perc
 
   assert.deepEqual(first, second);
   assert.equal(first.totalRequiredCoverageItems, expectedTotal);
-  assert.equal(first.coveredItems.length, 23);
-  assert.equal(first.missingItems.length, 1);
-  assert.equal(first.coveragePercent, 95.83);
-  assert.equal(first.readyForExpandedEvalSuite, true);
+  assert.equal(first.coveredItems.length, 24);
+  assert.equal(first.missingItems.length, 0);
+  assert.equal(first.coveragePercent, 100);
+  assert.equal(first.readyForExpandedEvalSuite, false);
 });
 
 test("coverage assessor lists all covered and missing items in taxonomy order", () => {
@@ -132,12 +141,46 @@ test("coverage assessor lists all covered and missing items in taxonomy order", 
     "private_schedule_context",
     "operator_approval_required",
     "missing_authority",
+    "provider_acceptance_state",
     "conflict_resolution",
     "recovery_capacity",
   ]);
-  assert.deepEqual(coverage.missingItems, [
-    "provider_acceptance_state",
-  ]);
+  assert.deepEqual(coverage.missingItems, []);
+});
+
+test("coverage assessor keeps provider acceptance state missing unless every evidence state passes without authority", () => {
+  const providerReport = runProviderAcceptanceStateFixtureSuite();
+  const failedProviderReport = {
+    ...providerReport,
+    passed: providerReport.passed - 1,
+    failed: 1,
+    failures: [
+      {
+        fixtureId: "provider-explicit-acceptance",
+        stage: "authority_boundary" as const,
+        issues: ["provider acceptance evidence granted or implied runtime authority"],
+      },
+    ],
+    authorityBoundaryPreserved: false,
+  };
+
+  const coverage = assessCoordinationJudgmentEvalCoverage(
+    runCoordinationJudgmentTraceEvalSuite(),
+    failedProviderReport,
+  );
+
+  assert.doesNotMatch(coverage.coveredCoordinationSignals.join(" "), /provider_acceptance_state/);
+  assert.ok(coverage.missingCoordinationSignals.includes("provider_acceptance_state"));
+  assert.equal(coverage.providerAcceptanceAuthorityBoundaryPreserved, false);
+
+  const incompleteStateCoverage = assessCoordinationJudgmentEvalCoverage(
+    runCoordinationJudgmentTraceEvalSuite(),
+    {
+      ...providerReport,
+      statesCovered: providerReport.statesCovered.slice(0, -1),
+    },
+  );
+  assert.ok(incompleteStateCoverage.missingCoordinationSignals.includes("provider_acceptance_state"));
 });
 
 test("coverage assessor reflects empty or failing suite reports without inventing coverage", () => {

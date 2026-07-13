@@ -22,13 +22,9 @@ route/preflight behavior, provider acceptance, or client-create behavior.
 The short version:
 
 ```text
-redacted trace fixture
--> trace capture validation
--> draft eval case
--> deterministic judgment harness
--> trace-derived eval suite report
--> coverage taxonomy and gap report
--> checkpoint summary
+redacted coordination traces -> trace-derived eval suite report
+synthetic provider evidence -> evidence-only acceptance characterization
+both deterministic reports -> coverage taxonomy -> checkpoint summary
 ```
 
 The implemented eval layer checks whether internal eval candidates preserve
@@ -118,13 +114,24 @@ The current source/test/eval pipeline is:
    candidate ids, blocked reasons, private-only signals, forbidden actions,
    safe next steps, and failure-mode coverage.
 
-6. Coverage taxonomy and gap report
+6. Provider acceptance evidence characterization
+
+   `server/provider-acceptance-state-characterization.ts` reduces synthetic,
+   chronological evidence into an evidence-only state. Explicit acceptance or
+   decline requires an explicit provider-authored statement. Route assignment,
+   schedule placement, availability, silence, operator or client claims,
+   referral history, and commercial context do not become acceptance.
+
+7. Coverage taxonomy and gap report
 
    `server/coordination-judgment-eval-coverage.ts` consumes the suite report
-   and maps it into covered and missing taxonomy items: judgment states,
-   permission boundaries, and coordination signals.
+   and the separate provider acceptance fixture report. It maps them into
+   covered and missing taxonomy items: judgment states, permission boundaries,
+   and coordination signals. It only marks `provider_acceptance_state` covered
+   when all required evidence states pass and the authority boundary remains
+   intact.
 
-7. Checkpoint summary
+8. Checkpoint summary
 
    `server/coordination-judgment-eval-checkpoint.ts` consumes the suite report
    and coverage report to summarize the completed checkpoint. It states what is
@@ -149,6 +156,29 @@ The checkpoint reports:
 - `failedCount = 0`
 - all six planned judgment states covered
 - `missingJudgmentStates = []`
+
+## Provider Acceptance Signal Coverage
+
+Provider acceptance is characterized as evidence, not authority. Nine
+redacted/synthetic fixtures cover:
+
+- unresolved or no explicit provider signal
+- explicit provider-authored acceptance
+- explicit provider-authored decline
+- conditional provider-authored acceptance
+- conflicting provider-authored signals
+- withdrawn or superseded evidence
+- stale evidence after materially changed context
+
+The fixtures also prove that silence, invitations, route assignment, schedule
+placement, stated availability, operator assumptions, client assertions,
+referral context, prior work history, and contract or payment context do not
+count as provider acceptance.
+
+Every result preserves chronology and source provenance, requires human review,
+allows no runtime action, and keeps routing, scheduling, sending, contracts,
+invoices, payments, publishing, client links, preflight, and provider acceptance
+actions forbidden.
 
 ## Permission Boundaries Preserved
 
@@ -178,14 +208,18 @@ permissioned next step != external action
 ## What The Checkpoint Proves
 
 The checkpoint proves that the planned coordination judgment taxonomy is
-represented by internal trace-derived eval fixtures and that those converted
-draft eval cases pass the deterministic coordination judgment harness.
+represented by internal trace-derived eval fixtures and that the separate
+provider acceptance evidence taxonomy is represented by deterministic synthetic
+fixtures. Both reports pass their source-level checks without granting runtime
+authority.
 
 It also proves that the reporting layer can summarize:
 
 - suite id and version
 - coverage taxonomy version
 - fixture count
+- provider acceptance fixture count and source trace ids
+- provider acceptance evidence states and authority-boundary result
 - source trace ids
 - eval case candidate ids
 - pass/fail counts
@@ -199,7 +233,7 @@ It also proves that the reporting layer can summarize:
 The checkpoint safe conclusion is intentionally narrow:
 
 ```text
-The planned judgment-state taxonomy is covered by trace-derived eval fixtures, but this does not grant runtime authority or product behavior.
+The planned judgment-state taxonomy and provider acceptance evidence signal are covered by deterministic source-level fixtures, but this does not grant runtime authority or product behavior.
 ```
 
 ## What The Checkpoint Does Not Prove
@@ -209,8 +243,9 @@ It does not approve a provider, send a message, create an invoice, create a
 contract, collect payment, publish a client link, run preflight, create a route,
 accept a provider, create a client, or execute AI.
 
-It also does not hide remaining taxonomy gaps. It is a reporting checkpoint,
-not a runtime decision engine.
+It is a reporting checkpoint, not a runtime decision engine. Complete coverage
+of the current taxonomy is not permission to use the characterization as a
+provider acceptance action or production decision.
 
 It does not ship scoring systems, automated agent action, customer-facing
 verification behavior, public trust scores, or autonomous fulfillment
@@ -231,17 +266,13 @@ The checkpoint's prohibited runtime behavior list includes:
 - no automated harness mutation
 - no `/assess` calls
 
-## Remaining Non-Judgment Gap
+## Coordination Signal Coverage
 
-The planned judgment-state taxonomy is complete, but the coverage report still
-keeps non-judgment coordination signal gaps visible. The current remaining
-coordination signal gap is:
-
-- `provider_acceptance_state`
-
-That gap is not a missing judgment state. It remains visible so future work can
-decide whether and how to characterize provider acceptance state without
-silently turning route or schedule context into acceptance authority.
+The current internal coverage report now includes `provider_acceptance_state`.
+That means the source/test/eval layer characterizes the required evidence states
+and protects their authority boundary. It does not mean Briarwood accepts a
+provider, changes a route, schedules work, contacts anyone, or exposes the state
+to a client or the public.
 
 ## Future Direction
 
@@ -270,6 +301,9 @@ For maintainers, the current source/test/eval implementation is grouped around:
 - `server/coordination-judgment-eval-coverage.characterization.test.ts`
 - `server/coordination-judgment-eval-checkpoint.ts`
 - `server/coordination-judgment-eval-checkpoint.characterization.test.ts`
+- `server/provider-acceptance-state-characterization.ts`
+- `server/provider-acceptance-state-characterization.fixtures.ts`
+- `server/provider-acceptance-state-characterization.characterization.test.ts`
 
 These are implementation references, not product entry points.
 
@@ -279,6 +313,12 @@ Run the checkpoint test:
 
 ```powershell
 npx.cmd tsx --test server\coordination-judgment-eval-checkpoint.characterization.test.ts
+```
+
+Run the provider acceptance evidence characterization test:
+
+```powershell
+npx.cmd tsx --test server\provider-acceptance-state-characterization.characterization.test.ts
 ```
 
 Run the existing eval, coverage, fixture, trace capture, and harness stack:

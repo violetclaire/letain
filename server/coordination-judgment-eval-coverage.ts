@@ -2,9 +2,17 @@ import {
   runCoordinationJudgmentTraceEvalSuite,
   type CoordinationJudgmentTraceEvalSuiteResult,
 } from "./coordination-judgment-trace-eval-suite";
+import {
+  PROVIDER_ACCEPTANCE_STATES,
+  type ProviderAcceptanceState,
+} from "./provider-acceptance-state-characterization";
+import {
+  runProviderAcceptanceStateFixtureSuite,
+  type ProviderAcceptanceStateFixtureSuiteResult,
+} from "./provider-acceptance-state-characterization.fixtures";
 
 export const COORDINATION_JUDGMENT_EVAL_COVERAGE_TAXONOMY_VERSION =
-  "coordination-judgment-eval-coverage-v1";
+  "coordination-judgment-eval-coverage-v2";
 
 export const COORDINATION_JUDGMENT_COVERAGE_JUDGMENT_STATES = [
   "ready_for_operator_review",
@@ -69,6 +77,13 @@ export type CoordinationJudgmentEvalCoverageReport = {
   fixtureCount: number;
   sourceTraceIds: string[];
   evalCaseCandidateIds: string[];
+  providerAcceptanceSuiteVersion: ProviderAcceptanceStateFixtureSuiteResult["suiteVersion"];
+  providerAcceptanceFixtureCount: number;
+  providerAcceptancePassedCount: number;
+  providerAcceptanceFailedCount: number;
+  providerAcceptanceSourceTraceIds: string[];
+  providerAcceptanceStatesCovered: ProviderAcceptanceState[];
+  providerAcceptanceAuthorityBoundaryPreserved: boolean;
   coveragePercent: number;
   readyForExpandedEvalSuite: boolean;
 };
@@ -195,6 +210,7 @@ function coveredPermissionBoundaries(
 
 function coveredCoordinationSignals(
   suiteReport: CoordinationJudgmentTraceEvalSuiteResult,
+  providerAcceptanceReport: ProviderAcceptanceStateFixtureSuiteResult,
 ): CoordinationJudgmentCoverageCoordinationSignal[] {
   const covered: CoordinationJudgmentCoverageCoordinationSignal[] = [];
 
@@ -230,6 +246,17 @@ function coveredCoordinationSignals(
     covered.push("missing_authority");
   }
 
+  if (
+    suiteReport.failed === 0 &&
+    providerAcceptanceReport.totalFixtures > 0 &&
+    providerAcceptanceReport.passed === providerAcceptanceReport.totalFixtures &&
+    providerAcceptanceReport.failed === 0 &&
+    providerAcceptanceReport.authorityBoundaryPreserved &&
+    PROVIDER_ACCEPTANCE_STATES.every((state) => providerAcceptanceReport.statesCovered.includes(state))
+  ) {
+    covered.push("provider_acceptance_state");
+  }
+
   if (includesAny(suiteReport.blockedReasonsCovered, ["conflicting"])) {
     covered.push("conflict_resolution");
   }
@@ -246,10 +273,11 @@ function coveredCoordinationSignals(
 
 export function assessCoordinationJudgmentEvalCoverage(
   suiteReport: CoordinationJudgmentTraceEvalSuiteResult = runCoordinationJudgmentTraceEvalSuite(),
+  providerAcceptanceReport: ProviderAcceptanceStateFixtureSuiteResult = runProviderAcceptanceStateFixtureSuite(),
 ): CoordinationJudgmentEvalCoverageReport {
   const judgmentStates = coveredJudgmentStates(suiteReport);
   const permissionBoundaries = coveredPermissionBoundaries(suiteReport);
-  const coordinationSignals = coveredCoordinationSignals(suiteReport);
+  const coordinationSignals = coveredCoordinationSignals(suiteReport, providerAcceptanceReport);
 
   const coveredItems: CoordinationJudgmentCoverageItem[] = [
     ...judgmentStates,
@@ -294,6 +322,13 @@ export function assessCoordinationJudgmentEvalCoverage(
     fixtureCount: suiteReport.totalTraceFixtures,
     sourceTraceIds: suiteReport.sourceTraceIds,
     evalCaseCandidateIds: suiteReport.evalCaseCandidateIds,
+    providerAcceptanceSuiteVersion: providerAcceptanceReport.suiteVersion,
+    providerAcceptanceFixtureCount: providerAcceptanceReport.totalFixtures,
+    providerAcceptancePassedCount: providerAcceptanceReport.passed,
+    providerAcceptanceFailedCount: providerAcceptanceReport.failed,
+    providerAcceptanceSourceTraceIds: providerAcceptanceReport.sourceTraceIds,
+    providerAcceptanceStatesCovered: providerAcceptanceReport.statesCovered,
+    providerAcceptanceAuthorityBoundaryPreserved: providerAcceptanceReport.authorityBoundaryPreserved,
     coveragePercent: roundPercent(coveredItems.length, totalRequiredCoverageItems),
     readyForExpandedEvalSuite: suiteReport.failed === 0 && missingItems.length > 0,
   };

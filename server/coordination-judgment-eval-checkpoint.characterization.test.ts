@@ -19,6 +19,7 @@ import {
   COORDINATION_JUDGMENT_TRACE_EVAL_SUITE_VERSION,
   runCoordinationJudgmentTraceEvalSuite,
 } from "./coordination-judgment-trace-eval-suite";
+import { PROVIDER_ACCEPTANCE_STATES } from "./provider-acceptance-state-characterization";
 
 const checkpointSource = readFileSync("server/coordination-judgment-eval-checkpoint.ts", "utf8");
 const checkpointTestSource = readFileSync(
@@ -42,6 +43,12 @@ test("checkpoint consumes the current trace-derived eval suite report", () => {
   assert.equal(checkpoint.failedCount, 0);
   assert.deepEqual(checkpoint.sourceTraceIds, suiteReport.sourceTraceIds);
   assert.deepEqual(checkpoint.evalCaseCandidateIds, suiteReport.evalCaseCandidateIds);
+  assert.equal(checkpoint.providerAcceptanceFixtureCount, 9);
+  assert.equal(checkpoint.providerAcceptancePassedCount, 9);
+  assert.equal(checkpoint.providerAcceptanceFailedCount, 0);
+  assert.equal(checkpoint.providerAcceptanceSourceTraceIds.length, 9);
+  assert.deepEqual(checkpoint.providerAcceptanceStatesCovered, [...PROVIDER_ACCEPTANCE_STATES]);
+  assert.equal(checkpoint.providerAcceptanceAuthorityBoundaryPreserved, true);
 });
 
 test("checkpoint consumes the current coverage report", () => {
@@ -73,13 +80,13 @@ test("checkpoint reports the completed planned judgment-state taxonomy", () => {
   assert.equal(checkpoint.readinessLabel, COORDINATION_JUDGMENT_EVAL_CHECKPOINT_READINESS_LABEL);
 });
 
-test("checkpoint preserves remaining non-judgment coordination signal gaps", () => {
+test("checkpoint reports provider acceptance evidence coverage without runtime authority", () => {
   const checkpoint = summarizeCoordinationJudgmentEvalCheckpoint();
 
-  assert.deepEqual(checkpoint.missingCoordinationSignals, [
-    "provider_acceptance_state",
-  ]);
-  assert.deepEqual(checkpoint.remainingNonJudgmentGaps, checkpoint.missingCoordinationSignals);
+  assert.ok(checkpoint.coveredCoordinationSignals.includes("provider_acceptance_state"));
+  assert.deepEqual(checkpoint.missingCoordinationSignals, []);
+  assert.deepEqual(checkpoint.remainingNonJudgmentGaps, []);
+  assert.equal(checkpoint.providerAcceptanceAuthorityBoundaryPreserved, true);
 });
 
 test("checkpoint includes all six source traces and draft eval candidates", () => {
