@@ -193,6 +193,49 @@ A `CoordinationJudgment` is the canonical human-authored judgment artifact. It
 records a bounded conclusion made from specified evidence and attestations in a
 particular coordination context.
 
+### Operator Synthesis and Judgment
+
+Capacity limits `HumanAttestation`, not the human ability to reason. An
+experienced operator may form a broader `CoordinationJudgment` from multiple
+`EvidenceArtifact` records and bounded `HumanAttestation` records. The operator
+may not broaden their own attestation beyond what they personally participated
+in, directly witnessed, directly received, or reviewed. Broader synthesis
+belongs in `CoordinationJudgment`.
+
+Every coordination judgment must identify the evidence and attestations on
+which it relies. Direct, relayed, inferred, disputed, and unauthenticated
+information must remain distinguishable. Conflicting or unauthenticated
+evidence must remain visible and must not be silently resolved into certainty.
+
+Provider acceptance requires explicit provider-authored evidence. Operator
+experience may inform interpretation, but it must be disclosed as judgment
+rationale rather than presented as witnessed fact. Qualified-witness
+eligibility must come from reviewed policy, not self-assertion. Neither
+`HumanAttestation` nor `CoordinationJudgment` grants permission or authority to
+act.
+
+For example:
+
+```text
+Attestation:
+"I reviewed these messages. One says the provider accepted, and a later message
+adds a condition."
+
+CoordinationJudgment:
+"The acceptance appears conditional and requires human review before
+coordination proceeds."
+```
+
+The attestation describes the issuer's actual review capacity. The coordination
+judgment is a scoped interpretation based on identified evidence. It must not
+be represented as:
+
+```text
+"I witnessed the provider accept."
+```
+
+That statement would falsely claim firsthand witness capacity.
+
 A future judgment artifact would need, conceptually:
 
 - judgment id and subject
