@@ -25,7 +25,7 @@ The governing invariants are:
 - Later outcomes may support or challenge a prior judgment, but they do not
   silently rewrite history.
 
-## Conceptual Pipeline
+## Conceptual Pipeline: Dependency and Lifecycle Model
 
 ```text
 source evidence
@@ -44,8 +44,16 @@ source evidence
 -> optional later reputation projection
 ```
 
-No arrow in this pipeline is automatic. Each transition has its own eligibility,
-visibility, and authority requirements.
+This is a dependency and lifecycle model, not a mandatory linear workflow. Not
+every workflow traverses every stage, and no arrow implies an automatic
+transition. Each transition has its own eligibility, visibility, and authority
+requirements.
+
+Outcome feedback is not required before every `ScopedVerdict` can exist. A
+scoped verdict may project the current effective state of one canonical
+`CoordinationJudgment` for a defined audience and purpose. Later outcomes,
+disputes, corrections, withdrawals, or supersessions add linked history and may
+change the current projection. They never mutate the original judgment.
 
 ## 1. EvidenceArtifact
 
@@ -114,11 +122,12 @@ because a human viewed it.
 
 ## 4. HumanAttestation
 
-A `HumanAttestation` is an accountable human statement equivalent to:
+A `HumanAttestation` is an accountable human statement that adopts an exact,
+bounded claim within the issuer's stated capacity. It is equivalent to:
 
 ```text
-I participated in, witnessed, or directly reviewed this event in this stated
-capacity, and I attest to this bounded claim.
+I issue this exact bounded claim from this stated capacity and relationship to
+the event, subject to the stated evidence, scope, conditions, and uncertainty.
 ```
 
 A future attestation artifact would need, conceptually:
@@ -138,6 +147,36 @@ A future attestation artifact would need, conceptually:
 
 The repository does not currently contain a canonical generic
 `HumanAttestation` artifact.
+
+### Attestation Capacity and Claim Limits
+
+Issuer capacity and relationship to the event constrain the permitted claim:
+
+- A participant may attest only to their own actions, communications,
+  decisions, and directly experienced coordination.
+- A direct witness may attest only to events or statements they directly
+  observed.
+- An evidence reviewer may attest that they reviewed specified artifacts,
+  describe what those artifacts contain, and identify contradictions,
+  omissions, or limitations in the record. Reviewing artifacts does not allow
+  them to claim that the underlying event occurred as represented, turn claimed
+  provider authorship into authenticated identity, or attest that a provider
+  accepted contracted work unless they are independently eligible under a
+  future reviewed policy.
+- A recipient of a relayed statement may attest that they directly received a
+  statement attributed to a particular person. They may not automatically
+  attest that the attributed identity was authenticated or that the statement
+  was true.
+
+A claim broader than the issuer's capacity supports must fail closed.
+"Qualified witness" status cannot be established by self-assertion alone;
+witness eligibility remains an unresolved governance policy.
+
+An operator clicking approve, checking a review box, copying an AI summary, or
+reviewing evidence does not automatically create lived attestation. Machine
+annotation does not become human attestation because a human accepted or copied
+it. The human issuer, and any future human signer, must understand and adopt the
+exact bounded claim they issue.
 
 Operator review is not automatically attestation. Clicking a checklist or
 recording `operator_reviewed` is not automatically attestation. Manually
@@ -259,6 +298,13 @@ A scoped verdict:
 - must not automatically become public or portable
 - must not grant permission or action authority
 
+A scoped verdict may exist before outcome feedback when it accurately projects
+the current effective state of its underlying judgment. The projection must
+expose the judgment's current challenge, expiry, withdrawal, and supersession
+state. Later linked outcomes, disputes, corrections, withdrawals, or
+supersessions may change the current projection, but they never mutate the
+original judgment.
+
 If multiple judgments need synthesis, the synthesis requires a separate,
 explicitly governed aggregation process. Multiple judgments must never be
 silently combined into a verdict.
@@ -268,7 +314,10 @@ The repository does not currently contain a canonical `ScopedVerdict` artifact.
 ## 11. ReputationProjection
 
 A `ReputationProjection` is a deferred, optional derived layer across multiple
-valid scoped judgments and linked outcomes.
+eligible, currently effective, in-scope, non-expired, non-withdrawn, and
+context-compatible scoped judgments and linked outcomes. "Eligible" and
+"effective" describe governed status for a particular use; they do not mean
+objectively true.
 
 It must never:
 
@@ -329,8 +378,8 @@ The invariant is:
 
 ```text
 AI may annotate.
-Humans attest and judge.
-The authoritative write path must remain lived.
+Humans may attest only within their actual capacity.
+The authoritative write path must remain grounded in real coordination.
 ```
 
 ## Append-Only Integrity
@@ -424,3 +473,4 @@ This model explicitly defers:
 
 No implementation should begin until the vocabulary and unresolved policy
 questions have been reviewed independently.
+
