@@ -473,4 +473,3 @@ This model explicitly defers:
 
 No implementation should begin until the vocabulary and unresolved policy
 questions have been reviewed independently.
-
