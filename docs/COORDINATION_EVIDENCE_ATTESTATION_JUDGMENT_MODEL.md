@@ -236,6 +236,129 @@ be represented as:
 
 That statement would falsely claim firsthand witness capacity.
 
+### Judgment Materiality, Staleness, and State Transitions
+
+A judgment remains effective only while the facts, conditions, assumptions, and
+context on which it depends remain materially unchanged. Staleness applies only
+to the `CoordinationJudgment` whose supporting context changed. A material
+change must not invalidate unrelated judgments for the same inquiry, provider,
+or contracted work. For example, a location change may stale a
+travel-feasibility judgment without invalidating an unrelated judgment about
+whether pricing information was received.
+
+Every judgment must identify the context, conditions, assumptions, evidence,
+and scope on which it depends.
+
+#### Materiality Test
+
+The reviewed rule is:
+
+```text
+A change is material when a reasonable provider could use it as a reason to
+accept, decline, reprice, add conditions, change staffing, or reconsider
+feasibility.
+```
+
+Materiality is evaluated relative to the particular judgment and its scope. A
+change that appears cosmetic must still be treated as material when it affects
+travel, access, setup, timing, duration, breaks, staffing, responsibility,
+cost, safety, or feasibility.
+
+- A room change may be operationally neutral, or material if it changes access
+  or setup.
+- A schedule edit may be operationally neutral, or material if it changes call
+  time, duration, travel, breaks, or responsibility.
+
+#### Distinct Lifecycle States
+
+The following are conceptual lifecycle states only. They do not define source
+types or runtime enums:
+
+```text
+Material supporting context changed
+-> stale_requires_review
+
+Material conflicting new evidence appeared
+-> conflicting_requires_review
+
+The relevant human issuer or provider withdrew the prior position
+-> withdrawn
+
+A later statement or judgment explicitly replaced prior terms or conclusions
+-> superseded
+
+An explicit validity period ended without reaffirmation
+-> expired
+
+The judgment remains materially supported and in scope
+-> effective
+```
+
+All transitions are append-only. The original judgment remains inspectable. A
+transition changes the current effective state, not the historical contents of
+the original judgment. No lifecycle state automatically grants, removes, or
+executes external action authority. Human review is required where the current
+evidence does not deterministically establish the applicable state.
+
+#### Provider-Acceptance Material Changes
+
+For a judgment concerning provider acceptance, the following always require
+fresh review when materially changed:
+
+- provider identity
+- date
+- start time, ready time, duration, or hard deadline
+- services, deliverables, quantities, or headcount
+- provider responsibilities
+- compensation, expenses, or payment timing
+- cancellation terms or other commercial terms
+- explicit conditions, dependencies, or assumptions
+- location where it affects travel, access, setup, timing, staffing, cost, or
+  feasibility
+- staffing expectations or required collaborators
+- contract version or scope version
+- provider obligations
+
+Fresh review is also required when new provider-authored evidence withdraws,
+conditions, contradicts, or replaces earlier acceptance or terms, or when new
+credible evidence creates a material conflict about what the provider accepted.
+
+The governing boundary is:
+
+```text
+Fresh operator review does not itself renew provider acceptance.
+```
+
+When accepted terms materially change, current acceptance requires new explicit
+provider-authored evidence. An operator may identify that prior acceptance is
+stale, conflicting, withdrawn, or superseded and may issue a scoped
+`CoordinationJudgment` explaining what review is required. An operator may not
+create renewed provider acceptance through interpretation, experience, review,
+or approval.
+
+Briarwood may flag the need for clarification or fresh evidence. It must not
+infer renewed agreement or contact the provider automatically.
+Provider-acceptance characterization remains evidence-only and grants no action
+authority.
+
+#### ScopedVerdict Effects
+
+A `ScopedVerdict` must expose the current lifecycle state of its underlying
+`CoordinationJudgment`. A stale, conflicting, withdrawn, superseded, or expired
+judgment must never be projected as presently effective. A verdict may explain
+historical judgment state, but it must not hide that the judgment no longer
+supports a current conclusion. Unrelated material changes must not contaminate
+verdicts based on unaffected judgments.
+
+These lifecycle rules preserve the existing separations between evidence,
+attestation, judgment, permission, and explicit human action. Operator
+experience may inform judgment rationale but cannot manufacture
+provider-authored evidence. Direct, relayed, inferred, conflicting, disputed,
+and unauthenticated information remain distinguishable. PR #164 authorship
+remains unauthenticated, synthetic fixtures cannot enter the lived corpus, and
+no artifact automatically sends, contacts, routes, schedules, contracts,
+invoices, collects payment, publishes, or marks a provider accepted.
+
 A future judgment artifact would need, conceptually:
 
 - judgment id and subject
@@ -484,7 +607,9 @@ The following remain unresolved for Violet's review:
 - When is independent review required?
 - May an operator attest to a relayed provider statement, and under what scope?
 - How are conflicts of interest disclosed?
-- What determines judgment validity and expiry?
+- How are explicit expiry periods selected for different judgment classes?
+- Which judgment classes, if any, require periodic reaffirmation even when no
+  material change is detected?
 - Who may challenge an attestation, judgment, or verdict?
 - What is the correction and withdrawal policy?
 - How must outcomes link to prior judgments?
