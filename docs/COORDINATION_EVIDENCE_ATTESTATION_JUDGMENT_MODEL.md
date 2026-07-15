@@ -378,21 +378,466 @@ existing policy.
 
 #### Active Coordination
 
-Activ×};¶Ëkºwµçu¹Ð°¹Ñ¡ÕÍÑ½µÈÌÁÑ¹½ÉÙ¥ÍÑÉµÌµÕÍÐÉµ¥¸)¥ÍÑ¥¹Õ¥Í¡±¸()ÁÉ½Ù¥ÈÕÁÑ¥¹ÁÉ½Á½Í°°½¹ÑÉÐ°¥¹Ù½¥°Í¡Õ±°½ÈÍÑ¥¹Á±¸)½Ì¹½Ðä¥ÑÍ±ÁÉ½ÙÑ¡ÐÑ¡½Ñ¡ÈÁÉÑäÁÑÑ¡ÉÙ¥ÍÑÉµÌ¸)	É¥ÉÝ½½µÕÍÐÁÉÍÉÙÝ¡¥ ÁÉÑäÉÅÕÍÑ°ÁÉ½Á½Í°ÅÕÍÑ¥½¹°ÁÑ°)±¥¹°½ÈÉÁ± ÑÑÉ´¸((M½ÁµMÁ¥¥½µµ½Ñ¥½¹Ì()½¹ÍÍ¥½¸°½ÕÉÑÍä°¥Í½Õ¹Ð°½µÁ±¥µ¹ÑÉäÁÉÍ½¸°½ÈÕ¹ÕÍÕ°ÍÑ¥¹)½µµ½Ñ¥½¸Éµ¥¹ÌÑ¥Ñ¼Ñ¡Í½Á°ÁÕÉÁ½Í°Ñ¥µ¥¹°¹½¹¥Ñ¥½¹ÌÕ¹È)Ý¡¥ ¥ÐÝÌ½É¸%ÐµÕÍÐ¹½ÐÕÑ½µÑ¥±±äÍÕÉÙ¥ÙµÑÉ¥°áÁ¹Í¥½¸½)Ñ¡Ý½É¬°Í¥±¹Ñ±ä½µ¸Õ¹±¥µ¥Ñ½ÈÁÉµ¹¹ÐÁÉ½µ¥Í°½ÈÍÑ±¥Í Ñ¡)ÁÉ½Ù¥ÈÌ¹½Éµ°ÁÉÑ¥½È±ÑÈ½¹ÑÉÑÝ½É¬¸()¥±ÕÉÑ¼¥¹Ñ¥äÑ¡áÐÑ¡ÉÍ¡½±¥µµ¥Ñ±äµäÉÑµ¥Õ¥Ñä¸%Ð)½Ì¹½ÐÕÑ½µÑ¥±±äÝ¥ÙÑ¡ÁÉ½Ù¥ÈÌ¥±¥ÑäÑ¼ÉÍÑ°ÉÁÉ¥°¡¹)Ñ¥µ¥¹°ÉÕÍ½Á°½È±¥¹Ñ¡áÁ¹Ý½É¬¸((EÕ±¥¥ÉÑ¥ÍÑÌ¹ÍÍ¥ÍÑ¹ÑÌ()%¸Y¥½±ÐÌ¹½Éµ°½¹ÑÉÑÕÑäµÝ½É¬µ½°°¥¹Á¹¹ÐÍÉÙ¥ÌÉ)¹½Éµ±±äÁÉ½ÉµäÅÕ±¥¥ÉÑ¥ÍÑÌ¸Q¡ÍÍ¥ÍÑ¹ÐÉÉ¹µ¹ÐÕ¹È)¥ÍÕÍÍ¥½¸ÝÌÉÉ°Í½ÁµÍÁ¥¥½µµ½Ñ¥½¸°¹½ÐÑ¡¹½Éµ°ÍÑ¥¹)µ½°¸=Ñ¡ÈÁÉ½Ù¥ÉÌ¹¥¹ÕÍÑÉ¥ÌµäÕÍÍÍ¥ÍÑ¹ÑÌ¥É¹Ñ±ä°Í¼Ñ¡¥Ì)ÁÉÑ¥µÕÍÐ¹½Ð¹É±¥é¥¹Ñ¼Õ¹¥ÙÉÍ°ÁÉ½¡¥¥Ñ¥½¸¸()Q¡½ÙÉ¹¥¹¥¹ÙÉ¥¹Ð¥Ìè()ÑáÐ)A½Á±ÁÉÍ¹Ð°ÅÕ±¥¥ÍÉÙ¥Á¥Ñä°¹¥¹Á¹¹Ñ±äáÕÑ±)ÍÉÙ¥±¹ÌÉ¹½Ð¥¹ÑÉ¡¹±¸)((´ÅÕ±¥¥ÉÑ¥ÍÐµä¥¹Á¹¹Ñ±äÁÉ½É´Ñ¡½¹ÑÉÑÍÉÙ¥Ñ¡äÉ(ÅÕ±¥¥¹ÍÍ¥¹Ñ¼ÁÉ½Ù¥¸(´¸ÍÍ¥ÍÑ¹ÐµäÁÉ½É´ÁÉÁÉÑ¥½¸°ÍÕÁÁ½ÉÐ°½É¹¥éÑ¥½¸°±¹ÕÀ°½È(½Ñ¡ÈÍÁ¥¥±±äÍÍ¥¹ÕÑ¥Ì¸(´¸ÍÍ¥ÍÑ¹ÐµÕÍÐ¹½ÐÕÑ½µÑ¥±±ä½Õ¹ÑÌ¹½Ñ¡È¥¹Á¹¹Ð(ÍÉÙ¥±¹¸(´ÑÉ¥¹°½ÍÉÙÈ°½½É¥¹Ñ½È°½ÈÍÕÁÁ½ÉÐÁÉÍ½¸µÕÍÐ¹½ÐÍ¥±¹Ñ±ä½µ(ÅÕ±¥¥ÁÉ½ÕÑ¥½¸Á¥Ñä¸(´
-Á¥ÑäÁ¹Ì½¸É½±°ÅÕ±¥¥Ñ¥½¹Ì°ÍÍ¥¹ÕÑ¥Ì°ÍÉÙ¥ÑåÁ°(Ñ¥µ¥¹°¹Ñ¡ÑÕ°áÕÑ¥½¸Á±¸¸(´!½Õ¹Ð±½¹½Ì¹½ÐÍÑ±¥Í Í¥¥±¥Ñä¸((AÉ½ÍÍ¥½¹°Í¥¥±¥Ñä)Õµ¹Ð()ÁÉ½Ù¥ÈµäÑÉµ¥¹Ñ¡ÐÉÙ¥ÍÍ½ÁÉÅÕ¥ÉÌ¹½Ñ¡ÈÅÕ±¥¥)ÉÑ¥ÍÐ°¸É±¥ÈÍÑÉÐ°ÉÕÍÉÙ¥Ì°±½¹ÈáÕÑ¥½¸Ý¥¹½Ü°½È)¹½Ñ¡ÈÍ¥±Á±¸¸Q¡ÐÁÉ½ÍÍ¥½¹°©Õµ¹ÐµäÉ½Õ¹¥¸ÍÉÙ¥)ÕÉÑ¥½¸°ÅÕ±¥ÑäÉÅÕ¥Éµ¹ÑÌ°Ý½É­±½°ÉäÑ¥µ°ÑÉÙ°°ÍÑ¥¹°¹)ÍÑä¸%Ð½Ì¹½Ð¥ÑÍ±ÁÉ½ÙÑ¡ÐÑ¡ÕÍÑ½µÈÁÑ¹äÉÍÕ±Ñ¥¹ÁÉ¥)½È½µµÉ¥°¡¹¸()	É¥ÉÝ½½µÕÍÐÁÉÍÉÙÑ¡¥É¹ÑÝ¸è()ÑáÐ)ÍÉÙ¥ÌÉÅÕÍÑ)ÍÉÙ¥ÌÁÑ)ÍÑ¥¹ÉÅÕ¥É)ÍÑ¥¹ÁÑ)Ñ¥µ¥¹ÉÅÕ¥É)Ñ¥µ¥¹ÁÑ)½µµÉ¥°ÑÉµÌÁÉ½Á½Í)½µµÉ¥°ÑÉµÌÁÑ)((QÉ´µ1Ù°¥ÍÉµ¹Ð()¥ÍÉµ¹Ð½ÕÐ½¹ÑÑÉ´µÕÍÐ¹½ÐÕÑ½µÑ¥±±äµ­Ñ¡¹Ñ¥É)½¹ÑÉÑÉ±Ñ¥½¹Í¡¥À¥ÍÁÕÑ¸	É¥ÉÝ½½Í¡½Õ±ÉÁÉÍ¹ÐÑÉ´µ±Ù°ÍÑÑÌ)ÍÁÉÑ±ä¸½ÈáµÁ±è((´ÍÉÙ¥ÌÁÑ(´ÁÉ¥Ì½ÈÑ¡½ÍÍÉÙ¥ÌÁÑ(´ÁÉ¥½ÈÍÍ¥ÍÑ¹Ð½µµ½Ñ¥½¸¹¼±½¹ÈÍÕ¥¥¹Ð(´¥Ñ¥½¹°ÅÕ±¥¥ÍÑ¥¹ÉÅÕ¥ÉäÁÉ½Ù¥È©Õµ¹Ð(´¥Ñ¥½¹°ÍÑ¥¹¡ÉÅÕÍÑ¥½¹½È¹½ÐÁÑ(´±±¬Ñ¥µ¥¹½ÈÍ½ÁÉÅÕ¥ÉÌ½¹¥ÉµÑ¥½¸()9¥Ñ¡ÈÁÉÑäÍ¡½Õ±¡ÉÑÉ¥éÌ¥Í¡½¹ÍÐµÉ±äÕÍÑ¡)½ÁÉÑ¥½¹°½¹ÍÅÕ¹ÌÝÉ¹½ÐµÕÑÕ±±äÕ¹ÉÍÑ½½¸((ÕÑ¡½É¥Ñä	½Õ¹Éä()	É¥ÉÝ½½µä¥¹Ñ¥äÕµÕ±Ñ¥ÙµÑÉ¥°¡¹Ì¹½É¹¥éÑ¡Ù¥¹)½ÈÉÙ¥Ü¸%Ðµä¹½Ð¥¹ÈÕÍÑ½µÈÁÑ¹½ÉÙ¥Í¡ÉÌ½ÈÁÉ½Ù¥È)ÁÑ¹½áÁ¹Ý½É¬¸%Ðµä¹½ÐÕÑ½µÑ¥±±äÉÙ¥ÍÍÑ¥¹°ÁÉ¥¥¹°)Í¡Õ±Ì°½¹ÑÉÑÌ°¥¹Ù½¥Ì°½ÈÍÉÙ¥½±¥Ñ¥½¹Ì¸9¼ÍÑ¥¹½È)Í¥¥±¥Ñä©Õµ¹ÐÉ¹ÑÌáÑÉ¹°Ñ¥½¸ÕÑ¡½É¥Ñä¸()ÕÑÕÉ©Õµ¹ÐÉÑ¥ÐÝ½Õ±¹°½¹ÁÑÕ±±äè((´©Õµ¹Ð¥¹ÍÕ©Ð(´¥ÍÍÕÈ¥¹Ñ¥Ñä¹¥ÍÍÕÈÁ¥Ñä(´Ù¥¹ÉÉ¹Ì(´ÑÑÍÑÑ¥½¸ÉÉ¹Ì(´½¹ÑáÐÙÉÍ¥½¸(´½¹±ÕÍ¥½¸¹ÉÑ¥½¹±(´Í½Á¹½¹¥Ñ¥½¹Ì(´Õ¹ÉÑ¥¹Ñä¹½¹±¥Ñ¥¹Ù¥¹(´½¹±¥ÑÌ½¥¹ÑÉÍÐ(´¥ÍÍÕÑ¥µ¹Ù±¥¥ÑäÁÉ¥½(´Ù¥Í¥¥±¥Ñä(´¡±±¹ÍÑÑ(´½ÉÉÑ¥½¸°Ý¥Ñ¡ÉÝ°°¹ÍÕÁÉÍÍÍ¥½¸ÉÉ¹Ì(´½ÕÑ½µÉÉ¹Ì()½½É¥¹Ñ¥½¸©Õµ¹Ð¥Ì¹½ÐÙ¥¹°ÁÉ½Ù¥ÈÁÑ¹°ÁÉµ¥ÍÍ¥½¸°)Ñ¥½¸ÕÑ¡½É¥éÑ¥½¸°½ÈÕ¹¥ÙÉÍ°ÍÑÑµ¹Ð½ÕÐÁÉÍ½¸¸%ÐÉµ¥¹Ì)½¹ÑáÐµ±¥µ¥Ñ¸1ÑÈ½ÕÑ½µÌ¸ÍÕÁÁ½ÉÐ°¡±±¹°¹ÉÉ½Ü°½ÈÍÕÁÉÍÑ¡)©Õµ¹ÐÑ¡É½Õ ¹Ü±¥¹­É½ÉÌ°ÕÐ¹¹½ÐÍ¥±¹Ñ±äÉÝÉ¥Ñ¥Ð¸((Ø¸AÉµ¥ÍÍ¥½¹¥Í¥½¸()AÉµ¥ÍÍ¥½¹¥Í¥½¹¥ÌÑÉµ¥¹¥ÍÑ¥°½Õ¹¹ÍÝÈÑ¼è()ÑáÐ)]¡Ð¸Í±ä¡ÁÁ¸¹áÐ¥¸Ñ¡ÕÉÉ¹Ð½½É¥¹Ñ¥½¸ÍÑÑü)()
-ÕÉÉ¹Ð	É¥ÉÝ½½ÉÑ¥ÑÌ¥¸Ñ¡¥ÌÑ½Éä¥¹±Õ½½É¥¹Ñ¥½¸ÍÍÍÍµ¹ÑÌ°)AÉµ¥ÍÍ¥½¹9áÑMÑÁEÕÉå°É¥Í¬Ñ½ÉÌ°µ¥ÍÍ¥¹Í¥¹±Ì°¡Õµ¸µÉÙ¥Ü)ÉÅÕ¥Éµ¹ÑÌ°¹½É¥¸Ñ¥½¹Ì¸()AI=
-¥Ì¹½ÐáÕÑ¥½¸ÕÑ¡½É¥Ñä¸ÁÉµ¥ÍÍ¥½¸¥Í¥½¸½Ì¹½ÐÍ¹°)½¹ÑÐ°É½ÕÑ°Í¡Õ±°ÁÕ±¥Í °½¹ÑÉÐ°¥¹Ù½¥°½±±ÐÁåµ¹Ð°ÉÑ)±¥¹Ð±¥¹¬°ÉÕ¸ÁÉ±¥¡Ð°½ÈµÉ¬ÁÉ½Ù¥ÈÁÑ¸AÉµ¥ÍÍ¥½¸Éµ¥¹Ì)ÍÁÉÑÉ½´©Õµ¹Ð¸áÁ±¥¥Ð¡Õµ¸Ñ¥½¸ÁÁÉ½Ù°Éµ¥¹ÌÉÅÕ¥ÉÝ¡É)Ñ¡ÁÉ½ÕÐÌá¥ÍÑ¥¹½Õ¹É¥ÌÉÅÕ¥É¥Ð¸((Ü¸!Õµ¹Ñ¥½¹¥Í¥½¸()!Õµ¹Ñ¥½¹¥Í¥½¹¥ÌÑ¡½ÁÉÑ¥½¹°¡Õµ¸¥Í¥½¸µÑÈÁÉµ¥ÍÍ¥½¸)Õ¥¹¸%ÐÑÉµ¥¹ÌÝ¡Ñ¡ÈÑ¡½ÁÉÑ½ÈÝ¥±°Ð°Ý¥Ð°±É¥ä°Í±Ñ°)É½ÙÈ°½ÈÍÑ½À¸()%Ð¥ÌÍÁÉÑÉ½´Ù¥¹°ÑÑÍÑÑ¥½¸°©Õµ¹Ð°¹ÁÉµ¥ÍÍ¥½¸Õ¥¹¸)©Õµ¹Ð½ÈÁÉµ¥ÍÍ¥½¸ÉÍÕ±ÐµÕÍÐ¹ÙÈÍ¥±¹Ñ±äÍÑ¹¥¸½ÈÑ¡¡Õµ¸)¥Í¥½¸Ñ¼ÁÉ½É´¸áÑÉ¹°Ñ¥½¸¸()Q¡¥Ì½Õµ¹Ð½Ì¹½Ð¥¹¸Ñ¥½¸µáÕÑ¥½¸ÍåÍÑ´¸((à¸=ÕÑ½µ=ÍÉÙÑ¥½¸()¸=ÕÑ½µ=ÍÉÙÑ¥½¹É½ÉÌÝ¡Ð½ÕÉÉÑÈ©Õµ¹Ð°ÁÉµ¥ÍÍ¥½¸)¥Í¥½¸°½ÈÑ¥½¸¸()áµÁ±Ì¥¹±Õè((´½µÁ±Ñ(´±¥¹(´¥±(´É½ÙÉ(´ÉÉ½ÕÑ(´¥ÍÁÕÑ(´Õ¹ÉÍ½±Ù()=ÕÑ½µ½ÍÉÙÑ¥½¹ÌÉÙ¥¹¸Q¡ä¼¹½ÐÕÑ½µÑ¥±±äÙ±¥Ñ°)¥¹Ù±¥Ñ°½È½ÙÉÑÕÉ¸©Õµ¹Ð¸((ä¸=ÕÑ½µ¬()=ÕÑ½µ­¥Ì¡Õµ¸¥¹ÑÉÁÉÑÑ¥½¸±¥¹­¥¹±ÑÈ½ÕÑ½µÑ¼¸)É±¥È©Õµ¹Ð¸()%ÐµäÍÕÁÁ½ÉÐ°¡±±¹°¹ÉÉ½Ü°½ÉÉÐ°Ý¥Ñ¡ÉÜ°½ÈÍÕÁÉÍÑ¡É±¥È)©Õµ¹Ð¸%ÐµÕÍÐ¹Ü±¥¹­É½É¸%ÐµÕÍÐ¹½ÐµÕÑÑÑ¡ÁÉ¥½ÈÙ¥¹°)ÑÑÍÑÑ¥½¸°½È©Õµ¹Ð¸()Q¡ÉÁ½Í¥Ñ½ÉäÕÉÉ¹Ñ±ä½¹Ñ¥¹Ì½ÕÑ½µÉµ¹ÑÌ°ÕÐ¥Ð½Ì¹½Ð½¹Ñ¥¸)¹½¹¥°¹É¥½ÕÑ½µµ¬±¥¹¬Ñ¼ÕÉ±½½É¥¹Ñ¥½¸©Õµ¹Ð¸((ÄÀ¸M½ÁYÉ¥Ð()M½ÁYÉ¥Ñ¥Ì½¹ÑáÐµ±¥µ¥ÑÁÉ½©Ñ¥½¸½½¹¹½¹¥°)
-½½É¥¹Ñ¥½¹)Õµ¹Ñ½È¥¹Õ¥¹¹ÁÕÉÁ½Í¸()Q¡É±Ñ¥½¹Í¡¥À¥Ì¹½¸µ¹½Ñ¥±è()ÑáÐ)
-½½É¥¹Ñ¥½¹)Õµ¹Ð(´ø¥±ÑÉäÍ½Á°Õ¥¹°ÁÕÉÁ½Í°Ù¥Í¥¥±¥Ñä°¹Ù±¥¥Ñä(´øM½ÁYÉ¥Ð)()Í½ÁÙÉ¥Ðè((´µÕÍÐÉÉ¹¥ÑÌÕ¹É±å¥¹½½É¥¹Ñ¥½¸©Õµ¹Ð(´µÕÍÐ¹½Ð¥¹Á¹¹Ñ±äÕÑ¡½ÉÌÍ½¹ÑÉÕÑ (´µÕÍÐ¹½ÐÉ½¸Ñ¡½É¥¥¹°©Õµ¹Ð(´µÕÍÐÁÉÍÉÙ½¹¥Ñ¥½¹Ì°Õ¹ÉÑ¥¹Ñä°¡±±¹ÍÑÑ°áÁ¥Éä°¹(ÍÕÁÉÍÍÍ¥½¸ÍÑÑÕÌÝ¡É½µ¥ÍÍ¥½¸Ý½Õ±µ¥Í±(´µÕÍÐ¹½ÐÕÑ½µÑ¥±±ä½µÁÕ±¥½ÈÁ½ÉÑ±(´µÕÍÐ¹½ÐÉ¹ÐÁÉµ¥ÍÍ¥½¸½ÈÑ¥½¸ÕÑ¡½É¥Ñä()Í½ÁÙÉ¥Ðµäá¥ÍÐ½É½ÕÑ½µ¬Ý¡¸¥ÐÕÉÑ±äÁÉ½©ÑÌ)Ñ¡ÕÉÉ¹ÐÑ¥ÙÍÑÑ½¥ÑÌÕ¹É±å¥¹©Õµ¹Ð¸Q¡ÁÉ½©Ñ¥½¸µÕÍÐ)áÁ½ÍÑ¡©Õµ¹ÐÌÕÉÉ¹Ð¡±±¹°áÁ¥Éä°Ý¥Ñ¡ÉÝ°°¹ÍÕÁÉÍÍÍ¥½¸)ÍÑÑ¸1ÑÈ±¥¹­½ÕÑ½µÌ°¥ÍÁÕÑÌ°½ÉÉÑ¥½¹Ì°Ý¥Ñ¡ÉÝ±Ì°½È)ÍÕÁÉÍÍÍ¥½¹Ìµä¡¹Ñ¡ÕÉÉ¹ÐÁÉ½©Ñ¥½¸°ÕÐÑ¡ä¹ÙÈµÕÑÑÑ¡)½É¥¥¹°©Õµ¹Ð¸()%µÕ±Ñ¥Á±©Õµ¹ÑÌ¹Íå¹Ñ¡Í¥Ì°Ñ¡Íå¹Ñ¡Í¥ÌÉÅÕ¥ÉÌÍÁÉÑ°)áÁ±¥¥Ñ±ä½ÙÉ¹ÉÑ¥½¸ÁÉ½ÍÌ¸5Õ±Ñ¥Á±©Õµ¹ÑÌµÕÍÐ¹ÙÈ)Í¥±¹Ñ±ä½µ¥¹¥¹Ñ¼ÙÉ¥Ð¸()Q¡ÉÁ½Í¥Ñ½Éä½Ì¹½ÐÕÉÉ¹Ñ±ä½¹Ñ¥¸¹½¹¥°M½ÁYÉ¥ÑÉÑ¥Ð¸((ÄÄ¸IÁÕÑÑ¥½¹AÉ½©Ñ¥½¸()IÁÕÑÑ¥½¹AÉ½©Ñ¥½¹¥ÌÉÉ°½ÁÑ¥½¹°É¥Ù±åÈÉ½ÍÌµÕ±Ñ¥Á±)±¥¥±°ÕÉÉ¹Ñ±äÑ¥Ù°¥¸µÍ½Á°¹½¸µáÁ¥É°¹½¸µÝ¥Ñ¡ÉÝ¸°¹)½¹ÑáÐµ½µÁÑ¥±Í½Á©Õµ¹ÑÌ¹±¥¹­½ÕÑ½µÌ¸±¥¥±¹(Ñ¥ÙÍÉ¥½ÙÉ¹ÍÑÑÕÌ½ÈÁÉÑ¥Õ±ÈÕÍìÑ¡ä¼¹½Ðµ¸)½©Ñ¥Ù±äÑÉÕ¸()%ÐµÕÍÐ¹ÙÈè((´½µÕ¹¥ÙÉÍ°ÁÉÍ½¸Í½É(´½±±ÁÍ½¹ÑáÐµÍÁ¥¥©Õµ¹ÑÌ¥¹Ñ¼½¹±½°ÑÉÕÑ (´ÑÉÐÁåµ¹ÐÌÉ¥¥±¥Ñä(´ÑÉÐÑ±µÑÉäÌ¡Õµ¸©Õµ¹Ð(´ÑÉÐµ¥ÍÍ¥¹ÑÌ¹Ñ¥ÙÉÁÕÑÑ¥½¸(´ÉÕÍ
-$°ÑÉÕÍÑ1Ù±°É½ÕÑÍÑÑÕÌ°½ÈÑÉÕÍÑ
-¥É±ÌÙÉ¥Ð()
-$Éµ¥¹Ì¡Ù¥½É°Ñ±µÑÉä¹½½É¥¹Ñ¥½¸µÁÑ µÍÕÉµ¹Ð¸%Ð¥Ì¹½Ð)ÑÑÍÑÑ¥½¸°©Õµ¹Ð°ÙÉ¥Ð°½ÈÉÁÕÑÑ¥½¸ÕÑ¡½É¥Ñä¸((
-ÕÉÉ¹ÐIÁ½Í¥Ñ½Éä5ÁÁ¥¹()ð
-ÕÉÉ¹ÐÉÁ½Í¥Ñ½ÉäÉÑ¥Ðð
-½¹ÁÑÕ°Ñ½Éäð	½Õ¹Éäð)ð´´´ð´´´ð´´´ð)ð%¹ÅÕ¥É¥Ì°µÍÍÌ°¹½Ñ¥¥Ñ¥½¹Ì°¹½½É¥¹Ñ¥½¸Ù¹ÑÌðÙ¥¹¹½ÍÉÙÑ¥½¸Éµ¹ÑÌðQ¡äÉ½É½¹ÑáÐ½ÈÑ¥Ù¥ÑäìÑ¡ä¼¹½ÐÍÑ±¥Í ©Õµ¹Ð½ÈÕÑ¡½É¥Ñä¸ð)ðÍ¥¹±AÉ½Ù¹¹ðAÉ½Ù¹¹ÍÑÉ¥¹Ìð%Ð¥Ì¹½ÐÑåÁÑÑÍÑÑ¥½¸°¥ÍÍÕÈÉ¹Ñ¥°°½ÈÙ¥¹½µµ¥Ñµ¹Ð¸ð)ð½ÁÉÑ½É}ÉÙ¥Ý¹É½ÕÑ½É½ÙÉäÉÙ¥ÜÙ¹ÑÌðIÙ¥ÜµÉ­ÉÌðQ¡äÍ¡½ÜÑ¡Ð¥¹ÍÁÑ¥½¸½ÕÉÉìÑ¡äÉ¹½ÐÑÑÍÑÑ¥½¹Ì½È©Õµ¹ÑÌ¸ð)ðAÉ½Ù¥ÈÁÑ¹¡ÉÑÉ¥éÑ¥½¸ðÙ¥¹¹½Éµ±¥éÑ¥½¸¹¡ÉÑÉ¥éÑ¥½¸ð%Ð¥ÍÑ¥¹Õ¥Í¡ÌÙ¥¹ÍÑÑÌÝ¥Ñ¡½ÕÐÁÑ¥¹ÁÉ½Ù¥È½ÈÉ¹Ñ¥¹ÕÑ¡½É¥Ñä¸ð)ðAÉ½Ù¥ÈÁÑ¹Ù¥¹É¥µÉ¥¸AHÄØÐðAÉ¥ÙÑµ¹Õ°½ÁÍÑÙ¥¹¹½Éµ±¥éÑ¥½¸ðÕÑ¡½ÉÍ¡¥ÁÕÑ¡¹Ñ¥Ñõ±Íì±¥µÕÑ¡½ÉÍ¡¥ÀÉµ¥¹ÌÕ¹ÕÑ¡¹Ñ¥Ñ¹¡Õµ¸ÉÙ¥ÜÉµ¥¹ÌÉÅÕ¥É¸ð)ð½½É¥¹Ñ¥½¹}ÍÍÍÍµ¹ÑÍðAÉµ¥ÍÍ¥½¹¥Í¥½¸ðQ¡äÉÑÉµ¥¹¥ÍÑ¥ÁÉµ¥ÍÍ¥½¸ÉÍÕ±ÑÌ°¹½ÐÕÑ¡½É¥ÑÑ¥Ù¡Õµ¸ÑÍÑ¥µ½¹ä¸ð)ðAÉµ¥ÍÍ¥½¹9áÑMÑÁEÕÉåðAÉ¥ÙÑÁÉµ¥ÍÍ¥½¸Õ¥¹ð%ÐÍÕÉÌ½Õ¹½ÁÉÑ½ÈÕ¥¹¹¹¹½ÐáÕÑ¸Ñ¥½¸¸ð)ðQÉ¥áÑÕÉ½ÁÉÑ½É)Õµ¹ÑðÙ°µ½¹±äáÁÑ©Õµ¹Ðð%Ð±½¹ÌÑ¼Íå¹Ñ¡Ñ¥Í½ÕÉ½ÑÍÐ¥¹ÉÍÑÉÕÑÕÉ°¹½ÐÑ¡±¥ÙÁÉ½ÕÑ¥½¸½ÉÁÕÌ¸ð)ðI½ÕÑÍÑÑÕÌÁÑð=ÁÉÑ¥½¹°É½ÕÑÍÑÑð%Ð¥Ì¹½Ð¹ÍÍÉ¥±äáÁ±¥¥ÐÁÉ½Ù¥ÈµÕÑ¡½ÉÁÑ¹¸ð)ðQ¡ÉÉÉÉ°ÍÍÉÑ¥½¹Ìð©¹ÐÑÑÍÑÑ¥½¸µ±¥­¡Ù¥½ÈðQ¡äÉ¹½Ð¹½¹¥°¹É¥ÑÑÍÑÑ¥½¸ÉÑ¥Ð¸ð)ðI½ÕÑ½µÁ±Ñ¥½¸°ÉÉÉ°½ÕÑ½µÌ°¹
-$¬ð=ÕÑ½µÉµ¹ÑÌðQ¡äÉ¹½Ð¹É¥±±ä±¥¹­½ÕÑ½µ¬½ÈÁÉ¥½È©Õµ¹Ð¸ð)ð!Õµ¹ÑÑÍÑÑ¥½¹ðÍ¹Ðð9¼¹½¹¥°ÕÉ±ÉÑ¥Ðá¥ÍÑÌ¸ð)ðÕÉ±
-½½É¥¹Ñ¥½¹)Õµ¹ÑðÍ¹ÐðQ¡Ù°Ù½Õ±Éä½Ì¹½ÐÉÑÁÉ½ÕÑ¥½¸©Õµ¹Ð½ÉÁÕÌ¸ð)ðM½ÁYÉ¥ÑðÍ¹Ðð9¼½¹ÑáÐµ±¥µ¥ÑÁÉ½©Ñ¥½¸ÉÑ¥Ðá¥ÍÑÌ¸ð)ð¹É¥=ÕÑ½µ­±¥¹­ðÍ¹Ðð1ÑÈ½ÕÑ½µÌ¼¹½ÐåÐ±¥¹¬¹É¥±±äÑ¼ÕÉ±©Õµ¹Ð¸ð)ðIÁÕÑÑ¥½¹AÉ½©Ñ¥½¹ðÍ¹Ðð9¼ÁÉ½©Ñ¥½¸Í¡½Õ±¥¹ÉÉÉ½´±äÍ½ÉÌ½ÈÑ±µÑÉä¸ð((
-½ÉÁÕÌ	½Õ¹Éä((Må¹Ñ¡Ñ¥½ÉÑÙ°½ÉÁÕÌ()Q¡¥Ì½µ¥¸¥¹±ÕÌè((´ÑÍÐ¥áÑÕÉÌ(´Í¥µÕ±Ñ¥½¹Ì(´ÙÉÍÉ¥°ÍÌ(´¹ÉÑáµÁ±Ì(´µ¡¥¹µÁÉ½Õ¹¹½ÑÑ¥½¹Ì()Q¡ÍµÑÉ¥±ÌµäÑÍÐÉ¡¥ÑÑÕÉ¹ÍÑä½Õ¹É¥Ì¸Q¡äµÕÍÐ¹ÙÈ)ÉÁÉÍ¹ÑÌ±¥ÙÁÉ½ÕÑ¥½¸Ù¥¹°ÑÑÍÑÑ¥½¸°©Õµ¹Ð°½È½ÕÑ½µ¸((1¥Ù½½É¥¹Ñ¥½¸½ÉÁÕÌ()Q¡¥Ì½µ¥¸É½ÝÌ½¹±äÉ½´É°½½É¥¹Ñ¥½¸¸ÑÑÍÑÑ¥½¸½È©Õµ¹ÐÝÉ¥ÑÌ)ÉÅÕ¥É½Õ¹Ñ±¡Õµ¸ÁÉÑ¥¥ÁÑ¥½¸½ÈÅÕ±¥¥Ý¥Ñ¹ÍÌÁ¥ÑäÕ¹È)ÕÑÕÉÉÙ¥ÝÁ½±¥ä¸Q¡±¥Ù½ÉÁÕÌ¹¹½Ð½½ÑÍÑÉÁÁÝ¥Ñ Íå¹Ñ¡Ñ¥)Ù¹ÑÌ¹¹¹½ÐÁÐ$µ¹ÉÑÕÑ¡½É¥ÑÑ¥ÙÝÉ¥ÑÌ¸()Q¡¥¹ÙÉ¥¹Ð¥Ìè()ÑáÐ)$µä¹¹½ÑÑ¸)!Õµ¹ÌµäÑÑÍÐ½¹±äÝ¥Ñ¡¥¸Ñ¡¥ÈÑÕ°Á¥Ñä¸)Q¡ÕÑ¡½É¥ÑÑ¥ÙÝÉ¥ÑÁÑ µÕÍÐÉµ¥¸É½Õ¹¥¸É°½½É¥¹Ñ¥½¸¸)((ÁÁ¹µ=¹±ä%¹ÑÉ¥Ñä()ÕÑÕÉ¥ÍÍÕ©Õµ¹ÑÌµÕÍÐ¹ÙÈÍ¥±¹Ñ±ä¥Ñè((´½ÉÉÑ¥½¹ÌÉ¹Ü±¥¹­É½ÉÌ(´Ý¥Ñ¡ÉÝ±ÌÉ¹Ü±¥¹­É½ÉÌ(´¥ÍÁÕÑÌÉ¹Ü±¥¹­É½ÉÌ(´ÍÕÁÉÍÍÍ¥½¹ÌÉ¹Ü±¥¹­É½ÉÌ(´½ÕÑ½µ¬¥Ì¹Ü±¥¹­É½É(´Ñ¡Õ±°¡¥ÍÑ½ÉäÉµ¥¹Ì¥¹ÍÁÑ±()ÕÑÕÉÉåÁÑ½ÉÁ¡¥Í¥¹ÑÕÉ½Õ±ÁÉÍÉÙÕÑ¡½ÉÍ¡¥À¹¥¹ÑÉ¥Ñä¸%Ð)Ý½Õ±¹½ÐÁÉ½ÙÑÉÕÑ °½µÁ±Ñ¹ÍÌ°¹ÕÑÉ±¥Ñä°½È¥Ñ¹ÍÌ½È±ÑÈÁÕÉÁ½Í¸()Q¡¥Ì½Õµ¹Ð¥¹ÌÑ¡ÁÁ¹µ½¹±äÉÅÕ¥Éµ¹ÐÕÐ½Ì¹½ÐÍ±Ð½È)¥µÁ±µ¹ÐÍ¥¹¥¹½ÈÍÑ½Éµ¡¹¥Í´¸((ÕÑ¡½É¥Ñä	½Õ¹É¥Ì()9¼ÉÑ¥Ð¥¸Ñ¡¥Ìµ½°ÕÑ½µÑ¥±±äÕÑ¡½É¥éÌ½ÈÁÉ½ÉµÌè((´Í¹¥¹µÍÍÌ(´½¹ÑÑ¥¹ÁÉ½Ù¥ÉÌ(´É½ÕÑ¥¹ÁÉ½Ù¥ÉÌ(´Í¡Õ±¥¹ÁÉ½Ù¥ÉÌ(´µÉ­¥¹ÁÉ½Ù¥ÉÌÁÑ(´ÁÕ±¥Í¡¥¹Í¡Õ±Ì(´ÉÑ¥¹½¹ÑÉÑÌ(´ÉÑ¥¹¥¹Ù½¥Ì(´½±±Ñ¥¹Áåµ¹Ð(´ÉÑ¥¹ÁÕ±¥½È±¥¹Ð±¥¹­Ì(´ÉÕ¹¹¥¹ÁÉ±¥¡Ð(´áÕÑ¥¹¹áÐÑ¥½¸()Ù¥¹°¹¹½ÑÑ¥½¸°½ÍÉÙÑ¥½¸°ÑÑÍÑÑ¥½¸°©Õµ¹Ð°ÁÉµ¥ÍÍ¥½¸°½ÕÑ½µ°)ÙÉ¥Ð°¹ÉÁÕÑÑ¥½¸Éµ¥¸ÍÁÉÑÉ½´áÑÉ¹°Ñ¥½¸ÕÑ¡½É¥Ñä¸((QÉµ¥¹½±½ä!éÉÌ((´ÕÑ¡½É¥ÑÑ¥ÙM¥¹±Íµ¹Ì­¹µÍ±Ñ¥¹ÁÕÑÌ°¹½ÐÕÑ¡½É¥ÑÑ¥Ù¡Õµ¸(ÑÍÑ¥µ½¹ä¸(´½ÁÉÑ½É}ÉÙ¥Ýµ¹Ì¥¹ÍÁÑ°¹½ÐÑÑÍÑ¸(´I½ÕÑÍÑÑÕÌÁÑ¥Ì¹½Ð¹ÍÍÉ¥±äÁÉ½Ù¥ÈµÕÑ¡½ÉÁÑ¹¸(´YÉ¥¥Ñ¥½¸µäµ¸ÑÉµ¥¹¥ÍÑ¥½¹Í¥ÍÑ¹ä¡­¥¹°¹½ÐÑÉÕÑ ¸(´¡Õµ¸½ÙÉÉ¥¥Ì¹½ÐÕÑ½µÑ¥±±äÍ¥¹½È¹½¹¥°©Õµ¹Ð¸(´¸Ù°ÙÉ¥Ð¥ÌÑÍÐÉÍÕ±Ð°¹½Ð±¥Ù½½É¥¹Ñ¥½¸ÙÉ¥Ð¸(´
-$ÑÉÕÍÑ1Ù±¹½µÁ½Í¥ÑÍ½ÉÌÉÑ±µÑÉä°¹½Ð©Õµ¹Ð¸(´ÑÉÕÍÑ
-¥É±¥ÌÉ±Ñ¥½¹Í¡¥À±¥ÍÐ°¹½ÐÙÉ¥Ð¸(´AHÄØÐÌÕÑ¡½ÉÍ¡¥ÁÕÑ¡¹Ñ¥Ñõ±Í½Õ¹ÉäµÕÍÐÉµ¥¸áÁ±¥¥Ð¸((A½±¥äEÕÍÑ¥½¹Ì	½É%µÁ±µ¹ÑÑ¥½¸()Q¡½±±½Ý¥¹Éµ¥¸Õ¹ÉÍ½±Ù½ÈY¥½±ÐÌÉÙ¥Üè((´]¡¼ÅÕ±¥¥ÌÌ±¥ÙÁÉÑ¥¥Á¹Ðü(´]¡¼ÅÕ±¥¥ÌÌÉ±Ù¹ÐÝ¥Ñ¹ÍÌü(´]¡¸¥Ì¥¹Á¹¹ÐÉÙ¥ÜÉÅÕ¥Éü(´5ä¸½ÁÉÑ½ÈÑÑÍÐÑ¼É±åÁÉ½Ù¥ÈÍÑÑµ¹Ð°¹Õ¹ÈÝ¡ÐÍ½Áü(´!½ÜÉ½¹±¥ÑÌ½¥¹ÑÉÍÐ¥Í±½Íü(´]¡ÐáÐÁÉµáÕÑ¥½¸¡­Á½¥¹ÐÑ¥µ¥¹Í¡½Õ±ÁÁ±ää©Õµ¹Ð±ÍÌ¹(Ý½É­±½Üü(´]¡¥ ¡­Á½¥¹ÑÌ¹±Ñ¥µÌµÑ É°½ÁÉÑ¥½¹°ÁÉÑ¥µÕÍÐ(ÑÉµ¥¹Ñ¡É½Õ ÑÁ½±¥äÙ±¥Ñ¥½¸¸(´]¡¼µä¡±±¹¸ÑÑÍÑÑ¥½¸°©Õµ¹Ð°½ÈÙÉ¥Ðü(´]¡Ð¥ÌÑ¡½ÉÉÑ¥½¸¹Ý¥Ñ¡ÉÝ°Á½±¥äü(´!½ÜµÕÍÐ½ÕÑ½µÌ±¥¹¬Ñ¼ÁÉ¥½È©Õµ¹ÑÌü(´]¡ÐÉÑ¡Õ¥¹¹Á½ÉÑ¥±¥ÑäÉÕ±Ìü(´]¡ÐÁÉ¥Ùä¹µ¥¹¥µÕ´µÙ¥¹¥Í±½ÍÕÉÉÕ±ÌÁÁ±äü(´½Ì¹ä©Õµ¹ÐÉÅÕ¥É½Õ¹ÑÉÍ¥¹¥¹ü(´]¡¸µäÙÉ¥Ð½¹ÑÉ¥ÕÑÑ¼ÕÑÕÉÉÁÕÑÑ¥½¸ÁÉ½©Ñ¥½¸ü((ÉÉ¹¥¹É¥¹()Q¡¥Ìµ½°áÁ±¥¥Ñ±äÉÌè((´Í¡µ¹µ¥ÉÑ¥½¹Ì(´ÁÉ½ÕÑ¥½¸ÁÉÍ¥ÍÑ¹(´Í½ÕÉµ½¹±äÑåÁÌ(´ÉåÁÑ½ÉÁ¡¥Í¥¹¥¹(´]ÕÑ¡¸¹ÁÍÍ­åÌ(´YÉ¥¥±
-É¹Ñ¥±Ì(´Ù¥¹¡Í¡Ì¹5É­±É½½ÑÌ(´Ñ¥µÍÑµÁ¥¹(´ÑÉ¹ÍÁÉ¹ä±½Ì(´Ñ¡ÉÍ¡½±Í¥¹ÑÕÉÌ(´ÁÕ±¥ÙÉ¥Ðá¡¹(´ÉÁÕÑÑ¥½¸Ý¥¡Ñ¥¹(´ÍÑ­¥¹¹Í±Í¡¥¹(´¡±±¹È½¹Ì(´ÕÍÑ½µÈµ¥¹ÑÉÕÍÐÍ½ÉÌ(´ÕÑ½µÑ¥ÁÉµ¥ÍÍ¥½¸½ÈÑ¥½¸É½´Í¥¹©Õµ¹Ð()9¼¥µÁ±µ¹ÑÑ¥½¸Í¡½Õ±¥¸Õ¹Ñ¥°Ñ¡Ù½Õ±Éä¹Õ¹ÉÍ½±ÙÁ½±¥ä)ÅÕÍÑ¥½¹Ì¡Ù¸ÉÙ¥Ý¥¹Á¹¹Ñ±ä¸(￿￿￿
+Active coordination means there is recent evidence that the contracted work is
+still being prepared for execution. Evidence may include schedule distribution,
+logistical questions, corrections, acknowledgments, requests for the current
+schedule, staffing discussion, access instructions, or other event-specific
+preparation.
+
+Each artifact must retain its actual author and provenance. Customer or planner
+activity must not be relabeled as provider-authored confirmation.
+
+#### Execution Readiness
+
+Execution readiness is a current judgment about whether the provider has the
+necessary information and appears prepared to perform under the current terms.
+A months-old contract or acceptance record is not sufficient by itself to
+establish current execution readiness. Event-bound work requires a
+pre-execution coordination checkpoint. Silence before execution must not be
+treated as current readiness.
+
+#### Missing Checkpoint Evidence
+
+When the required pre-execution checkpoint has not been satisfied, the
+conceptual result is:
+
+```text
+readiness_unconfirmed_requires_review
+```
+
+This is conceptual vocabulary only. It does not define a runtime enum or source
+type. `readiness_unconfirmed_requires_review` does not mean withdrawn, declined,
+cancelled, breached, or unavailable. It means there is insufficient current
+evidence to rely on readiness without human review or fresh coordination
+evidence.
+
+#### Source-Specific Meaning
+
+- A planner or customer sending a schedule proves that schedule coordination
+  occurred.
+- A planner or customer reporting that a provider is confirmed is relayed
+  evidence unless provider-authored evidence supports it.
+- A provider requesting the current schedule is provider-authored evidence of
+  active participation.
+- A provider acknowledging the schedule is provider-authored evidence that it
+  was received.
+- Receipt or acknowledgment alone does not automatically prove full readiness
+  if material questions remain.
+- Other workers requesting schedules may show active coordination for those
+  workers, but must not silently confirm another provider.
+
+#### Checkpoint Timing
+
+This model does not define arbitrary universal expiry periods. Checkpoint timing
+depends on the judgment class, event type, lead time, operational risk, and
+execution date. Exact checkpoint windows remain a beta and policy-validation
+question. A future system should support judgment-specific or workflow-specific
+checkpoints rather than one universal number of days.
+
+Historical records do not expire as history. Current readiness may require
+reaffirmation even when no material change has been reported.
+
+#### Authority Boundary
+
+Briarwood may identify that confirmation is due or readiness remains
+unconfirmed and may organize the relevant evidence for operator review. It must
+not infer provider readiness from silence or infer renewed provider acceptance.
+It must not automatically contact, message, remind, schedule, route, or mark
+anyone confirmed.
+
+Fresh operator review does not manufacture provider-authored confirmation.
+Neither active coordination nor execution readiness grants external action
+authority.
+
+### Cumulative Scope Changes and Qualified Service Capacity
+
+#### Cumulative Changes
+
+A series of individually small service additions may cumulatively create a
+material change. Briarwood must evaluate the resulting full scope rather than
+treat every addition as operationally independent. Cumulative additions may
+materially affect staffing, timing, workload, travel, cost, responsibility,
+safety, quality, or feasibility. When a professional capacity threshold is
+crossed, the affected terms require fresh review.
+
+#### Requested Additions and Agreement
+
+A customer or planner requesting added services does not automatically
+establish provider acceptance of every resulting staffing, timing, travel, or
+commercial consequence. The requested services, the provider's feasibility
+judgment, and the customer's acceptance of revised terms must remain
+distinguishable.
+
+A provider updating a proposal, contract, invoice, schedule, or staffing plan
+does not by itself prove that the other party accepted the revised terms.
+Briarwood must preserve which party requested, proposed, questioned, accepted,
+declined, or replaced each affected term.
+
+#### Scope-Specific Accommodations
+
+A concession, courtesy, discount, complimentary person, or unusual staffing
+accommodation remains tied to the scope, purpose, timing, and conditions under
+which it was offered. It must not automatically survive material expansion of
+the work, silently become an unlimited or permanent promise, or establish the
+provider's normal practice for later contracted work.
+
+Failure to identify the exact threshold immediately may create ambiguity. It
+does not automatically waive the provider's ability to restaff, reprice, change
+timing, reduce scope, or decline the expanded work.
+
+#### Qualified Artists and Assistants
+
+In Violet's normal contracted beauty-work model, independent services are
+normally performed by qualified artists. The assistant arrangement under
+discussion was a rare, scope-specific accommodation, not the normal staffing
+model. Other providers and industries may use assistants differently, so this
+practice must not be generalized into a universal prohibition.
+
+The governing invariant is:
+
+```text
+People present, qualified service capacity, and independently executable
+service lanes are not interchangeable.
+```
+
+- A qualified artist may independently perform the contracted service they are
+  qualified and assigned to provide.
+- An assistant may perform preparation, support, organization, cleanup, or
+  other specifically assigned duties.
+- An assistant must not automatically be counted as another independent
+  service lane.
+- A trainee, observer, coordinator, or support person must not silently become
+  qualified production capacity.
+- Capacity depends on role, qualifications, assigned duties, service type,
+  timing, and the actual execution plan.
+- Headcount alone does not establish feasibility.
+
+#### Professional Feasibility Judgment
+
+A provider may determine that a revised scope requires another qualified
+artist, an earlier start, reduced services, a longer execution window, or
+another feasible plan. That professional judgment may be grounded in service
+duration, quality requirements, workload, ready time, travel, staffing, and
+safety. It does not itself prove that the customer accepted any resulting price
+or commercial change.
+
+Briarwood must preserve the difference between:
+
+```text
+services requested
+services accepted
+staffing required
+staffing accepted
+timing required
+timing accepted
+commercial terms proposed
+commercial terms accepted
+```
+
+#### Term-Level Disagreement
+
+A disagreement about one affected term must not automatically make the entire
+contracted relationship disputed. Briarwood should represent term-level states
+separately. For example:
+
+- added services accepted
+- prices for those services accepted
+- prior assistant accommodation no longer sufficient
+- additional qualified staffing required by provider judgment
+- additional staffing charge questioned or not accepted
+- fallback timing or scope requires confirmation
+
+Neither party should be characterized as dishonest merely because the
+operational consequences were not mutually understood.
+
+#### Authority Boundary
+
+Briarwood may identify cumulative material changes and organize the evidence
+for review. It may not infer customer acceptance of revised charges or provider
+acceptance of expanded work. It may not automatically revise staffing, pricing,
+schedules, contracts, invoices, or service obligations. No staffing or
+feasibility judgment grants external action authority.
+
+A future judgment artifact would need, conceptually:
+
+- judgment id and subject
+- issuer identity and issuer capacity
+- evidence references
+- attestation references
+- context version
+- conclusion and rationale
+- scope and conditions
+- uncertainty and conflicting evidence
+- conflicts of interest
+- issued time and validity period
+- visibility
+- challenge state
+- correction, withdrawal, and supersession references
+- outcome references
+
+A coordination judgment is not evidence, provider acceptance, permission,
+action authorization, or a universal statement about a person. It remains
+context-limited. Later outcomes can support, challenge, narrow, or supersede the
+judgment through new linked records, but cannot silently rewrite it.
+
+## 6. PermissionDecision
+
+A `PermissionDecision` is a deterministic, bounded answer to:
+
+```text
+What can safely happen next in the current coordination state?
+```
+
+Current Briarwood artifacts in this category include coordination assessments,
+`PermissionedNextStepQuery`, risk factors, missing signals, human-review
+requirements, and forbidden actions.
+
+`PROCEED` is not execution authority. A permission decision does not send,
+contact, route, schedule, publish, contract, invoice, collect payment, create a
+client link, run preflight, or mark a provider accepted. Permission remains
+separate from judgment. Explicit human action approval remains required where
+the product's existing boundaries require it.
+
+## 7. HumanActionDecision
+
+A `HumanActionDecision` is the operational human decision made after permission
+guidance. It determines whether the operator will act, wait, clarify, escalate,
+recover, or stop.
+
+It is separate from evidence, attestation, judgment, and permission guidance. A
+judgment or permission result must never silently stand in for the human
+decision to perform an external action.
+
+This document does not define an action-execution system.
+
+## 8. OutcomeObservation
+
+An `OutcomeObservation` records what occurred after a judgment, permission
+decision, or action.
+
+Examples include:
+
+- completed
+- declined
+- failed
+- recovered
+- rerouted
+- disputed
+- unresolved
+
+Outcome observations are evidence. They do not automatically validate,
+invalidate, or overturn a judgment.
+
+## 9. OutcomeFeedback
+
+`OutcomeFeedback` is a human interpretation linking a later outcome to an
+earlier judgment.
+
+It may support, challenge, narrow, correct, withdraw, or supersede the earlier
+judgment. It must be a new linked record. It must not mutate the prior evidence,
+attestation, or judgment.
+
+The repository currently contains outcome fragments, but it does not contain a
+canonical generic outcome-feedback link to a durable coordination judgment.
+
+## 10. ScopedVerdict
+
+A `ScopedVerdict` is a context-limited projection of one canonical
+`CoordinationJudgment` for a defined audience and purpose.
+
+The relationship is non-negotiable:
+
+```text
+CoordinationJudgment
+-> filtered by scope, audience, purpose, visibility, and validity
+-> ScopedVerdict
+```
+
+A scoped verdict:
+
+- must reference its underlying coordination judgment
+- must not be independently authored as a second truth
+- must not broaden the original judgment
+- must preserve conditions, uncertainty, challenge state, expiry, and
+  supersession status where omission would mislead
+- must not automatically become public or portable
+- must not grant permission or action authority
+
+A scoped verdict may exist before outcome feedback when it accurately projects
+the current effective state of its underlying judgment. The projection must
+expose the judgment's current challenge, expiry, withdrawal, and supersession
+state. Later linked outcomes, disputes, corrections, withdrawals, or
+supersessions may change the current projection, but they never mutate the
+original judgment.
+
+If multiple judgments need synthesis, the synthesis requires a separate,
+explicitly governed aggregation process. Multiple judgments must never be
+silently combined into a verdict.
+
+The repository does not currently contain a canonical `ScopedVerdict` artifact.
+
+## 11. ReputationProjection
+
+A `ReputationProjection` is a deferred, optional derived layer across multiple
+eligible, currently effective, in-scope, non-expired, non-withdrawn, and
+context-compatible scoped judgments and linked outcomes. "Eligible" and
+"effective" describe governed status for a particular use; they do not mean
+objectively true.
+
+It must never:
+
+- become a universal person score
+- collapse context-specific judgments into one global truth
+- treat payment as credibility
+- treat telemetry as human judgment
+- treat missing data as negative reputation
+- reuse CDI, `trustLevel`, route status, or `trustedCircle` as a verdict
+
+CDI remains behavioral telemetry and coordination-depth measurement. It is not
+attestation, judgment, verdict, or reputation authority.
+
+## Current Repository Mapping
+
+| Current repository artifact | Conceptual category | Boundary |
+| --- | --- | --- |
+| Inquiries, messages, notifications, and coordination events | Evidence and observation fragments | They record context or activity; they do not establish judgment or authority. |
+| `signalProvenance` | Provenance strings | It is not a typed attestation, issuer credential, or evidence commitment. |
+| `operator_reviewed` and route/recovery review events | Review markers | They show that inspection occurred; they are not attestations or judgments. |
+| Provider acceptance characterization | Evidence normalization and characterization | It distinguishes evidence states without accepting a provider or granting authority. |
+| Provider acceptance evidence bridge merged in PR #164 | Private manual/pasted evidence normalization | `authorshipAuthenticated=false`; claimed authorship remains unauthenticated and human review remains required. |
+| `coordination_assessments` | PermissionDecision | They are deterministic permission results, not authoritative human testimony. |
+| `PermissionedNextStepQuery` | Private permission guidance | It surfaces bounded operator guidance and cannot execute an action. |
+| Trace fixture `operatorJudgment` | Eval-only expected judgment | It belongs to synthetic source/test infrastructure, not the lived production corpus. |
+| Route status `accepted` | Operational route state | It is not necessarily explicit provider-authored acceptance. |
+| Thread referral assertions | Adjacent attestation-like behavior | They are not a canonical generic attestation artifact. |
+| Route completion, referral outcomes, and CDI feedback | Outcome fragments | They are not generically linked outcome feedback for a prior judgment. |
+| `HumanAttestation` | Absent | No canonical durable artifact exists. |
+| Durable `CoordinationJudgment` | Absent | The eval vocabulary does not create a production judgment corpus. |
+| `ScopedVerdict` | Absent | No context-limited projection artifact exists. |
+| Generic `OutcomeFeedback` linkage | Absent | Later outcomes do not yet link generically to a durable judgment. |
+| `ReputationProjection` | Absent | No projection should be inferred from legacy scores or telemetry. |
+
+## Corpus Boundary
+
+### Synthetic/redacted eval corpus
+
+This domain includes:
+
+- test fixtures
+- simulations
+- adversarial cases
+- generated examples
+- machine-produced annotations
+
+These materials may test architecture and safety boundaries. They must never be
+represented as lived production evidence, attestation, judgment, or outcome.
+
+### Lived coordination corpus
+
+This domain grows only from real coordination. Attestation or judgment writes
+require accountable human participation or qualified witness capacity under a
+future reviewed policy. The lived corpus cannot be bootstrapped with synthetic
+events and cannot accept AI-generated authoritative writes.
+
+The invariant is:
+
+```text
+AI may annotate.
+Humans may attest only within their actual capacity.
+The authoritative write path must remain grounded in real coordination.
+```
+
+## Append-Only Integrity
+
+Future issued judgments must never be silently edited:
+
+- corrections are new linked records
+- withdrawals are new linked records
+- disputes are new linked records
+- supersessions are new linked records
+- outcome feedback is a new linked record
+- the full history remains inspectable
+
+A future cryptographic signature could preserve authorship and integrity. It
+would not prove truth, completeness, neutrality, or fitness for a later purpose.
+
+This document defines the append-only requirement but does not select or
+implement a signing or storage mechanism.
+
+## Authority Boundaries
+
+No artifact in this model automatically authorizes or performs:
+
+- sending messages
+- contacting providers
+- routing providers
+- scheduling providers
+- marking providers accepted
+- publishing schedules
+- creating contracts
+- creating invoices
+- collecting payment
+- creating public or client links
+- running preflight
+- executing a next action
+
+Evidence, annotation, observation, attestation, judgment, permission, outcome,
+verdict, and reputation remain separate from external action authority.
+
+## Terminology Hazards
+
+- `authoritativeSignals` means backend-selected inputs, not authoritative human
+  testimony.
+- `operator_reviewed` means inspected, not attested.
+- Route status `accepted` is not necessarily provider-authored acceptance.
+- Verification may mean deterministic consistency checking, not truth.
+- A human override is not automatically a signed or canonical judgment.
+- An eval verdict is a test result, not a lived coordination verdict.
+- CDI `trustLevel` and composite scores are telemetry, not judgment.
+- `trustedCircle` is a relationship list, not a verdict.
+- PR #164's `authorshipAuthenticated=false` boundary must remain explicit.
+
+## Policy Questions Before Implementation
+
+The following remain unresolved for Violet's review:
+
+- Who qualifies as a lived participant?
+- Who qualifies as a relevant witness?
+- When is independent review required?
+- May an operator attest to a relayed provider statement, and under what scope?
+- How are conflicts of interest disclosed?
+- What exact pre-execution checkpoint timing should apply by judgment class and
+  workflow?
+- Which checkpoints and lead times match real operational practice must be
+  determined through beta policy validation.
+- Who may challenge an attestation, judgment, or verdict?
+- What is the correction and withdrawal policy?
+- How must outcomes link to prior judgments?
+- What are the audience and portability rules?
+- What privacy and minimum-evidence disclosure rules apply?
+- Does any judgment require countersigning?
+- When may a verdict contribute to a future reputation projection?
+
+## Deferred Engineering
+
+This model explicitly defers:
+
+- schema and migrations
+- production persistence
+- source-only types
+- cryptographic signing
+- WebAuthn and passkeys
+- Verifiable Credentials
+- evidence hashes and Merkle roots
+- timestamping
+- transparency logs
+- threshold signatures
+- public verdict exchange
+- reputation weighting
+- staking and slashing
+- challenger bonds
+- customer-facing trust scores
+- automatic permission or action from a signed judgment
+
+No implementation should begin until the vocabulary and unresolved policy
+questions have been reviewed independently.
