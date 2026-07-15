@@ -359,6 +359,96 @@ remains unauthenticated, synthetic fixtures cannot enter the lived corpus, and
 no artifact automatically sends, contacts, routes, schedules, contracts,
 invoices, collects payment, publishes, or marks a provider accepted.
 
+### Pre-Execution Confirmation and Operational Readiness
+
+In contracted event work, execution does not ordinarily occur after months of
+complete silence. Before performance, some form of coordination or confirmation
+occurs: an operator, customer, or planner checks in; a schedule is prepared and
+distributed; details are reviewed; questions or corrections are raised; and
+providers or collaborating workers request or acknowledge the current schedule.
+
+#### Accepted Terms
+
+Provider acceptance concerns the particular terms the provider explicitly
+accepted. Time passing alone does not automatically erase historical
+acceptance. Accepted terms remain tied to the provider, date, scope, commercial
+terms, conditions, responsibilities, and version that were accepted. Material
+changes still require fresh explicit provider-authored evidence under the
+existing policy.
+
+#### Active Coordination
+
+Active coordination means there is recent evidence that the contracted work is
+still being prepared for execution. Evidence may include schedule distribution,
+logistical questions, corrections, acknowledgments, requests for the current
+schedule, staffing discussion, access instructions, or other event-specific
+preparation.
+
+Each artifact must retain its actual author and provenance. Customer or planner
+activity must not be relabeled as provider-authored confirmation.
+
+#### Execution Readiness
+
+Execution readiness is a current judgment about whether the provider has the
+necessary information and appears prepared to perform under the current terms.
+A months-old contract or acceptance record is not sufficient by itself to
+establish current execution readiness. Event-bound work requires a
+pre-execution coordination checkpoint. Silence before execution must not be
+treated as current readiness.
+
+#### Missing Checkpoint Evidence
+
+When the required pre-execution checkpoint has not been satisfied, the
+conceptual result is:
+
+```text
+readiness_unconfirmed_requires_review
+```
+
+This is conceptual vocabulary only. It does not define a runtime enum or source
+type. `readiness_unconfirmed_requires_review` does not mean withdrawn, declined,
+cancelled, breached, or unavailable. It means there is insufficient current
+evidence to rely on readiness without human review or fresh coordination
+evidence.
+
+#### Source-Specific Meaning
+
+- A planner or customer sending a schedule proves that schedule coordination
+  occurred.
+- A planner or customer reporting that a provider is confirmed is relayed
+  evidence unless provider-authored evidence supports it.
+- A provider requesting the current schedule is provider-authored evidence of
+  active participation.
+- A provider acknowledging the schedule is provider-authored evidence that it
+  was received.
+- Receipt or acknowledgment alone does not automatically prove full readiness
+  if material questions remain.
+- Other workers requesting schedules may show active coordination for those
+  workers, but must not silently confirm another provider.
+
+#### Checkpoint Timing
+
+This model does not define arbitrary universal expiry periods. Checkpoint timing
+depends on the judgment class, event type, lead time, operational risk, and
+execution date. Exact checkpoint windows remain a beta and policy-validation
+question. A future system should support judgment-specific or workflow-specific
+checkpoints rather than one universal number of days.
+
+Historical records do not expire as history. Current readiness may require
+reaffirmation even when no material change has been reported.
+
+#### Authority Boundary
+
+Briarwood may identify that confirmation is due or readiness remains
+unconfirmed and may organize the relevant evidence for operator review. It must
+not infer provider readiness from silence or infer renewed provider acceptance.
+It must not automatically contact, message, remind, schedule, route, or mark
+anyone confirmed.
+
+Fresh operator review does not manufacture provider-authored confirmation.
+Neither active coordination nor execution readiness grants external action
+authority.
+
 A future judgment artifact would need, conceptually:
 
 - judgment id and subject
@@ -607,9 +697,10 @@ The following remain unresolved for Violet's review:
 - When is independent review required?
 - May an operator attest to a relayed provider statement, and under what scope?
 - How are conflicts of interest disclosed?
-- How are explicit expiry periods selected for different judgment classes?
-- Which judgment classes, if any, require periodic reaffirmation even when no
-  material change is detected?
+- What exact pre-execution checkpoint timing should apply by judgment class and
+  workflow?
+- Which checkpoints and lead times match real operational practice must be
+  determined through beta policy validation.
 - Who may challenge an attestation, judgment, or verdict?
 - What is the correction and withdrawal policy?
 - How must outcomes link to prior judgments?
