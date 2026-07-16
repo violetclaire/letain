@@ -1230,7 +1230,9 @@ The following remain unresolved for Violet's review:
 - Which checkpoints and lead times match real operational practice must be
   determined through beta policy validation.
 - Who may challenge an attestation, judgment, or verdict?
-- What is the correction and withdrawal policy?
+- What governance determines who may correct, challenge, withdraw, or
+  supersede an evidence artifact, attestation, judgment, or related record, and
+  what review or notice is required for each action?
 - How must outcomes link to prior judgments?
 - What are the audience and portability rules?
 - What privacy and minimum-evidence disclosure rules apply?
