@@ -558,6 +558,122 @@ acceptance of expanded work. It may not automatically revise staffing, pricing,
 schedules, contracts, invoices, or service obligations. No staffing or
 feasibility judgment grants external action authority.
 
+### Versioned Amendments and Current Agreed Terms
+
+#### Original Signed Agreement as Baseline
+
+The original signed contract establishes the initial agreed terms. Later
+additions, reductions, timing changes, staffing changes, price changes, or other
+amendments must remain linked to that original agreement. The original signed
+version must remain inspectable and must never be silently overwritten.
+
+#### Confirmation Without Mandatory Re-Signing
+
+The reviewed domain rule is:
+
+```text
+In Violet's normal contracted-work process, the customer does not always
+re-sign the full contract after every agreed update.
+```
+
+The parties may agree to a change through attributable written communication.
+The provider may then revise the already signed contract and send the updated
+version as the current record. The revised document may memorialize an
+agreement already reached through messages or other attributable communication.
+
+This practice must not be generalized into a universal legal rule for every
+provider, contract, jurisdiction, or industry.
+
+#### Sending a Revision Does Not Create Agreement
+
+The governing boundary is:
+
+```text
+An updated contract records agreed changes; merely sending it does not prove
+that every newly written term was accepted.
+```
+
+The following stages must remain distinguishable:
+
+```text
+customer requested change
+provider reviewed change
+provider accepted or declined feasibility
+revised price, staffing, timing, or conditions were proposed
+affected terms were agreed
+provider issued updated document
+updated document was delivered
+```
+
+A provider-issued revision may evidence the provider's position. It must not
+automatically prove customer acceptance of terms the customer had not already
+agreed to. Receipt, silence, or failure to object must not automatically become
+acceptance. A requested service addition must not automatically prove
+acceptance of every resulting operational or commercial consequence.
+
+#### Current Agreed Version
+
+The current agreed terms may be established by the original signed agreement
+plus later supported amendments:
+
+```text
+original signed contract
++ attributable evidence of an agreed amendment
++ provider-issued revised version memorializing that amendment
+= current agreed version
+```
+
+This is a conceptual relationship only. It does not define runtime logic or
+contract types. Unchanged terms from the original agreement continue to carry
+forward. Only affected terms are amended or superseded. A revision must not
+silently replace unrelated terms. The current version must show which terms
+came from the original agreement and which were later amended.
+
+#### Source-Specific Agreement Evidence
+
+Depending on context, agreement evidence may include:
+
+- a clear customer request followed by explicit provider acceptance of the
+  workable change
+- a clear written acknowledgment that the revised scope, timing, staffing, or
+  price is correct
+- attributable messages agreeing to specific amended terms
+- a later signed amendment when the parties choose to use one
+
+Payment, receipt, silence, document delivery, or performance alone must not be
+declared universally sufficient acceptance. Where evidence is incomplete,
+conflicting, or only shows that a revision was sent, the affected terms remain
+pending or require review.
+
+#### Version History
+
+Briarwood must preserve:
+
+- the original signed version
+- requested changes
+- messages or evidence supporting agreement
+- the provider's revised version
+- the exact terms changed
+- the exact terms carried forward
+- the author and time of each artifact
+- the current effective version
+- any later correction, withdrawal, or supersession
+
+No version may be silently mutated or erased.
+
+#### Authority Boundary
+
+Briarwood may compare versions, identify changed terms, organize evidence
+showing how a revision was reached, and indicate that affected terms still
+require confirmation. It must not infer agreement merely because an updated
+document was sent. It must not require a new signature when the applicable
+provider workflow and evidence do not require one, and it must not decide legal
+enforceability.
+
+Briarwood must not automatically send, sign, amend, accept, invoice, collect
+payment, schedule, or execute contracted work. A current agreed version does
+not itself grant external action authority.
+
 A future judgment artifact would need, conceptually:
 
 - judgment id and subject
