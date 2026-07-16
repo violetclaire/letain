@@ -645,6 +645,92 @@ declared universally sufficient acceptance. Where evidence is incomplete,
 conflicting, or only shows that a revision was sent, the affected terms remain
 pending or require review.
 
+#### Authorized Amendment Sources
+
+An amendment source must retain the identity, capacity, and scope of the person
+who requested, agreed to, or memorialized the change. Depending on the context,
+an authorized source may be:
+
+- the contracting customer acting for the terms they control
+- the provider acting for feasibility, operational, or commercial terms within
+  the provider's authority
+- a representative whose authority over the affected terms is established by
+  attributable evidence
+- a human participant attesting to a verbal agreement within that participant's
+  actual capacity
+
+A title or relationship alone does not establish amendment authority. A
+planner, coordinator, payer, family member, venue contact, assistant, or other
+provider must not silently bind a contracting party merely because they are
+involved in the work. A representative may be authorized for logistics without
+being authorized for scope, price, staffing, payment, or other commercial
+terms. The authorization itself must remain scoped, attributable, and open to
+challenge, correction, withdrawal, or supersession.
+
+AI output, machine annotation, imported text, system telemetry, and an
+automatically generated revision are never authorized amendment sources. They
+may organize evidence or prepare a comparison, but they cannot supply a
+party's agreement or a human attestation.
+
+#### Verbal Agreements
+
+In Violet's normal contracted-work process, an agreement may be reached in a
+conversation and later memorialized without requiring the parties to re-sign
+the full contract. A verbal agreement may support an amendment when a human
+participant records a bounded attestation within their actual capacity and the
+applicable provider workflow accepts that form of evidence.
+
+The record must preserve:
+
+- who participated in the conversation
+- who created the attestation and in what capacity
+- when and in what context the conversation occurred
+- the exact affected terms and any conditions
+- whether the account is direct, relayed, inferred, disputed, or
+  unauthenticated
+- any conflicting account or unresolved uncertainty
+
+An operator who personally participated may attest, for example, "The customer
+and I agreed to add this service at this price." An operator who only received
+a report may attest, "The planner told me that the customer agreed," but must
+not convert that relayed statement into firsthand customer agreement. A
+transcript, recording, summary, or AI annotation may support review but cannot
+replace the participant's attestation or create agreement by itself.
+
+This policy describes Violet's reviewed operating process. It does not declare
+verbal agreement universally sufficient or decide legal enforceability. When
+the participant, capacity, affected terms, or agreement remains unclear or
+conflicting, the amendment remains pending or requires human review.
+
+#### Operator-Directed Record Updates
+
+When Violet or another authorized operator personally participated in an
+agreement, or is authorized to administer the affected contract record, that
+operator may direct Briarwood to update the record without requiring a new
+signature solely for the record-maintenance step. The direction must preserve
+two separate concepts:
+
+```text
+human attestation or other attributable evidence of the agreement
+operator instruction to memorialize that agreement in the current record
+```
+
+The operator instruction authorizes the record update. It does not create the
+underlying agreement, become another party's voice, or prove facts outside the
+operator's capacity. If the instruction relies on direct participation,
+records, or a relayed statement, that basis must remain explicit.
+
+An operator-directed update must link to the original signed agreement and
+preserve the supporting evidence or attestation, the exact terms changed, the
+terms carried forward, the directing operator, the direction time, and the new
+version. Correcting or updating the current record must append history rather
+than mutate or erase the earlier version.
+
+AI may prepare a proposed comparison or draft record update. Only an authorized
+human may confirm the record-maintenance instruction. That confirmation does
+not grant permission to send, sign, invoice, collect payment, schedule,
+publish, route, accept a provider, or execute contracted work.
+
 #### Version History
 
 Briarwood must preserve:
