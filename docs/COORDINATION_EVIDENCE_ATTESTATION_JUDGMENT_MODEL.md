@@ -760,6 +760,223 @@ Briarwood must not automatically send, sign, amend, accept, invoice, collect
 payment, schedule, or execute contracted work. A current agreed version does
 not itself grant external action authority.
 
+### Corrections, Scope Changes, Cancellation Terms, and Human Exceptions
+
+#### Corrections and Amendments
+
+A provider may discover that a date, service count, price, name, or other value
+was entered incorrectly. Fixing that entry does not necessarily mean the
+parties changed their agreement. A requested addition, reduction,
+cancellation, reassignment, waiver, or refund is a possible amendment or
+operational decision, not merely a factual correction.
+
+The governing distinction is:
+
+```text
+A correction fixes the record of what was already true; an amendment changes
+what the parties currently agree or what the provider currently authorizes.
+```
+
+A correction must preserve:
+
+- the original entry
+- the corrected entry
+- who made the correction
+- when it was corrected
+- the stated reason
+- the evidence supporting the corrected value
+
+The prior record must not be silently overwritten or erased.
+
+#### Requested Service Changes
+
+Customers, planners, or authorized representatives may request that people or
+services be added or removed. A requested reduction does not automatically
+change the contracted scope, amount owed, refund treatment, staffing plan, or
+provider obligations. The provider must determine whether the request is
+allowed under the applicable agreement and provider policy.
+
+Different providers may have different minimums, cancellation windows,
+reduction rules, refund rules, and final-payment rules. Violet's policy must not
+be imposed as a universal rule for other providers.
+
+Briarwood must preserve separately:
+
+- services originally agreed
+- services later requested
+- additions requested
+- reductions requested
+- changes accepted by the provider
+- changes declined by the provider
+- the current service-delivery plan
+- the current financial obligation
+- the current effective version of the agreement
+
+#### Service Delivery and Financial Obligation
+
+The governing distinction is:
+
+```text
+A change in who will use a service does not automatically change the
+contracted financial obligation.
+```
+
+A person may drop out after services were reserved or paid for. The provider
+may allow the paid service to be reassigned to another person. Reassignment
+does not automatically create a refund, credit, price reduction, or new service
+obligation. A lower final attendee count does not automatically prove that the
+contracted amount was reduced.
+
+The following must remain distinguishable:
+
+- services ultimately performed
+- services reserved
+- amount paid
+- amount owed
+- refund decision
+- credit decision
+
+One bounded example is:
+
+```text
+one scheduled recipient is no longer receiving the service
+the paid service may be reassigned to another recipient
+no refund was authorized
+the overall financial obligation remains unchanged
+```
+
+This example is illustrative only. It must not become a universal provider
+policy.
+
+#### Provider-Specific Cancellation and Reduction Terms
+
+Cancellation and reduction consequences depend on the applicable provider
+policy and current agreement. In Violet's normal process, a cancellation may
+be permitted before a stated deadline while the deposit remains nonrefundable.
+After a later deadline, the full contracted amount may remain due. After final
+payment, a person dropping out does not automatically create a refund.
+
+These are provider-specific practices. They must not be generalized into legal
+or industry-wide rules. Briarwood must show the relevant policy and evidence
+rather than invent a default cancellation outcome.
+
+Briarwood must preserve separately:
+
+- event cancellation
+- individual service reduction
+- participant substitution
+- service reassignment
+- deposit treatment
+- remaining-balance treatment
+- refund decision
+- credit decision
+- waiver decision
+- reminder or collection status
+
+#### Explicit Human Financial Decisions
+
+Briarwood must not infer that a service reduction, cancellation, nonattendance,
+personal hardship, or changed circumstance automatically means:
+
+- refund or partial refund
+- credit
+- deposit return
+- balance forgiveness or waiver
+- service reassignment
+- continued or stopped collection
+- cancellation of the entire contracted relationship
+
+An authorized human may explicitly decide to:
+
+- approve or decline a requested reduction
+- preserve the original financial obligation
+- allow a paid service to be reassigned
+- issue a refund or partial refund
+- issue a credit
+- waive a remaining balance
+- preserve a nonrefundable deposit
+- pause payment reminders
+- permanently stop payment reminders
+- escalate the matter for individual review
+
+Each decision must remain bounded to the affected terms.
+
+#### Reminder Status and Financial Treatment
+
+The governing distinction is:
+
+```text
+Stopping a payment reminder is not the same as refunding money, waiving a
+balance, cancelling a contract, or changing the underlying financial record.
+```
+
+Reminder status is an operational communication setting. Deposit treatment,
+amount paid, amount owed, waiver, refund, and credit remain separate decisions.
+A provider may stop reminders without returning a deposit. A provider may
+waive a balance without changing the historical amount originally contracted.
+Briarwood must not collapse these actions into one generic cancellation state.
+
+#### Extraordinary Human Circumstances
+
+Unusual and deeply sensitive circumstances may require individualized human
+review. A provider may choose compassionate relief that differs from normal
+cancellation or payment policy. Such relief may include stopping reminders,
+waiving a balance, issuing a refund or credit, ending further operational
+activity, or another bounded decision.
+
+The system must not decide what compassion requires. A sensitive circumstance
+must not automatically trigger a refund, waiver, collection action, or policy
+exception. An accountable human must explicitly author the exceptional
+decision. An exception in one case must not silently become the provider's
+general policy or precedent for unrelated cases. Sensitive details must not
+become a reputation signal or generalized trust judgment.
+
+The following is a bounded domain example only:
+
+- An event could not proceed because the bride died before the wedding.
+- The provider explicitly stopped future payment reminders and did not pursue
+  further operational activity.
+- The deposit was not automatically returned.
+- This compassionate decision did not rewrite the provider's general
+  cancellation policy.
+
+This example is not legal guidance or a universal moral rule.
+
+#### Current Record and Append-Only History
+
+After a correction, amendment, cancellation decision, reassignment, refund,
+waiver, or exceptional decision, Briarwood must preserve:
+
+- the original agreement
+- the applicable provider policy
+- the triggering request or circumstance
+- the human decision
+- the exact terms affected
+- the exact terms unchanged
+- prior and current service counts
+- prior and current financial state
+- prior and current reminder or collection state
+- who authorized the decision
+- when it was authorized
+- any later correction, withdrawal, or supersession
+
+No historical agreement, payment, request, or decision may be silently erased.
+
+#### Authority Boundary
+
+Briarwood may identify that a correction or policy decision is needed, compare
+a requested change with the current agreement and provider policy, organize
+evidence, and present bounded options for human review.
+
+Briarwood must not automatically approve or decline a reduction; issue a
+refund, credit, waiver, or reassignment; stop or continue payment reminders; or
+infer a compassionate exception from sensitive personal information. It must
+not decide legal enforceability.
+
+AI may prepare or summarize the record, but only an authorized human may make
+the financial, cancellation, exception, or operational decision. No internal
+record decision grants unrelated external action authority.
+
 A future judgment artifact would need, conceptually:
 
 - judgment id and subject
