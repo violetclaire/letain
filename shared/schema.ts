@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, boolean, jsonb, index, uniqueIndex, check } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, boolean, jsonb, index, uniqueIndex, check, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -2968,9 +2968,15 @@ export const humanAttestations = pgTable(
   "human_attestations",
   {
     id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    operatorId: varchar("operator_id").notNull(),
-    authorUserId: varchar("author_user_id").notNull(),
-    inquiryId: varchar("inquiry_id").notNull(),
+    operatorId: varchar("operator_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    authorUserId: varchar("author_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    inquiryId: varchar("inquiry_id")
+      .notNull()
+      .references(() => inquiries.id, { onDelete: "restrict" }),
     claimText: text("claim_text").notNull(),
     authorCapacity: text("author_capacity").notNull(),
     knowledgeBasis: text("knowledge_basis")
@@ -2980,7 +2986,8 @@ export const humanAttestations = pgTable(
       .$type<HumanAttestationLifecycleAction>()
       .notNull()
       .default("attestation"),
-    relatedAttestationId: varchar("related_attestation_id"),
+    relatedAttestationId: varchar("related_attestation_id")
+      .references((): AnyPgColumn => humanAttestations.id, { onDelete: "restrict" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [

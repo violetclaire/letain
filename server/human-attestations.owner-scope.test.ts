@@ -449,6 +449,16 @@ test("human attestation surface is create/list only and grants no action authori
   assert.ok(table, "human attestations schema should exist");
   assert.doesNotMatch(table, /updatedAt|deletedAt/);
   assert.match(table, /human_attestations_lifecycle_link_check/);
+  assert.equal(
+    table.match(/\.references\(\(\) => users\.id, \{ onDelete: "restrict" \}\)/g)?.length,
+    2,
+    "operator and authenticated author should reference users",
+  );
+  assert.match(table, /\.references\(\(\) => inquiries\.id, \{ onDelete: "restrict" \}\)/);
+  assert.match(
+    table,
+    /\.references\(\(\): AnyPgColumn => humanAttestations\.id, \{ onDelete: "restrict" \}\)/,
+  );
 });
 
 test("startup schema setup is additive, constrained, and indexed", async () => {
@@ -462,6 +472,14 @@ test("startup schema setup is additive, constrained, and indexed", async () => {
   assert.match(setup, /human_attestations_knowledge_basis_check/);
   assert.match(setup, /human_attestations_lifecycle_action_check/);
   assert.match(setup, /human_attestations_lifecycle_link_check/);
+  assert.match(setup, /human_attestations_operator_fk[\s\S]*?FOREIGN KEY \(operator_id\) REFERENCES users\(id\) ON DELETE RESTRICT/);
+  assert.match(setup, /human_attestations_author_fk[\s\S]*?FOREIGN KEY \(author_user_id\) REFERENCES users\(id\) ON DELETE RESTRICT/);
+  assert.match(setup, /human_attestations_inquiry_fk[\s\S]*?FOREIGN KEY \(inquiry_id\) REFERENCES inquiries\(id\) ON DELETE RESTRICT/);
+  assert.match(setup, /human_attestations_related_fk[\s\S]*?FOREIGN KEY \(related_attestation_id\) REFERENCES human_attestations\(id\) ON DELETE RESTRICT/);
+  assert.match(setup, /pg_constraint/);
+  assert.equal(setup.match(/NOT VALID/g)?.length, 4, "existing-table foreign keys should protect new writes before validation");
+  assert.equal(setup.match(/VALIDATE CONSTRAINT human_attestations_/g)?.length, 4);
+  assert.doesNotMatch(setup, /ON DELETE (?:CASCADE|SET NULL)/i);
   assert.match(setup, /human_attestations_operator_inquiry_created_idx/);
   assert.match(setup, /human_attestations_related_idx/);
 });
