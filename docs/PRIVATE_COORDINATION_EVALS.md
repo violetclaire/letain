@@ -25,13 +25,20 @@ The existing coordination assessment layer is the first verifier foundation:
 | VerificationRun | `coordination_assessments` row | Already covered by existing result/run snapshot |
 | EvalRun | Missing | Do not persist yet |
 | EvalResult | Missing | Source-only expected output first |
-| EvidenceArtifact | `coordination_events` plus `signalProvenance` | Existing provenance layer |
+| EvidenceArtifact | `coordination_events` plus `signalProvenance` | Current evidence/observation fragments and provenance strings, not typed human attestation or judgment |
 | VerificationSubject | `coordination_paths` | Existing path-based subject |
 
 `coordination_paths` remain the subject. `coordination_events` and
-`signalProvenance` remain the evidence/provenance foundation.
+`signalProvenance` remain the current evidence/provenance foundation, but they
+do not establish a human attestation or canonical coordination judgment.
 `evaluateCoordinationPath()` remains the deterministic permission engine.
 `coordination_assessments` currently covers the result/run snapshot.
+
+See `docs/COORDINATION_EVIDENCE_ATTESTATION_JUDGMENT_MODEL.md` for the
+documentation-only separation between evidence, machine annotation,
+observation, human attestation, coordination judgment, permission, outcome,
+and scoped verdict. Synthetic eval assertions must not be represented as lived
+production judgments.
 
 ## Guardrails
 

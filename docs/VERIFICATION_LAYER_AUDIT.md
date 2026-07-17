@@ -29,18 +29,20 @@ layer:
 | Verification concept | Current Briarwood foundation | Notes |
 | --- | --- | --- |
 | VerificationSubject | `coordination_paths` | First subject type. Inquiry-rooted, operator-scoped, and path-based. |
-| VerifiableClaim | Coordination path state fields | Examples: context captured, authority state, availability state, handoff state, recovery capacity, commitment state, and outcome verification state. |
-| EvidenceArtifact | `coordination_events` and `signalProvenance` | Current evidence/provenance layer. Adjacent inquiry, route, schedule, contract, payment, and trust timeline records can be referenced as evidence later. |
-| VerificationCheck | `evaluateCoordinationPath()` | Current deterministic rule engine. No LLM should make core permission decisions. |
+| VerifiableClaim | Coordination path state fields | Current path-state inputs, not canonical human attestations or judgments. Examples: context captured, authority state, availability state, handoff state, recovery capacity, commitment state, and outcome verification state. |
+| EvidenceArtifact | `coordination_events` and `signalProvenance` | Current evidence/observation fragments and provenance strings. Adjacent inquiry, route, schedule, contract, payment, and trust timeline records can be referenced as evidence later, but none becomes attestation or judgment automatically. |
+| VerificationCheck | `evaluateCoordinationPath()` | Current deterministic permission rule engine, not a verifier of human truth. No LLM should make core permission decisions. |
 | VerificationResult | `coordination_assessments` | Current persisted permission decision result. |
 | VerificationRun | `coordination_assessments` row | Current run snapshot. Future work may add explicit check version/input snapshot metadata if needed. |
 
 The operator-facing panel already exists in `CoordinationPathAdmin`. It displays
 the current permission decision, confidence, risk factors, missing signals,
 recommended next action, explanation, signal provenance, event history, and
-human judgment state.
+human-review state. The repository does not yet contain a canonical durable
+human `CoordinationJudgment` artifact.
 
-CDI is a related measurement layer, not a replacement for this permission layer.
+CDI is a related telemetry and measurement layer, not a replacement for human
+attestation, coordination judgment, or this permission layer.
 See `docs/CDI_PRODUCT_AND_RESEARCH_SCOPES.md`: CDI describes behavioral
 reliability and coordination-depth signals, while coordination assessment
 decides what is safe to do next for a specific path.
@@ -74,6 +76,12 @@ path-scoped support for a permission decision:
 Sensitive surfaces such as contract signing, payment links, Square, sender
 domains, public tokens, and client-facing sends require focused review before
 they become verification inputs.
+
+Evidence supporting a permission decision is still not human attestation or
+human judgment. See
+`docs/COORDINATION_EVIDENCE_ATTESTATION_JUDGMENT_MODEL.md` for the canonical
+documentation-only separation and the policy questions that must be resolved
+before implementation.
 
 ## What Not To Build
 
@@ -122,4 +130,6 @@ The next implementation step should be small and behavior-guarded:
    Workspace before adding a new verification UI.
 
 This preserves the current Briarwood framing: coordination permission for a
-specific path, with human judgment where the system cannot safely decide.
+specific path, with explicit human review where the system cannot safely
+decide. A future human judgment artifact must remain distinct from both the
+evidence and the permission result.

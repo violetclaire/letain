@@ -52,6 +52,13 @@ The implemented source/test/eval layer checks candidate coordination states
 against that question. It treats evidence, review, approval, and external
 action as separate concepts.
 
+In this eval layer, `operatorJudgment` is a synthetic expected judgment used to
+test boundaries. It is not a lived, durable `CoordinationJudgment` and cannot
+enter an authoritative production corpus. See
+`docs/COORDINATION_EVIDENCE_ATTESTATION_JUDGMENT_MODEL.md` for the canonical
+conceptual separation between evidence, attestation, judgment, permission,
+outcome feedback, and scoped verdict.
+
 This matters because real-world service work often runs through private,
 messy, high-context coordination: texts, emails, referrals, handoffs, recovery
 moments, pricing context, schedule context, and relationship trust. In that
@@ -86,7 +93,8 @@ The current source/test/eval pipeline is:
    A trace fixture describes a safe, synthetic coordination scenario. It names
    the source trace id, eval case candidate id, operator judgment, permission
    outcome, blocked reasons, private-only signals, forbidden actions, failure
-   modes, and safe next step.
+   modes, and safe next step. Its operator judgment is an eval expectation, not
+   a human-authored production judgment.
 
 2. Trace capture validation
 
@@ -179,6 +187,11 @@ Every result preserves chronology and source provenance, requires human review,
 allows no runtime action, and keeps routing, scheduling, sending, contracts,
 invoices, payments, publishing, client links, preflight, and provider acceptance
 actions forbidden.
+
+The private provider acceptance evidence bridge merged in PR #164 normalizes
+manual or pasted captures into this evidence-only characterization. It keeps
+claimed authorship unauthenticated, requires human review, and creates neither
+attestation nor provider acceptance authority.
 
 ## Permission Boundaries Preserved
 
@@ -277,8 +290,9 @@ to a client or the public.
 ## Future Direction
 
 These concepts may inform future eval infrastructure and product development.
-Future product work should keep the same separation: evidence can inform
-judgment, but it should not silently become permission to act.
+Future product work should keep the full separation: evidence and machine
+annotation may inform human attestation and a scoped human judgment, but none
+should silently become permission or authority to act.
 
 Future work may expand the taxonomy, add more synthetic traces, harden
 coordination-signal coverage, or connect these ideas to product surfaces only
