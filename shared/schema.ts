@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, boolean, jsonb, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, boolean, jsonb, index, uniqueIndex, check } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -2945,6 +2945,73 @@ export const insertInquiryInternalNoteSchema = createInsertSchema(inquiryInterna
 });
 export type InsertInquiryInternalNote = z.infer<typeof insertInquiryInternalNoteSchema>;
 export type InquiryInternalNote = typeof inquiryInternalNotes.$inferSelect;
+
+export const humanAttestationKnowledgeBasisValues = [
+  "firsthand",
+  "relayed",
+  "evidence_review",
+] as const;
+export type HumanAttestationKnowledgeBasis = typeof humanAttestationKnowledgeBasisValues[number];
+
+export const humanAttestationLifecycleActionValues = [
+  "attestation",
+  "correction",
+  "withdrawal",
+  "challenge",
+  "supersession",
+] as const;
+export type HumanAttestationLifecycleAction = typeof humanAttestationLifecycleActionValues[number];
+
+// An operator-authored statement linked to the private inquiry context. Records
+// are immutable; later lifecycle actions point to an earlier attestation.
+export const humanAttestations = pgTable(
+  "human_attestations",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    operatorId: varchar("operator_id").notNull(),
+    authorUserId: varchar("author_user_id").notNull(),
+    inquiryId: varchar("inquiry_id").notNull(),
+    claimText: text("claim_text").notNull(),
+    authorCapacity: text("author_capacity").notNull(),
+    knowledgeBasis: text("knowledge_basis")
+      .$type<HumanAttestationKnowledgeBasis>()
+      .notNull(),
+    lifecycleAction: text("lifecycle_action")
+      .$type<HumanAttestationLifecycleAction>()
+      .notNull()
+      .default("attestation"),
+    relatedAttestationId: varchar("related_attestation_id"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("human_attestations_operator_inquiry_created_idx")
+      .on(table.operatorId, table.inquiryId, table.createdAt, table.id),
+    index("human_attestations_related_idx").on(table.relatedAttestationId),
+    check(
+      "human_attestations_knowledge_basis_check",
+      sql`${table.knowledgeBasis} IN ('firsthand', 'relayed', 'evidence_review')`,
+    ),
+    check(
+      "human_attestations_lifecycle_action_check",
+      sql`${table.lifecycleAction} IN ('attestation', 'correction', 'withdrawal', 'challenge', 'supersession')`,
+    ),
+    check(
+      "human_attestations_lifecycle_link_check",
+      sql`(${table.lifecycleAction} = 'attestation' AND ${table.relatedAttestationId} IS NULL)
+        OR (${table.lifecycleAction} <> 'attestation' AND ${table.relatedAttestationId} IS NOT NULL)`,
+    ),
+  ],
+);
+
+export const insertHumanAttestationSchema = createInsertSchema(humanAttestations, {
+  knowledgeBasis: z.enum(humanAttestationKnowledgeBasisValues),
+  lifecycleAction: z.enum(humanAttestationLifecycleActionValues),
+}).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertHumanAttestation = z.infer<typeof insertHumanAttestationSchema>;
+export type HumanAttestation = typeof humanAttestations.$inferSelect;
 
 // An outgoing client-facing message draft from the response composer. Covers
 // the three client messages: pricing/available response, polite decline, and a

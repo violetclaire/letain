@@ -237,6 +237,31 @@ async function ensureDatabaseSchema() {
     )` },
     { name: 'inquiry_internal_notes.unique', sql: sql`CREATE UNIQUE INDEX IF NOT EXISTS inquiry_internal_notes_operator_inquiry_unique
       ON inquiry_internal_notes (operator_id, inquiry_id)` },
+    { name: 'human_attestations.table', sql: sql`CREATE TABLE IF NOT EXISTS human_attestations (
+      id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+      operator_id varchar NOT NULL,
+      author_user_id varchar NOT NULL,
+      inquiry_id varchar NOT NULL,
+      claim_text text NOT NULL,
+      author_capacity text NOT NULL,
+      knowledge_basis text NOT NULL,
+      lifecycle_action text NOT NULL DEFAULT 'attestation',
+      related_attestation_id varchar,
+      created_at timestamp NOT NULL DEFAULT now(),
+      CONSTRAINT human_attestations_knowledge_basis_check
+        CHECK (knowledge_basis IN ('firsthand', 'relayed', 'evidence_review')),
+      CONSTRAINT human_attestations_lifecycle_action_check
+        CHECK (lifecycle_action IN ('attestation', 'correction', 'withdrawal', 'challenge', 'supersession')),
+      CONSTRAINT human_attestations_lifecycle_link_check
+        CHECK (
+          (lifecycle_action = 'attestation' AND related_attestation_id IS NULL)
+          OR (lifecycle_action <> 'attestation' AND related_attestation_id IS NOT NULL)
+        )
+    )` },
+    { name: 'human_attestations.operator_inquiry_created_idx', sql: sql`CREATE INDEX IF NOT EXISTS human_attestations_operator_inquiry_created_idx
+      ON human_attestations (operator_id, inquiry_id, created_at, id)` },
+    { name: 'human_attestations.related_idx', sql: sql`CREATE INDEX IF NOT EXISTS human_attestations_related_idx
+      ON human_attestations (related_attestation_id)` },
     { name: 'inquiry_responses.table', sql: sql`CREATE TABLE IF NOT EXISTS inquiry_responses (
       id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
       operator_id varchar NOT NULL,

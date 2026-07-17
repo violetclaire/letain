@@ -154,6 +154,9 @@ import {
   type InsertCoordinationAssessment,
   inquiryInternalNotes,
   type InquiryInternalNote,
+  humanAttestations,
+  type HumanAttestation,
+  type InsertHumanAttestation,
   inquiryResponses,
   type InquiryResponse,
   type InsertInquiryResponse,
@@ -512,6 +515,14 @@ export interface IStorage {
   // Inquiry Workspace: private operator-only inquiry notes
   getInquiryInternalNote(operatorId: string, inquiryId: string): Promise<InquiryInternalNote | undefined>;
   upsertInquiryInternalNote(operatorId: string, inquiryId: string, body: string): Promise<InquiryInternalNote>;
+  // Private, append-only human attestations linked to an inquiry context
+  createHumanAttestation(data: InsertHumanAttestation): Promise<HumanAttestation>;
+  getHumanAttestation(
+    operatorId: string,
+    inquiryId: string,
+    attestationId: string,
+  ): Promise<HumanAttestation | undefined>;
+  listHumanAttestations(operatorId: string, inquiryId: string): Promise<HumanAttestation[]>;
   // Briarwood response composer: outgoing client-message drafts
   createInquiryResponse(data: InsertInquiryResponse): Promise<InquiryResponse>;
   getInquiryResponse(id: string): Promise<InquiryResponse | undefined>;
@@ -2885,6 +2896,35 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return row;
+  }
+
+  async createHumanAttestation(data: InsertHumanAttestation): Promise<HumanAttestation> {
+    const [row] = await db.insert(humanAttestations).values(data).returning();
+    return row;
+  }
+
+  async getHumanAttestation(
+    operatorId: string,
+    inquiryId: string,
+    attestationId: string,
+  ): Promise<HumanAttestation | undefined> {
+    const [row] = await db.select().from(humanAttestations)
+      .where(and(
+        eq(humanAttestations.operatorId, operatorId),
+        eq(humanAttestations.inquiryId, inquiryId),
+        eq(humanAttestations.id, attestationId),
+      ))
+      .limit(1);
+    return row || undefined;
+  }
+
+  async listHumanAttestations(operatorId: string, inquiryId: string): Promise<HumanAttestation[]> {
+    return await db.select().from(humanAttestations)
+      .where(and(
+        eq(humanAttestations.operatorId, operatorId),
+        eq(humanAttestations.inquiryId, inquiryId),
+      ))
+      .orderBy(asc(humanAttestations.createdAt), asc(humanAttestations.id));
   }
 
   // --- Briarwood response composer: outgoing client-message drafts ---
