@@ -159,6 +159,7 @@ function stubAttestationStorage(initialAttestations: TestAttestation[] = []) {
   const inquiries = new Map<string, { id: string; vendorId: string }>([
     ["inquiry-a", { id: "inquiry-a", vendorId: "artist-a" }],
     ["inquiry-b", { id: "inquiry-b", vendorId: "artist-b" }],
+    ["inquiry-c", { id: "inquiry-c", vendorId: "artist-a" }],
   ]);
   const attestations = [...initialAttestations];
   const calls = {
@@ -348,12 +349,12 @@ test("correction, withdrawal, challenge, and supersession append linked records"
   assert.deepEqual(attestations[0], original, "the original attestation must remain unchanged");
 });
 
-test("lifecycle links fail closed outside the authorized inquiry scope", async () => {
-  const otherOperatorAttestation: TestAttestation = {
-    id: "attestation-other",
+test("lifecycle links fail closed across owner and inquiry boundaries", async () => {
+  const otherOwnerSameInquiry: TestAttestation = {
+    id: "attestation-other-owner",
     operatorId: "artist-b",
     authorUserId: "artist-b",
-    inquiryId: "inquiry-b",
+    inquiryId: "inquiry-a",
     claimText: "Other operator claim",
     authorCapacity: "Participant",
     knowledgeBasis: "firsthand",
@@ -361,18 +362,31 @@ test("lifecycle links fail closed outside the authorized inquiry scope", async (
     relatedAttestationId: null,
     createdAt: new Date("2026-07-16T11:00:00.000Z"),
   };
-  const { calls } = stubAttestationStorage([otherOperatorAttestation]);
+  const sameOwnerOtherInquiry: TestAttestation = {
+    ...otherOwnerSameInquiry,
+    id: "attestation-other-inquiry",
+    operatorId: "artist-a",
+    authorUserId: "artist-a",
+    inquiryId: "inquiry-c",
+    claimText: "Other inquiry claim",
+  };
+  const { calls } = stubAttestationStorage([otherOwnerSameInquiry, sameOwnerOtherInquiry]);
 
-  const result = await invoke(postAttestationHandler, {
-    session: { userId: "artist-a" },
-    body: validAttestationBody({
-      lifecycleAction: "challenge",
-      relatedAttestationId: otherOperatorAttestation.id,
-    }),
-  });
+  for (const relatedAttestationId of [otherOwnerSameInquiry.id, sameOwnerOtherInquiry.id]) {
+    const result = await invoke(postAttestationHandler, {
+      session: { userId: "artist-a" },
+      body: validAttestationBody({
+        lifecycleAction: "challenge",
+        relatedAttestationId,
+      }),
+    });
 
-  assert.equal(result.statusCode, 400);
-  assert.deepEqual(calls.getHumanAttestation, [["artist-a", "inquiry-a", "attestation-other"]]);
+    assert.equal(result.statusCode, 400);
+  }
+  assert.deepEqual(calls.getHumanAttestation, [
+    ["artist-a", "inquiry-a", "attestation-other-owner"],
+    ["artist-a", "inquiry-a", "attestation-other-inquiry"],
+  ]);
   assert.deepEqual(calls.createHumanAttestation, []);
 });
 
@@ -479,7 +493,17 @@ test("startup schema setup is additive, constrained, and indexed", async () => {
   assert.match(setup, /pg_constraint/);
   assert.equal(setup.match(/NOT VALID/g)?.length, 4, "existing-table foreign keys should protect new writes before validation");
   assert.equal(setup.match(/VALIDATE CONSTRAINT human_attestations_/g)?.length, 4);
+  assert.equal(
+    setup.match(/required: true/g)?.length,
+    6,
+    "table creation, foreign-key addition, and all validation steps must fail startup closed",
+  );
   assert.doesNotMatch(setup, /ON DELETE (?:CASCADE|SET NULL)/i);
   assert.match(setup, /human_attestations_operator_inquiry_created_idx/);
   assert.match(setup, /human_attestations_related_idx/);
+  assert.match(
+    indexText,
+    /catch \(error: any\) \{[\s\S]*?if \(migration\.required\) \{[\s\S]*?throw error;/,
+    "required attestation persistence migrations must stop startup on failure",
+  );
 });
