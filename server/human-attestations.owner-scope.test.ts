@@ -491,12 +491,28 @@ test("startup schema setup is additive, constrained, and indexed", async () => {
   assert.match(setup, /human_attestations_inquiry_fk[\s\S]*?FOREIGN KEY \(inquiry_id\) REFERENCES inquiries\(id\) ON DELETE RESTRICT/);
   assert.match(setup, /human_attestations_related_fk[\s\S]*?FOREIGN KEY \(related_attestation_id\) REFERENCES human_attestations\(id\) ON DELETE RESTRICT/);
   assert.match(setup, /pg_constraint/);
-  assert.equal(setup.match(/NOT VALID/g)?.length, 4, "existing-table foreign keys should protect new writes before validation");
-  assert.equal(setup.match(/VALIDATE CONSTRAINT human_attestations_/g)?.length, 4);
+  assert.match(
+    setup,
+    /human_attestations_knowledge_basis_check[\s\S]*?CHECK \(knowledge_basis IN \('firsthand', 'relayed', 'evidence_review'\)\) NOT VALID/,
+  );
+  assert.match(
+    setup,
+    /human_attestations_lifecycle_action_check[\s\S]*?CHECK \(lifecycle_action IN \('attestation', 'correction', 'withdrawal', 'challenge', 'supersession'\)\) NOT VALID/,
+  );
+  assert.match(
+    setup,
+    /human_attestations_lifecycle_link_check[\s\S]*?CHECK \([\s\S]*?lifecycle_action = 'attestation'[\s\S]*?\) NOT VALID/,
+  );
+  assert.equal(
+    setup.match(/NOT VALID/g)?.length,
+    7,
+    "existing-table foreign keys and check constraints should protect new writes before validation",
+  );
+  assert.equal(setup.match(/VALIDATE CONSTRAINT human_attestations_/g)?.length, 7);
   assert.equal(
     setup.match(/required: true/g)?.length,
-    6,
-    "table creation, foreign-key addition, and all validation steps must fail startup closed",
+    10,
+    "table creation, foreign-key/check installation, and all validation steps must fail startup closed",
   );
   assert.doesNotMatch(setup, /ON DELETE (?:CASCADE|SET NULL)/i);
   assert.match(setup, /human_attestations_operator_inquiry_created_idx/);

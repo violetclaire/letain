@@ -309,6 +309,42 @@ async function ensureDatabaseSchema() {
         END IF;
       END;
       $human_attestation_fks$` },
+    { name: 'human_attestations.check_constraints', required: true, sql: sql`DO $human_attestation_checks$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'human_attestations'::regclass
+            AND conname = 'human_attestations_knowledge_basis_check'
+        ) THEN
+          ALTER TABLE human_attestations
+            ADD CONSTRAINT human_attestations_knowledge_basis_check
+            CHECK (knowledge_basis IN ('firsthand', 'relayed', 'evidence_review')) NOT VALID;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'human_attestations'::regclass
+            AND conname = 'human_attestations_lifecycle_action_check'
+        ) THEN
+          ALTER TABLE human_attestations
+            ADD CONSTRAINT human_attestations_lifecycle_action_check
+            CHECK (lifecycle_action IN ('attestation', 'correction', 'withdrawal', 'challenge', 'supersession')) NOT VALID;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'human_attestations'::regclass
+            AND conname = 'human_attestations_lifecycle_link_check'
+        ) THEN
+          ALTER TABLE human_attestations
+            ADD CONSTRAINT human_attestations_lifecycle_link_check
+            CHECK (
+              (lifecycle_action = 'attestation' AND related_attestation_id IS NULL)
+              OR (lifecycle_action <> 'attestation' AND related_attestation_id IS NOT NULL)
+            ) NOT VALID;
+        END IF;
+      END;
+      $human_attestation_checks$` },
     { name: 'human_attestations.operator_fk.validate', required: true, sql: sql`ALTER TABLE human_attestations
       VALIDATE CONSTRAINT human_attestations_operator_fk` },
     { name: 'human_attestations.author_fk.validate', required: true, sql: sql`ALTER TABLE human_attestations
@@ -317,6 +353,12 @@ async function ensureDatabaseSchema() {
       VALIDATE CONSTRAINT human_attestations_inquiry_fk` },
     { name: 'human_attestations.related_fk.validate', required: true, sql: sql`ALTER TABLE human_attestations
       VALIDATE CONSTRAINT human_attestations_related_fk` },
+    { name: 'human_attestations.knowledge_basis_check.validate', required: true, sql: sql`ALTER TABLE human_attestations
+      VALIDATE CONSTRAINT human_attestations_knowledge_basis_check` },
+    { name: 'human_attestations.lifecycle_action_check.validate', required: true, sql: sql`ALTER TABLE human_attestations
+      VALIDATE CONSTRAINT human_attestations_lifecycle_action_check` },
+    { name: 'human_attestations.lifecycle_link_check.validate', required: true, sql: sql`ALTER TABLE human_attestations
+      VALIDATE CONSTRAINT human_attestations_lifecycle_link_check` },
     { name: 'human_attestations.operator_inquiry_created_idx', sql: sql`CREATE INDEX IF NOT EXISTS human_attestations_operator_inquiry_created_idx
       ON human_attestations (operator_id, inquiry_id, created_at, id)` },
     { name: 'human_attestations.related_idx', sql: sql`CREATE INDEX IF NOT EXISTS human_attestations_related_idx
