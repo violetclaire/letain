@@ -13,7 +13,11 @@ import { registerSquareRoutes } from "./squareRoutes";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import { GoogleGenAI, Modality } from "@google/genai";
-import { coordinationRiskFactorValues } from "@shared/schema";
+import {
+  coordinationRiskFactorValues,
+  humanAttestationKnowledgeBasisValues,
+  humanAttestationLifecycleActionValues,
+} from "@shared/schema";
 import { defaultScheduleOperatorDefaults, type ScheduleOperatorDefaults } from "@shared/schedulingIntelligence";
 import * as smsService from "./smsService";
 import { processInboundSms } from "./inboundProcessor";
@@ -2248,7 +2252,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     body: z.string().max(20000),
   }).strict();
 
-  const loadInternalNoteContext = async (req: Request, res: Response) => {
+  const humanAttestationCreateSchema = z.object({
+    claimText: z.string().trim().min(1).max(20000),
+    authorCapacity: z.string().trim().min(1).max(500),
+    knowledgeBasis: z.enum(humanAttestationKnowledgeBasisValues),
+    lifecycleAction: z.enum(humanAttestationLifecycleActionValues).default("attestation"),
+    relatedAttestationId: z.string().trim().min(1).max(255).nullable().optional(),
+  }).strict().superRefine((value, context) => {
+    const hasRelatedAttestation = Boolean(value.relatedAttestationId);
+    if (value.lifecycleAction === "attestation" && hasRelatedAttestation) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["relatedAttestationId"],
+        message: "An original attestation cannot link to an earlier attestation",
+      });
+    }
+    if (value.lifecycleAction !== "attestation" && !hasRelatedAttestation) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["relatedAttestationId"],
+        message: `${value.lifecycleAction} requires a related attestation`,
+      });
+    }
+  });
+
+  const loadPrivateInquiryContext = async (req: Request, res: Response) => {
     const userId = getAuthUserId(req);
     if (!userId) {
       res.status(401).json({ error: "Not authenticated" });
@@ -2278,7 +2306,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // --- Inquiry Workspace: private internal notes (no client-visible effects) ---
   app.get("/api/inquiries/:id/internal-note", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const context = await loadInternalNoteContext(req, res);
+      const context = await loadPrivateInquiryContext(req, res);
       if (!context) return;
 
       const note = await storage.getInquiryInternalNote(context.userId, context.inquiry.id);
@@ -2290,7 +2318,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/inquiries/:id/internal-note", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const context = await loadInternalNoteContext(req, res);
+      const context = await loadPrivateInquiryContext(req, res);
       if (!context) return;
 
       const parsed = internalNoteSchema.safeParse(req.body);
@@ -2300,6 +2328,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const note = await storage.upsertInquiryInternalNote(context.userId, context.inquiry.id, parsed.data.body);
       res.json({ note });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // --- Inquiry Workspace: private append-only human attestations ---
+  app.get("/api/inquiries/:id/human-attestations", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const context = await loadPrivateInquiryContext(req, res);
+      if (!context) return;
+
+      const attestations = await storage.listHumanAttestations(context.userId, context.inquiry.id);
+      res.json({ attestations });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/inquiries/:id/human-attestations", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const context = await loadPrivateInquiryContext(req, res);
+      if (!context) return;
+
+      const parsed = humanAttestationCreateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: parsed.error.errors[0]?.message || "Invalid human attestation",
+        });
+      }
+
+      if (parsed.data.relatedAttestationId) {
+        const related = await storage.getHumanAttestation(
+          context.userId,
+          context.inquiry.id,
+          parsed.data.relatedAttestationId,
+        );
+        if (!related) {
+          return res.status(400).json({
+            error: "Related attestation must belong to this inquiry",
+          });
+        }
+      }
+
+      const attestation = await storage.createHumanAttestation({
+        operatorId: context.userId,
+        authorUserId: context.userId,
+        inquiryId: context.inquiry.id,
+        claimText: parsed.data.claimText,
+        authorCapacity: parsed.data.authorCapacity,
+        knowledgeBasis: parsed.data.knowledgeBasis,
+        lifecycleAction: parsed.data.lifecycleAction,
+        relatedAttestationId: parsed.data.relatedAttestationId ?? null,
+      });
+
+      res.status(201).json({ attestation });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

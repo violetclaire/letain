@@ -9,13 +9,13 @@ import { startCronJobs } from "./cronJobs";
 import { startScheduledEmailJob } from './scheduledEmailJob';
 import { isLocalPreviewBackgroundJobsDisabled, logLocalPreviewBackgroundJobsDisabled } from "./backgroundJobs";
 import { db } from "./db";
-import { sql } from "drizzle-orm";
+import { sql, type SQL } from "drizzle-orm";
 
 // Ensure database schema has required columns (runs on startup)
 async function ensureDatabaseSchema() {
   console.log("[DB] Starting schema migration...");
   
-  const migrations = [
+  const migrations: Array<{ name: string; sql: SQL; required?: boolean }> = [
     { name: 'inquiries.sentiment', sql: sql`ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS sentiment text` },
     { name: 'inquiries.sentiment_score', sql: sql`ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS sentiment_score integer` },
     { name: 'inquiries.sentiment_analysis', sql: sql`ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS sentiment_analysis jsonb` },
@@ -237,6 +237,132 @@ async function ensureDatabaseSchema() {
     )` },
     { name: 'inquiry_internal_notes.unique', sql: sql`CREATE UNIQUE INDEX IF NOT EXISTS inquiry_internal_notes_operator_inquiry_unique
       ON inquiry_internal_notes (operator_id, inquiry_id)` },
+    { name: 'human_attestations.table', required: true, sql: sql`CREATE TABLE IF NOT EXISTS human_attestations (
+      id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+      operator_id varchar NOT NULL,
+      author_user_id varchar NOT NULL,
+      inquiry_id varchar NOT NULL,
+      claim_text text NOT NULL,
+      author_capacity text NOT NULL,
+      knowledge_basis text NOT NULL,
+      lifecycle_action text NOT NULL DEFAULT 'attestation',
+      related_attestation_id varchar,
+      created_at timestamp NOT NULL DEFAULT now(),
+      CONSTRAINT human_attestations_operator_fk
+        FOREIGN KEY (operator_id) REFERENCES users(id) ON DELETE RESTRICT,
+      CONSTRAINT human_attestations_author_fk
+        FOREIGN KEY (author_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+      CONSTRAINT human_attestations_inquiry_fk
+        FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE RESTRICT,
+      CONSTRAINT human_attestations_related_fk
+        FOREIGN KEY (related_attestation_id) REFERENCES human_attestations(id) ON DELETE RESTRICT,
+      CONSTRAINT human_attestations_knowledge_basis_check
+        CHECK (knowledge_basis IN ('firsthand', 'relayed', 'evidence_review')),
+      CONSTRAINT human_attestations_lifecycle_action_check
+        CHECK (lifecycle_action IN ('attestation', 'correction', 'withdrawal', 'challenge', 'supersession')),
+      CONSTRAINT human_attestations_lifecycle_link_check
+        CHECK (
+          (lifecycle_action = 'attestation' AND related_attestation_id IS NULL)
+          OR (lifecycle_action <> 'attestation' AND related_attestation_id IS NOT NULL)
+        )
+    )` },
+    { name: 'human_attestations.foreign_keys', required: true, sql: sql`DO $human_attestation_fks$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'human_attestations'::regclass
+            AND conname = 'human_attestations_operator_fk'
+        ) THEN
+          ALTER TABLE human_attestations
+            ADD CONSTRAINT human_attestations_operator_fk
+            FOREIGN KEY (operator_id) REFERENCES users(id) ON DELETE RESTRICT NOT VALID;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'human_attestations'::regclass
+            AND conname = 'human_attestations_author_fk'
+        ) THEN
+          ALTER TABLE human_attestations
+            ADD CONSTRAINT human_attestations_author_fk
+            FOREIGN KEY (author_user_id) REFERENCES users(id) ON DELETE RESTRICT NOT VALID;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'human_attestations'::regclass
+            AND conname = 'human_attestations_inquiry_fk'
+        ) THEN
+          ALTER TABLE human_attestations
+            ADD CONSTRAINT human_attestations_inquiry_fk
+            FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE RESTRICT NOT VALID;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'human_attestations'::regclass
+            AND conname = 'human_attestations_related_fk'
+        ) THEN
+          ALTER TABLE human_attestations
+            ADD CONSTRAINT human_attestations_related_fk
+            FOREIGN KEY (related_attestation_id) REFERENCES human_attestations(id) ON DELETE RESTRICT NOT VALID;
+        END IF;
+      END;
+      $human_attestation_fks$` },
+    { name: 'human_attestations.check_constraints', required: true, sql: sql`DO $human_attestation_checks$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'human_attestations'::regclass
+            AND conname = 'human_attestations_knowledge_basis_check'
+        ) THEN
+          ALTER TABLE human_attestations
+            ADD CONSTRAINT human_attestations_knowledge_basis_check
+            CHECK (knowledge_basis IN ('firsthand', 'relayed', 'evidence_review')) NOT VALID;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'human_attestations'::regclass
+            AND conname = 'human_attestations_lifecycle_action_check'
+        ) THEN
+          ALTER TABLE human_attestations
+            ADD CONSTRAINT human_attestations_lifecycle_action_check
+            CHECK (lifecycle_action IN ('attestation', 'correction', 'withdrawal', 'challenge', 'supersession')) NOT VALID;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'human_attestations'::regclass
+            AND conname = 'human_attestations_lifecycle_link_check'
+        ) THEN
+          ALTER TABLE human_attestations
+            ADD CONSTRAINT human_attestations_lifecycle_link_check
+            CHECK (
+              (lifecycle_action = 'attestation' AND related_attestation_id IS NULL)
+              OR (lifecycle_action <> 'attestation' AND related_attestation_id IS NOT NULL)
+            ) NOT VALID;
+        END IF;
+      END;
+      $human_attestation_checks$` },
+    { name: 'human_attestations.operator_fk.validate', required: true, sql: sql`ALTER TABLE human_attestations
+      VALIDATE CONSTRAINT human_attestations_operator_fk` },
+    { name: 'human_attestations.author_fk.validate', required: true, sql: sql`ALTER TABLE human_attestations
+      VALIDATE CONSTRAINT human_attestations_author_fk` },
+    { name: 'human_attestations.inquiry_fk.validate', required: true, sql: sql`ALTER TABLE human_attestations
+      VALIDATE CONSTRAINT human_attestations_inquiry_fk` },
+    { name: 'human_attestations.related_fk.validate', required: true, sql: sql`ALTER TABLE human_attestations
+      VALIDATE CONSTRAINT human_attestations_related_fk` },
+    { name: 'human_attestations.knowledge_basis_check.validate', required: true, sql: sql`ALTER TABLE human_attestations
+      VALIDATE CONSTRAINT human_attestations_knowledge_basis_check` },
+    { name: 'human_attestations.lifecycle_action_check.validate', required: true, sql: sql`ALTER TABLE human_attestations
+      VALIDATE CONSTRAINT human_attestations_lifecycle_action_check` },
+    { name: 'human_attestations.lifecycle_link_check.validate', required: true, sql: sql`ALTER TABLE human_attestations
+      VALIDATE CONSTRAINT human_attestations_lifecycle_link_check` },
+    { name: 'human_attestations.operator_inquiry_created_idx', sql: sql`CREATE INDEX IF NOT EXISTS human_attestations_operator_inquiry_created_idx
+      ON human_attestations (operator_id, inquiry_id, created_at, id)` },
+    { name: 'human_attestations.related_idx', sql: sql`CREATE INDEX IF NOT EXISTS human_attestations_related_idx
+      ON human_attestations (related_attestation_id)` },
     { name: 'inquiry_responses.table', sql: sql`CREATE TABLE IF NOT EXISTS inquiry_responses (
       id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
       operator_id varchar NOT NULL,
@@ -279,6 +405,9 @@ async function ensureDatabaseSchema() {
       console.log(`[DB] Migration OK: ${migration.name}`);
     } catch (error: any) {
       console.error(`[DB] Migration FAILED: ${migration.name}`, error.message);
+      if (migration.required) {
+        throw error;
+      }
     }
   }
   
