@@ -15,6 +15,7 @@ import { ObjectPermission } from "./objectAcl";
 import { GoogleGenAI, Modality } from "@google/genai";
 import {
   coordinationRiskFactorValues,
+  coordinationJudgmentLifecycleActionValues,
   humanAttestationKnowledgeBasisValues,
   humanAttestationLifecycleActionValues,
 } from "@shared/schema";
@@ -2276,6 +2277,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  const coordinationJudgmentCreateSchema = z.object({
+    subjectText: z.string().trim().min(1).max(1000),
+    scopeText: z.string().trim().min(1).max(5000),
+    judgmentText: z.string().trim().min(1).max(20000),
+    rationaleText: z.string().trim().min(1).max(20000),
+    evidenceBasis: z.string().trim().min(1).max(20000),
+    lifecycleAction: z.enum(coordinationJudgmentLifecycleActionValues).default("judgment"),
+    relatedJudgmentId: z.string().trim().min(1).max(255).nullable().optional(),
+    supportingAttestationIds: z.array(z.string().trim().min(1).max(255)).max(100).default([]),
+  }).strict().superRefine((value, context) => {
+    const hasRelatedJudgment = Boolean(value.relatedJudgmentId);
+    if (value.lifecycleAction === "judgment" && hasRelatedJudgment) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["relatedJudgmentId"],
+        message: "An original judgment cannot link to an earlier judgment",
+      });
+    }
+    if (value.lifecycleAction !== "judgment" && !hasRelatedJudgment) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["relatedJudgmentId"],
+        message: `${value.lifecycleAction} requires a related judgment`,
+      });
+    }
+    if (new Set(value.supportingAttestationIds).size !== value.supportingAttestationIds.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["supportingAttestationIds"],
+        message: "Supporting attestation links must be unique",
+      });
+    }
+  });
+
   const loadPrivateInquiryContext = async (req: Request, res: Response) => {
     const userId = getAuthUserId(req);
     if (!userId) {
@@ -2383,6 +2418,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       res.status(201).json({ attestation });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // --- Inquiry Workspace: private append-only coordination judgments ---
+  app.get("/api/inquiries/:id/coordination-judgments", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const context = await loadPrivateInquiryContext(req, res);
+      if (!context) return;
+
+      const judgments = await storage.listCoordinationJudgments(context.userId, context.inquiry.id);
+      res.json({ judgments });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/inquiries/:id/coordination-judgments/:judgmentId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const context = await loadPrivateInquiryContext(req, res);
+      if (!context) return;
+
+      const judgment = await storage.getCoordinationJudgment(
+        context.userId,
+        context.inquiry.id,
+        req.params.judgmentId,
+      );
+      if (!judgment) {
+        return res.status(404).json({ error: "Coordination judgment not found" });
+      }
+
+      res.json({ judgment });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/inquiries/:id/coordination-judgments", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const context = await loadPrivateInquiryContext(req, res);
+      if (!context) return;
+
+      const parsed = coordinationJudgmentCreateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: parsed.error.errors[0]?.message || "Invalid coordination judgment",
+        });
+      }
+
+      if (parsed.data.relatedJudgmentId) {
+        const related = await storage.getCoordinationJudgment(
+          context.userId,
+          context.inquiry.id,
+          parsed.data.relatedJudgmentId,
+        );
+        if (!related) {
+          return res.status(400).json({
+            error: "Related judgment must belong to this inquiry",
+          });
+        }
+      }
+
+      for (const attestationId of parsed.data.supportingAttestationIds) {
+        const attestation = await storage.getHumanAttestation(
+          context.userId,
+          context.inquiry.id,
+          attestationId,
+        );
+        if (!attestation) {
+          return res.status(400).json({
+            error: "Supporting attestations must belong to this inquiry",
+          });
+        }
+      }
+
+      const judgment = await storage.createCoordinationJudgment({
+        operatorId: context.userId,
+        authorUserId: context.userId,
+        inquiryId: context.inquiry.id,
+        subjectText: parsed.data.subjectText,
+        scopeText: parsed.data.scopeText,
+        judgmentText: parsed.data.judgmentText,
+        rationaleText: parsed.data.rationaleText,
+        evidenceBasis: parsed.data.evidenceBasis,
+        lifecycleAction: parsed.data.lifecycleAction,
+        relatedJudgmentId: parsed.data.relatedJudgmentId ?? null,
+      }, parsed.data.supportingAttestationIds);
+
+      res.status(201).json({ judgment });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

@@ -438,7 +438,7 @@ test("human attestation surface is create/list only and grants no action authori
 
   const routesText = await readFile(new URL("./routes.ts", import.meta.url), "utf8");
   const section = routesText.match(
-    /\/\/ --- Inquiry Workspace: private append-only human attestations ---[\s\S]*?\/\/ --- Composer:/,
+    /\/\/ --- Inquiry Workspace: private append-only human attestations ---[\s\S]*?\/\/ --- Inquiry Workspace: private append-only coordination judgments ---/,
   )?.[0];
   assert.ok(section, "human attestation route section should exist");
   assert.doesNotMatch(section, /storage\.update/);
@@ -478,7 +478,7 @@ test("human attestation surface is create/list only and grants no action authori
 test("startup schema setup is additive, constrained, and indexed", async () => {
   const indexText = await readFile(new URL("./index.ts", import.meta.url), "utf8");
   const setup = indexText.match(
-    /\{ name: 'human_attestations\.table'[\s\S]*?\{ name: 'inquiry_responses\.table'/,
+    /\{ name: 'human_attestations\.table'[\s\S]*?\{ name: 'coordination_judgments\.table'/,
   )?.[0];
 
   assert.ok(setup, "idempotent human_attestations startup schema should exist");
