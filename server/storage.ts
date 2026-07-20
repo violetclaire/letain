@@ -161,6 +161,10 @@ import {
   coordinationJudgmentAttestations,
   type CoordinationJudgment,
   type InsertCoordinationJudgment,
+  scopedPermissionDecisions,
+  scopedPermissionDecisionJudgments,
+  type ScopedPermissionDecision,
+  type InsertScopedPermissionDecision,
   inquiryResponses,
   type InquiryResponse,
   type InsertInquiryResponse,
@@ -236,6 +240,10 @@ import { eq, and, gte, lte, lt, desc, asc, or, sql, inArray, ilike } from "drizz
 
 export type CoordinationJudgmentWithSources = CoordinationJudgment & {
   supportingAttestationIds: string[];
+};
+
+export type ScopedPermissionDecisionWithJudgments = ScopedPermissionDecision & {
+  linkedJudgmentIds: string[];
 };
 
 export interface IStorage {
@@ -545,6 +553,20 @@ export interface IStorage {
     operatorId: string,
     inquiryId: string,
   ): Promise<CoordinationJudgmentWithSources[]>;
+  // Private, append-only human permission decisions; these never execute actions
+  createScopedPermissionDecision(
+    data: InsertScopedPermissionDecision,
+    linkedJudgmentIds: string[],
+  ): Promise<ScopedPermissionDecisionWithJudgments>;
+  getScopedPermissionDecision(
+    operatorId: string,
+    inquiryId: string,
+    permissionDecisionId: string,
+  ): Promise<ScopedPermissionDecisionWithJudgments | undefined>;
+  listScopedPermissionDecisions(
+    operatorId: string,
+    inquiryId: string,
+  ): Promise<ScopedPermissionDecisionWithJudgments[]>;
   // Briarwood response composer: outgoing client-message drafts
   createInquiryResponse(data: InsertInquiryResponse): Promise<InquiryResponse>;
   getInquiryResponse(id: string): Promise<InquiryResponse | undefined>;
@@ -3031,6 +3053,89 @@ export class DatabaseStorage implements IStorage {
     return judgments.map((judgment) => ({
       ...judgment,
       supportingAttestationIds: sourceIdsByJudgment.get(judgment.id) ?? [],
+    }));
+  }
+
+  async createScopedPermissionDecision(
+    data: InsertScopedPermissionDecision,
+    linkedJudgmentIds: string[],
+  ): Promise<ScopedPermissionDecisionWithJudgments> {
+    return await db.transaction(async (tx) => {
+      const [permissionDecision] = await tx.insert(scopedPermissionDecisions).values(data).returning();
+
+      await tx.insert(scopedPermissionDecisionJudgments).values(
+        linkedJudgmentIds.map((judgmentId, position) => ({
+          permissionDecisionId: permissionDecision.id,
+          judgmentId,
+          position,
+        })),
+      );
+
+      return { ...permissionDecision, linkedJudgmentIds: [...linkedJudgmentIds] };
+    });
+  }
+
+  async getScopedPermissionDecision(
+    operatorId: string,
+    inquiryId: string,
+    permissionDecisionId: string,
+  ): Promise<ScopedPermissionDecisionWithJudgments | undefined> {
+    const [permissionDecision] = await db.select().from(scopedPermissionDecisions)
+      .where(and(
+        eq(scopedPermissionDecisions.operatorId, operatorId),
+        eq(scopedPermissionDecisions.inquiryId, inquiryId),
+        eq(scopedPermissionDecisions.id, permissionDecisionId),
+      ))
+      .limit(1);
+    if (!permissionDecision) return undefined;
+
+    const links = await db.select({ judgmentId: scopedPermissionDecisionJudgments.judgmentId })
+      .from(scopedPermissionDecisionJudgments)
+      .where(eq(scopedPermissionDecisionJudgments.permissionDecisionId, permissionDecision.id))
+      .orderBy(asc(scopedPermissionDecisionJudgments.position));
+
+    return {
+      ...permissionDecision,
+      linkedJudgmentIds: links.map((link) => link.judgmentId),
+    };
+  }
+
+  async listScopedPermissionDecisions(
+    operatorId: string,
+    inquiryId: string,
+  ): Promise<ScopedPermissionDecisionWithJudgments[]> {
+    const permissionDecisions = await db.select().from(scopedPermissionDecisions)
+      .where(and(
+        eq(scopedPermissionDecisions.operatorId, operatorId),
+        eq(scopedPermissionDecisions.inquiryId, inquiryId),
+      ))
+      .orderBy(asc(scopedPermissionDecisions.createdAt), asc(scopedPermissionDecisions.id));
+    if (permissionDecisions.length === 0) return [];
+
+    const links = await db.select({
+      permissionDecisionId: scopedPermissionDecisionJudgments.permissionDecisionId,
+      judgmentId: scopedPermissionDecisionJudgments.judgmentId,
+      position: scopedPermissionDecisionJudgments.position,
+    }).from(scopedPermissionDecisionJudgments)
+      .where(inArray(
+        scopedPermissionDecisionJudgments.permissionDecisionId,
+        permissionDecisions.map((permissionDecision) => permissionDecision.id),
+      ))
+      .orderBy(
+        asc(scopedPermissionDecisionJudgments.permissionDecisionId),
+        asc(scopedPermissionDecisionJudgments.position),
+      );
+
+    const judgmentIdsByDecision = new Map<string, string[]>();
+    for (const link of links) {
+      const judgmentIds = judgmentIdsByDecision.get(link.permissionDecisionId) ?? [];
+      judgmentIds.push(link.judgmentId);
+      judgmentIdsByDecision.set(link.permissionDecisionId, judgmentIds);
+    }
+
+    return permissionDecisions.map((permissionDecision) => ({
+      ...permissionDecision,
+      linkedJudgmentIds: judgmentIdsByDecision.get(permissionDecision.id) ?? [],
     }));
   }
 

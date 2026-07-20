@@ -18,6 +18,10 @@ import {
   coordinationJudgmentLifecycleActionValues,
   humanAttestationKnowledgeBasisValues,
   humanAttestationLifecycleActionValues,
+  scopedPermissionAuthorizationStateValues,
+  scopedPermissionCapabilityFitValues,
+  scopedPermissionDecisionValues,
+  scopedPermissionLifecycleActionValues,
 } from "@shared/schema";
 import { defaultScheduleOperatorDefaults, type ScheduleOperatorDefaults } from "@shared/schedulingIntelligence";
 import * as smsService from "./smsService";
@@ -2311,6 +2315,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  const scopedPermissionDecisionCreateSchema = z.object({
+    actorReference: z.string().trim().min(1).max(1000),
+    actorDescription: z.string().trim().min(1).max(5000),
+    proposedAction: z.string().trim().min(1).max(5000),
+    taskContext: z.string().trim().min(1).max(5000),
+    environmentContext: z.string().trim().min(1).max(5000),
+    scopeText: z.string().trim().min(1).max(5000),
+    consequenceLevel: z.string().trim().min(1).max(1000),
+    demonstratedCapability: z.string().trim().min(1).max(10000),
+    capabilityEvidenceBasis: z.string().trim().min(1).max(10000),
+    capabilityScopeAssessment: z.string().trim().min(1).max(10000),
+    capabilityFit: z.enum(scopedPermissionCapabilityFitValues),
+    authorizationSource: z.string().trim().min(1).max(10000),
+    authorizationState: z.enum(scopedPermissionAuthorizationStateValues),
+    judgmentCurrencyBasis: z.string().trim().min(1).max(10000),
+    blockers: z.array(z.string().trim().min(1).max(5000)).max(100).default([]),
+    requiredConditions: z.array(z.string().trim().min(1).max(5000)).max(100).default([]),
+    decision: z.enum(scopedPermissionDecisionValues),
+    expiresAt: z.coerce.date().nullable().optional(),
+    mandatoryReviewTrigger: z.string().trim().min(1).max(5000).nullable().optional(),
+    lifecycleAction: z.enum(scopedPermissionLifecycleActionValues).default("decision"),
+    relatedPermissionDecisionId: z.string().trim().min(1).max(255).nullable().optional(),
+    linkedJudgmentIds: z.array(z.string().trim().min(1).max(255)).min(1).max(100),
+  }).strict().superRefine((value, context) => {
+    const hasRelatedDecision = Boolean(value.relatedPermissionDecisionId);
+    if (value.lifecycleAction === "decision" && hasRelatedDecision) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["relatedPermissionDecisionId"],
+        message: "An original permission decision cannot link to an earlier permission decision",
+      });
+    }
+    if (value.lifecycleAction !== "decision" && !hasRelatedDecision) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["relatedPermissionDecisionId"],
+        message: `${value.lifecycleAction} requires a related permission decision`,
+      });
+    }
+    if (value.lifecycleAction === "withdrawal" && value.decision !== "not_permitted") {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["decision"],
+        message: "A withdrawn permission decision must remain not permitted",
+      });
+    }
+    if (new Set(value.linkedJudgmentIds).size !== value.linkedJudgmentIds.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["linkedJudgmentIds"],
+        message: "Linked judgment records must be unique",
+      });
+    }
+    if (!value.expiresAt && !value.mandatoryReviewTrigger) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["mandatoryReviewTrigger"],
+        message: "A permission decision requires expiration or a mandatory review trigger",
+      });
+    }
+
+    const grantsPermission = value.decision === "permitted" || value.decision === "permitted_with_conditions";
+    if (grantsPermission && value.capabilityFit !== "within_scope") {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["capabilityFit"],
+        message: "Demonstrated capability outside this exact scope cannot support permission",
+      });
+    }
+    if (grantsPermission && !["established", "conditional"].includes(value.authorizationState)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["authorizationState"],
+        message: "Capability does not replace a separate source of authorization",
+      });
+    }
+    if (grantsPermission && value.blockers.length > 0) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["blockers"],
+        message: "A permitted decision cannot hide unresolved blockers",
+      });
+    }
+    if (value.decision === "permitted" && value.authorizationState !== "established") {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["authorizationState"],
+        message: "Unconditional permission requires established authorization",
+      });
+    }
+    if (value.decision === "permitted" && value.requiredConditions.length > 0) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["requiredConditions"],
+        message: "Permission with conditions must remain conditional",
+      });
+    }
+    if (value.decision === "permitted_with_conditions" && value.requiredConditions.length === 0) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["requiredConditions"],
+        message: "Conditional permission requires explicit conditions",
+      });
+    }
+    if (!grantsPermission && value.blockers.length === 0) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["blockers"],
+        message: `${value.decision} requires an explicit blocker`,
+      });
+    }
+  });
+
   const loadPrivateInquiryContext = async (req: Request, res: Response) => {
     const userId = getAuthUserId(req);
     if (!userId) {
@@ -2508,6 +2625,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }, parsed.data.supportingAttestationIds);
 
       res.status(201).json({ judgment });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // --- Inquiry Workspace: private append-only scoped permission decisions ---
+  app.get("/api/inquiries/:id/scoped-permission-decisions", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const context = await loadPrivateInquiryContext(req, res);
+      if (!context) return;
+
+      const permissionDecisions = await storage.listScopedPermissionDecisions(
+        context.userId,
+        context.inquiry.id,
+      );
+      res.json({ permissionDecisions });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/inquiries/:id/scoped-permission-decisions/:permissionDecisionId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const context = await loadPrivateInquiryContext(req, res);
+      if (!context) return;
+
+      const permissionDecision = await storage.getScopedPermissionDecision(
+        context.userId,
+        context.inquiry.id,
+        req.params.permissionDecisionId,
+      );
+      if (!permissionDecision) {
+        return res.status(404).json({ error: "Scoped permission decision not found" });
+      }
+
+      res.json({ permissionDecision });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/inquiries/:id/scoped-permission-decisions", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const context = await loadPrivateInquiryContext(req, res);
+      if (!context) return;
+
+      const parsed = scopedPermissionDecisionCreateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: parsed.error.errors[0]?.message || "Invalid scoped permission decision",
+        });
+      }
+
+      if (parsed.data.relatedPermissionDecisionId) {
+        const related = await storage.getScopedPermissionDecision(
+          context.userId,
+          context.inquiry.id,
+          parsed.data.relatedPermissionDecisionId,
+        );
+        if (!related) {
+          return res.status(400).json({
+            error: "Related permission decision must belong to this inquiry",
+          });
+        }
+      }
+
+      for (const judgmentId of parsed.data.linkedJudgmentIds) {
+        const judgment = await storage.getCoordinationJudgment(
+          context.userId,
+          context.inquiry.id,
+          judgmentId,
+        );
+        if (!judgment) {
+          return res.status(400).json({
+            error: "Linked judgments must belong to this inquiry",
+          });
+        }
+      }
+
+      const permissionDecision = await storage.createScopedPermissionDecision({
+        operatorId: context.userId,
+        decisionMakerUserId: context.userId,
+        inquiryId: context.inquiry.id,
+        actorReference: parsed.data.actorReference,
+        actorDescription: parsed.data.actorDescription,
+        proposedAction: parsed.data.proposedAction,
+        taskContext: parsed.data.taskContext,
+        environmentContext: parsed.data.environmentContext,
+        scopeText: parsed.data.scopeText,
+        consequenceLevel: parsed.data.consequenceLevel,
+        demonstratedCapability: parsed.data.demonstratedCapability,
+        capabilityEvidenceBasis: parsed.data.capabilityEvidenceBasis,
+        capabilityScopeAssessment: parsed.data.capabilityScopeAssessment,
+        capabilityFit: parsed.data.capabilityFit,
+        authorizationSource: parsed.data.authorizationSource,
+        authorizationState: parsed.data.authorizationState,
+        judgmentCurrencyBasis: parsed.data.judgmentCurrencyBasis,
+        blockers: parsed.data.blockers,
+        requiredConditions: parsed.data.requiredConditions,
+        decision: parsed.data.decision,
+        expiresAt: parsed.data.expiresAt ?? null,
+        mandatoryReviewTrigger: parsed.data.mandatoryReviewTrigger ?? null,
+        lifecycleAction: parsed.data.lifecycleAction,
+        relatedPermissionDecisionId: parsed.data.relatedPermissionDecisionId ?? null,
+      }, parsed.data.linkedJudgmentIds);
+
+      res.status(201).json({ permissionDecision });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
