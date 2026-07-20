@@ -363,6 +363,181 @@ async function ensureDatabaseSchema() {
       ON human_attestations (operator_id, inquiry_id, created_at, id)` },
     { name: 'human_attestations.related_idx', sql: sql`CREATE INDEX IF NOT EXISTS human_attestations_related_idx
       ON human_attestations (related_attestation_id)` },
+    { name: 'coordination_judgments.table', required: true, sql: sql`CREATE TABLE IF NOT EXISTS coordination_judgments (
+      id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+      operator_id varchar NOT NULL,
+      author_user_id varchar NOT NULL,
+      inquiry_id varchar NOT NULL,
+      subject_text text NOT NULL,
+      scope_text text NOT NULL,
+      judgment_text text NOT NULL,
+      rationale_text text NOT NULL,
+      evidence_basis text NOT NULL,
+      lifecycle_action text NOT NULL DEFAULT 'judgment',
+      related_judgment_id varchar,
+      created_at timestamp NOT NULL DEFAULT now(),
+      CONSTRAINT coordination_judgments_operator_fk
+        FOREIGN KEY (operator_id) REFERENCES users(id) ON DELETE RESTRICT,
+      CONSTRAINT coordination_judgments_author_fk
+        FOREIGN KEY (author_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+      CONSTRAINT coordination_judgments_inquiry_fk
+        FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE RESTRICT,
+      CONSTRAINT coordination_judgments_related_fk
+        FOREIGN KEY (related_judgment_id) REFERENCES coordination_judgments(id) ON DELETE RESTRICT,
+      CONSTRAINT coordination_judgments_lifecycle_action_check
+        CHECK (lifecycle_action IN ('judgment', 'correction', 'challenge', 'withdrawal', 'supersession')),
+      CONSTRAINT coordination_judgments_lifecycle_link_check
+        CHECK (
+          (lifecycle_action = 'judgment' AND related_judgment_id IS NULL)
+          OR (lifecycle_action <> 'judgment' AND related_judgment_id IS NOT NULL)
+        )
+    )` },
+    { name: 'coordination_judgments.foreign_keys', required: true, sql: sql`DO $coordination_judgment_fks$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'coordination_judgments'::regclass
+            AND conname = 'coordination_judgments_operator_fk'
+        ) THEN
+          ALTER TABLE coordination_judgments
+            ADD CONSTRAINT coordination_judgments_operator_fk
+            FOREIGN KEY (operator_id) REFERENCES users(id) ON DELETE RESTRICT NOT VALID;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'coordination_judgments'::regclass
+            AND conname = 'coordination_judgments_author_fk'
+        ) THEN
+          ALTER TABLE coordination_judgments
+            ADD CONSTRAINT coordination_judgments_author_fk
+            FOREIGN KEY (author_user_id) REFERENCES users(id) ON DELETE RESTRICT NOT VALID;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'coordination_judgments'::regclass
+            AND conname = 'coordination_judgments_inquiry_fk'
+        ) THEN
+          ALTER TABLE coordination_judgments
+            ADD CONSTRAINT coordination_judgments_inquiry_fk
+            FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE RESTRICT NOT VALID;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'coordination_judgments'::regclass
+            AND conname = 'coordination_judgments_related_fk'
+        ) THEN
+          ALTER TABLE coordination_judgments
+            ADD CONSTRAINT coordination_judgments_related_fk
+            FOREIGN KEY (related_judgment_id) REFERENCES coordination_judgments(id) ON DELETE RESTRICT NOT VALID;
+        END IF;
+      END;
+      $coordination_judgment_fks$` },
+    { name: 'coordination_judgments.check_constraints', required: true, sql: sql`DO $coordination_judgment_checks$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'coordination_judgments'::regclass
+            AND conname = 'coordination_judgments_lifecycle_action_check'
+        ) THEN
+          ALTER TABLE coordination_judgments
+            ADD CONSTRAINT coordination_judgments_lifecycle_action_check
+            CHECK (lifecycle_action IN ('judgment', 'correction', 'challenge', 'withdrawal', 'supersession')) NOT VALID;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'coordination_judgments'::regclass
+            AND conname = 'coordination_judgments_lifecycle_link_check'
+        ) THEN
+          ALTER TABLE coordination_judgments
+            ADD CONSTRAINT coordination_judgments_lifecycle_link_check
+            CHECK (
+              (lifecycle_action = 'judgment' AND related_judgment_id IS NULL)
+              OR (lifecycle_action <> 'judgment' AND related_judgment_id IS NOT NULL)
+            ) NOT VALID;
+        END IF;
+      END;
+      $coordination_judgment_checks$` },
+    { name: 'coordination_judgments.operator_fk.validate', required: true, sql: sql`ALTER TABLE coordination_judgments
+      VALIDATE CONSTRAINT coordination_judgments_operator_fk` },
+    { name: 'coordination_judgments.author_fk.validate', required: true, sql: sql`ALTER TABLE coordination_judgments
+      VALIDATE CONSTRAINT coordination_judgments_author_fk` },
+    { name: 'coordination_judgments.inquiry_fk.validate', required: true, sql: sql`ALTER TABLE coordination_judgments
+      VALIDATE CONSTRAINT coordination_judgments_inquiry_fk` },
+    { name: 'coordination_judgments.related_fk.validate', required: true, sql: sql`ALTER TABLE coordination_judgments
+      VALIDATE CONSTRAINT coordination_judgments_related_fk` },
+    { name: 'coordination_judgments.lifecycle_action_check.validate', required: true, sql: sql`ALTER TABLE coordination_judgments
+      VALIDATE CONSTRAINT coordination_judgments_lifecycle_action_check` },
+    { name: 'coordination_judgments.lifecycle_link_check.validate', required: true, sql: sql`ALTER TABLE coordination_judgments
+      VALIDATE CONSTRAINT coordination_judgments_lifecycle_link_check` },
+    { name: 'coordination_judgments.operator_inquiry_created_idx', required: true, sql: sql`CREATE INDEX IF NOT EXISTS coordination_judgments_operator_inquiry_created_idx
+      ON coordination_judgments (operator_id, inquiry_id, created_at, id)` },
+    { name: 'coordination_judgments.related_idx', required: true, sql: sql`CREATE INDEX IF NOT EXISTS coordination_judgments_related_idx
+      ON coordination_judgments (related_judgment_id)` },
+    { name: 'coordination_judgment_attestations.table', required: true, sql: sql`CREATE TABLE IF NOT EXISTS coordination_judgment_attestations (
+      id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+      judgment_id varchar NOT NULL,
+      attestation_id varchar NOT NULL,
+      position integer NOT NULL,
+      created_at timestamp NOT NULL DEFAULT now(),
+      CONSTRAINT coordination_judgment_attestations_judgment_fk
+        FOREIGN KEY (judgment_id) REFERENCES coordination_judgments(id) ON DELETE RESTRICT,
+      CONSTRAINT coordination_judgment_attestations_attestation_fk
+        FOREIGN KEY (attestation_id) REFERENCES human_attestations(id) ON DELETE RESTRICT,
+      CONSTRAINT coordination_judgment_attestations_position_check
+        CHECK (position >= 0)
+    )` },
+    { name: 'coordination_judgment_attestations.foreign_keys', required: true, sql: sql`DO $coordination_judgment_attestation_fks$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'coordination_judgment_attestations'::regclass
+            AND conname = 'coordination_judgment_attestations_judgment_fk'
+        ) THEN
+          ALTER TABLE coordination_judgment_attestations
+            ADD CONSTRAINT coordination_judgment_attestations_judgment_fk
+            FOREIGN KEY (judgment_id) REFERENCES coordination_judgments(id) ON DELETE RESTRICT NOT VALID;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'coordination_judgment_attestations'::regclass
+            AND conname = 'coordination_judgment_attestations_attestation_fk'
+        ) THEN
+          ALTER TABLE coordination_judgment_attestations
+            ADD CONSTRAINT coordination_judgment_attestations_attestation_fk
+            FOREIGN KEY (attestation_id) REFERENCES human_attestations(id) ON DELETE RESTRICT NOT VALID;
+        END IF;
+      END;
+      $coordination_judgment_attestation_fks$` },
+    { name: 'coordination_judgment_attestations.check_constraints', required: true, sql: sql`DO $coordination_judgment_attestation_checks$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'coordination_judgment_attestations'::regclass
+            AND conname = 'coordination_judgment_attestations_position_check'
+        ) THEN
+          ALTER TABLE coordination_judgment_attestations
+            ADD CONSTRAINT coordination_judgment_attestations_position_check
+            CHECK (position >= 0) NOT VALID;
+        END IF;
+      END;
+      $coordination_judgment_attestation_checks$` },
+    { name: 'coordination_judgment_attestations.judgment_fk.validate', required: true, sql: sql`ALTER TABLE coordination_judgment_attestations
+      VALIDATE CONSTRAINT coordination_judgment_attestations_judgment_fk` },
+    { name: 'coordination_judgment_attestations.attestation_fk.validate', required: true, sql: sql`ALTER TABLE coordination_judgment_attestations
+      VALIDATE CONSTRAINT coordination_judgment_attestations_attestation_fk` },
+    { name: 'coordination_judgment_attestations.position_check.validate', required: true, sql: sql`ALTER TABLE coordination_judgment_attestations
+      VALIDATE CONSTRAINT coordination_judgment_attestations_position_check` },
+    { name: 'coordination_judgment_attestations.unique', required: true, sql: sql`CREATE UNIQUE INDEX IF NOT EXISTS coordination_judgment_attestations_unique
+      ON coordination_judgment_attestations (judgment_id, attestation_id)` },
+    { name: 'coordination_judgment_attestations.position_unique', required: true, sql: sql`CREATE UNIQUE INDEX IF NOT EXISTS coordination_judgment_attestations_position_unique
+      ON coordination_judgment_attestations (judgment_id, position)` },
+    { name: 'coordination_judgment_attestations.attestation_idx', required: true, sql: sql`CREATE INDEX IF NOT EXISTS coordination_judgment_attestations_attestation_idx
+      ON coordination_judgment_attestations (attestation_id)` },
     { name: 'inquiry_responses.table', sql: sql`CREATE TABLE IF NOT EXISTS inquiry_responses (
       id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
       operator_id varchar NOT NULL,

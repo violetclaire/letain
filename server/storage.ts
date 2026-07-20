@@ -157,6 +157,10 @@ import {
   humanAttestations,
   type HumanAttestation,
   type InsertHumanAttestation,
+  coordinationJudgments,
+  coordinationJudgmentAttestations,
+  type CoordinationJudgment,
+  type InsertCoordinationJudgment,
   inquiryResponses,
   type InquiryResponse,
   type InsertInquiryResponse,
@@ -229,6 +233,10 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, lt, desc, asc, or, sql, inArray, ilike } from "drizzle-orm";
+
+export type CoordinationJudgmentWithSources = CoordinationJudgment & {
+  supportingAttestationIds: string[];
+};
 
 export interface IStorage {
   // Users (including Replit Auth)
@@ -523,6 +531,20 @@ export interface IStorage {
     attestationId: string,
   ): Promise<HumanAttestation | undefined>;
   listHumanAttestations(operatorId: string, inquiryId: string): Promise<HumanAttestation[]>;
+  // Private, append-only operator judgments linked to an inquiry context
+  createCoordinationJudgment(
+    data: InsertCoordinationJudgment,
+    supportingAttestationIds: string[],
+  ): Promise<CoordinationJudgmentWithSources>;
+  getCoordinationJudgment(
+    operatorId: string,
+    inquiryId: string,
+    judgmentId: string,
+  ): Promise<CoordinationJudgmentWithSources | undefined>;
+  listCoordinationJudgments(
+    operatorId: string,
+    inquiryId: string,
+  ): Promise<CoordinationJudgmentWithSources[]>;
   // Briarwood response composer: outgoing client-message drafts
   createInquiryResponse(data: InsertInquiryResponse): Promise<InquiryResponse>;
   getInquiryResponse(id: string): Promise<InquiryResponse | undefined>;
@@ -2925,6 +2947,91 @@ export class DatabaseStorage implements IStorage {
         eq(humanAttestations.inquiryId, inquiryId),
       ))
       .orderBy(asc(humanAttestations.createdAt), asc(humanAttestations.id));
+  }
+
+  async createCoordinationJudgment(
+    data: InsertCoordinationJudgment,
+    supportingAttestationIds: string[],
+  ): Promise<CoordinationJudgmentWithSources> {
+    return await db.transaction(async (tx) => {
+      const [judgment] = await tx.insert(coordinationJudgments).values(data).returning();
+
+      if (supportingAttestationIds.length > 0) {
+        await tx.insert(coordinationJudgmentAttestations).values(
+          supportingAttestationIds.map((attestationId, position) => ({
+            judgmentId: judgment.id,
+            attestationId,
+            position,
+          })),
+        );
+      }
+
+      return { ...judgment, supportingAttestationIds: [...supportingAttestationIds] };
+    });
+  }
+
+  async getCoordinationJudgment(
+    operatorId: string,
+    inquiryId: string,
+    judgmentId: string,
+  ): Promise<CoordinationJudgmentWithSources | undefined> {
+    const [judgment] = await db.select().from(coordinationJudgments)
+      .where(and(
+        eq(coordinationJudgments.operatorId, operatorId),
+        eq(coordinationJudgments.inquiryId, inquiryId),
+        eq(coordinationJudgments.id, judgmentId),
+      ))
+      .limit(1);
+    if (!judgment) return undefined;
+
+    const links = await db.select({ attestationId: coordinationJudgmentAttestations.attestationId })
+      .from(coordinationJudgmentAttestations)
+      .where(eq(coordinationJudgmentAttestations.judgmentId, judgment.id))
+      .orderBy(asc(coordinationJudgmentAttestations.position));
+
+    return {
+      ...judgment,
+      supportingAttestationIds: links.map((link) => link.attestationId),
+    };
+  }
+
+  async listCoordinationJudgments(
+    operatorId: string,
+    inquiryId: string,
+  ): Promise<CoordinationJudgmentWithSources[]> {
+    const judgments = await db.select().from(coordinationJudgments)
+      .where(and(
+        eq(coordinationJudgments.operatorId, operatorId),
+        eq(coordinationJudgments.inquiryId, inquiryId),
+      ))
+      .orderBy(asc(coordinationJudgments.createdAt), asc(coordinationJudgments.id));
+    if (judgments.length === 0) return [];
+
+    const links = await db.select({
+      judgmentId: coordinationJudgmentAttestations.judgmentId,
+      attestationId: coordinationJudgmentAttestations.attestationId,
+      position: coordinationJudgmentAttestations.position,
+    }).from(coordinationJudgmentAttestations)
+      .where(inArray(
+        coordinationJudgmentAttestations.judgmentId,
+        judgments.map((judgment) => judgment.id),
+      ))
+      .orderBy(
+        asc(coordinationJudgmentAttestations.judgmentId),
+        asc(coordinationJudgmentAttestations.position),
+      );
+
+    const sourceIdsByJudgment = new Map<string, string[]>();
+    for (const link of links) {
+      const sourceIds = sourceIdsByJudgment.get(link.judgmentId) ?? [];
+      sourceIds.push(link.attestationId);
+      sourceIdsByJudgment.set(link.judgmentId, sourceIds);
+    }
+
+    return judgments.map((judgment) => ({
+      ...judgment,
+      supportingAttestationIds: sourceIdsByJudgment.get(judgment.id) ?? [],
+    }));
   }
 
   // --- Briarwood response composer: outgoing client-message drafts ---

@@ -3020,6 +3020,104 @@ export const insertHumanAttestationSchema = createInsertSchema(humanAttestations
 export type InsertHumanAttestation = z.infer<typeof insertHumanAttestationSchema>;
 export type HumanAttestation = typeof humanAttestations.$inferSelect;
 
+export const coordinationJudgmentLifecycleActionValues = [
+  "judgment",
+  "correction",
+  "challenge",
+  "withdrawal",
+  "supersession",
+] as const;
+export type CoordinationJudgmentLifecycleAction = typeof coordinationJudgmentLifecycleActionValues[number];
+
+// The canonical operator-authored synthesis for a private inquiry context.
+// Records are immutable; later lifecycle actions point to an earlier judgment.
+export const coordinationJudgments = pgTable(
+  "coordination_judgments",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    operatorId: varchar("operator_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    authorUserId: varchar("author_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    inquiryId: varchar("inquiry_id")
+      .notNull()
+      .references(() => inquiries.id, { onDelete: "restrict" }),
+    subjectText: text("subject_text").notNull(),
+    scopeText: text("scope_text").notNull(),
+    judgmentText: text("judgment_text").notNull(),
+    rationaleText: text("rationale_text").notNull(),
+    evidenceBasis: text("evidence_basis").notNull(),
+    lifecycleAction: text("lifecycle_action")
+      .$type<CoordinationJudgmentLifecycleAction>()
+      .notNull()
+      .default("judgment"),
+    relatedJudgmentId: varchar("related_judgment_id")
+      .references((): AnyPgColumn => coordinationJudgments.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("coordination_judgments_operator_inquiry_created_idx")
+      .on(table.operatorId, table.inquiryId, table.createdAt, table.id),
+    index("coordination_judgments_related_idx").on(table.relatedJudgmentId),
+    check(
+      "coordination_judgments_lifecycle_action_check",
+      sql`${table.lifecycleAction} IN ('judgment', 'correction', 'challenge', 'withdrawal', 'supersession')`,
+    ),
+    check(
+      "coordination_judgments_lifecycle_link_check",
+      sql`(${table.lifecycleAction} = 'judgment' AND ${table.relatedJudgmentId} IS NULL)
+        OR (${table.lifecycleAction} <> 'judgment' AND ${table.relatedJudgmentId} IS NOT NULL)`,
+    ),
+  ],
+);
+
+export const insertCoordinationJudgmentSchema = createInsertSchema(coordinationJudgments, {
+  lifecycleAction: z.enum(coordinationJudgmentLifecycleActionValues),
+}).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertCoordinationJudgment = z.infer<typeof insertCoordinationJudgmentSchema>;
+export type CoordinationJudgment = typeof coordinationJudgments.$inferSelect;
+
+// Normalized provenance links. A link identifies a supporting attestation; it
+// does not endorse every claim in that attestation or grant action authority.
+export const coordinationJudgmentAttestations = pgTable(
+  "coordination_judgment_attestations",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    judgmentId: varchar("judgment_id")
+      .notNull()
+      .references(() => coordinationJudgments.id, { onDelete: "restrict" }),
+    attestationId: varchar("attestation_id")
+      .notNull()
+      .references(() => humanAttestations.id, { onDelete: "restrict" }),
+    position: integer("position").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("coordination_judgment_attestations_unique")
+      .on(table.judgmentId, table.attestationId),
+    uniqueIndex("coordination_judgment_attestations_position_unique")
+      .on(table.judgmentId, table.position),
+    index("coordination_judgment_attestations_attestation_idx").on(table.attestationId),
+    check("coordination_judgment_attestations_position_check", sql`${table.position} >= 0`),
+  ],
+);
+
+export const insertCoordinationJudgmentAttestationSchema = createInsertSchema(
+  coordinationJudgmentAttestations,
+).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertCoordinationJudgmentAttestation = z.infer<
+  typeof insertCoordinationJudgmentAttestationSchema
+>;
+export type CoordinationJudgmentAttestation = typeof coordinationJudgmentAttestations.$inferSelect;
+
 // An outgoing client-facing message draft from the response composer. Covers
 // the three client messages: pricing/available response, polite decline, and a
 // referral list. Always operator-approved before send: status starts 'draft'
