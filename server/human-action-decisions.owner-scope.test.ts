@@ -514,7 +514,7 @@ test("human action surface is private create, list, and read only and cannot exe
 
   const routesText = await readFile(new URL("./routes.ts", import.meta.url), "utf8");
   const section = routesText.match(
-    /\/\/ --- Inquiry Workspace: private append-only human action decisions ---[\s\S]*?\/\/ --- Composer:/,
+    /\/\/ --- Inquiry Workspace: private append-only human action decisions ---[\s\S]*?\/\/ --- Inquiry Workspace: private read-only inquiry decision chain ---/,
   )?.[0];
   assert.ok(section, "human action decision route section should exist");
   assert.doesNotMatch(section, /storage\.(?:update|delete)/);
