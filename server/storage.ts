@@ -165,6 +165,9 @@ import {
   scopedPermissionDecisionJudgments,
   type ScopedPermissionDecision,
   type InsertScopedPermissionDecision,
+  humanActionDecisions,
+  type HumanActionDecision,
+  type InsertHumanActionDecision,
   inquiryResponses,
   type InquiryResponse,
   type InsertInquiryResponse,
@@ -567,6 +570,14 @@ export interface IStorage {
     operatorId: string,
     inquiryId: string,
   ): Promise<ScopedPermissionDecisionWithJudgments[]>;
+  // Private, append-only authenticated human choices; these never execute actions
+  createHumanActionDecision(data: InsertHumanActionDecision): Promise<HumanActionDecision>;
+  getHumanActionDecision(
+    operatorId: string,
+    inquiryId: string,
+    humanActionDecisionId: string,
+  ): Promise<HumanActionDecision | undefined>;
+  listHumanActionDecisions(operatorId: string, inquiryId: string): Promise<HumanActionDecision[]>;
   // Briarwood response composer: outgoing client-message drafts
   createInquiryResponse(data: InsertInquiryResponse): Promise<InquiryResponse>;
   getInquiryResponse(id: string): Promise<InquiryResponse | undefined>;
@@ -3137,6 +3148,38 @@ export class DatabaseStorage implements IStorage {
       ...permissionDecision,
       linkedJudgmentIds: judgmentIdsByDecision.get(permissionDecision.id) ?? [],
     }));
+  }
+
+  async createHumanActionDecision(data: InsertHumanActionDecision): Promise<HumanActionDecision> {
+    const [humanActionDecision] = await db.insert(humanActionDecisions).values(data).returning();
+    return humanActionDecision;
+  }
+
+  async getHumanActionDecision(
+    operatorId: string,
+    inquiryId: string,
+    humanActionDecisionId: string,
+  ): Promise<HumanActionDecision | undefined> {
+    const [humanActionDecision] = await db.select().from(humanActionDecisions)
+      .where(and(
+        eq(humanActionDecisions.operatorId, operatorId),
+        eq(humanActionDecisions.inquiryId, inquiryId),
+        eq(humanActionDecisions.id, humanActionDecisionId),
+      ))
+      .limit(1);
+    return humanActionDecision ?? undefined;
+  }
+
+  async listHumanActionDecisions(
+    operatorId: string,
+    inquiryId: string,
+  ): Promise<HumanActionDecision[]> {
+    return await db.select().from(humanActionDecisions)
+      .where(and(
+        eq(humanActionDecisions.operatorId, operatorId),
+        eq(humanActionDecisions.inquiryId, inquiryId),
+      ))
+      .orderBy(asc(humanActionDecisions.createdAt), asc(humanActionDecisions.id));
   }
 
   // --- Briarwood response composer: outgoing client-message drafts ---

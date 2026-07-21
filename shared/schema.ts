@@ -3306,6 +3306,113 @@ export type InsertScopedPermissionDecisionJudgment = z.infer<
 >;
 export type ScopedPermissionDecisionJudgment = typeof scopedPermissionDecisionJudgments.$inferSelect;
 
+export const humanActionDecisionChoiceValues = [
+  "proceed",
+  "wait",
+  "clarify",
+  "escalate",
+  "stop",
+] as const;
+export type HumanActionDecisionChoice = typeof humanActionDecisionChoiceValues[number];
+
+export const humanActionDecisionOriginValues = ["authenticated_human"] as const;
+export type HumanActionDecisionOrigin = typeof humanActionDecisionOriginValues[number];
+
+export const humanActionDecisionLifecycleActionValues = [
+  "decision",
+  "correction",
+  "withdrawal",
+  "supersession",
+] as const;
+export type HumanActionDecisionLifecycleAction = typeof humanActionDecisionLifecycleActionValues[number];
+
+// An authenticated human choice made after reviewing one exact permission
+// decision. Even "proceed" is only a record and cannot execute the action.
+export const humanActionDecisions = pgTable(
+  "human_action_decisions",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    operatorId: varchar("operator_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    decisionMakerUserId: varchar("decision_maker_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    inquiryId: varchar("inquiry_id")
+      .notNull()
+      .references(() => inquiries.id, { onDelete: "restrict" }),
+    permissionDecisionId: varchar("permission_decision_id")
+      .notNull()
+      .references(() => scopedPermissionDecisions.id, { onDelete: "restrict" }),
+    decisionOrigin: text("decision_origin")
+      .$type<HumanActionDecisionOrigin>()
+      .notNull()
+      .default("authenticated_human"),
+    choice: text("choice")
+      .$type<HumanActionDecisionChoice>()
+      .notNull(),
+    permissionReviewSummary: text("permission_review_summary").notNull(),
+    rationaleText: text("rationale_text").notNull(),
+    conditionConfirmations: jsonb("condition_confirmations")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    lifecycleAction: text("lifecycle_action")
+      .$type<HumanActionDecisionLifecycleAction>()
+      .notNull()
+      .default("decision"),
+    relatedHumanActionDecisionId: varchar("related_human_action_decision_id")
+      .references((): AnyPgColumn => humanActionDecisions.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("human_action_decisions_operator_inquiry_created_idx")
+      .on(table.operatorId, table.inquiryId, table.createdAt, table.id),
+    index("human_action_decisions_permission_idx").on(table.permissionDecisionId),
+    index("human_action_decisions_related_idx").on(table.relatedHumanActionDecisionId),
+    check(
+      "human_action_decisions_choice_check",
+      sql`${table.choice} IN ('proceed', 'wait', 'clarify', 'escalate', 'stop')`,
+    ),
+    check(
+      "human_action_decisions_origin_check",
+      sql`${table.decisionOrigin} = 'authenticated_human'`,
+    ),
+    check(
+      "human_action_decisions_lifecycle_action_check",
+      sql`${table.lifecycleAction} IN ('decision', 'correction', 'withdrawal', 'supersession')`,
+    ),
+    check(
+      "human_action_decisions_lifecycle_link_check",
+      sql`(${table.lifecycleAction} = 'decision' AND ${table.relatedHumanActionDecisionId} IS NULL)
+        OR (${table.lifecycleAction} <> 'decision' AND ${table.relatedHumanActionDecisionId} IS NOT NULL)`,
+    ),
+    check(
+      "human_action_decisions_withdrawal_check",
+      sql`${table.lifecycleAction} <> 'withdrawal' OR ${table.choice} = 'stop'`,
+    ),
+    check(
+      "human_action_decisions_condition_confirmations_check",
+      sql`jsonb_typeof(${table.conditionConfirmations}) = 'array'`,
+    ),
+    check(
+      "human_action_decisions_condition_shape_check",
+      sql`${table.choice} = 'proceed' OR jsonb_array_length(${table.conditionConfirmations}) = 0`,
+    ),
+  ],
+);
+
+export const insertHumanActionDecisionSchema = createInsertSchema(humanActionDecisions, {
+  decisionOrigin: z.enum(humanActionDecisionOriginValues),
+  choice: z.enum(humanActionDecisionChoiceValues),
+  lifecycleAction: z.enum(humanActionDecisionLifecycleActionValues),
+}).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertHumanActionDecision = z.infer<typeof insertHumanActionDecisionSchema>;
+export type HumanActionDecision = typeof humanActionDecisions.$inferSelect;
+
 // An outgoing client-facing message draft from the response composer. Covers
 // the three client messages: pricing/available response, polite decline, and a
 // referral list. Always operator-approved before send: status starts 'draft'

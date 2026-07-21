@@ -517,7 +517,7 @@ test("scoped permission surface is private create/list/read only and cannot exec
 
   const routesText = await readFile(new URL("./routes.ts", import.meta.url), "utf8");
   const section = routesText.match(
-    /\/\/ --- Inquiry Workspace: private append-only scoped permission decisions ---[\s\S]*?\/\/ --- Composer:/,
+    /\/\/ --- Inquiry Workspace: private append-only scoped permission decisions ---[\s\S]*?\/\/ --- Inquiry Workspace: private append-only human action decisions ---/,
   )?.[0];
   assert.ok(section, "scoped permission decision route section should exist");
   assert.doesNotMatch(section, /storage\.(?:update|delete)/);
@@ -554,7 +554,7 @@ test("schema and startup DDL preserve append-only constraints and fail closed", 
 
   const indexText = await readFile(new URL("./index.ts", import.meta.url), "utf8");
   const setup = indexText.match(
-    /\{ name: 'scoped_permission_decisions\.table'[\s\S]*?\{ name: 'inquiry_responses\.table'/,
+    /\{ name: 'scoped_permission_decisions\.table'[\s\S]*?\{ name: 'human_action_decisions\.table'/,
   )?.[0];
   assert.ok(setup, "idempotent scoped permission decision startup schema should exist");
   assert.match(setup, /CREATE TABLE IF NOT EXISTS scoped_permission_decisions/);
