@@ -22,6 +22,8 @@ import {
   scopedPermissionCapabilityFitValues,
   scopedPermissionDecisionValues,
   scopedPermissionLifecycleActionValues,
+  humanActionDecisionChoiceValues,
+  humanActionDecisionLifecycleActionValues,
 } from "@shared/schema";
 import { defaultScheduleOperatorDefaults, type ScheduleOperatorDefaults } from "@shared/schedulingIntelligence";
 import * as smsService from "./smsService";
@@ -2428,6 +2430,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  const humanActionDecisionCreateSchema = z.object({
+    permissionDecisionId: z.string().trim().min(1).max(255),
+    choice: z.enum(humanActionDecisionChoiceValues),
+    permissionReviewSummary: z.string().trim().min(1).max(10000),
+    rationaleText: z.string().trim().min(1).max(10000),
+    conditionConfirmations: z.array(z.string().trim().min(1).max(5000)).max(100).default([]),
+    lifecycleAction: z.enum(humanActionDecisionLifecycleActionValues).default("decision"),
+    relatedHumanActionDecisionId: z.string().trim().min(1).max(255).nullable().optional(),
+  }).strict().superRefine((value, context) => {
+    const hasRelatedDecision = Boolean(value.relatedHumanActionDecisionId);
+    if (value.lifecycleAction === "decision" && hasRelatedDecision) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["relatedHumanActionDecisionId"],
+        message: "An original human action decision cannot link to an earlier human action decision",
+      });
+    }
+    if (value.lifecycleAction !== "decision" && !hasRelatedDecision) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["relatedHumanActionDecisionId"],
+        message: `${value.lifecycleAction} requires a related human action decision`,
+      });
+    }
+    if (value.lifecycleAction === "withdrawal" && value.choice !== "stop") {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["choice"],
+        message: "A withdrawn human action decision must stop",
+      });
+    }
+    if (new Set(value.conditionConfirmations).size !== value.conditionConfirmations.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["conditionConfirmations"],
+        message: "Condition confirmations must be unique",
+      });
+    }
+    if (value.choice !== "proceed" && value.conditionConfirmations.length > 0) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["conditionConfirmations"],
+        message: "Only a proceed choice may confirm permission conditions",
+      });
+    }
+  });
+
   const loadPrivateInquiryContext = async (req: Request, res: Response) => {
     const userId = getAuthUserId(req);
     if (!userId) {
@@ -2732,6 +2781,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }, parsed.data.linkedJudgmentIds);
 
       res.status(201).json({ permissionDecision });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // --- Inquiry Workspace: private append-only human action decisions ---
+  app.get("/api/inquiries/:id/human-action-decisions", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const context = await loadPrivateInquiryContext(req, res);
+      if (!context) return;
+
+      const humanActionDecisions = await storage.listHumanActionDecisions(
+        context.userId,
+        context.inquiry.id,
+      );
+      res.json({ humanActionDecisions });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/inquiries/:id/human-action-decisions/:humanActionDecisionId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const context = await loadPrivateInquiryContext(req, res);
+      if (!context) return;
+
+      const humanActionDecision = await storage.getHumanActionDecision(
+        context.userId,
+        context.inquiry.id,
+        req.params.humanActionDecisionId,
+      );
+      if (!humanActionDecision) {
+        return res.status(404).json({ error: "Human action decision not found" });
+      }
+
+      res.json({ humanActionDecision });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/inquiries/:id/human-action-decisions", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const context = await loadPrivateInquiryContext(req, res);
+      if (!context) return;
+
+      const parsed = humanActionDecisionCreateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: parsed.error.errors[0]?.message || "Invalid human action decision",
+        });
+      }
+
+      const permissionDecision = await storage.getScopedPermissionDecision(
+        context.userId,
+        context.inquiry.id,
+        parsed.data.permissionDecisionId,
+      );
+      if (!permissionDecision) {
+        return res.status(400).json({
+          error: "Reviewed permission decision must belong to this inquiry",
+        });
+      }
+
+      if (parsed.data.relatedHumanActionDecisionId) {
+        const related = await storage.getHumanActionDecision(
+          context.userId,
+          context.inquiry.id,
+          parsed.data.relatedHumanActionDecisionId,
+        );
+        if (!related || related.permissionDecisionId !== permissionDecision.id) {
+          return res.status(400).json({
+            error: "Related human action decision must belong to this inquiry and permission decision",
+          });
+        }
+      }
+
+      if (parsed.data.choice === "proceed") {
+        const grantsPermission = permissionDecision.decision === "permitted"
+          || permissionDecision.decision === "permitted_with_conditions";
+        if (!grantsPermission) {
+          return res.status(400).json({
+            error: "A proceed choice requires a permission decision that permits the proposed action",
+          });
+        }
+
+        if (permissionDecision.expiresAt && permissionDecision.expiresAt.getTime() <= Date.now()) {
+          return res.status(400).json({ error: "An expired permission decision cannot support proceed" });
+        }
+
+        const permissionHistory = await storage.listScopedPermissionDecisions(
+          context.userId,
+          context.inquiry.id,
+        );
+        if (permissionHistory.some((candidate) =>
+          candidate.relatedPermissionDecisionId === permissionDecision.id
+        )) {
+          return res.status(400).json({
+            error: "A superseded, corrected, or withdrawn permission decision cannot support proceed",
+          });
+        }
+
+        const requiredConditions = permissionDecision.requiredConditions ?? [];
+        const confirmedConditions = parsed.data.conditionConfirmations;
+        const confirmationsMatch = requiredConditions.length === confirmedConditions.length
+          && requiredConditions.every((condition) => confirmedConditions.includes(condition));
+        if (!confirmationsMatch) {
+          return res.status(400).json({
+            error: "Proceed must preserve and confirm every condition on the reviewed permission decision",
+          });
+        }
+      }
+
+      const humanActionDecision = await storage.createHumanActionDecision({
+        operatorId: context.userId,
+        decisionMakerUserId: context.userId,
+        inquiryId: context.inquiry.id,
+        permissionDecisionId: permissionDecision.id,
+        decisionOrigin: "authenticated_human",
+        choice: parsed.data.choice,
+        permissionReviewSummary: parsed.data.permissionReviewSummary,
+        rationaleText: parsed.data.rationaleText,
+        conditionConfirmations: parsed.data.conditionConfirmations,
+        lifecycleAction: parsed.data.lifecycleAction,
+        relatedHumanActionDecisionId: parsed.data.relatedHumanActionDecisionId ?? null,
+      });
+
+      res.status(201).json({ humanActionDecision });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

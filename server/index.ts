@@ -767,6 +767,123 @@ async function ensureDatabaseSchema() {
       ON scoped_permission_decision_judgments (permission_decision_id, position)` },
     { name: 'scoped_permission_decision_judgments.judgment_idx', required: true, sql: sql`CREATE INDEX IF NOT EXISTS scoped_permission_decision_judgments_judgment_idx
       ON scoped_permission_decision_judgments (judgment_id)` },
+    { name: 'human_action_decisions.table', required: true, sql: sql`CREATE TABLE IF NOT EXISTS human_action_decisions (
+      id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+      operator_id varchar NOT NULL,
+      decision_maker_user_id varchar NOT NULL,
+      inquiry_id varchar NOT NULL,
+      permission_decision_id varchar NOT NULL,
+      decision_origin text NOT NULL DEFAULT 'authenticated_human',
+      choice text NOT NULL,
+      permission_review_summary text NOT NULL,
+      rationale_text text NOT NULL,
+      condition_confirmations jsonb NOT NULL DEFAULT '[]'::jsonb,
+      lifecycle_action text NOT NULL DEFAULT 'decision',
+      related_human_action_decision_id varchar,
+      created_at timestamp NOT NULL DEFAULT now(),
+      CONSTRAINT human_action_decisions_operator_fk
+        FOREIGN KEY (operator_id) REFERENCES users(id) ON DELETE RESTRICT,
+      CONSTRAINT human_action_decisions_decision_maker_fk
+        FOREIGN KEY (decision_maker_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+      CONSTRAINT human_action_decisions_inquiry_fk
+        FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE RESTRICT,
+      CONSTRAINT human_action_decisions_permission_fk
+        FOREIGN KEY (permission_decision_id) REFERENCES scoped_permission_decisions(id) ON DELETE RESTRICT,
+      CONSTRAINT human_action_decisions_related_fk
+        FOREIGN KEY (related_human_action_decision_id) REFERENCES human_action_decisions(id) ON DELETE RESTRICT,
+      CONSTRAINT human_action_decisions_choice_check
+        CHECK (choice IN ('proceed', 'wait', 'clarify', 'escalate', 'stop')),
+      CONSTRAINT human_action_decisions_origin_check
+        CHECK (decision_origin = 'authenticated_human'),
+      CONSTRAINT human_action_decisions_lifecycle_action_check
+        CHECK (lifecycle_action IN ('decision', 'correction', 'withdrawal', 'supersession')),
+      CONSTRAINT human_action_decisions_lifecycle_link_check
+        CHECK (
+          (lifecycle_action = 'decision' AND related_human_action_decision_id IS NULL)
+          OR (lifecycle_action <> 'decision' AND related_human_action_decision_id IS NOT NULL)
+        ),
+      CONSTRAINT human_action_decisions_withdrawal_check
+        CHECK (lifecycle_action <> 'withdrawal' OR choice = 'stop'),
+      CONSTRAINT human_action_decisions_condition_confirmations_check
+        CHECK (jsonb_typeof(condition_confirmations) = 'array'),
+      CONSTRAINT human_action_decisions_condition_shape_check
+        CHECK (choice = 'proceed' OR jsonb_array_length(condition_confirmations) = 0)
+    )` },
+    { name: 'human_action_decisions.foreign_keys', required: true, sql: sql`DO $human_action_decision_fks$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'human_action_decisions'::regclass AND conname = 'human_action_decisions_operator_fk') THEN
+          ALTER TABLE human_action_decisions ADD CONSTRAINT human_action_decisions_operator_fk
+            FOREIGN KEY (operator_id) REFERENCES users(id) ON DELETE RESTRICT NOT VALID;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'human_action_decisions'::regclass AND conname = 'human_action_decisions_decision_maker_fk') THEN
+          ALTER TABLE human_action_decisions ADD CONSTRAINT human_action_decisions_decision_maker_fk
+            FOREIGN KEY (decision_maker_user_id) REFERENCES users(id) ON DELETE RESTRICT NOT VALID;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'human_action_decisions'::regclass AND conname = 'human_action_decisions_inquiry_fk') THEN
+          ALTER TABLE human_action_decisions ADD CONSTRAINT human_action_decisions_inquiry_fk
+            FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE RESTRICT NOT VALID;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'human_action_decisions'::regclass AND conname = 'human_action_decisions_permission_fk') THEN
+          ALTER TABLE human_action_decisions ADD CONSTRAINT human_action_decisions_permission_fk
+            FOREIGN KEY (permission_decision_id) REFERENCES scoped_permission_decisions(id) ON DELETE RESTRICT NOT VALID;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'human_action_decisions'::regclass AND conname = 'human_action_decisions_related_fk') THEN
+          ALTER TABLE human_action_decisions ADD CONSTRAINT human_action_decisions_related_fk
+            FOREIGN KEY (related_human_action_decision_id) REFERENCES human_action_decisions(id) ON DELETE RESTRICT NOT VALID;
+        END IF;
+      END;
+      $human_action_decision_fks$` },
+    { name: 'human_action_decisions.check_constraints', required: true, sql: sql`DO $human_action_decision_checks$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'human_action_decisions'::regclass AND conname = 'human_action_decisions_choice_check') THEN
+          ALTER TABLE human_action_decisions ADD CONSTRAINT human_action_decisions_choice_check
+            CHECK (choice IN ('proceed', 'wait', 'clarify', 'escalate', 'stop')) NOT VALID;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'human_action_decisions'::regclass AND conname = 'human_action_decisions_origin_check') THEN
+          ALTER TABLE human_action_decisions ADD CONSTRAINT human_action_decisions_origin_check
+            CHECK (decision_origin = 'authenticated_human') NOT VALID;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'human_action_decisions'::regclass AND conname = 'human_action_decisions_lifecycle_action_check') THEN
+          ALTER TABLE human_action_decisions ADD CONSTRAINT human_action_decisions_lifecycle_action_check
+            CHECK (lifecycle_action IN ('decision', 'correction', 'withdrawal', 'supersession')) NOT VALID;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'human_action_decisions'::regclass AND conname = 'human_action_decisions_lifecycle_link_check') THEN
+          ALTER TABLE human_action_decisions ADD CONSTRAINT human_action_decisions_lifecycle_link_check
+            CHECK ((lifecycle_action = 'decision' AND related_human_action_decision_id IS NULL)
+              OR (lifecycle_action <> 'decision' AND related_human_action_decision_id IS NOT NULL)) NOT VALID;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'human_action_decisions'::regclass AND conname = 'human_action_decisions_withdrawal_check') THEN
+          ALTER TABLE human_action_decisions ADD CONSTRAINT human_action_decisions_withdrawal_check
+            CHECK (lifecycle_action <> 'withdrawal' OR choice = 'stop') NOT VALID;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'human_action_decisions'::regclass AND conname = 'human_action_decisions_condition_confirmations_check') THEN
+          ALTER TABLE human_action_decisions ADD CONSTRAINT human_action_decisions_condition_confirmations_check
+            CHECK (jsonb_typeof(condition_confirmations) = 'array') NOT VALID;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'human_action_decisions'::regclass AND conname = 'human_action_decisions_condition_shape_check') THEN
+          ALTER TABLE human_action_decisions ADD CONSTRAINT human_action_decisions_condition_shape_check
+            CHECK (choice = 'proceed' OR jsonb_array_length(condition_confirmations) = 0) NOT VALID;
+        END IF;
+      END;
+      $human_action_decision_checks$` },
+    { name: 'human_action_decisions.operator_fk.validate', required: true, sql: sql`ALTER TABLE human_action_decisions VALIDATE CONSTRAINT human_action_decisions_operator_fk` },
+    { name: 'human_action_decisions.decision_maker_fk.validate', required: true, sql: sql`ALTER TABLE human_action_decisions VALIDATE CONSTRAINT human_action_decisions_decision_maker_fk` },
+    { name: 'human_action_decisions.inquiry_fk.validate', required: true, sql: sql`ALTER TABLE human_action_decisions VALIDATE CONSTRAINT human_action_decisions_inquiry_fk` },
+    { name: 'human_action_decisions.permission_fk.validate', required: true, sql: sql`ALTER TABLE human_action_decisions VALIDATE CONSTRAINT human_action_decisions_permission_fk` },
+    { name: 'human_action_decisions.related_fk.validate', required: true, sql: sql`ALTER TABLE human_action_decisions VALIDATE CONSTRAINT human_action_decisions_related_fk` },
+    { name: 'human_action_decisions.choice_check.validate', required: true, sql: sql`ALTER TABLE human_action_decisions VALIDATE CONSTRAINT human_action_decisions_choice_check` },
+    { name: 'human_action_decisions.origin_check.validate', required: true, sql: sql`ALTER TABLE human_action_decisions VALIDATE CONSTRAINT human_action_decisions_origin_check` },
+    { name: 'human_action_decisions.lifecycle_action_check.validate', required: true, sql: sql`ALTER TABLE human_action_decisions VALIDATE CONSTRAINT human_action_decisions_lifecycle_action_check` },
+    { name: 'human_action_decisions.lifecycle_link_check.validate', required: true, sql: sql`ALTER TABLE human_action_decisions VALIDATE CONSTRAINT human_action_decisions_lifecycle_link_check` },
+    { name: 'human_action_decisions.withdrawal_check.validate', required: true, sql: sql`ALTER TABLE human_action_decisions VALIDATE CONSTRAINT human_action_decisions_withdrawal_check` },
+    { name: 'human_action_decisions.condition_confirmations_check.validate', required: true, sql: sql`ALTER TABLE human_action_decisions VALIDATE CONSTRAINT human_action_decisions_condition_confirmations_check` },
+    { name: 'human_action_decisions.condition_shape_check.validate', required: true, sql: sql`ALTER TABLE human_action_decisions VALIDATE CONSTRAINT human_action_decisions_condition_shape_check` },
+    { name: 'human_action_decisions.operator_inquiry_created_idx', required: true, sql: sql`CREATE INDEX IF NOT EXISTS human_action_decisions_operator_inquiry_created_idx
+      ON human_action_decisions (operator_id, inquiry_id, created_at, id)` },
+    { name: 'human_action_decisions.permission_idx', required: true, sql: sql`CREATE INDEX IF NOT EXISTS human_action_decisions_permission_idx
+      ON human_action_decisions (permission_decision_id)` },
+    { name: 'human_action_decisions.related_idx', required: true, sql: sql`CREATE INDEX IF NOT EXISTS human_action_decisions_related_idx
+      ON human_action_decisions (related_human_action_decision_id)` },
     { name: 'inquiry_responses.table', sql: sql`CREATE TABLE IF NOT EXISTS inquiry_responses (
       id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
       operator_id varchar NOT NULL,
