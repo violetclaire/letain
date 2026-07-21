@@ -29,6 +29,11 @@ import {
   InquiryDecisionChainPanel,
   type InquiryDecisionChainResponse,
 } from "@/components/InquiryDecisionChainPanel";
+import {
+  CoordinationJudgmentEntryPanel,
+  type CoordinationJudgmentSubmission,
+  type HumanAttestationSummary,
+} from "@/components/CoordinationJudgmentEntryPanel";
 
 interface InquiryWorkspaceInquiry {
   id: string;
@@ -144,6 +149,16 @@ interface InternalNote {
 
 interface InternalNoteResponse {
   note: InternalNote | null;
+}
+
+interface HumanAttestationsResponse {
+  attestations: HumanAttestationSummary[];
+}
+
+interface SelectedInquiryAttestations {
+  inquiryId: string;
+  operatorId: string;
+  attestations: HumanAttestationSummary[];
 }
 
 interface ScheduleDraft {
@@ -376,6 +391,10 @@ function composerQueryKey(inquiryId?: string | null) {
 
 function inquiryDecisionChainQueryKey(inquiryId?: string | null) {
   return ["/api/inquiries", inquiryId, "decision-chain"] as const;
+}
+
+function humanAttestationsQueryKey(inquiryId?: string | null, operatorId?: string | null) {
+  return ["/api/inquiries", inquiryId, "human-attestations", operatorId] as const;
 }
 
 function formatDate(value?: string | null): string {
@@ -1265,6 +1284,76 @@ export default function InquiryWorkspace() {
     [filteredInquiries, selectedId],
   );
   const selectedInquiryId = selectedInquiry?.id ?? null;
+  const humanAttestationsQuery = useQuery<SelectedInquiryAttestations>({
+    queryKey: humanAttestationsQueryKey(selectedInquiryId, user?.id),
+    queryFn: async () => {
+      if (!selectedInquiryId || !user?.id) throw new Error("No inquiry selected");
+      const res = await fetch(`/api/inquiries/${encodeURIComponent(selectedInquiryId)}/human-attestations`, {
+        credentials: "include",
+      });
+      if (res.status === 401) throw new Error("401");
+      if (!res.ok) throw new Error("Failed to load witnessed records");
+      const payload = await res.json() as HumanAttestationsResponse;
+      if (!Array.isArray(payload?.attestations)) {
+        throw new Error("Witnessed records were unavailable");
+      }
+      if (payload.attestations.some(
+        (attestation) => attestation.inquiryId !== selectedInquiryId || attestation.operatorId !== user.id,
+      )) {
+        throw new Error("Witnessed records did not match the selected inquiry and operator");
+      }
+      return {
+        inquiryId: selectedInquiryId,
+        operatorId: user.id,
+        attestations: payload.attestations,
+      };
+    },
+    enabled: isAuthenticated && isOperator && Boolean(selectedInquiryId) && Boolean(user?.id),
+    retry: false,
+  });
+  const selectedHumanAttestations = humanAttestationsQuery.data?.inquiryId === selectedInquiryId
+    && humanAttestationsQuery.data?.operatorId === user?.id
+    ? humanAttestationsQuery.data.attestations
+    : [];
+  const humanAttestationSourceStatus = !selectedInquiryId
+    ? "unavailable"
+    : humanAttestationsQuery.isError
+      ? "error"
+      : humanAttestationsQuery.isPending || !humanAttestationsQuery.data
+        ? "loading"
+        : "ready";
+  const createCoordinationJudgment = useMutation({
+    mutationFn: async (submission: CoordinationJudgmentSubmission) => {
+      if (!user?.id) throw new Error("Operator session is unavailable.");
+      const sourceSet = queryClient.getQueryData<SelectedInquiryAttestations>(
+        humanAttestationsQueryKey(submission.inquiryId, user.id),
+      );
+      if (!sourceSet || sourceSet.inquiryId !== submission.inquiryId || sourceSet.operatorId !== user.id) {
+        throw new Error("The selected inquiry changed. Review its witnessed records before submitting.");
+      }
+      const availableAttestationIds = new Set(sourceSet.attestations.map((attestation) => attestation.id));
+      if (submission.supportingAttestationIds.some((attestationId) => !availableAttestationIds.has(attestationId))) {
+        throw new Error("A selected witnessed record is no longer available for this inquiry.");
+      }
+
+      const { inquiryId, ...body } = submission;
+      const res = await fetch(`/api/inquiries/${encodeURIComponent(inquiryId)}/coordination-judgments`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (res.status === 401) throw new Error("Operator session expired. Sign in and review the records again.");
+      if (!res.ok) {
+        throw new Error(typeof payload?.error === "string" ? payload.error : "Could not record the coordination judgment.");
+      }
+      return payload as { judgment: { id: string; inquiryId: string } };
+    },
+    onSuccess: (_data, submission) => {
+      queryClient.invalidateQueries({ queryKey: inquiryDecisionChainQueryKey(submission.inquiryId) });
+    },
+  });
   const decisionChainQuery = useQuery<InquiryDecisionChainResponse>({
     queryKey: inquiryDecisionChainQueryKey(selectedInquiryId),
     queryFn: async () => {
@@ -2225,6 +2314,20 @@ export default function InquiryWorkspace() {
                     </p>
                   </div>
                 )}
+
+                <CoordinationJudgmentEntryPanel
+                  key={`coordination-judgment-entry-${selectedInquiryId ?? "none"}`}
+                  inquiryId={selectedInquiryId}
+                  sourceStatus={humanAttestationSourceStatus}
+                  attestations={selectedHumanAttestations}
+                  isSubmitting={createCoordinationJudgment.isPending}
+                  onSubmit={async (submission) => {
+                    if (!selectedInquiryId || submission.inquiryId !== selectedInquiryId) {
+                      throw new Error("The selected inquiry changed. Review its witnessed records before submitting.");
+                    }
+                    await createCoordinationJudgment.mutateAsync(submission);
+                  }}
+                />
 
                 <InquiryDecisionChainPanel
                   status={decisionChainPanelStatus}
