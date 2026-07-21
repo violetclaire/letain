@@ -25,6 +25,10 @@ import {
   PERMISSIONED_NEXT_STEP_QUERY_TYPES,
   answerPermissionedNextStepQuery,
 } from "@/lib/permissionedNextStepQuery";
+import {
+  InquiryDecisionChainPanel,
+  type InquiryDecisionChainResponse,
+} from "@/components/InquiryDecisionChainPanel";
 
 interface InquiryWorkspaceInquiry {
   id: string;
@@ -368,6 +372,10 @@ function coordinationPathDetailQueryKey(pathId?: string | null) {
 
 function composerQueryKey(inquiryId?: string | null) {
   return ["/api/inquiries", inquiryId, "composer"] as const;
+}
+
+function inquiryDecisionChainQueryKey(inquiryId?: string | null) {
+  return ["/api/inquiries", inquiryId, "decision-chain"] as const;
 }
 
 function formatDate(value?: string | null): string {
@@ -1257,6 +1265,36 @@ export default function InquiryWorkspace() {
     [filteredInquiries, selectedId],
   );
   const selectedInquiryId = selectedInquiry?.id ?? null;
+  const decisionChainQuery = useQuery<InquiryDecisionChainResponse>({
+    queryKey: inquiryDecisionChainQueryKey(selectedInquiryId),
+    queryFn: async () => {
+      if (!selectedInquiryId) throw new Error("No inquiry selected");
+      const res = await fetch(`/api/inquiries/${encodeURIComponent(selectedInquiryId)}/decision-chain`, {
+        credentials: "include",
+      });
+      if (res.status === 401) throw new Error("401");
+      if (!res.ok) throw new Error("Failed to load decision chain");
+      const payload = await res.json() as InquiryDecisionChainResponse;
+      if (!payload?.decisionChain || payload.decisionChain.inquiryId !== selectedInquiryId) {
+        throw new Error("Decision chain did not match the selected inquiry");
+      }
+      return payload;
+    },
+    enabled: isAuthenticated && isOperator && Boolean(selectedInquiryId),
+    retry: false,
+  });
+  const selectedDecisionChain = decisionChainQuery.data?.decisionChain.inquiryId === selectedInquiryId
+    ? decisionChainQuery.data.decisionChain
+    : null;
+  const decisionChainPanelStatus = !selectedInquiryId
+    ? "unavailable"
+    : decisionChainQuery.isError
+      ? "error"
+      : decisionChainQuery.isPending || !decisionChainQuery.data
+        ? "loading"
+        : selectedDecisionChain
+          ? "ready"
+          : "unavailable";
   const draftCandidatesQuery = useQuery<DraftRouteCandidatesResponse>({
     queryKey: draftRouteCandidatesQueryKey(selectedInquiryId),
     queryFn: async () => {
@@ -2187,6 +2225,12 @@ export default function InquiryWorkspace() {
                     </p>
                   </div>
                 )}
+
+                <InquiryDecisionChainPanel
+                  status={decisionChainPanelStatus}
+                  decisionChain={selectedDecisionChain}
+                  errorMessage="Could not load the private decision chain."
+                />
 
                 {availabilityReadinessRows.length > 0 && (
                   <div className="border border-hairline bg-surface px-4 py-4" data-testid="availability-readiness-card">
