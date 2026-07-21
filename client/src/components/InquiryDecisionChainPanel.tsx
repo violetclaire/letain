@@ -21,6 +21,11 @@ export interface InquiryDecisionChainRecord {
   relatedRecordId: string | null;
   references: InquiryDecisionChainReference[];
   record: {
+    subjectText?: string;
+    scopeText?: string;
+    judgmentText?: string;
+    rationaleText?: string;
+    evidenceBasis?: string;
     choice?: "proceed" | "wait" | "clarify" | "escalate" | "stop";
   };
 }
@@ -212,6 +217,39 @@ export function InquiryDecisionChainPanel({
                 </div>
               )}
             </dl>
+
+            {item.recordType === "coordination_judgment" && item.record.judgmentText && (
+              <dl className="mt-3 space-y-3 border-l border-hairline pl-3" data-testid={`coordination-judgment-record-${item.id}`}>
+                {item.record.subjectText && (
+                  <div>
+                    <dt className="text-xs uppercase tracking-wide text-ink/45">Subject</dt>
+                    <dd className="mt-1 text-sm text-ink/70">{item.record.subjectText}</dd>
+                  </div>
+                )}
+                {item.record.scopeText && (
+                  <div>
+                    <dt className="text-xs uppercase tracking-wide text-ink/45">Scope</dt>
+                    <dd className="mt-1 text-sm text-ink/70">{item.record.scopeText}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt className="text-xs uppercase tracking-wide text-ink/45">Recorded judgment</dt>
+                  <dd className="mt-1 whitespace-pre-wrap text-sm text-ink">{item.record.judgmentText}</dd>
+                </div>
+                {item.record.rationaleText && (
+                  <div>
+                    <dt className="text-xs uppercase tracking-wide text-ink/45">Rationale</dt>
+                    <dd className="mt-1 whitespace-pre-wrap text-sm text-ink/70">{item.record.rationaleText}</dd>
+                  </div>
+                )}
+                {item.record.evidenceBasis && (
+                  <div>
+                    <dt className="text-xs uppercase tracking-wide text-ink/45">Evidence basis</dt>
+                    <dd className="mt-1 whitespace-pre-wrap text-sm text-ink/70">{item.record.evidenceBasis}</dd>
+                  </div>
+                )}
+              </dl>
+            )}
 
             {item.references.length > 0 && (
               <ul className="mt-3 space-y-1 border-l border-hairline pl-3 text-xs text-ink/65">
