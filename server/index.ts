@@ -538,6 +538,235 @@ async function ensureDatabaseSchema() {
       ON coordination_judgment_attestations (judgment_id, position)` },
     { name: 'coordination_judgment_attestations.attestation_idx', required: true, sql: sql`CREATE INDEX IF NOT EXISTS coordination_judgment_attestations_attestation_idx
       ON coordination_judgment_attestations (attestation_id)` },
+    { name: 'scoped_permission_decisions.table', required: true, sql: sql`CREATE TABLE IF NOT EXISTS scoped_permission_decisions (
+      id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+      operator_id varchar NOT NULL,
+      decision_maker_user_id varchar NOT NULL,
+      inquiry_id varchar NOT NULL,
+      actor_reference text NOT NULL,
+      actor_description text NOT NULL,
+      proposed_action text NOT NULL,
+      task_context text NOT NULL,
+      environment_context text NOT NULL,
+      scope_text text NOT NULL,
+      consequence_level text NOT NULL,
+      demonstrated_capability text NOT NULL,
+      capability_evidence_basis text NOT NULL,
+      capability_scope_assessment text NOT NULL,
+      capability_fit text NOT NULL,
+      authorization_source text NOT NULL,
+      authorization_state text NOT NULL,
+      judgment_currency_basis text NOT NULL,
+      blockers jsonb NOT NULL DEFAULT '[]'::jsonb,
+      required_conditions jsonb NOT NULL DEFAULT '[]'::jsonb,
+      decision text NOT NULL,
+      expires_at timestamp,
+      mandatory_review_trigger text,
+      lifecycle_action text NOT NULL DEFAULT 'decision',
+      related_permission_decision_id varchar,
+      created_at timestamp NOT NULL DEFAULT now(),
+      CONSTRAINT scoped_permission_decisions_operator_fk
+        FOREIGN KEY (operator_id) REFERENCES users(id) ON DELETE RESTRICT,
+      CONSTRAINT scoped_permission_decisions_decision_maker_fk
+        FOREIGN KEY (decision_maker_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+      CONSTRAINT scoped_permission_decisions_inquiry_fk
+        FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE RESTRICT,
+      CONSTRAINT scoped_permission_decisions_related_fk
+        FOREIGN KEY (related_permission_decision_id) REFERENCES scoped_permission_decisions(id) ON DELETE RESTRICT,
+      CONSTRAINT scoped_permission_decisions_decision_check
+        CHECK (decision IN ('permitted', 'permitted_with_conditions', 'wait', 'clarification_required', 'escalation_required', 'not_permitted')),
+      CONSTRAINT scoped_permission_decisions_capability_fit_check
+        CHECK (capability_fit IN ('within_scope', 'partial_or_lower_scope', 'not_demonstrated', 'uncertain')),
+      CONSTRAINT scoped_permission_decisions_authorization_state_check
+        CHECK (authorization_state IN ('established', 'conditional', 'missing', 'unclear')),
+      CONSTRAINT scoped_permission_decisions_lifecycle_action_check
+        CHECK (lifecycle_action IN ('decision', 'correction', 'withdrawal', 'supersession')),
+      CONSTRAINT scoped_permission_decisions_lifecycle_link_check
+        CHECK (
+          (lifecycle_action = 'decision' AND related_permission_decision_id IS NULL)
+          OR (lifecycle_action <> 'decision' AND related_permission_decision_id IS NOT NULL)
+        ),
+      CONSTRAINT scoped_permission_decisions_withdrawal_check
+        CHECK (lifecycle_action <> 'withdrawal' OR decision = 'not_permitted'),
+      CONSTRAINT scoped_permission_decisions_review_trigger_check
+        CHECK (expires_at IS NOT NULL OR NULLIF(BTRIM(mandatory_review_trigger), '') IS NOT NULL),
+      CONSTRAINT scoped_permission_decisions_json_arrays_check
+        CHECK (jsonb_typeof(blockers) = 'array' AND jsonb_typeof(required_conditions) = 'array'),
+      CONSTRAINT scoped_permission_decisions_permission_inputs_check
+        CHECK (
+          decision NOT IN ('permitted', 'permitted_with_conditions')
+          OR (capability_fit = 'within_scope' AND authorization_state IN ('established', 'conditional'))
+        ),
+      CONSTRAINT scoped_permission_decisions_permission_shape_check
+        CHECK (
+          (decision = 'permitted'
+            AND authorization_state = 'established'
+            AND jsonb_array_length(blockers) = 0
+            AND jsonb_array_length(required_conditions) = 0)
+          OR (decision = 'permitted_with_conditions'
+            AND jsonb_array_length(blockers) = 0
+            AND jsonb_array_length(required_conditions) > 0)
+          OR (decision NOT IN ('permitted', 'permitted_with_conditions')
+            AND jsonb_array_length(blockers) > 0)
+        )
+    )` },
+    { name: 'scoped_permission_decisions.foreign_keys', required: true, sql: sql`DO $scoped_permission_decision_fks$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'scoped_permission_decisions'::regclass
+            AND conname = 'scoped_permission_decisions_operator_fk'
+        ) THEN
+          ALTER TABLE scoped_permission_decisions
+            ADD CONSTRAINT scoped_permission_decisions_operator_fk
+            FOREIGN KEY (operator_id) REFERENCES users(id) ON DELETE RESTRICT NOT VALID;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'scoped_permission_decisions'::regclass
+            AND conname = 'scoped_permission_decisions_decision_maker_fk'
+        ) THEN
+          ALTER TABLE scoped_permission_decisions
+            ADD CONSTRAINT scoped_permission_decisions_decision_maker_fk
+            FOREIGN KEY (decision_maker_user_id) REFERENCES users(id) ON DELETE RESTRICT NOT VALID;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'scoped_permission_decisions'::regclass
+            AND conname = 'scoped_permission_decisions_inquiry_fk'
+        ) THEN
+          ALTER TABLE scoped_permission_decisions
+            ADD CONSTRAINT scoped_permission_decisions_inquiry_fk
+            FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE RESTRICT NOT VALID;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'scoped_permission_decisions'::regclass
+            AND conname = 'scoped_permission_decisions_related_fk'
+        ) THEN
+          ALTER TABLE scoped_permission_decisions
+            ADD CONSTRAINT scoped_permission_decisions_related_fk
+            FOREIGN KEY (related_permission_decision_id) REFERENCES scoped_permission_decisions(id) ON DELETE RESTRICT NOT VALID;
+        END IF;
+      END;
+      $scoped_permission_decision_fks$` },
+    { name: 'scoped_permission_decisions.check_constraints', required: true, sql: sql`DO $scoped_permission_decision_checks$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'scoped_permission_decisions'::regclass AND conname = 'scoped_permission_decisions_decision_check') THEN
+          ALTER TABLE scoped_permission_decisions ADD CONSTRAINT scoped_permission_decisions_decision_check
+            CHECK (decision IN ('permitted', 'permitted_with_conditions', 'wait', 'clarification_required', 'escalation_required', 'not_permitted')) NOT VALID;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'scoped_permission_decisions'::regclass AND conname = 'scoped_permission_decisions_capability_fit_check') THEN
+          ALTER TABLE scoped_permission_decisions ADD CONSTRAINT scoped_permission_decisions_capability_fit_check
+            CHECK (capability_fit IN ('within_scope', 'partial_or_lower_scope', 'not_demonstrated', 'uncertain')) NOT VALID;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'scoped_permission_decisions'::regclass AND conname = 'scoped_permission_decisions_authorization_state_check') THEN
+          ALTER TABLE scoped_permission_decisions ADD CONSTRAINT scoped_permission_decisions_authorization_state_check
+            CHECK (authorization_state IN ('established', 'conditional', 'missing', 'unclear')) NOT VALID;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'scoped_permission_decisions'::regclass AND conname = 'scoped_permission_decisions_lifecycle_action_check') THEN
+          ALTER TABLE scoped_permission_decisions ADD CONSTRAINT scoped_permission_decisions_lifecycle_action_check
+            CHECK (lifecycle_action IN ('decision', 'correction', 'withdrawal', 'supersession')) NOT VALID;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'scoped_permission_decisions'::regclass AND conname = 'scoped_permission_decisions_lifecycle_link_check') THEN
+          ALTER TABLE scoped_permission_decisions ADD CONSTRAINT scoped_permission_decisions_lifecycle_link_check
+            CHECK ((lifecycle_action = 'decision' AND related_permission_decision_id IS NULL)
+              OR (lifecycle_action <> 'decision' AND related_permission_decision_id IS NOT NULL)) NOT VALID;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'scoped_permission_decisions'::regclass AND conname = 'scoped_permission_decisions_withdrawal_check') THEN
+          ALTER TABLE scoped_permission_decisions ADD CONSTRAINT scoped_permission_decisions_withdrawal_check
+            CHECK (lifecycle_action <> 'withdrawal' OR decision = 'not_permitted') NOT VALID;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'scoped_permission_decisions'::regclass AND conname = 'scoped_permission_decisions_review_trigger_check') THEN
+          ALTER TABLE scoped_permission_decisions ADD CONSTRAINT scoped_permission_decisions_review_trigger_check
+            CHECK (expires_at IS NOT NULL OR NULLIF(BTRIM(mandatory_review_trigger), '') IS NOT NULL) NOT VALID;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'scoped_permission_decisions'::regclass AND conname = 'scoped_permission_decisions_json_arrays_check') THEN
+          ALTER TABLE scoped_permission_decisions ADD CONSTRAINT scoped_permission_decisions_json_arrays_check
+            CHECK (jsonb_typeof(blockers) = 'array' AND jsonb_typeof(required_conditions) = 'array') NOT VALID;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'scoped_permission_decisions'::regclass AND conname = 'scoped_permission_decisions_permission_inputs_check') THEN
+          ALTER TABLE scoped_permission_decisions ADD CONSTRAINT scoped_permission_decisions_permission_inputs_check
+            CHECK (decision NOT IN ('permitted', 'permitted_with_conditions')
+              OR (capability_fit = 'within_scope' AND authorization_state IN ('established', 'conditional'))) NOT VALID;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'scoped_permission_decisions'::regclass AND conname = 'scoped_permission_decisions_permission_shape_check') THEN
+          ALTER TABLE scoped_permission_decisions ADD CONSTRAINT scoped_permission_decisions_permission_shape_check
+            CHECK ((decision = 'permitted'
+                AND authorization_state = 'established'
+                AND jsonb_array_length(blockers) = 0
+                AND jsonb_array_length(required_conditions) = 0)
+              OR (decision = 'permitted_with_conditions'
+                AND jsonb_array_length(blockers) = 0
+                AND jsonb_array_length(required_conditions) > 0)
+              OR (decision NOT IN ('permitted', 'permitted_with_conditions')
+                AND jsonb_array_length(blockers) > 0)) NOT VALID;
+        END IF;
+      END;
+      $scoped_permission_decision_checks$` },
+    { name: 'scoped_permission_decisions.operator_fk.validate', required: true, sql: sql`ALTER TABLE scoped_permission_decisions VALIDATE CONSTRAINT scoped_permission_decisions_operator_fk` },
+    { name: 'scoped_permission_decisions.decision_maker_fk.validate', required: true, sql: sql`ALTER TABLE scoped_permission_decisions VALIDATE CONSTRAINT scoped_permission_decisions_decision_maker_fk` },
+    { name: 'scoped_permission_decisions.inquiry_fk.validate', required: true, sql: sql`ALTER TABLE scoped_permission_decisions VALIDATE CONSTRAINT scoped_permission_decisions_inquiry_fk` },
+    { name: 'scoped_permission_decisions.related_fk.validate', required: true, sql: sql`ALTER TABLE scoped_permission_decisions VALIDATE CONSTRAINT scoped_permission_decisions_related_fk` },
+    { name: 'scoped_permission_decisions.decision_check.validate', required: true, sql: sql`ALTER TABLE scoped_permission_decisions VALIDATE CONSTRAINT scoped_permission_decisions_decision_check` },
+    { name: 'scoped_permission_decisions.capability_fit_check.validate', required: true, sql: sql`ALTER TABLE scoped_permission_decisions VALIDATE CONSTRAINT scoped_permission_decisions_capability_fit_check` },
+    { name: 'scoped_permission_decisions.authorization_state_check.validate', required: true, sql: sql`ALTER TABLE scoped_permission_decisions VALIDATE CONSTRAINT scoped_permission_decisions_authorization_state_check` },
+    { name: 'scoped_permission_decisions.lifecycle_action_check.validate', required: true, sql: sql`ALTER TABLE scoped_permission_decisions VALIDATE CONSTRAINT scoped_permission_decisions_lifecycle_action_check` },
+    { name: 'scoped_permission_decisions.lifecycle_link_check.validate', required: true, sql: sql`ALTER TABLE scoped_permission_decisions VALIDATE CONSTRAINT scoped_permission_decisions_lifecycle_link_check` },
+    { name: 'scoped_permission_decisions.withdrawal_check.validate', required: true, sql: sql`ALTER TABLE scoped_permission_decisions VALIDATE CONSTRAINT scoped_permission_decisions_withdrawal_check` },
+    { name: 'scoped_permission_decisions.review_trigger_check.validate', required: true, sql: sql`ALTER TABLE scoped_permission_decisions VALIDATE CONSTRAINT scoped_permission_decisions_review_trigger_check` },
+    { name: 'scoped_permission_decisions.json_arrays_check.validate', required: true, sql: sql`ALTER TABLE scoped_permission_decisions VALIDATE CONSTRAINT scoped_permission_decisions_json_arrays_check` },
+    { name: 'scoped_permission_decisions.permission_inputs_check.validate', required: true, sql: sql`ALTER TABLE scoped_permission_decisions VALIDATE CONSTRAINT scoped_permission_decisions_permission_inputs_check` },
+    { name: 'scoped_permission_decisions.permission_shape_check.validate', required: true, sql: sql`ALTER TABLE scoped_permission_decisions VALIDATE CONSTRAINT scoped_permission_decisions_permission_shape_check` },
+    { name: 'scoped_permission_decisions.operator_inquiry_created_idx', required: true, sql: sql`CREATE INDEX IF NOT EXISTS scoped_permission_decisions_operator_inquiry_created_idx
+      ON scoped_permission_decisions (operator_id, inquiry_id, created_at, id)` },
+    { name: 'scoped_permission_decisions.related_idx', required: true, sql: sql`CREATE INDEX IF NOT EXISTS scoped_permission_decisions_related_idx
+      ON scoped_permission_decisions (related_permission_decision_id)` },
+    { name: 'scoped_permission_decision_judgments.table', required: true, sql: sql`CREATE TABLE IF NOT EXISTS scoped_permission_decision_judgments (
+      id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+      permission_decision_id varchar NOT NULL,
+      judgment_id varchar NOT NULL,
+      position integer NOT NULL,
+      created_at timestamp NOT NULL DEFAULT now(),
+      CONSTRAINT scoped_permission_decision_judgments_decision_fk
+        FOREIGN KEY (permission_decision_id) REFERENCES scoped_permission_decisions(id) ON DELETE RESTRICT,
+      CONSTRAINT scoped_permission_decision_judgments_judgment_fk
+        FOREIGN KEY (judgment_id) REFERENCES coordination_judgments(id) ON DELETE RESTRICT,
+      CONSTRAINT scoped_permission_decision_judgments_position_check
+        CHECK (position >= 0)
+    )` },
+    { name: 'scoped_permission_decision_judgments.foreign_keys', required: true, sql: sql`DO $scoped_permission_decision_judgment_fks$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'scoped_permission_decision_judgments'::regclass AND conname = 'scoped_permission_decision_judgments_decision_fk') THEN
+          ALTER TABLE scoped_permission_decision_judgments ADD CONSTRAINT scoped_permission_decision_judgments_decision_fk
+            FOREIGN KEY (permission_decision_id) REFERENCES scoped_permission_decisions(id) ON DELETE RESTRICT NOT VALID;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'scoped_permission_decision_judgments'::regclass AND conname = 'scoped_permission_decision_judgments_judgment_fk') THEN
+          ALTER TABLE scoped_permission_decision_judgments ADD CONSTRAINT scoped_permission_decision_judgments_judgment_fk
+            FOREIGN KEY (judgment_id) REFERENCES coordination_judgments(id) ON DELETE RESTRICT NOT VALID;
+        END IF;
+      END;
+      $scoped_permission_decision_judgment_fks$` },
+    { name: 'scoped_permission_decision_judgments.check_constraints', required: true, sql: sql`DO $scoped_permission_decision_judgment_checks$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'scoped_permission_decision_judgments'::regclass AND conname = 'scoped_permission_decision_judgments_position_check') THEN
+          ALTER TABLE scoped_permission_decision_judgments ADD CONSTRAINT scoped_permission_decision_judgments_position_check
+            CHECK (position >= 0) NOT VALID;
+        END IF;
+      END;
+      $scoped_permission_decision_judgment_checks$` },
+    { name: 'scoped_permission_decision_judgments.decision_fk.validate', required: true, sql: sql`ALTER TABLE scoped_permission_decision_judgments VALIDATE CONSTRAINT scoped_permission_decision_judgments_decision_fk` },
+    { name: 'scoped_permission_decision_judgments.judgment_fk.validate', required: true, sql: sql`ALTER TABLE scoped_permission_decision_judgments VALIDATE CONSTRAINT scoped_permission_decision_judgments_judgment_fk` },
+    { name: 'scoped_permission_decision_judgments.position_check.validate', required: true, sql: sql`ALTER TABLE scoped_permission_decision_judgments VALIDATE CONSTRAINT scoped_permission_decision_judgments_position_check` },
+    { name: 'scoped_permission_decision_judgments.unique', required: true, sql: sql`CREATE UNIQUE INDEX IF NOT EXISTS scoped_permission_decision_judgments_unique
+      ON scoped_permission_decision_judgments (permission_decision_id, judgment_id)` },
+    { name: 'scoped_permission_decision_judgments.position_unique', required: true, sql: sql`CREATE UNIQUE INDEX IF NOT EXISTS scoped_permission_decision_judgments_position_unique
+      ON scoped_permission_decision_judgments (permission_decision_id, position)` },
+    { name: 'scoped_permission_decision_judgments.judgment_idx', required: true, sql: sql`CREATE INDEX IF NOT EXISTS scoped_permission_decision_judgments_judgment_idx
+      ON scoped_permission_decision_judgments (judgment_id)` },
     { name: 'inquiry_responses.table', sql: sql`CREATE TABLE IF NOT EXISTS inquiry_responses (
       id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
       operator_id varchar NOT NULL,

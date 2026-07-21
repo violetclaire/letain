@@ -3118,6 +3118,194 @@ export type InsertCoordinationJudgmentAttestation = z.infer<
 >;
 export type CoordinationJudgmentAttestation = typeof coordinationJudgmentAttestations.$inferSelect;
 
+export const scopedPermissionDecisionValues = [
+  "permitted",
+  "permitted_with_conditions",
+  "wait",
+  "clarification_required",
+  "escalation_required",
+  "not_permitted",
+] as const;
+export type ScopedPermissionDecisionValue = typeof scopedPermissionDecisionValues[number];
+
+export const scopedPermissionCapabilityFitValues = [
+  "within_scope",
+  "partial_or_lower_scope",
+  "not_demonstrated",
+  "uncertain",
+] as const;
+export type ScopedPermissionCapabilityFit = typeof scopedPermissionCapabilityFitValues[number];
+
+export const scopedPermissionAuthorizationStateValues = [
+  "established",
+  "conditional",
+  "missing",
+  "unclear",
+] as const;
+export type ScopedPermissionAuthorizationState = typeof scopedPermissionAuthorizationStateValues[number];
+
+export const scopedPermissionLifecycleActionValues = [
+  "decision",
+  "correction",
+  "withdrawal",
+  "supersession",
+] as const;
+export type ScopedPermissionLifecycleAction = typeof scopedPermissionLifecycleActionValues[number];
+
+// A human-authored, inquiry-scoped permission record. Capability and judgment
+// provenance are inputs only; this record does not execute the proposed action.
+export const scopedPermissionDecisions = pgTable(
+  "scoped_permission_decisions",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    operatorId: varchar("operator_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    decisionMakerUserId: varchar("decision_maker_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    inquiryId: varchar("inquiry_id")
+      .notNull()
+      .references(() => inquiries.id, { onDelete: "restrict" }),
+    actorReference: text("actor_reference").notNull(),
+    actorDescription: text("actor_description").notNull(),
+    proposedAction: text("proposed_action").notNull(),
+    taskContext: text("task_context").notNull(),
+    environmentContext: text("environment_context").notNull(),
+    scopeText: text("scope_text").notNull(),
+    consequenceLevel: text("consequence_level").notNull(),
+    demonstratedCapability: text("demonstrated_capability").notNull(),
+    capabilityEvidenceBasis: text("capability_evidence_basis").notNull(),
+    capabilityScopeAssessment: text("capability_scope_assessment").notNull(),
+    capabilityFit: text("capability_fit")
+      .$type<ScopedPermissionCapabilityFit>()
+      .notNull(),
+    authorizationSource: text("authorization_source").notNull(),
+    authorizationState: text("authorization_state")
+      .$type<ScopedPermissionAuthorizationState>()
+      .notNull(),
+    judgmentCurrencyBasis: text("judgment_currency_basis").notNull(),
+    blockers: jsonb("blockers").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    requiredConditions: jsonb("required_conditions").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    decision: text("decision")
+      .$type<ScopedPermissionDecisionValue>()
+      .notNull(),
+    expiresAt: timestamp("expires_at"),
+    mandatoryReviewTrigger: text("mandatory_review_trigger"),
+    lifecycleAction: text("lifecycle_action")
+      .$type<ScopedPermissionLifecycleAction>()
+      .notNull()
+      .default("decision"),
+    relatedPermissionDecisionId: varchar("related_permission_decision_id")
+      .references((): AnyPgColumn => scopedPermissionDecisions.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("scoped_permission_decisions_operator_inquiry_created_idx")
+      .on(table.operatorId, table.inquiryId, table.createdAt, table.id),
+    index("scoped_permission_decisions_related_idx").on(table.relatedPermissionDecisionId),
+    check(
+      "scoped_permission_decisions_decision_check",
+      sql`${table.decision} IN ('permitted', 'permitted_with_conditions', 'wait', 'clarification_required', 'escalation_required', 'not_permitted')`,
+    ),
+    check(
+      "scoped_permission_decisions_capability_fit_check",
+      sql`${table.capabilityFit} IN ('within_scope', 'partial_or_lower_scope', 'not_demonstrated', 'uncertain')`,
+    ),
+    check(
+      "scoped_permission_decisions_authorization_state_check",
+      sql`${table.authorizationState} IN ('established', 'conditional', 'missing', 'unclear')`,
+    ),
+    check(
+      "scoped_permission_decisions_lifecycle_action_check",
+      sql`${table.lifecycleAction} IN ('decision', 'correction', 'withdrawal', 'supersession')`,
+    ),
+    check(
+      "scoped_permission_decisions_lifecycle_link_check",
+      sql`(${table.lifecycleAction} = 'decision' AND ${table.relatedPermissionDecisionId} IS NULL)
+        OR (${table.lifecycleAction} <> 'decision' AND ${table.relatedPermissionDecisionId} IS NOT NULL)`,
+    ),
+    check(
+      "scoped_permission_decisions_withdrawal_check",
+      sql`${table.lifecycleAction} <> 'withdrawal' OR ${table.decision} = 'not_permitted'`,
+    ),
+    check(
+      "scoped_permission_decisions_review_trigger_check",
+      sql`${table.expiresAt} IS NOT NULL OR NULLIF(BTRIM(${table.mandatoryReviewTrigger}), '') IS NOT NULL`,
+    ),
+    check(
+      "scoped_permission_decisions_json_arrays_check",
+      sql`jsonb_typeof(${table.blockers}) = 'array' AND jsonb_typeof(${table.requiredConditions}) = 'array'`,
+    ),
+    check(
+      "scoped_permission_decisions_permission_inputs_check",
+      sql`${table.decision} NOT IN ('permitted', 'permitted_with_conditions')
+        OR (${table.capabilityFit} = 'within_scope'
+          AND ${table.authorizationState} IN ('established', 'conditional'))`,
+    ),
+    check(
+      "scoped_permission_decisions_permission_shape_check",
+      sql`(${table.decision} = 'permitted'
+          AND ${table.authorizationState} = 'established'
+          AND jsonb_array_length(${table.blockers}) = 0
+          AND jsonb_array_length(${table.requiredConditions}) = 0)
+        OR (${table.decision} = 'permitted_with_conditions'
+          AND jsonb_array_length(${table.blockers}) = 0
+          AND jsonb_array_length(${table.requiredConditions}) > 0)
+        OR (${table.decision} NOT IN ('permitted', 'permitted_with_conditions')
+          AND jsonb_array_length(${table.blockers}) > 0)`,
+    ),
+  ],
+);
+
+export const insertScopedPermissionDecisionSchema = createInsertSchema(scopedPermissionDecisions, {
+  capabilityFit: z.enum(scopedPermissionCapabilityFitValues),
+  authorizationState: z.enum(scopedPermissionAuthorizationStateValues),
+  decision: z.enum(scopedPermissionDecisionValues),
+  lifecycleAction: z.enum(scopedPermissionLifecycleActionValues),
+}).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertScopedPermissionDecision = z.infer<typeof insertScopedPermissionDecisionSchema>;
+export type ScopedPermissionDecision = typeof scopedPermissionDecisions.$inferSelect;
+
+// Ordered provenance links to the judgments reviewed for this decision. A link
+// does not make a judgment current and does not itself grant permission.
+export const scopedPermissionDecisionJudgments = pgTable(
+  "scoped_permission_decision_judgments",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    permissionDecisionId: varchar("permission_decision_id")
+      .notNull()
+      .references(() => scopedPermissionDecisions.id, { onDelete: "restrict" }),
+    judgmentId: varchar("judgment_id")
+      .notNull()
+      .references(() => coordinationJudgments.id, { onDelete: "restrict" }),
+    position: integer("position").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("scoped_permission_decision_judgments_unique")
+      .on(table.permissionDecisionId, table.judgmentId),
+    uniqueIndex("scoped_permission_decision_judgments_position_unique")
+      .on(table.permissionDecisionId, table.position),
+    index("scoped_permission_decision_judgments_judgment_idx").on(table.judgmentId),
+    check("scoped_permission_decision_judgments_position_check", sql`${table.position} >= 0`),
+  ],
+);
+
+export const insertScopedPermissionDecisionJudgmentSchema = createInsertSchema(
+  scopedPermissionDecisionJudgments,
+).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertScopedPermissionDecisionJudgment = z.infer<
+  typeof insertScopedPermissionDecisionJudgmentSchema
+>;
+export type ScopedPermissionDecisionJudgment = typeof scopedPermissionDecisionJudgments.$inferSelect;
+
 // An outgoing client-facing message draft from the response composer. Covers
 // the three client messages: pricing/available response, polite decline, and a
 // referral list. Always operator-approved before send: status starts 'draft'

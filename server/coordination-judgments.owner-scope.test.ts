@@ -410,7 +410,7 @@ test("coordination judgment surface is private create/list/read only and grants 
 
   const routesText = await readFile(new URL("./routes.ts", import.meta.url), "utf8");
   const section = routesText.match(
-    /\/\/ --- Inquiry Workspace: private append-only coordination judgments ---[\s\S]*?\/\/ --- Composer:/,
+    /\/\/ --- Inquiry Workspace: private append-only coordination judgments ---[\s\S]*?\/\/ --- Inquiry Workspace: private append-only scoped permission decisions ---/,
   )?.[0];
   assert.ok(section, "coordination judgment route section should exist");
   assert.doesNotMatch(section, /storage\.(?:update|delete)/);
@@ -445,7 +445,7 @@ test("schema and startup DDL preserve append-only referential integrity and fail
 
   const indexText = await readFile(new URL("./index.ts", import.meta.url), "utf8");
   const setup = indexText.match(
-    /\{ name: 'coordination_judgments\.table'[\s\S]*?\{ name: 'inquiry_responses\.table'/,
+    /\{ name: 'coordination_judgments\.table'[\s\S]*?\{ name: 'scoped_permission_decisions\.table'/,
   )?.[0];
   assert.ok(setup, "idempotent coordination judgment startup schema should exist");
   assert.match(setup, /CREATE TABLE IF NOT EXISTS coordination_judgments/);
