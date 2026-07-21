@@ -32,6 +32,7 @@ import * as iqsService from "./iqsService";
 import { logActivity, getRecentActivity, getTodayActivity } from "./activityService";
 import { calculateCDI, runSampleCalculations, CDIInput, SAMPLE_TRANSACTIONS } from "./cdiService";
 import { assessCoordinationPath } from "./coordinationAssessment";
+import { buildInquiryDecisionChain } from "./inquiry-decision-chain";
 
 // Rate limiter for auth endpoints to prevent brute force attacks
 const authLimiter = rateLimit({
@@ -2909,6 +2910,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       res.status(201).json({ humanActionDecision });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // --- Inquiry Workspace: private read-only inquiry decision chain ---
+  app.get("/api/inquiries/:id/decision-chain", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const context = await loadPrivateInquiryContext(req, res);
+      if (!context) return;
+
+      const [attestations, judgments, permissionDecisions, humanActionDecisions] = await Promise.all([
+        storage.listHumanAttestations(context.userId, context.inquiry.id),
+        storage.listCoordinationJudgments(context.userId, context.inquiry.id),
+        storage.listScopedPermissionDecisions(context.userId, context.inquiry.id),
+        storage.listHumanActionDecisions(context.userId, context.inquiry.id),
+      ]);
+      const decisionChain = buildInquiryDecisionChain({
+        operatorId: context.userId,
+        inquiryId: context.inquiry.id,
+        knownAttestationIds: attestations.map((attestation) => attestation.id),
+        judgments,
+        permissionDecisions,
+        humanActionDecisions,
+      });
+
+      res.json({ decisionChain });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
