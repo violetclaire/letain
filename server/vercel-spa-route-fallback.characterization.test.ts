@@ -8,6 +8,8 @@ function readRepoFile(path: string): string {
 
 type VercelConfig = {
   $schema?: string;
+  buildCommand?: string;
+  outputDirectory?: string;
   rewrites?: Array<{
     source: string;
     destination: string;
@@ -20,9 +22,38 @@ test("Vercel uses the repository build and Vite SPA output directory", () => {
     scripts?: Record<string, string>;
   };
   const viteConfig = readRepoFile("vite.config.ts");
+  const config = JSON.parse(readRepoFile("vercel.json")) as VercelConfig;
 
   assert.equal(packageJson.scripts?.build, "tsx script/build.ts");
   assert.match(viteConfig, /outDir: path\.resolve\(import\.meta\.dirname, "dist\/public"\)/);
+  assert.equal(config.buildCommand, "npm run build -- --client-only");
+  assert.equal(config.outputDirectory, "dist/public");
+});
+
+test("Vercel cannot publish the compiled backend bundle", () => {
+  const config = JSON.parse(readRepoFile("vercel.json")) as VercelConfig;
+  const serverBuild = readRepoFile("script/build.ts");
+
+  assert.equal(config.outputDirectory, "dist/public");
+  assert.equal(config.buildCommand, "npm run build -- --client-only");
+  assert.match(serverBuild, /process\.argv\.includes\("--client-only"\)/);
+  assert.match(serverBuild, /outfile: "dist\/index\.cjs"/);
+
+  const cleanOutputIndex = serverBuild.indexOf('await rm("dist"');
+  const clientBuildIndex = serverBuild.indexOf("await viteBuild()");
+  const clientOnlyExitIndex = serverBuild.indexOf(
+    'process.argv.includes("--client-only")',
+  );
+  const serverBuildIndex = serverBuild.indexOf('console.log("building server...")');
+
+  assert.ok(cleanOutputIndex >= 0);
+  assert.ok(cleanOutputIndex < clientBuildIndex);
+  assert.ok(clientBuildIndex < clientOnlyExitIndex);
+  assert.ok(clientOnlyExitIndex < serverBuildIndex);
+  assert.equal(
+    "dist/index.cjs".startsWith(`${config.outputDirectory}/`),
+    false,
+  );
 });
 
 test("Vercel serves client-side routes through the SPA entry document", () => {
