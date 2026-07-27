@@ -62,7 +62,7 @@ test("Vercel serves client-side routes through the SPA entry document", () => {
   assert.equal(config.$schema, "https://openapi.vercel.sh/vercel.json");
   assert.deepEqual(config.rewrites, [
     {
-      source: "/((?!api(?:/|$)).*)",
+      source: "/((?!api(?:/|$))(?!.*\\.cjs$).*)",
       destination: "/index.html",
     },
   ]);
@@ -76,6 +76,9 @@ test("Vercel serves client-side routes through the SPA entry document", () => {
   assert.equal(fallbackPattern.test("/artist/availability"), true);
   assert.equal(fallbackPattern.test("/api"), false);
   assert.equal(fallbackPattern.test("/api/health"), false);
+  assert.equal(fallbackPattern.test("/index.cjs"), false);
+  assert.equal(fallbackPattern.test("/dist/index.cjs"), false);
+  assert.equal(fallbackPattern.test("/assets/missing.cjs"), false);
 });
 
 test("the fallback preserves the registered client routes and filesystem precedence", () => {
