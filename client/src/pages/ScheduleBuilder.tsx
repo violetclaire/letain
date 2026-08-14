@@ -26,6 +26,48 @@ type SetupData = {
 
 const TIME_OPTIONS = generateTimeOptions();
 
+function parseStartTimeMinutes(startTime: string): number {
+  const cleaned = startTime.trim().toUpperCase();
+  const isPM = cleaned.includes("PM");
+  const isAM = cleaned.includes("AM");
+  const stripped = cleaned.replace(/[APM\s]/g, "");
+  const [hStr, mStr] = stripped.split(":");
+  let h = parseInt(hStr, 10);
+  const m = parseInt(mStr || "0", 10);
+  if (isPM && h !== 12) h += 12;
+  if (isAM && h === 12) h = 0;
+  return h * 60 + m;
+}
+
+function minutesToDisplay(totalMinutes: number): string {
+  const normalized = totalMinutes % (24 * 60);
+  const h = Math.floor(normalized / 60);
+  const m = normalized % 60;
+  const ampm = h >= 12 ? "PM" : "AM";
+  const displayH = h % 12 || 12;
+  return `${displayH}:${m.toString().padStart(2, "0")} ${ampm}`;
+}
+
+// Recompute one column's time ranges from the event start time and that
+// artist's operator-entered minutes-per-service. An unknown duration (0 or
+// less) leaves every range blank — times are never invented.
+function recalcColumnTimes(grid: GridCell[][], colIdx: number, durationMinutes: number, startTime: string): GridCell[][] {
+  const known = Number.isFinite(durationMinutes) && durationMinutes > 0;
+  let cursor = parseStartTimeMinutes(startTime);
+  return grid.map((row) => {
+    const cell = row[colIdx];
+    if (!cell || !cell.clientName.trim()) return row;
+    const next = [...row];
+    if (known) {
+      next[colIdx] = { ...cell, timeRange: `${minutesToDisplay(cursor)} - ${minutesToDisplay(cursor + durationMinutes)}` };
+      cursor += durationMinutes;
+    } else {
+      next[colIdx] = { ...cell, timeRange: "" };
+    }
+    return next;
+  });
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ScheduleBuilder() {
@@ -78,12 +120,14 @@ export default function ScheduleBuilder() {
 
   useEffect(() => {
     if (step === "grid" && artists.length === 0) {
+      // Column slots reflect the operator's typed artist count; names and
+      // per-service durations start unknown until the operator enters them —
+      // no invented identities or 30/45-minute defaults.
       const initialArtists: ArtistColumn[] = Array.from({ length: setup.numArtists }, (_, i) => ({
-        name: i === 0 ? "Violet" : `Artist ${i + 1}`,
-        type: i === 0 ? "H30" : "H45",
-        duration: i === 0 ? 30 : 45,
+        name: `Provider ${i + 1}`,
+        type: "",
+        duration: 0,
         slots: [],
-        isLead: i === 0,
       }));
       setArtists(initialArtists);
       setGrid([[...initialArtists.map(() => ({ timeRange: "", clientName: "" }))]]);
@@ -108,13 +152,26 @@ export default function ScheduleBuilder() {
     });
   };
 
+  // Operator enters each artist's minutes-per-service here; the column's time
+  // ranges recalculate from that entry (or clear back to blank when unset).
+  const updateArtistDuration = (colIdx: number, value: string) => {
+    const parsed = parseInt(value, 10);
+    const duration = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+    setArtists(prev => {
+      const next = [...prev];
+      next[colIdx] = { ...next[colIdx], duration };
+      return next;
+    });
+    setGrid(prev => recalcColumnTimes(prev, colIdx, duration, setup.startTime));
+  };
+
   const addRow = () => {
     setGrid(prev => [...prev, artists.map(() => ({ timeRange: "", clientName: "" }))]);
   };
 
   const addColumn = () => {
     const idx = artists.length;
-    const newArtist: ArtistColumn = { name: `Artist ${idx + 1}`, type: "H45", duration: 45, slots: [], isLead: false };
+    const newArtist: ArtistColumn = { name: `Provider ${idx + 1}`, type: "", duration: 0, slots: [] };
     setArtists(prev => [...prev, newArtist]);
     setGrid(prev => prev.map(row => [...row, { timeRange: "", clientName: "" }]));
   };
@@ -511,6 +568,11 @@ export default function ScheduleBuilder() {
 
       {/* Grid */}
       <div className="max-w-7xl mx-auto p-4 overflow-x-auto">
+        {artists.some(a => !(a.duration > 0)) && (
+          <div className="mb-3 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800" data-testid="banner-unknown-durations">
+            Time ranges stay blank until each artist's minutes-per-service is entered above their column — no timing is ever assumed for you.
+          </div>
+        )}
         <table className="border-collapse bg-white rounded-lg shadow-sm border border-[#E8E2D9]">
           <thead>
             <tr>
@@ -535,8 +597,22 @@ export default function ScheduleBuilder() {
                         </button>
                       )}
                     </div>
-                    <div className="text-[11px] text-[#888]">
-                      {artist.isLead ? "30 min/service · Bride = 2 hrs" : "45 min/service"}
+                    <div className="flex items-center gap-1.5 text-[11px] text-[#888]">
+                      <input
+                        type="number"
+                        min={1}
+                        value={artist.duration > 0 ? artist.duration : ""}
+                        placeholder="not set"
+                        onChange={e => updateArtistDuration(colIdx, e.target.value)}
+                        className="w-16 px-1.5 py-0.5 bg-white border border-[#E8E2D9] rounded text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]"
+                        data-testid={`input-artist-duration-${colIdx}`}
+                      />
+                      <span>min/service</span>
+                      {!(artist.duration > 0) && (
+                        <span className="px-1.5 py-0.5 bg-amber-50 border border-amber-200 rounded text-amber-700 font-medium">
+                          Unknown
+                        </span>
+                      )}
                     </div>
                   </div>
                 </th>

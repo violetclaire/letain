@@ -910,31 +910,36 @@ function starterServiceDefaults(): ServiceDefault[] {
   return STARTER_SERVICE_DEFAULTS.map((service) => ({ ...service }));
 }
 
-function usesLegacyServiceDefaults(defaults: ServiceDefault[]): boolean {
-  const legacyLabels = Object.keys(LEGACY_SERVICE_DEFAULTS);
-  if (defaults.length === 0 || defaults.length > legacyLabels.length) {
+// Detecting an untouched code-injected table requires an EXACT complete-table
+// match: same row count as the seed, every seeded label present exactly once,
+// every duration equal to the seeded value. Anything less — a subset, a
+// duplicate, one edited number — is treated as operator data and kept, so a
+// real saved entry that happens to equal a seed value is never wiped.
+function matchesEntireSeedTable(defaults: ServiceDefault[], seedTable: Record<string, number>): boolean {
+  const seedLabels = Object.keys(seedTable);
+  if (defaults.length !== seedLabels.length) {
     return false;
   }
 
-  return defaults.every((service) => {
+  const seen = new Set<string>();
+  for (const service of defaults) {
     const label = service.label.trim().toLowerCase();
-    return LEGACY_SERVICE_DEFAULTS[label] === service.durationMinutes;
-  });
+    if (seen.has(label)) return false;
+    seen.add(label);
+    if (seedTable[label] !== service.durationMinutes) return false;
+  }
+  return true;
 }
 
-// An untouched code seed is not an operator decision: when every stored entry
-// still matches the old code-injected table exactly, the durations are cleared
-// back to unknown. Any operator edit anywhere keeps the whole table.
-function usesCodeSeededServiceDefaults(defaults: ServiceDefault[]): boolean {
-  const seededLabels = Object.keys(CODE_SEEDED_SERVICE_DURATIONS);
-  if (defaults.length === 0 || defaults.length > seededLabels.length) {
-    return false;
-  }
+function usesLegacyServiceDefaults(defaults: ServiceDefault[]): boolean {
+  return matchesEntireSeedTable(defaults, LEGACY_SERVICE_DEFAULTS);
+}
 
-  return defaults.every((service) => {
-    const label = service.label.trim().toLowerCase();
-    return CODE_SEEDED_SERVICE_DURATIONS[label] === service.durationMinutes;
-  });
+// An untouched code seed is not an operator decision: when the stored table is
+// exactly the old code-injected table, the durations are cleared back to
+// unknown. Any operator edit anywhere keeps the whole table.
+function usesCodeSeededServiceDefaults(defaults: ServiceDefault[]): boolean {
+  return matchesEntireSeedTable(defaults, CODE_SEEDED_SERVICE_DURATIONS);
 }
 
 function normalizeServiceDefaults(defaults?: ServiceDefault[] | null): ServiceDefault[] {
