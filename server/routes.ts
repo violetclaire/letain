@@ -33,6 +33,10 @@ import { logActivity, getRecentActivity, getTodayActivity } from "./activityServ
 import { calculateCDI, runSampleCalculations, CDIInput, SAMPLE_TRANSACTIONS } from "./cdiService";
 import { assessCoordinationPath } from "./coordinationAssessment";
 import { buildInquiryDecisionChain } from "./inquiry-decision-chain";
+import {
+  canReadLegacySharedSchedule,
+  getLegacyScheduleQuarantinePolicy,
+} from "./legacy-schedule-quarantine";
 
 // Rate limiter for auth endpoints to prevent brute force attacks
 const authLimiter = rateLimit({
@@ -8575,6 +8579,26 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   });
 
   // ========== EVENT DAY SCHEDULES (Smart Scheduling Grid) ==========
+
+  const legacyScheduleUnavailable = (res: Response) =>
+    res.status(404).json({ error: "Legacy schedule collaboration is unavailable" });
+
+  const legacyScheduleMutationAllowed = (res: Response) => {
+    if (!getLegacyScheduleQuarantinePolicy().allowGuestMutations) {
+      legacyScheduleUnavailable(res);
+      return false;
+    }
+    return true;
+  };
+
+  const loadReadableLegacySharedSchedule = async (shareToken: string, res: Response) => {
+    const schedule = await storage.getEventDayScheduleByShareToken(shareToken);
+    if (!schedule || !canReadLegacySharedSchedule(schedule.status)) {
+      res.status(404).json({ error: "Schedule not found" });
+      return null;
+    }
+    return schedule;
+  };
   
   // Get all schedules for current user (artist/vendor)
   app.get("/api/event-schedules", isAuthenticated, async (req: Request, res: Response) => {
@@ -8615,10 +8639,8 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Public shareable schedule view (no auth required)
   app.get("/api/event-schedules/share/:shareToken", async (req, res) => {
     try {
-      const schedule = await storage.getEventDayScheduleByShareToken(req.params.shareToken);
-      if (!schedule) {
-        return res.status(404).json({ error: "Schedule not found" });
-      }
+      const schedule = await loadReadableLegacySharedSchedule(req.params.shareToken, res);
+      if (!schedule) return;
       
       const teamMembers = await storage.getScheduleTeamMembers(schedule.id);
       const appointments = await storage.getScheduleAppointments(schedule.id);
@@ -8633,12 +8655,10 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Guest notes submission (no auth required - guests can add notes)
   app.post("/api/event-schedules/share/:shareToken/guest-note", async (req, res) => {
     try {
+      if (!legacyScheduleMutationAllowed(res)) return;
       const { guestNote } = req.body;
-      const schedule = await storage.getEventDayScheduleByShareToken(req.params.shareToken);
-      
-      if (!schedule) {
-        return res.status(404).json({ error: "Schedule not found" });
-      }
+      const schedule = await loadReadableLegacySharedSchedule(req.params.shareToken, res);
+      if (!schedule) return;
       
       // Append new note to existing notes with timestamp
       const timestamp = new Date().toLocaleString('en-US', { 
@@ -8665,12 +8685,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Appointment notes submission (no auth required - guests can add notes to their appointments)
   app.post("/api/event-schedules/share/:shareToken/appointment/:appointmentId/notes", async (req, res) => {
     try {
+      if (!legacyScheduleMutationAllowed(res)) return;
       const { notes } = req.body;
       const { shareToken, appointmentId } = req.params;
-      
-      const schedule = await storage.getEventDayScheduleByShareToken(shareToken);
-      
-      if (!schedule) {
+      const schedule = await loadReadableLegacySharedSchedule(shareToken, res);
+      if (!schedule) return;
+
+      const appointment = await storage.getScheduleAppointment(appointmentId);
+      if (!appointment || appointment.scheduleId !== schedule.id) {
         return res.status(404).json({ error: "Schedule not found" });
       }
       
@@ -8688,13 +8710,12 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Update appointment time via share token
   app.post("/api/event-schedules/share/:shareToken/appointment/:appointmentId/time", async (req, res) => {
     try {
+      if (!legacyScheduleMutationAllowed(res)) return;
       const { appointmentId, shareToken } = req.params;
       const { startTime, endTime } = req.body;
 
-      const schedule = await storage.getEventDayScheduleByShareToken(shareToken);
-      if (!schedule) {
-        return res.status(404).json({ error: "Schedule not found" });
-      }
+      const schedule = await loadReadableLegacySharedSchedule(shareToken, res);
+      if (!schedule) return;
 
       const appointment = await storage.getScheduleAppointment(appointmentId);
       if (!appointment || appointment.scheduleId !== schedule.id) {
@@ -8715,6 +8736,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
 
   app.post("/api/event-schedules/share/:shareToken/appointment/:appointmentId/name", async (req, res) => {
     try {
+      if (!legacyScheduleMutationAllowed(res)) return;
       const { clientName } = req.body;
       const { shareToken, appointmentId } = req.params;
       
@@ -8722,10 +8744,8 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         return res.status(400).json({ error: "Name is required" });
       }
       
-      const schedule = await storage.getEventDayScheduleByShareToken(shareToken);
-      if (!schedule) {
-        return res.status(404).json({ error: "Schedule not found" });
-      }
+      const schedule = await loadReadableLegacySharedSchedule(shareToken, res);
+      if (!schedule) return;
       
       const appointment = await storage.getScheduleAppointment(appointmentId);
       if (!appointment || appointment.scheduleId !== schedule.id) {
@@ -8743,6 +8763,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Upload inspiration photos for an appointment
   app.post("/api/event-schedules/share/:shareToken/appointment/:appointmentId/photos", async (req, res) => {
     try {
+      if (!legacyScheduleMutationAllowed(res)) return;
       const { photos } = req.body;
       const { shareToken, appointmentId } = req.params;
       
@@ -8754,10 +8775,8 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         return res.status(400).json({ error: "Maximum 10 photos per upload" });
       }
       
-      const schedule = await storage.getEventDayScheduleByShareToken(shareToken);
-      if (!schedule) {
-        return res.status(404).json({ error: "Schedule not found" });
-      }
+      const schedule = await loadReadableLegacySharedSchedule(shareToken, res);
+      if (!schedule) return;
       
       const appointment = await storage.getScheduleAppointment(appointmentId);
       if (!appointment || appointment.scheduleId !== schedule.id) {
@@ -8782,13 +8801,12 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Delete inspiration photo from appointment
   app.delete("/api/event-schedules/share/:shareToken/appointment/:appointmentId/photos", async (req, res) => {
     try {
+      if (!legacyScheduleMutationAllowed(res)) return;
       const { photoUrl } = req.body;
       const { shareToken, appointmentId } = req.params;
       
-      const schedule = await storage.getEventDayScheduleByShareToken(shareToken);
-      if (!schedule) {
-        return res.status(404).json({ error: "Schedule not found" });
-      }
+      const schedule = await loadReadableLegacySharedSchedule(shareToken, res);
+      if (!schedule) return;
       
       const appointment = await storage.getScheduleAppointment(appointmentId);
       if (!appointment || appointment.scheduleId !== schedule.id) {
@@ -8809,10 +8827,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Add appointment to schedule via share token
   app.post("/api/event-schedules/share/:shareToken/appointment", async (req, res) => {
     try {
-      const schedule = await storage.getEventDayScheduleByShareToken(req.params.shareToken);
-      if (!schedule) {
-        return res.status(404).json({ error: "Schedule not found" });
-      }
+      if (!legacyScheduleMutationAllowed(res)) return;
+      const schedule = await loadReadableLegacySharedSchedule(req.params.shareToken, res);
+      if (!schedule) return;
 
       const { teamMemberId, clientName, startTime, endTime, serviceType } = req.body;
 
@@ -8837,10 +8854,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Delete appointment from schedule via share token
   app.delete("/api/event-schedules/share/:shareToken/appointment/:appointmentId", async (req, res) => {
     try {
-      const schedule = await storage.getEventDayScheduleByShareToken(req.params.shareToken);
-      if (!schedule) {
-        return res.status(404).json({ error: "Schedule not found" });
-      }
+      if (!legacyScheduleMutationAllowed(res)) return;
+      const schedule = await loadReadableLegacySharedSchedule(req.params.shareToken, res);
+      if (!schedule) return;
 
       const appointment = await storage.getScheduleAppointment(req.params.appointmentId);
       if (!appointment || appointment.scheduleId !== schedule.id) {
@@ -8875,10 +8891,8 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Get schedule chat messages
   app.get("/api/event-schedules/share/:shareToken/chat", async (req, res) => {
     try {
-      const schedule = await storage.getEventDayScheduleByShareToken(req.params.shareToken);
-      if (!schedule) {
-        return res.status(404).json({ error: "Schedule not found" });
-      }
+      const schedule = await loadReadableLegacySharedSchedule(req.params.shareToken, res);
+      if (!schedule) return;
       
       const messages = await storage.getScheduleChatMessages(schedule.id);
       res.json(messages);
@@ -8891,6 +8905,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   // Post a new chat message (guest or AI) - with rate limiting and validation
   app.post("/api/event-schedules/share/:shareToken/chat", scheduleChatLimiter, async (req, res) => {
     try {
+      if (!legacyScheduleMutationAllowed(res)) return;
       // Validate input with Zod
       const parseResult = scheduleChatSchema.safeParse(req.body);
       if (!parseResult.success) {
@@ -8899,11 +8914,8 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       
       const { senderName, content } = parseResult.data;
-      const schedule = await storage.getEventDayScheduleByShareToken(req.params.shareToken);
-      
-      if (!schedule) {
-        return res.status(404).json({ error: "Schedule not found" });
-      }
+      const schedule = await loadReadableLegacySharedSchedule(req.params.shareToken, res);
+      if (!schedule) return;
       
       // Create the guest message (sanitized)
       const guestMessage = await storage.createScheduleChatMessage({
@@ -8913,59 +8925,59 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         content,
       });
       
-      // Get schedule data for AI context
-      const appointments = await storage.getScheduleAppointments(schedule.id);
-      const teamMembers = await storage.getScheduleTeamMembers(schedule.id);
-      
-      // Process with AI and get response (AI is read-only - cannot modify schedule)
-      try {
-        const scheduleAI = await import("./scheduleAI");
-        const aiResponse = await scheduleAI.processScheduleChat({
-          message: content,
-          senderName,
-          schedule,
-          appointments,
-          teamMembers,
-        });
-        
-        // Create AI response message (read-only - no metadata, no changes)
-        if (aiResponse?.response) {
+      if (getLegacyScheduleQuarantinePolicy().allowAiChat) {
+        const appointments = await storage.getScheduleAppointments(schedule.id);
+        const teamMembers = await storage.getScheduleTeamMembers(schedule.id);
+
+        try {
+          const scheduleAI = await import("./scheduleAI");
+          const aiResponse = await scheduleAI.processScheduleChat({
+            message: content,
+            senderName,
+            schedule,
+            appointments,
+            teamMembers,
+          });
+
+          if (aiResponse?.response) {
+            await storage.createScheduleChatMessage({
+              scheduleId: schedule.id,
+              senderName: 'AI Assistant',
+              senderType: 'ai',
+              content: aiResponse.response,
+            });
+          }
+        } catch (aiError) {
+          console.error("[Schedule AI] Error processing chat:", aiError);
           await storage.createScheduleChatMessage({
             scheduleId: schedule.id,
             senderName: 'AI Assistant',
             senderType: 'ai',
-            content: aiResponse.response,
+            content: "Thanks for your message! I've noted that down. Feel free to add any other notes or questions about the schedule.",
           });
         }
-      } catch (aiError) {
-        console.error("[Schedule AI] Error processing chat:", aiError);
-        // Create fallback AI response
-        await storage.createScheduleChatMessage({
-          scheduleId: schedule.id,
-          senderName: 'AI Assistant',
-          senderType: 'ai',
-          content: "Thanks for your message! I've noted that down. Feel free to add any other notes or questions about the schedule.",
-        });
       }
       
       // Send email notification to artist about new chat message
-      try {
-        if (schedule.artistId) {
-          const artist = await storage.getUser(schedule.artistId);
-          const artistProfile = await storage.getArtistProfile(schedule.artistId);
-          if (artist?.email) {
-            const { sendGeneralEmail } = await import("./emailService");
-            await sendGeneralEmail({
-              toEmail: artist.email,
-              subject: `New message on ${schedule.eventName} schedule from ${senderName}`,
-              content: `You have a new message on your schedule for ${schedule.eventName}:\n\n"${content}"\n\n- ${senderName}`,
-              senderName: artistProfile?.businessName || "Your Private Secretary",
-            });
-            console.log("[Schedule Chat] Email notification sent to artist:", artist.email);
+      if (getLegacyScheduleQuarantinePolicy().allowAutomaticEmailNotifications) {
+        try {
+          if (schedule.artistId) {
+            const artist = await storage.getUser(schedule.artistId);
+            const artistProfile = await storage.getArtistProfile(schedule.artistId);
+            if (artist?.email) {
+              const { sendGeneralEmail } = await import("./emailService");
+              await sendGeneralEmail({
+                toEmail: artist.email,
+                subject: `New message on ${schedule.eventName} schedule from ${senderName}`,
+                content: `You have a new message on your schedule for ${schedule.eventName}:\n\n"${content}"\n\n- ${senderName}`,
+                senderName: artistProfile?.businessName || "Your Private Secretary",
+              });
+              console.log("[Schedule Chat] Email notification sent to artist:", artist.email);
+            }
           }
+        } catch (emailErr) {
+          console.log("[Schedule Chat] Could not send email notification:", emailErr);
         }
-      } catch (emailErr) {
-        console.log("[Schedule Chat] Could not send email notification:", emailErr);
       }
       
       // Return all messages
@@ -20147,6 +20159,9 @@ Rules:
   // Simple schedule builder - photos API
   app.get("/api/photos", async (req, res) => {
     try {
+      if (!getLegacyScheduleQuarantinePolicy().allowGlobalCollaborationApis) {
+        return legacyScheduleUnavailable(res);
+      }
       const photos = await storage.getSimplePhotos();
       res.json(photos);
     } catch (error: unknown) {
@@ -20157,6 +20172,9 @@ Rules:
 
   app.post("/api/photos", async (req, res) => {
     try {
+      if (!getLegacyScheduleQuarantinePolicy().allowGlobalCollaborationApis) {
+        return legacyScheduleUnavailable(res);
+      }
       const { personName, imageUrl } = req.body;
       if (!personName || !imageUrl) {
         return res.status(400).json({ error: "personName and imageUrl required" });
@@ -20172,6 +20190,9 @@ Rules:
   // Simple schedule builder - messages API
   app.get("/api/messages", async (req, res) => {
     try {
+      if (!getLegacyScheduleQuarantinePolicy().allowGlobalCollaborationApis) {
+        return legacyScheduleUnavailable(res);
+      }
       const messages = await storage.getSimpleMessages();
       res.json(messages);
     } catch (error: unknown) {
@@ -20182,6 +20203,9 @@ Rules:
 
   app.post("/api/messages", async (req, res) => {
     try {
+      if (!getLegacyScheduleQuarantinePolicy().allowGlobalCollaborationApis) {
+        return legacyScheduleUnavailable(res);
+      }
       const { senderName, message } = req.body;
       if (!senderName || !message) {
         return res.status(400).json({ error: "senderName and message required" });
