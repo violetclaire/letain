@@ -7434,9 +7434,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const currentDate = new Date();
-      const currentYear = currentDate.getFullYear();
-      const nextYear = currentYear + 1;
-      
+
       // Build conversation context
       const historyContext = conversationHistory.length > 0 
         ? `\nPrevious conversation:\n${conversationHistory.map((m: any) => `${m.role}: ${m.content}`).join('\n')}\n`
@@ -7455,26 +7453,28 @@ Current date: ${currentDate.toISOString().split('T')[0]}
 ${historyContext}${collectedDataContext}
 Current user message: ${message}
 
-INFORMATION YOU NEED TO CREATE A SCHEDULE:
+INFORMATION YOU NEED TO CREATE A SCHEDULE (every value must come from the artist — NEVER assume, infer, or fill in any of them yourself):
 1. eventName - Name of the event (e.g., "Smith Wedding")
-2. eventDate - The date in YYYY-MM-DD format (if month mentioned without year, assume ${nextYear} for future dates)
+2. eventDate - The date in YYYY-MM-DD format. If the artist gives a date without a year, ASK which year — do not assume one.
 3. numPeople - How many people/clients need services (e.g., bride + 5 bridesmaids = 6 people)
-4. numArtists - How many artists will be working
-5. startTime - When to start services (in HH:MM 24-hour format)
-6. readyByTime - When everyone needs to be done (in HH:MM 24-hour format)
-7. location - Venue/location (optional)
+4. artistNames - The actual names of the artists working, one per column. NEVER invent placeholder names like "Artist 1".
+5. serviceDurationMinutes - How many minutes one service takes, stated by the artist. NEVER assume a duration.
+6. startTime - When to start services (in HH:MM 24-hour format)
+7. readyByTime - When everyone needs to be done (in HH:MM 24-hour format)
+8. location - Venue/location (optional)
 
 CONVERSATION RULES:
-- If any REQUIRED info is missing (eventName, eventDate, numPeople, numArtists, startTime, readyByTime), ask for it naturally
+- If any REQUIRED info is missing (eventName, eventDate including year, numPeople, artistNames, serviceDurationMinutes, startTime, readyByTime), ask for it naturally
 - Ask ONE question at a time to get missing info
 - Be friendly and conversational, not robotic
+- NEVER fill in a value the artist did not give. No assumed durations, dates, times, artist counts, or artist names. Missing information is a question, not a guess.
 - When you have ALL required info, generate the schedule
 
 TIME SLOT CALCULATION:
-- Each service takes 45 minutes
+- Each service takes exactly serviceDurationMinutes (the artist's stated number — never a built-in default)
 - Calculate how many time slots fit between startTime and readyByTime
 - Generate timeSlots array with times in "HH:MM AM/PM" format
-- artistColumns should have one column per artist (e.g., ["Artist 1", "Artist 2"])
+- artistColumns must be the provided artistNames verbatim, one column per named artist
 - grid is a 2D array: grid[slotIndex][artistIndex] = { clientName: "", service: "" }
 
 RESPONSE FORMAT (JSON only):
@@ -7487,7 +7487,7 @@ If you need more info:
 
 If you have everything and can build the schedule:
 {
-  "response": "Great! I'm creating your schedule with X time slots for Y people across Z artists.",
+  "response": "Great! I'm creating your schedule with X time slots for Y people across the artists you named.",
   "needsMoreInfo": false,
   "scheduleData": {
     "eventName": "Smith Wedding",
@@ -7497,8 +7497,9 @@ If you have everything and can build the schedule:
     "startTime": "7:00 AM",
     "numPeople": 6,
     "numArtists": 2,
-    "timeSlots": ["7:00 AM", "7:45 AM", "8:30 AM", "9:15 AM", "10:00 AM"],
-    "artistColumns": ["Artist 1", "Artist 2"],
+    "serviceDurationMinutes": 40,
+    "timeSlots": ["7:00 AM", "7:40 AM", "8:20 AM", "9:00 AM", "9:40 AM"],
+    "artistColumns": ["<first artist's name>", "<second artist's name>"],
     "grid": [
       [{"clientName": "", "service": ""}, {"clientName": "", "service": ""}],
       [{"clientName": "", "service": ""}, {"clientName": "", "service": ""}],
@@ -7509,16 +7510,16 @@ If you have everything and can build the schedule:
 
 EXAMPLES:
 User: "I need a schedule for the Johnson wedding next Saturday, 6 people, 2 artists, starting at 7am ready by noon"
-→ You have all info! Calculate slots from 7:00-12:00 (45 min each = 6+ slots), return complete scheduleData
+→ Still missing the artists' names and the per-service duration. Ask: "Who are the two artists working, and how many minutes does one service take?"
 
 User: "Create a schedule for a wedding"
-→ Ask: "I'd love to help! What's the name of the wedding and what date is it?"
+→ Ask: "I'd love to help! What's the name of the wedding and what date is it (including the year)?"
 
 User: "It's the Martinez wedding on February 8th"
-→ Ask: "Perfect! How many people will need services, and how many artists will be working?"
+→ Ask: "Perfect! Which year is that? And how many people will need services?"
 
-User: "8 people and 3 artists"
-→ Ask: "Got it! What time should we start, and what time does everyone need to be ready by?"
+User: "Me and Dana are working, each service is 40 minutes"
+→ You now have artistNames ["<the artist's own name>", "Dana"] and serviceDurationMinutes 40; keep gathering whatever is still missing.
 
 IMPORTANT: Always respond with valid JSON only. No markdown, no extra text.`;
 
@@ -7897,13 +7898,15 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     ];
   }
 
-  // Editable defaults (not hard-coded into logic — operator can change them later).
+  // Starter service labels for a brand-new draft. Durations are intentionally
+  // null (unknown): only operator-entered numbers may drive schedule math —
+  // coded defaults must never masquerade as operator judgment.
   function defaultServiceDefaults() {
     return [
-      { id: "makeup", label: "Makeup", durationMinutes: 30 },
-      { id: "hair", label: "Hair", durationMinutes: 30 },
-      { id: "hairmakeup", label: "Hair + Makeup", durationMinutes: 60 },
-      { id: "bride", label: "Bride Hair + Makeup", durationMinutes: 120 },
+      { id: "makeup", label: "Makeup", durationMinutes: null },
+      { id: "hair", label: "Hair", durationMinutes: null },
+      { id: "hairmakeup", label: "Hair + Makeup", durationMinutes: null },
+      { id: "bride", label: "Bride Hair + Makeup", durationMinutes: null },
     ];
   }
 
@@ -8324,7 +8327,9 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
             return {
               id: String(s.id ?? "").slice(0, 64) || `svc_${Math.random().toString(36).slice(2, 9)}`,
               label: String(s.label ?? "").slice(0, 120),
-              durationMinutes: Number.isFinite(minutes) && minutes >= 0 ? Math.floor(minutes) : 0,
+              // null = unknown (operator has not entered a duration). 0 is not
+              // a real duration and must not be invented on save.
+              durationMinutes: Number.isFinite(minutes) && minutes > 0 ? Math.floor(minutes) : null,
             };
           });
       }
@@ -8977,11 +8982,18 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     try {
       const { rawText, startTime, numArtists, artistNames } = req.body;
       if (!rawText) return res.status(400).json({ error: "rawText required" });
+      // No silent defaults: start time and artist count are operator facts,
+      // never assumed server-side.
+      if (!startTime) return res.status(400).json({ error: "startTime required — no default start time is assumed" });
+      const parsedNumArtists = Number(numArtists);
+      if (!Number.isFinite(parsedNumArtists) || parsedNumArtists < 1) {
+        return res.status(400).json({ error: "numArtists required — the artist count is never assumed" });
+      }
       const scheduleAI = await import("./scheduleAI");
       const result = await scheduleAI.parseClientList({
         rawText,
-        startTime: startTime || "7:00 AM",
-        numArtists: numArtists || 2,
+        startTime,
+        numArtists: Math.floor(parsedNumArtists),
         artistNames: artistNames || [],
       });
       res.json(result);
@@ -8996,12 +9008,13 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     try {
       const { command, artists, grid, startTime } = req.body;
       if (!command) return res.status(400).json({ error: "command required" });
+      if (!startTime) return res.status(400).json({ error: "startTime required — no default start time is assumed" });
       const scheduleAI = await import("./scheduleAI");
       const result = await scheduleAI.processVoiceCommand({
         command,
         artists: artists || [],
         grid: grid || [],
-        startTime: startTime || "7:00 AM",
+        startTime,
       });
       res.json(result);
     } catch (err: any) {
