@@ -94,6 +94,12 @@ type PreviewSourceBlock = {
   kind: PreviewServiceKind;
   category: PreviewCategory;
   duration: number | null;
+  // Where the duration came from: the row the operator filled ("row"), the
+  // operator's baseline service default ("baseline"), or the assigned
+  // provider's own saved timing ("provider"). A baseline value is the
+  // operator's own number — never proof the assigned provider agreed to that
+  // timing for this event.
+  durationSource: "row" | "baseline" | "provider" | null;
   order: number;
 };
 
@@ -786,6 +792,7 @@ function productionScheduleToPreview(result: ProductionScheduleResult): FirstDra
         kind: block.service === "hair_makeup" ? "both" : block.service === "hair" || block.service === "makeup" ? block.service : "other",
         category: firstDraftCategory(`${block.roleLabel} ${block.personName}`),
         duration: block.durationMinutes,
+        durationSource: "provider" as const,
         order,
         provider: block.providerName,
         start: block.startMinutes,
@@ -1190,6 +1197,28 @@ function defaultPreviewDuration(
   return null;
 }
 
+// The assigned provider's own saved timing for a block's service, or null
+// when they have none. Used to tell "this provider's record" apart from "the
+// operator's baseline standing in for them".
+function providerTimingForBlock(
+  provider: Provider,
+  block: { kind: PreviewServiceKind; category: PreviewCategory },
+): number | null {
+  const timings = provider.serviceDurations;
+  if (!timings) return null;
+  const value =
+    block.kind === "both"
+      ? block.category === "bride"
+        ? timings.primaryClient ?? timings.hairMakeup
+        : timings.hairMakeup
+      : block.kind === "hair"
+        ? timings.hair
+        : block.kind === "makeup"
+          ? timings.makeup
+          : undefined;
+  return typeof value === "number" && value > 0 ? value : null;
+}
+
 function firstDraftProviderCanTake(provider: Provider, kind: PreviewServiceKind): boolean {
   const capability = normalizeProviderCapability(provider.capability);
   if (!capability || kind === "other") return true;
@@ -1273,6 +1302,7 @@ function buildFirstDraftPreview(input: {
       kind,
       category,
       duration,
+      durationSource: explicitDuration !== null ? "row" : duration !== null ? "baseline" : null,
       order,
     });
   });
@@ -1335,6 +1365,24 @@ function buildFirstDraftPreview(input: {
     const providerName = provider.name.trim() || "Unassigned";
     assignmentCounts.set(providerName, (assignmentCounts.get(providerName) ?? 0) + 1);
     ensureLane(provider).blocks.push({ ...block, provider: providerName, start: null, end: null });
+
+    // A baseline duration is the operator's own number — it is never proof
+    // that the assigned provider agreed to that timing for this event. Say so
+    // whenever the provider has no saved timing of their own, and flag any
+    // mismatch when they do.
+    if (block.durationSource === "baseline" && providerName !== "Unassigned" && block.kind !== "other") {
+      const ownTiming = providerTimingForBlock(provider, block);
+      const label = block.name || block.service || "A block";
+      if (ownTiming === null) {
+        warnings.push(
+          `${label} uses your baseline timing — ${providerName} has no saved duration for this service and has not confirmed this timing for this event.`,
+        );
+      } else if (ownTiming !== block.duration) {
+        warnings.push(
+          `${label} uses your baseline timing (${block.duration} min), but ${providerName}'s own saved timing is ${ownTiming} min — confirm which applies for this event.`,
+        );
+      }
+    }
   }
 
   // Setup length comes only from the operator's "Setup" service default. No
@@ -1356,6 +1404,7 @@ function buildFirstDraftPreview(input: {
       kind: "other",
       category: "other",
       duration: setupDuration,
+      durationSource: setupDuration === null ? null : "baseline",
       order: -1,
       provider: lane.provider,
       start: null,
@@ -1734,6 +1783,32 @@ function getScheduleMissingInfo(input: {
   if (hairNeedsDuration) {
     if (hasHairDefault) addConfirmation("Saved hair duration default will be used -- confirm.");
     else addMissing("Need hair durations -- enter them on rows or set a hair service default.");
+  }
+
+  // The operator's baseline is their current operating number, not another
+  // provider's agreement. When it stands in on a block assigned to a provider
+  // who has no saved timing of their own, that provider's confirmation is
+  // still outstanding for this event.
+  const providersByTrimmedName = new Map(input.providers.map((provider) => [provider.name.trim(), provider]));
+  const providerLacksOwnTiming = (block: AuditBlock): boolean => {
+    const provider = providersByTrimmedName.get(block.provider.trim());
+    const timings = provider?.serviceDurations;
+    const hasHair = auditHasHairService(block.text);
+    const hasMakeup = auditHasMakeupService(block.text);
+    const value = hasHair && hasMakeup ? timings?.hairMakeup : hasHair ? timings?.hair : hasMakeup ? timings?.makeup : undefined;
+    return !(typeof value === "number" && value > 0);
+  };
+  const baselineStandsInForProvider = serviceBlocks.some(
+    (block) =>
+      Boolean(block.provider.trim()) &&
+      block.duration === null &&
+      ((auditHasMakeupService(block.text) && hasMakeupDefault) || (auditHasHairService(block.text) && hasHairDefault)) &&
+      providerLacksOwnTiming(block),
+  );
+  if (baselineStandsInForProvider) {
+    addConfirmation(
+      "Your baseline duration stands in for a provider with no saved timing of their own -- confirm that provider's timing for this event.",
+    );
   }
 
   if (serviceBlocks.some((block) => !block.name.trim() || isStarterScheduleName(block.name) || isPlaceholderName(block.name))) {

@@ -40,6 +40,12 @@ test("schedule readiness includes Violet missing-info prompts and assumption con
   assert.doesNotMatch(builderSource, /Violet's 2-hour default/);
   assert.doesNotMatch(builderSource, /Single-service default duration used/);
   assert.match(builderSource, /Missing names are okay; blank\/placeholders can be confirmed later\./);
+  // The operator's baseline never doubles as another provider's agreement:
+  // when it stands in for a provider with no saved timing, that provider's
+  // per-event confirmation stays visibly outstanding.
+  assert.match(builderSource, /stands in for a provider with no saved timing of their own -- confirm that provider's timing for this event\./);
+  assert.match(builderSource, /has no saved duration for this service and has not confirmed this timing for this event\./);
+  assert.match(builderSource, /own saved timing is \$\{ownTiming\} min — confirm which applies for this event\./);
 });
 
 test("schedule readiness surfaces backward draft rules without treating defaults as universal facts", () => {
