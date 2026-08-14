@@ -28,11 +28,17 @@ test("schedule readiness includes Violet missing-info prompts and assumption con
       builderSource.indexOf("Need event date before drafting the schedule."),
     "ready time should be the first scheduling anchor when timing is missing",
   );
-  assert.match(builderSource, /Bride hair \+ makeup uses Violet's 2-hour default -- confirm\./);
-  assert.match(builderSource, /Bride placement follows Violet's near-end default -- confirm for this event\./);
-  assert.match(builderSource, /Default makeup duration used -- confirm\./);
-  assert.match(builderSource, /Default hair duration used -- confirm\./);
-  assert.match(builderSource, /Single-service default duration used -- confirm this provider's timing\./);
+  // Durations are sourced-or-blocking: operator-saved defaults surface as
+  // confirmations, and a duration with no source at all is missing info that
+  // blocks drafting. No coded default may masquerade as operator judgment.
+  assert.match(builderSource, /Bride hair \+ makeup uses your saved \$\{brideDefault\.durationMinutes\}-minute default -- confirm\./);
+  assert.match(builderSource, /Bride placement follows the near-end draft rule -- confirm for this event\./);
+  assert.match(builderSource, /Saved makeup duration default will be used -- confirm\./);
+  assert.match(builderSource, /Saved hair duration default will be used -- confirm\./);
+  assert.match(builderSource, /Need makeup durations -- enter them on rows or set a makeup service default\./);
+  assert.match(builderSource, /Need hair durations -- enter them on rows or set a hair service default\./);
+  assert.doesNotMatch(builderSource, /Violet's 2-hour default/);
+  assert.doesNotMatch(builderSource, /Single-service default duration used/);
   assert.match(builderSource, /Missing names are okay; blank\/placeholders can be confirmed later\./);
 });
 
@@ -40,8 +46,14 @@ test("schedule readiness surfaces backward draft rules without treating defaults
   assert.match(builderSource, /Ready time is the anchor; the final service ends there by default\./);
   assert.match(builderSource, /Optional: finish 15 minutes early for touch-ups and notes\./);
   assert.match(builderSource, /Missing names are allowed; blanks and placeholders stay editable\./);
-  assert.match(builderSource, /Bride timing and placement are Violet defaults to confirm, not universal rules\./);
-  assert.match(builderSource, /Violet's defaults start with 2 hours\s+for bride hair \+ makeup, 30 minutes for Violet single services, and no buffer unless\s+you add one\./);
+  assert.match(builderSource, /Bride timing comes only from your entries; placement is a draft rule to confirm, not a universal rule\./);
+  // Service durations start unknown. Nothing ships a built-in 2-hour bride or
+  // 30-minute single-service number; only operator entries drive timing.
+  assert.match(builderSource, /Durations start unknown on purpose\./);
+  assert.match(builderSource, /nothing is ever filled in for you/);
+  assert.doesNotMatch(builderSource, /Violet's defaults start with 2 hours/);
+  assert.match(builderSource, /durationMinutes: null/);
+  assert.doesNotMatch(builderSource, /VIOLET_SERVICE_DEFAULTS/);
 });
 
 test("quick add/provider lane copy keeps names flexible and provider roles explicit", () => {

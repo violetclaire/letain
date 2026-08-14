@@ -22,7 +22,9 @@ import {
 
 type Column = { id: string; label: string; type: string };
 type Row = { id: string; sortOrder: number; cells: Record<string, string> };
-type ServiceDefault = { id: string; label: string; durationMinutes: number };
+// durationMinutes is null until the operator enters a real number. A null
+// duration is visibly unknown and blocks time planning — it is never filled in.
+type ServiceDefault = { id: string; label: string; durationMinutes: number | null };
 type ProviderCapability = "ALL" | "HAIR_ONLY" | "MAKEUP_ONLY";
 type Provider = {
   id: string;
@@ -91,7 +93,7 @@ type PreviewSourceBlock = {
   originalProvider: string;
   kind: PreviewServiceKind;
   category: PreviewCategory;
-  duration: number;
+  duration: number | null;
   order: number;
 };
 
@@ -114,8 +116,11 @@ type PreviewLane = {
 type FirstDraftPreview = {
   lanes: PreviewLane[];
   warnings: string[];
+  // Issues that must be resolved by the operator before the preview can be
+  // applied — e.g. a block whose duration exists in no record.
+  blockingIssues: string[];
   readyBy: number | null;
-  setupMinutes: number;
+  setupMinutes: number | null;
 };
 
 const AUDIT_SEVERITY_LABELS: Record<AuditSeverity, string> = {
@@ -166,24 +171,43 @@ const PROVIDER_DURATION_FIELDS: Array<{
   { id: "touchup", label: "Touchup" },
 ];
 
-const VIOLET_SERVICE_DEFAULTS: ServiceDefault[] = [
-  { id: "bride-hair-makeup", label: "Bride Hair + Makeup", durationMinutes: 120 },
-  { id: "bride-makeup", label: "Bride Makeup", durationMinutes: 60 },
-  { id: "bride-hair", label: "Bride Hair", durationMinutes: 45 },
-  { id: "bridesmaid-makeup", label: "Bridesmaid Makeup", durationMinutes: 30 },
-  { id: "bridesmaid-hair", label: "Bridesmaid Hair", durationMinutes: 45 },
-  { id: "mother-makeup", label: "Mother Makeup", durationMinutes: 30 },
-  { id: "mother-hair", label: "Mother Hair", durationMinutes: 45 },
-  { id: "flower-girl", label: "Flower Girl", durationMinutes: 45 },
-  { id: "touch-ups", label: "Touch-Ups", durationMinutes: 15 },
-  { id: "setup", label: "Setup", durationMinutes: 15 },
+// Starter service labels for a new draft. Durations are intentionally unknown:
+// a duration exists only once the operator enters it (on a row or here as a
+// service default). Coded numbers must never masquerade as operator judgment.
+const STARTER_SERVICE_DEFAULTS: ServiceDefault[] = [
+  { id: "bride-hair-makeup", label: "Bride Hair + Makeup", durationMinutes: null },
+  { id: "bride-makeup", label: "Bride Makeup", durationMinutes: null },
+  { id: "bride-hair", label: "Bride Hair", durationMinutes: null },
+  { id: "bridesmaid-makeup", label: "Bridesmaid Makeup", durationMinutes: null },
+  { id: "bridesmaid-hair", label: "Bridesmaid Hair", durationMinutes: null },
+  { id: "mother-makeup", label: "Mother Makeup", durationMinutes: null },
+  { id: "mother-hair", label: "Mother Hair", durationMinutes: null },
+  { id: "flower-girl", label: "Flower Girl", durationMinutes: null },
+  { id: "touch-ups", label: "Touch-Ups", durationMinutes: null },
+  { id: "setup", label: "Setup", durationMinutes: null },
 ];
 
+// Old code-injected duration tables. Kept ONLY to detect saved drafts still
+// carrying an untouched code seed so those durations can be cleared back to
+// unknown — none of these numbers were operator-entered.
 const LEGACY_SERVICE_DEFAULTS: Record<string, number> = {
   makeup: 30,
   hair: 30,
   "hair + makeup": 60,
   "bride hair + makeup": 120,
+};
+
+const CODE_SEEDED_SERVICE_DURATIONS: Record<string, number> = {
+  "bride hair + makeup": 120,
+  "bride makeup": 60,
+  "bride hair": 45,
+  "bridesmaid makeup": 30,
+  "bridesmaid hair": 45,
+  "mother makeup": 30,
+  "mother hair": 45,
+  "flower girl": 45,
+  "touch-ups": 15,
+  setup: 15,
 };
 
 interface Draft {
@@ -316,11 +340,13 @@ function buildScheduleFromInput(
 } {
   const durationFor = (label: string): string => {
     const sd = serviceDefaults.find((s) => s.label.toLowerCase() === label.toLowerCase());
-    return sd ? String(sd.durationMinutes) : "";
+    return sd && sd.durationMinutes !== null ? String(sd.durationMinutes) : "";
   };
 
   let providerCount = 0;
-  const setupDurationFor = () => (providerCount >= 3 ? "30" : durationFor("Setup") || "15");
+  // Setup length comes only from the operator's Setup service default. An
+  // empty value stays empty (visibly unknown) — no invented 15/30 fallback.
+  const setupDurationFor = () => durationFor("Setup");
   let brideAutoPlaced = false;
   const serviceBlocks: QuickAddBlock[] = [];
   const people: string[] = [];
@@ -465,7 +491,10 @@ function buildScheduleFromInput(
   // No services at all -> just a roster of people (names in the Name column).
   if (serviceBlocks.length === 0) {
     const provs: Array<{ name: string; capability: "" }> = [];
-    for (let i = 0; i < providerCount; i++) provs.push({ name: `Artist ${i + 1}`, capability: "" });
+    // Lane slots reflect the operator's typed provider COUNT; the names are
+    // unknown until entered, so lanes are neutral "Provider N" slots — never
+    // invented artist identities.
+    for (let i = 0; i < providerCount; i++) provs.push({ name: `Provider ${i + 1}`, capability: "" });
     return {
       providers: provs,
       blocks: [],
@@ -681,7 +710,7 @@ function firstDraftPreviewToRows(preview: FirstDraftPreview, columns: Column[], 
       cells[providerColId] = block.provider;
       cells.start = block.start === null ? "" : formatClockTime(block.start);
       cells.end = block.end === null ? "" : formatClockTime(block.end);
-      cells.duration = String(block.duration);
+      cells.duration = block.duration === null ? "" : String(block.duration);
       cells.notes = block.notes;
       if (block.isFixed) cells._fixed = "true";
       rows.push({
@@ -765,6 +794,7 @@ function productionScheduleToPreview(result: ProductionScheduleResult): FirstDra
       })),
     })),
     warnings: result.warnings.map((warning) => warning.message),
+    blockingIssues: [],
     readyBy: result.readyTimeMinutes,
     setupMinutes: 0,
   };
@@ -876,8 +906,8 @@ function normalizeScheduleEngineMetadata(metadata?: ScheduleEngineMetadata | nul
   };
 }
 
-function violetServiceDefaults(): ServiceDefault[] {
-  return VIOLET_SERVICE_DEFAULTS.map((service) => ({ ...service }));
+function starterServiceDefaults(): ServiceDefault[] {
+  return STARTER_SERVICE_DEFAULTS.map((service) => ({ ...service }));
 }
 
 function usesLegacyServiceDefaults(defaults: ServiceDefault[]): boolean {
@@ -892,12 +922,34 @@ function usesLegacyServiceDefaults(defaults: ServiceDefault[]): boolean {
   });
 }
 
+// An untouched code seed is not an operator decision: when every stored entry
+// still matches the old code-injected table exactly, the durations are cleared
+// back to unknown. Any operator edit anywhere keeps the whole table.
+function usesCodeSeededServiceDefaults(defaults: ServiceDefault[]): boolean {
+  const seededLabels = Object.keys(CODE_SEEDED_SERVICE_DURATIONS);
+  if (defaults.length === 0 || defaults.length > seededLabels.length) {
+    return false;
+  }
+
+  return defaults.every((service) => {
+    const label = service.label.trim().toLowerCase();
+    return CODE_SEEDED_SERVICE_DURATIONS[label] === service.durationMinutes;
+  });
+}
+
 function normalizeServiceDefaults(defaults?: ServiceDefault[] | null): ServiceDefault[] {
   const current = defaults ?? [];
-  if (current.length === 0 || usesLegacyServiceDefaults(current)) {
-    return violetServiceDefaults();
+  if (current.length === 0 || usesLegacyServiceDefaults(current) || usesCodeSeededServiceDefaults(current)) {
+    return starterServiceDefaults();
   }
-  return current;
+  // Older saves stored 0 for "no duration"; 0 is not a real duration.
+  return current.map((service) => ({
+    ...service,
+    durationMinutes:
+      typeof service.durationMinutes === "number" && Number.isFinite(service.durationMinutes) && service.durationMinutes > 0
+        ? service.durationMinutes
+        : null,
+  }));
 }
 
 function auditText(value: string): string {
@@ -927,7 +979,7 @@ function isServiceLikeLaneHeader(raw: string): boolean {
   if (/^(hair|makeup|make up|hm|hmu|hair and makeup|hair makeup|hair \+ makeup|makeup hair|makeup \+ hair|touch ups?|touchups?)$/.test(text)) {
     return true;
   }
-  if (VIOLET_SERVICE_DEFAULTS.some((service) => auditText(service.label) === text)) return true;
+  if (STARTER_SERVICE_DEFAULTS.some((service) => auditText(service.label) === text)) return true;
   return /\b(bride|bridal|bridesmaid|bm|mother|mob|mog|flower|fg|attendant|party|guest|person)\b/.test(text) &&
     /\b(hair|makeup|make up|hm|hmu|touch\s*ups?|touchups?)\b/.test(text);
 }
@@ -1012,7 +1064,7 @@ function sequenceSamePersonPreviewBlocks(lanes: PreviewLane[], warnings: string[
     for (let i = ordered.length - 1; i >= 0; i--) {
       const block = ordered[i];
       block.end = cursor;
-      block.start = cursor - block.duration;
+      block.start = cursor - (block.duration ?? 0);
       cursor = block.start;
     }
     const name = ordered.find((block) => block.name.trim())?.name.trim() ?? "This person";
@@ -1027,10 +1079,6 @@ function sequenceSamePersonPreviewBlocks(lanes: PreviewLane[], warnings: string[
       return a.order - b.order;
     });
   }
-}
-
-function hasShortSimpleLabel(text: string): boolean {
-  return hasAuditWord(text, /\b(short|simple|quick|soft|light|easy)\b/);
 }
 
 function isSetupBlock(block: AuditBlock): boolean {
@@ -1078,7 +1126,7 @@ function addDurationIssue(
       id: `duration-${block.id}-${min}`,
       severity,
       title,
-      detail: `${auditBlockLabel(block)} is ${block.duration} min; Violet's rule expects at least ${min} min.`,
+      detail: `${auditBlockLabel(block)} is ${block.duration} min; your saved record expects at least ${min} min.`,
     });
   }
 }
@@ -1100,29 +1148,41 @@ function firstDraftServiceKind(text: string): PreviewServiceKind {
   return "other";
 }
 
+// A preview duration comes only from a real record: the row's explicit
+// duration first, then an operator-entered service default. When neither
+// exists the duration is null — visibly unknown and blocking — never a number
+// this code made up.
 function defaultPreviewDuration(
   category: PreviewCategory,
   kind: PreviewServiceKind,
   serviceLabel: string,
   explicitDuration: number | null,
   serviceDefaults: ServiceDefault[],
-): number {
-  const defaults = new Map(serviceDefaults.map((service) => [service.label.trim().toLowerCase(), service.durationMinutes]));
-  const byLabel = (label: string, fallback: number) => defaults.get(label.toLowerCase()) ?? fallback;
-  const exactDefault = serviceLabel.trim() ? defaults.get(serviceLabel.trim().toLowerCase()) : undefined;
+): number | null {
+  if (explicitDuration !== null) return explicitDuration;
 
-  if (category === "bride" && kind === "both") return byLabel("Bride Hair + Makeup", 120);
-  if (category === "bride" && kind === "makeup") return byLabel("Bride Makeup", 60);
-  if (category === "bride" && kind === "hair") return byLabel("Bride Hair", 45);
-  if (category === "mother" && kind === "makeup") return byLabel("Mother Makeup", 30);
-  if (category === "mother" && kind === "hair") return byLabel("Mother Hair", 45);
-  if (category === "flower") return byLabel("Flower Girl", 45);
-  if (category === "attendant" && kind === "makeup") return byLabel("Bridesmaid Makeup", 30);
-  if (category === "attendant" && kind === "hair") return byLabel("Bridesmaid Hair", 45);
-  if (kind === "makeup") return byLabel("Bridesmaid Makeup", 30);
-  if (kind === "hair") return byLabel("Bridesmaid Hair", 45);
-  if (kind === "both") return byLabel("Bride Hair + Makeup", 120);
-  return exactDefault ?? explicitDuration ?? 30;
+  const defaults = new Map<string, number>();
+  for (const service of serviceDefaults) {
+    if (service.durationMinutes !== null) {
+      defaults.set(service.label.trim().toLowerCase(), service.durationMinutes);
+    }
+  }
+  const exactDefault = serviceLabel.trim() ? defaults.get(serviceLabel.trim().toLowerCase()) : undefined;
+  if (exactDefault !== undefined) return exactDefault;
+  const byLabel = (label: string) => defaults.get(label.toLowerCase()) ?? null;
+
+  if (category === "bride" && kind === "both") return byLabel("Bride Hair + Makeup");
+  if (category === "bride" && kind === "makeup") return byLabel("Bride Makeup");
+  if (category === "bride" && kind === "hair") return byLabel("Bride Hair");
+  if (category === "mother" && kind === "makeup") return byLabel("Mother Makeup");
+  if (category === "mother" && kind === "hair") return byLabel("Mother Hair");
+  if (category === "flower") return byLabel("Flower Girl");
+  if (category === "attendant" && kind === "makeup") return byLabel("Bridesmaid Makeup");
+  if (category === "attendant" && kind === "hair") return byLabel("Bridesmaid Hair");
+  if (kind === "makeup") return byLabel("Bridesmaid Makeup");
+  if (kind === "hair") return byLabel("Bridesmaid Hair");
+  if (kind === "both") return byLabel("Bride Hair + Makeup");
+  return null;
 }
 
 function firstDraftProviderCanTake(provider: Provider, kind: PreviewServiceKind): boolean {
@@ -1150,6 +1210,7 @@ function buildFirstDraftPreview(input: {
   providerColId: string;
 }): FirstDraftPreview {
   const warnings: string[] = [];
+  const blockingIssues: string[] = [];
   const providerMap = new Map<string, Provider>();
   for (const provider of input.providers) {
     const name = provider.name.trim();
@@ -1192,6 +1253,12 @@ function buildFirstDraftPreview(input: {
     const category = firstDraftCategory(text);
     const kind = firstDraftServiceKind(text);
     const explicitDuration = parseDurationMinutes(cells.duration ?? "");
+    const duration = defaultPreviewDuration(category, kind, service, explicitDuration, input.serviceDefaults);
+    if (duration === null) {
+      blockingIssues.push(
+        `${name || service || "A service row"} has no duration from any record — enter a duration on the row or set a matching service default.`,
+      );
+    }
     sourceBlocks.push({
       id: row.id,
       name,
@@ -1200,7 +1267,7 @@ function buildFirstDraftPreview(input: {
       originalProvider,
       kind,
       category,
-      duration: defaultPreviewDuration(category, kind, service, explicitDuration, input.serviceDefaults),
+      duration,
       order,
     });
   });
@@ -1265,10 +1332,12 @@ function buildFirstDraftPreview(input: {
     ensureLane(provider).blocks.push({ ...block, provider: providerName, start: null, end: null });
   }
 
-  const activeProviderCount = Math.max(lanes.size, providers.length);
-  const setupMinutes = activeProviderCount >= 3 ? 30 : 15;
-  const setupDefault = input.serviceDefaults.find((service) => service.label.trim().toLowerCase() === "setup")?.durationMinutes ?? setupMinutes;
-  const setupDuration = activeProviderCount >= 3 ? 30 : setupDefault;
+  // Setup length comes only from the operator's "Setup" service default. No
+  // 15/30-minute station heuristic: an unknown setup time is a blocking issue.
+  const setupDuration = input.serviceDefaults.find((service) => service.label.trim().toLowerCase() === "setup")?.durationMinutes ?? null;
+  if (setupDuration === null && sourceBlocks.length > 0) {
+    blockingIssues.push('Setup time is not set — enter a "Setup" service default before times can be planned.');
+  }
   const venueAccess = input.engineMetadata.venueAccessTime?.trim() ? parseClockTime(input.engineMetadata.venueAccessTime) : null;
 
   for (const lane of lanes.values()) {
@@ -1277,7 +1346,7 @@ function buildFirstDraftPreview(input: {
       id: `setup-${auditId(lane.provider)}`,
       name: "Setup",
       service: "Setup",
-      notes: activeProviderCount >= 3 ? "30 minutes for 3+ provider stations" : "15 minute default",
+      notes: setupDuration === null ? "Duration unknown — set a Setup service default" : "Setup default (operator-entered)",
       originalProvider: lane.provider,
       kind: "other",
       category: "other",
@@ -1291,15 +1360,21 @@ function buildFirstDraftPreview(input: {
     lane.blocks.unshift(setupBlock);
 
     if (readyBy !== null) {
-      const totalMinutes = lane.blocks.reduce((sum, block) => sum + block.duration, 0);
-      let cursor = readyBy - totalMinutes;
-      if (venueAccess !== null && cursor < venueAccess) {
-        warnings.push(`${lane.provider} preview begins before venue access.`);
-      }
-      for (const block of lane.blocks) {
-        block.start = cursor;
-        block.end = cursor + block.duration;
-        cursor = block.end;
+      // Backward planning only runs on fully sourced durations; any unknown
+      // block leaves the lane untimed instead of quietly inventing minutes.
+      if (lane.blocks.some((block: PreviewBlock) => block.duration === null)) {
+        warnings.push(`${lane.provider} has blocks with unknown durations, so preview times are omitted for that lane.`);
+      } else {
+        const totalMinutes = lane.blocks.reduce((sum, block) => sum + (block.duration ?? 0), 0);
+        let cursor = readyBy - totalMinutes;
+        if (venueAccess !== null && cursor < venueAccess) {
+          warnings.push(`${lane.provider} preview begins before venue access.`);
+        }
+        for (const block of lane.blocks) {
+          block.start = cursor;
+          block.end = cursor + (block.duration ?? 0);
+          cursor = block.end;
+        }
       }
     }
   }
@@ -1329,6 +1404,7 @@ function buildFirstDraftPreview(input: {
   return {
     lanes: Array.from(lanes.values()),
     warnings: Array.from(new Set(warnings)),
+    blockingIssues: Array.from(new Set(blockingIssues)),
     readyBy,
     setupMinutes: setupDuration,
   };
@@ -1339,6 +1415,7 @@ function buildScheduleAudit(input: {
   notes: string;
   rows: Row[];
   providers: Provider[];
+  serviceDefaults: ServiceDefault[];
   providerColId: string;
   engineMetadata: ScheduleEngineMetadata;
 }): ScheduleAuditIssue[] {
@@ -1359,7 +1436,12 @@ function buildScheduleAudit(input: {
   for (const block of blocks) {
     if (block.provider) providerNames.add(block.provider);
   }
-  const providerCount = providerNames.size;
+  // Duration expectations may come only from operator-entered service
+  // defaults; a label with no entered duration yields no expectation.
+  const savedDefaultMinutes = (label: string): number | null => {
+    const match = input.serviceDefaults.find((service) => service.label.trim().toLowerCase() === label.toLowerCase());
+    return match && match.durationMinutes !== null ? match.durationMinutes : null;
+  };
   const missingCapabilityWarnings = new Set<string>();
   const addMissingCapabilityWarning = (providerName: string) => {
     if (!providerName || missingCapabilityWarnings.has(providerName)) return;
@@ -1448,38 +1530,40 @@ function buildScheduleAudit(input: {
       if (expected) {
         addDurationIssue(issues, block, expected, `${auditBlockLabel(block)} is under ${provider?.name ?? "the assigned artist"}'s baseline timing`);
       }
-    } else if (isBride && hasHair && hasMakeup) {
-      addDurationIssue(issues, block, 120, "Bride hair + makeup is under 120 minutes", "critical");
-    } else if (isBride && hasMakeup) {
-      addDurationIssue(issues, block, 60, "Bride makeup-only block is under 60 minutes", "critical");
-    } else if (isBride && hasHair) {
-      const min = hasShortSimpleLabel(text) ? 35 : 45;
-      addDurationIssue(issues, block, min, "Bride hair-only block is under the expected duration", min === 35 ? "warning" : "critical");
     } else {
-      if (isMother && hasMakeup) {
-        addDurationIssue(issues, block, 30, "Mother makeup block is under 30 minutes");
-      }
-      if (isMother && hasHair) {
-        const min = hasShortSimpleLabel(text) ? 30 : 45;
-        addDurationIssue(issues, block, min, "Mother hair block is under the expected duration");
-      }
-      if (isBridesmaid && hasMakeup) {
-        addDurationIssue(issues, block, 30, "Bridesmaid makeup block is under 30 minutes");
-      }
-      if (isBridesmaid && hasHair) {
-        addDurationIssue(issues, block, 45, "Bridesmaid hair block is under 45 minutes");
+      // Expected minimums come only from the operator's saved service
+      // defaults. When no default is entered there is no rule to check
+      // against — this audit never invents an expected duration.
+      const expectedFromDefaults =
+        isBride && hasHair && hasMakeup
+          ? savedDefaultMinutes("Bride Hair + Makeup")
+          : isBride && hasMakeup
+            ? savedDefaultMinutes("Bride Makeup")
+            : isBride && hasHair
+              ? savedDefaultMinutes("Bride Hair")
+              : isMother && hasMakeup
+                ? savedDefaultMinutes("Mother Makeup")
+                : isMother && hasHair
+                  ? savedDefaultMinutes("Mother Hair")
+                  : isBridesmaid && hasMakeup
+                    ? savedDefaultMinutes("Bridesmaid Makeup")
+                    : isBridesmaid && hasHair
+                      ? savedDefaultMinutes("Bridesmaid Hair")
+                      : null;
+      if (expectedFromDefaults !== null) {
+        addDurationIssue(issues, block, expectedFromDefaults, `${auditBlockLabel(block)} is under your saved service default`);
       }
     }
   }
 
   const setupBlocks = blocks.filter(isSetupBlock);
-  const setupMin = providerCount >= 3 ? 30 : 15;
+  const setupMin = savedDefaultMinutes("Setup");
   if (setupBlocks.length === 0 && !usesProductionRequest) {
     issues.push({
       id: "missing-setup",
       severity: "warning",
       title: "No setup block found",
-      detail: providerCount >= 3 ? "Schedules with 3+ provider stations should show a 30-minute setup buffer." : "Add a 15-minute setup buffer before services begin.",
+      detail: "Add a setup block before services begin; its length comes from your Setup service default.",
     });
   } else {
     for (const block of setupBlocks) {
@@ -1488,10 +1572,12 @@ function buildScheduleAudit(input: {
           id: `setup-duration-${block.id}`,
           severity: "warning",
           title: "Setup block has no duration",
-          detail: `Setup should show at least ${setupMin} minutes for this provider count.`,
+          detail: setupMin === null
+            ? "Enter a setup duration or set a Setup service default — no setup length is assumed."
+            : `Your saved Setup default is ${setupMin} minutes; enter a duration on the block.`,
         });
-      } else {
-        addDurationIssue(issues, block, setupMin, "Setup block is shorter than Violet's setup rule");
+      } else if (setupMin !== null) {
+        addDurationIssue(issues, block, setupMin, "Setup block is shorter than your saved Setup default");
       }
     }
   }
@@ -1622,18 +1708,27 @@ function getScheduleMissingInfo(input: {
   if (hasServiceCounts && providerNames.size === 0) addMissing("Need provider count before assigning lanes.");
 
   const hasBrideBlock = serviceBlocks.some((block) => hasAuditWord(block.text, /\bbride\b|\bbridal\b/));
-  const hasBrideDefault = input.serviceDefaults.some((service) => service.label.trim().toLowerCase() === "bride hair + makeup" && service.durationMinutes === 120);
-  if (hasBrideBlock && hasBrideDefault) addConfirmation("Bride hair + makeup uses Violet's 2-hour default -- confirm.");
-  if (hasBrideBlock) addConfirmation("Bride placement follows Violet's near-end default -- confirm for this event.");
+  const brideDefault = input.serviceDefaults.find(
+    (service) => service.label.trim().toLowerCase() === "bride hair + makeup" && service.durationMinutes !== null,
+  );
+  if (hasBrideBlock && brideDefault) {
+    addConfirmation(`Bride hair + makeup uses your saved ${brideDefault.durationMinutes}-minute default -- confirm.`);
+  }
+  if (hasBrideBlock) addConfirmation("Bride placement follows the near-end draft rule -- confirm for this event.");
 
-  const hasMakeupDefault = input.serviceDefaults.some((service) => /makeup/i.test(service.label) && service.durationMinutes > 0);
-  const hasHairDefault = input.serviceDefaults.some((service) => /\bhair\b/i.test(service.label) && service.durationMinutes > 0);
-  const makeupNeedsDefault = serviceBlocks.some((block) => auditHasMakeupService(block.text) && block.duration === null);
-  const hairNeedsDefault = serviceBlocks.some((block) => auditHasHairService(block.text) && block.duration === null);
-  if (hasMakeupDefault && makeupNeedsDefault) addConfirmation("Default makeup duration used -- confirm.");
-  if (hasHairDefault && hairNeedsDefault) addConfirmation("Default hair duration used -- confirm.");
-  if (serviceBlocks.some((block) => (auditHasMakeupService(block.text) || auditHasHairService(block.text)) && block.duration === null)) {
-    addConfirmation("Single-service default duration used -- confirm this provider's timing.");
+  // A duration with no source is missing information that blocks drafting —
+  // never a soft confirmation. Saved operator defaults still get confirmed.
+  const hasMakeupDefault = input.serviceDefaults.some((service) => /makeup/i.test(service.label) && service.durationMinutes !== null);
+  const hasHairDefault = input.serviceDefaults.some((service) => /\bhair\b/i.test(service.label) && service.durationMinutes !== null);
+  const makeupNeedsDuration = serviceBlocks.some((block) => auditHasMakeupService(block.text) && block.duration === null);
+  const hairNeedsDuration = serviceBlocks.some((block) => auditHasHairService(block.text) && block.duration === null);
+  if (makeupNeedsDuration) {
+    if (hasMakeupDefault) addConfirmation("Saved makeup duration default will be used -- confirm.");
+    else addMissing("Need makeup durations -- enter them on rows or set a makeup service default.");
+  }
+  if (hairNeedsDuration) {
+    if (hasHairDefault) addConfirmation("Saved hair duration default will be used -- confirm.");
+    else addMissing("Need hair durations -- enter them on rows or set a hair service default.");
   }
 
   if (serviceBlocks.some((block) => !block.name.trim() || isStarterScheduleName(block.name) || isPlaceholderName(block.name))) {
@@ -2021,23 +2116,30 @@ export default function ScheduleDraftBuilder() {
     ? productionSchedule.warnings.filter((warning) => !warning.blocking).map((warning) => warning.message)
     : firstDraftPreview.warnings;
   const productionBlocksPreview = blockingProductionWarnings.length > 0;
+  // Sourceless durations are a hard stop, not a confirmation: a preview built
+  // on unknown durations can never be applied to editable rows.
+  const unsourcedPreviewIssues = productionSchedule ? [] : firstDraftPreview.blockingIssues;
+  const unsourcedBlocksPreview = unsourcedPreviewIssues.length > 0;
   const canApplyFirstDraftPreview =
     hasFirstDraftPreview &&
     hasFirstDraftServiceBlocks &&
     rowsCanAcceptFirstDraftPreview &&
     !evidenceBlocksPreview &&
-    !productionBlocksPreview;
+    !productionBlocksPreview &&
+    !unsourcedBlocksPreview;
   const firstDraftApplyMessage = evidenceBlocksPreview
     ? "Resolve the private evidence warnings and blocking questions before applying a preview."
     : productionBlocksPreview
       ? `Resolve production blockers before applying: ${blockingProductionWarnings[0].message}`
-      : !hasFirstDraftPreview
-        ? "Generate a first draft preview before applying it."
-        : !hasFirstDraftServiceBlocks
-          ? "Add service blocks before applying a preview."
-          : !rowsCanAcceptFirstDraftPreview
-            ? "Apply is locked because editable rows already contain manual details."
-            : "Ready to copy preview blocks into editable rows. Save draft after review.";
+      : unsourcedBlocksPreview
+        ? `Blocked until every duration has a source: ${unsourcedPreviewIssues[0]}`
+        : !hasFirstDraftPreview
+          ? "Generate a first draft preview before applying it."
+          : !hasFirstDraftServiceBlocks
+            ? "Add service blocks before applying a preview."
+            : !rowsCanAcceptFirstDraftPreview
+              ? "Apply is locked because editable rows already contain manual details."
+              : "Ready to copy preview blocks into editable rows. Save draft after review.";
 
   // Name pool ("People to assign") lives inside notes as one delimited line so
   // no schema changes are needed. Parse it out for its own section and keep the
@@ -2142,7 +2244,7 @@ export default function ScheduleDraftBuilder() {
 
   // Service defaults editing
   const addServiceDefault = () =>
-    setServiceDefaults((prev) => [...prev, { id: uid("svc"), label: "Custom service", durationMinutes: 30 }]);
+    setServiceDefaults((prev) => [...prev, { id: uid("svc"), label: "Custom service", durationMinutes: null }]);
   const updateServiceDefault = (id: string, patch: Partial<ServiceDefault>) =>
     setServiceDefaults((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
   const deleteServiceDefault = (id: string) =>
@@ -2246,7 +2348,7 @@ export default function ScheduleDraftBuilder() {
   if (unassignedRows.length > 0) {
     laneList.push({ key: "unassigned", label: "Needs provider assignment", provider: "", rows: unassignedRows });
   }
-  const auditIssues = buildScheduleAudit({ title, notes, rows, providers, providerColId, engineMetadata });
+  const auditIssues = buildScheduleAudit({ title, notes, rows, providers, serviceDefaults, providerColId, engineMetadata });
   const scheduleReadiness = getScheduleMissingInfo({
     eventDate,
     notes,
@@ -2810,7 +2912,7 @@ export default function ScheduleDraftBuilder() {
                   Missing names are allowed; blanks and placeholders stay editable.
                 </div>
                 <div className="border border-hairline bg-bg px-3 py-2">
-                  Bride timing and placement are Violet defaults to confirm, not universal rules.
+                  Bride timing comes only from your entries; placement is a draft rule to confirm, not a universal rule.
                 </div>
                 <div className="border border-hairline bg-bg px-3 py-2">
                   Same-person service blocks are checked so they do not overlap.
@@ -2895,7 +2997,9 @@ export default function ScheduleDraftBuilder() {
                     </span>
                     {!productionSchedule && (
                       <span className="border border-hairline bg-bg px-2.5 py-1">
-                        Setup: {firstDraftPreview.setupMinutes} min
+                        {firstDraftPreview.setupMinutes === null
+                          ? "Setup: unknown — set a Setup service default"
+                          : `Setup: ${firstDraftPreview.setupMinutes} min`}
                       </span>
                     )}
                   </div>
@@ -2945,6 +3049,19 @@ export default function ScheduleDraftBuilder() {
                       Apply preview to editable rows
                     </button>
                   </div>
+
+                  {unsourcedPreviewIssues.length > 0 && (
+                    <div className="border border-oxblood/40 bg-oxblood/10 p-4" data-testid="list-unsourced-duration-blockers">
+                      <h3 className="text-sm font-medium text-oxblood">Blocked — durations without a source</h3>
+                      <ul className="mt-2 space-y-1.5 text-sm text-ink/75">
+                        {unsourcedPreviewIssues.map((issue, index) => (
+                          <li key={`${issue}-${index}`} data-testid={`unsourced-duration-blocker-${index}`}>
+                            {issue}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
                   {blockingProductionWarnings.length > 0 && (
                     <div className="border border-oxblood/40 bg-oxblood/10 p-4" data-testid="list-production-blockers">
@@ -3024,7 +3141,7 @@ export default function ScheduleDraftBuilder() {
                                         {formatClockTime(block.start)} - {formatClockTime(block.end)}
                                       </span>
                                     )}
-                                    <div>{block.duration} min</div>
+                                    <div>{block.duration === null ? "Duration unknown" : `${block.duration} min`}</div>
                                   </div>
                                 </div>
                                 {block.isFixed && (
@@ -3321,13 +3438,24 @@ export default function ScheduleDraftBuilder() {
                     <div className="flex items-center gap-2 sm:gap-1">
                       <input
                         type="number"
-                        min={0}
-                        value={s.durationMinutes}
-                        onChange={(e) => updateServiceDefault(s.id, { durationMinutes: parseInt(e.target.value || "0", 10) })}
+                        min={1}
+                        value={s.durationMinutes ?? ""}
+                        placeholder="not set"
+                        onChange={(e) => {
+                          const parsed = parseInt(e.target.value, 10);
+                          updateServiceDefault(s.id, {
+                            durationMinutes: Number.isFinite(parsed) && parsed > 0 ? parsed : null,
+                          });
+                        }}
                         className="w-24 bg-bg border border-hairline px-2 py-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70 sm:w-20"
                         data-testid={`input-service-minutes-${s.id}`}
                       />
                       <span className="text-ink/50 text-sm">min</span>
+                      {s.durationMinutes === null && (
+                        <span className="border border-brass/40 bg-brass/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-ink/60">
+                          Unknown
+                        </span>
+                      )}
                     </div>
                     <button
                       onClick={() => deleteServiceDefault(s.id)}
@@ -3340,10 +3468,10 @@ export default function ScheduleDraftBuilder() {
                 ))}
               </div>
               <p className="text-xs text-ink/50 mt-2">
-                These are starting durations only. Edit them anytime. They fill the Duration
-                column when you quick-add a matching service. Violet's defaults start with 2 hours
-                for bride hair + makeup, 30 minutes for Violet single services, and no buffer unless
-                you add one.
+                Durations start unknown on purpose. A duration is only used once you enter it
+                here or on a row — nothing is ever filled in for you. Entered defaults fill the
+                Duration column when you quick-add a matching service, and no buffer is added
+                unless you add one.
               </p>
             </section>}
 

@@ -36,8 +36,8 @@ test("first draft preview sequences same-person blocks instead of allowing silen
 });
 
 test("schedule assumptions remain surfaced for operator confirmation", () => {
-  assert.match(builderSource, /Bride placement follows Violet's near-end default -- confirm for this event\./);
-  assert.match(builderSource, /Bride timing and placement are Violet defaults to confirm, not universal rules\./);
+  assert.match(builderSource, /Bride placement follows the near-end draft rule -- confirm for this event\./);
+  assert.match(builderSource, /Bride timing comes only from your entries; placement is a draft rule to confirm, not a universal rule\./);
   assert.match(builderSource, /Ready time is the anchor; the final service ends there by default\./);
   assert.match(builderSource, /Unknown provider capability means operator confirmation is still needed\./);
 });

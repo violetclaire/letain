@@ -67,19 +67,13 @@ function makeTimeRange(startMinutes: number, durationMinutes: number): string {
   return `${minutesToDisplay(startMinutes)} - ${minutesToDisplay(startMinutes + durationMinutes)}`;
 }
 
-// ─── Preference rules ────────────────────────────────────────────────────────
-// Lead artist (Violet / col 0 / name includes "violet"):
-//   - Bride: 120 min (2 hours)
-//   - All other services: 30 min each
-// Every other artist: 45 min per service
+// ─── Durations ───────────────────────────────────────────────────────────────
+// A duration exists only when the operator entered one on the artist column.
+// Nothing here invents 30/45/120-minute numbers: an unknown duration renders
+// as a blank time range the operator must fill before the grid means anything.
 
-function isLeadArtist(artist: ArtistColumn, colIdx: number): boolean {
-  return colIdx === 0 || artist.isLead === true || artist.name.toLowerCase().includes("violet");
-}
-
-function serviceDuration(artist: ArtistColumn, colIdx: number, client: ParsedClient): number {
-  if (client.role === "bride") return 120;
-  return isLeadArtist(artist, colIdx) ? 30 : 45;
+function artistDuration(artist: ArtistColumn): number | null {
+  return Number.isFinite(artist.duration) && artist.duration > 0 ? artist.duration : null;
 }
 
 // ─── Build grid from parsed clients ──────────────────────────────────────────
@@ -95,55 +89,54 @@ export function buildGridFromClients(
   // Collect (colIdx, cell) pairs in order
   const colRows: GridCell[][] = artists.map(() => []);
 
-  // Bride always goes to col 0 (lead artist) first
+  // Time math only runs on operator-entered durations. Any column without one
+  // gets blank time ranges — never an invented number.
+  const allDurationsKnown = artists.every((artist) => artistDuration(artist) !== null);
+
+  // Bride goes to an explicitly marked lead column first, if the operator
+  // marked one; otherwise the bride is balanced like everyone else.
+  const leadIdx = artists.findIndex((artist) => artist.isLead === true);
   const bride = clients.find(c => c.role === "bride");
   const others = clients.filter(c => c.role !== "bride");
 
   const assignClient = (client: ParsedClient, colIdx: number) => {
     const artist = artists[colIdx];
-    const dur = serviceDuration(artist, colIdx, client);
+    const dur = artistDuration(artist);
     const services: string[] = [];
     if (client.hair) services.push("H");
     if (client.makeup) services.push("M");
-    const serviceLabel = services.join("+") || "HM";
 
-    if (client.role === "bride") {
-      // Bride is one 2-hour block
+    // Each service is its own row; the bride's row is labeled but her timing
+    // comes from the same operator-entered duration as everyone else's.
+    const roleTag = client.role === "bride" ? " (Bride)" : client.isVip ? " ★" : "";
+    for (const svc of services.length > 0 ? services : ["HM"]) {
       colRows[colIdx].push({
-        timeRange: makeTimeRange(cursors[colIdx], 120),
-        clientName: `${client.name} (Bride)`,
-        service: "H+M",
+        timeRange: dur === null ? "" : makeTimeRange(cursors[colIdx], dur),
+        clientName: client.name + roleTag,
+        service: svc,
       });
-      cursors[colIdx] += 120;
-    } else {
-      // Each service is its own row
-      for (const svc of services.length > 0 ? services : ["HM"]) {
-        colRows[colIdx].push({
-          timeRange: makeTimeRange(cursors[colIdx], dur),
-          clientName: client.name + (client.isVip ? " ★" : ""),
-          service: svc,
-        });
-        cursors[colIdx] += dur;
-      }
+      if (dur !== null) cursors[colIdx] += dur;
     }
   };
 
-  if (bride) {
-    assignClient(bride, 0);
-  }
-
-  // Assign remaining clients to columns, balancing load
-  for (const client of others) {
-    // Find the column with the earliest end time (least loaded)
+  // Balance load by end time when every duration is known; otherwise by block
+  // count, since unknown durations make end times meaningless.
+  const pickLeastLoaded = (): number => {
     let bestCol = 0;
-    let earliestCursor = cursors[0];
     for (let i = 1; i < artists.length; i++) {
-      if (cursors[i] < earliestCursor) {
-        earliestCursor = cursors[i];
+      if (allDurationsKnown ? cursors[i] < cursors[bestCol] : colRows[i].length < colRows[bestCol].length) {
         bestCol = i;
       }
     }
-    assignClient(client, bestCol);
+    return bestCol;
+  };
+
+  if (bride) {
+    assignClient(bride, leadIdx >= 0 ? leadIdx : pickLeastLoaded());
+  }
+
+  for (const client of others) {
+    assignClient(client, pickLeastLoaded());
   }
 
   // Normalize to rectangular grid
@@ -165,14 +158,10 @@ export async function parseClientList(input: {
 }): Promise<ScheduleCommandResult> {
   const { rawText, startTime, numArtists, artistNames = [] } = input;
 
-  const leadName = artistNames[0] || "Violet";
-
   const systemPrompt = `You are a smart wedding beauty schedule assistant. Parse the following client list and return structured JSON.
 
 RULES:
-- The lead artist is "${leadName}". The lead artist handles the BRIDE for 2 hours (hair + makeup together).
-- Lead artist does 30 minutes per service for non-bride clients.
-- All other artists do 45 minutes per service.
+- Parse ONLY what is written in the list. Never invent people, services, durations, or artists.
 - Identify each person's role from their name: "Bride", "MOB" = Mother of Bride, "MOG" = Mother of Groom, "MOH" = Maid of Honor, "Bridesmaid", "Groomsman", etc.
 - Detect hair (H) and makeup (M) services from checkboxes (X), columns, or text.
 - If someone has both hair and makeup, create separate service entries.
@@ -208,19 +197,23 @@ ${rawText}`;
     const parsed = JSON.parse(jsonMatch[0]);
     const clients: ParsedClient[] = parsed.clients || [];
 
-    // Build artist columns
+    // Build artist columns from operator-provided facts only. The column
+    // COUNT is the operator's number; a missing name is a visible "name
+    // needed" slot, never an invented identity; durations start unknown (0
+    // means not set) until the operator enters them.
     const artists: ArtistColumn[] = Array.from({ length: numArtists }, (_, i) => ({
-      name: artistNames[i] || (i === 0 ? "Violet" : `Artist ${i + 1}`),
-      type: i === 0 ? "H30" : "H45",
-      duration: i === 0 ? 30 : 45,
+      name: artistNames[i] || `Provider ${i + 1} (name needed)`,
+      type: "",
+      duration: 0,
       slots: [],
-      isLead: i === 0,
     }));
 
     const grid = buildGridFromClients(clients, artists, startTime);
 
     return {
-      message: parsed.summary || `Parsed ${clients.length} clients. Bride with ${artists[0].name} (2 hrs). Ready to review.`,
+      message:
+        (parsed.summary || `Parsed ${clients.length} clients.`) +
+        " Time ranges stay blank until you enter each artist's service duration — no timing is assumed.",
       artists,
       grid,
     };
@@ -229,11 +222,10 @@ ${rawText}`;
     return {
       message: "Could not parse the client list. Try formatting as one name per line with H and M noted.",
       artists: Array.from({ length: numArtists }, (_, i) => ({
-        name: artistNames[i] || (i === 0 ? "Violet" : `Artist ${i + 1}`),
-        type: i === 0 ? "H30" : "H45",
-        duration: i === 0 ? 30 : 45,
+        name: artistNames[i] || `Provider ${i + 1} (name needed)`,
+        type: "",
+        duration: 0,
         slots: [],
-        isLead: i === 0,
       })),
       grid: [[{ timeRange: "", clientName: "" }]],
     };
@@ -250,17 +242,15 @@ export async function processVoiceCommand(input: {
 }): Promise<ScheduleCommandResult> {
   const { command, artists, grid, startTime } = input;
 
-  const leadName = artists.find((_, i) => i === 0)?.name || "Violet";
-
   const currentState = JSON.stringify({ artists, grid }, null, 2);
 
   const systemPrompt = `You are an AI assistant controlling a live beauty schedule grid.
 
-MEMORY — PERMANENT RULES (never override):
-- "${leadName}" is the lead artist (column 0). She does 30 min per service. Bride = 2 hours.
-- All other artists: 45 min per service.
-- Bride always goes to the lead artist column.
-- Times stack sequentially within each column — no gaps, no overlaps.
+RULES (never override):
+- Every duration, artist, and client comes ONLY from the current schedule state or from the command itself. NEVER invent a duration, artist name, or client.
+- Each artist column's "duration" field is the operator-entered minutes per service for that artist. If it is 0 or missing, that artist's timing is UNKNOWN: leave their timeRange values blank ("") and say in "message" that the artist's service duration must be entered before times can be calculated.
+- If the command needs information that is not in the state or the command, do NOT change the grid — return it unchanged and ask for the missing detail in "message".
+- Times stack sequentially within each column — no gaps, no overlaps — using each column's operator-entered duration.
 - Service codes: H = Hair, M = Makeup, H+M = both.
 
 CURRENT SCHEDULE STATE:
@@ -270,12 +260,12 @@ EVENT START TIME: ${startTime}
 
 COMMAND FROM ARTIST: "${command}"
 
-Interpret the command and return the updated schedule. Re-calculate all times in each column from scratch based on startTime and sequential durations.
+Interpret the command and return the updated schedule. Re-calculate times only in columns whose duration is known, based on startTime and sequential operator-entered durations.
 
 Return ONLY a JSON object:
 {
   "message": "Plain English confirmation of what changed",
-  "artists": [ { "name": "...", "type": "...", "duration": 30, "slots": [], "isLead": true } ],
+  "artists": [ { "name": "...", "type": "...", "duration": <the operator-entered minutes from the state, or 0 if not set>, "slots": [] } ],
   "grid": [
     [ { "timeRange": "8:00 AM - 8:30 AM", "clientName": "Sarah", "service": "H" }, ... ],
     ...
@@ -302,7 +292,7 @@ Return ONLY a JSON object:
   } catch (err) {
     console.error("[Schedule AI] processVoiceCommand error:", err);
     return {
-      message: "I didn't catch that. Try: 'Move Sarah to 10am' or 'Add Aunt Lisa for hair under Artist 2'.",
+      message: "I didn't catch that. Try: 'Move Sarah to 10am' or 'Add Aunt Lisa for hair under <an artist's name from your schedule>'.",
       artists,
       grid,
     };
