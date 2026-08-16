@@ -7,7 +7,7 @@
 <style>
   /* ============ THE STOCK ============ */
   :root{
-    --desk:#26221F;
+    --desk:#211D1A;
     --paper:#F7F4EC;
     --paper-2:#F1EDE2;
     --ink:#1B1611;
@@ -103,13 +103,29 @@
     color:var(--taupe);text-align:center;padding:0 3rem 2rem;
   }
 
+  /* ============ PLATES (swatch artwork) ============ */
+  .plate{
+    background:var(--paper-2);
+    border:1px solid var(--rule);
+    padding:1.1rem 1.1rem .9rem;
+    box-shadow:0 1px 0 rgba(27,22,17,.08);
+  }
+  .plate canvas{width:100%;display:block;background:#FBF9F3;border:1px solid var(--rule)}
+  .plate-cap{
+    display:flex;justify-content:space-between;gap:1rem;
+    font-family:var(--kicker);font-size:.54rem;letter-spacing:.24em;text-transform:uppercase;
+    color:var(--taupe);margin-top:.7rem;
+  }
+  .plate-cap b{color:var(--ink);font-weight:600}
+  .plate-cap span:last-child{white-space:nowrap}
+
   /* ============ COVER ============ */
   #cover{background:var(--paper);overflow:hidden}
-  .cover-wrap{position:relative;min-height:min(88vh,900px);display:flex;flex-direction:column}
-  .cover-top{padding:2.2rem 2.6rem 0;position:relative;z-index:3}
+  .cover-wrap{position:relative;display:flex;flex-direction:column}
+  .cover-top{padding:2.4rem 2.6rem 0;position:relative;z-index:3}
   .masthead{
     font-family:var(--display);
-    font-size:clamp(3.4rem,10.5vw,7.6rem);
+    font-size:clamp(3.4rem,10.5vw,7.4rem);
     line-height:.9;letter-spacing:-.015em;
     color:var(--red);text-align:center;
   }
@@ -120,17 +136,30 @@
     border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);
     padding:.45rem .2rem;
   }
-  .cover-main{flex:1;display:grid;grid-template-columns:1.05fr 1fr;position:relative}
-  .cover-lines{padding:2.4rem 0 2.4rem 2.6rem;display:flex;flex-direction:column;gap:1.7rem;z-index:3}
-  .cover-line .n{font-family:var(--kicker);font-size:.6rem;letter-spacing:.3em;color:var(--red)}
-  .cover-line h3{font-size:clamp(1.25rem,2.4vw,1.85rem);line-height:1.08;margin:.25rem 0 .2rem}
-  .cover-line p{font-size:.86rem;font-style:italic;color:var(--ink-soft);max-width:24rem}
-  .cover-line.big h3{font-size:clamp(1.8rem,3.4vw,2.7rem);color:var(--vamp)}
-  .cover-face{position:relative;display:flex;align-items:flex-end;justify-content:center;overflow:hidden}
-  .cover-face svg{width:120%;max-width:560px;margin-bottom:-6%}
+  .cover-main{flex:1;display:grid;grid-template-columns:1fr .92fr;gap:2.4rem;padding:2.6rem 2.6rem 2.2rem}
+  .cover-lines{display:flex;flex-direction:column;gap:1.6rem;z-index:3}
+  .cover-line .n{font-family:var(--kicker);font-size:.58rem;letter-spacing:.3em;color:var(--red)}
+  .cover-line h3{font-size:clamp(1.2rem,2.2vw,1.7rem);line-height:1.1;margin:.25rem 0 .2rem}
+  .cover-line p{font-size:.85rem;font-style:italic;color:var(--ink-soft);max-width:24rem}
+  .cover-line.big h3{font-size:clamp(1.7rem,3.2vw,2.55rem);color:var(--vamp)}
+  .cover-line + .cover-line{border-top:1px solid var(--rule);padding-top:1.4rem}
+  .cover-art{position:relative;z-index:2;align-self:start}
+  .cover-art .plate{transform:rotate(.6deg)}
+  .cover-art .plate-cap{padding-left:5.6rem}
+  .bottle-card{
+    position:absolute;left:-2.8rem;bottom:-2.4rem;z-index:4;
+    background:#FBF9F3;border:1px solid var(--rule);
+    padding:.8rem .9rem .6rem;
+    box-shadow:0 14px 28px rgba(0,0,0,.18);
+    transform:rotate(-5deg);
+    width:120px;text-align:center;
+  }
+  .bottle-card svg{width:56px;display:block;margin:0 auto}
+  .bottle-card .cap{font-family:var(--kicker);font-size:.5rem;letter-spacing:.2em;text-transform:uppercase;color:var(--taupe);margin-top:.5rem;line-height:1.7}
+  .bottle-card .cap b{color:var(--vamp);font-weight:600;display:block;font-size:.62rem;letter-spacing:.26em}
   .cover-foot{
     display:flex;justify-content:space-between;align-items:flex-end;
-    padding:0 2.6rem 1.6rem;z-index:3;
+    padding:0 2.6rem 1.8rem;z-index:3;
   }
   .cover-cta{
     font-family:var(--kicker);font-size:.62rem;letter-spacing:.3em;text-transform:uppercase;
@@ -191,24 +220,48 @@
     padding:1.1rem .2rem;margin:1.2rem 0;
   }
   .continued{font-family:var(--kicker);font-size:.58rem;letter-spacing:.26em;text-transform:uppercase;color:var(--taupe);text-align:right;margin-top:1.4rem}
+  .shade-index{margin-top:2.6rem;border-top:3px solid var(--ink);padding-top:1.4rem}
+  .shade-index h3{font-family:var(--kicker);font-size:.62rem;letter-spacing:.3em;text-transform:uppercase;font-weight:600;margin-bottom:1.2rem}
+  .shade-row{display:grid;grid-template-columns:repeat(5,1fr);gap:1.2rem}
+  .shade-cell canvas{width:100%;height:64px;display:block;background:#FBF9F3;border:1px solid var(--rule)}
+  .shade-cell .lbl{font-family:var(--kicker);font-size:.52rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);margin-top:.5rem;line-height:1.7}
+  .shade-cell .lbl i{display:block;font-style:normal;color:var(--taupe)}
 
-  /* ============ MAKEOVER ============ */
-  .counter{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:start}
-  .mirror{
-    background:var(--paper-2);border:1px solid var(--rule);
-    padding:1.4rem;position:relative;
+  /* ============ MAKEOVER / TESTER CARD ============ */
+  .counter{display:grid;grid-template-columns:1.08fr 1fr;gap:3rem;align-items:start}
+  .tester{
+    background:#FBF9F3;border:1px solid var(--rule);
+    box-shadow:0 1px 0 rgba(27,22,17,.08);
   }
-  .mirror svg{width:100%;display:block}
-  .mirror .caption{
+  .tester-head{
+    display:flex;justify-content:space-between;align-items:baseline;
+    border-bottom:2px solid var(--ink);
+    padding:1rem 1.3rem .8rem;
     font-family:var(--kicker);font-size:.56rem;letter-spacing:.26em;text-transform:uppercase;
-    color:var(--taupe);text-align:center;margin-top:.9rem;
   }
-  .nails{display:flex;justify-content:center;gap:.55rem;margin-top:1.1rem}
+  .tester-head b{font-weight:600;white-space:nowrap}
+  .tester-head span{color:var(--taupe)}
+  .tester-grid{display:grid;grid-template-columns:1fr 1fr}
+  .cell{border-bottom:1px solid var(--rule);padding:1rem 1.3rem 1.2rem}
+  .cell.wide{grid-column:1/-1}
+  .cell:nth-child(even):not(.wide){border-left:1px solid var(--rule)}
+  .cell-label{
+    display:flex;justify-content:space-between;gap:.8rem;
+    font-family:var(--kicker);font-size:.54rem;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--taupe);margin-bottom:.7rem;
+  }
+  .cell-label b{color:var(--ink);font-weight:600}
+  .cell canvas{width:100%;display:block}
+  .cell .nails{display:flex;gap:.55rem;padding:.4rem 0 .2rem}
   .nail{
-    width:26px;height:38px;border-radius:50% 50% 42% 42%;
+    width:24px;height:36px;border-radius:50% 50% 42% 42%;
     background:var(--nailcolor,#C98F84);
     border:1px solid rgba(27,22,17,.25);
-    box-shadow:inset 0 3px 4px rgba(255,255,255,.35);
+    box-shadow:inset -4px 4px 5px rgba(255,255,255,.4),inset 3px -3px 5px rgba(0,0,0,.15);
+  }
+  .tester-foot{
+    padding:.8rem 1.3rem;
+    font-family:var(--kicker);font-size:.52rem;letter-spacing:.22em;text-transform:uppercase;color:var(--taupe);
   }
   .tray h3{font-family:var(--kicker);font-size:.62rem;letter-spacing:.3em;text-transform:uppercase;color:var(--ink);font-weight:600;margin:1.6rem 0 .7rem}
   .tray h3:first-child{margin-top:0}
@@ -321,21 +374,24 @@
 
   /* ============ SMALL PAGES ============ */
   @media (max-width:880px){
-    .cover-main{grid-template-columns:1fr}
-    .cover-face{order:-1;max-height:300px}
-    .cover-face svg{max-width:340px;margin-bottom:-18%}
-    .cover-lines{padding:1.8rem 2rem}
+    .cover-main{grid-template-columns:1fr;gap:3rem;padding:2rem 1.6rem}
+    .cover-art{order:-1;margin:0 0 .5rem}
+    .bottle-card{left:auto;right:-.6rem;bottom:-2.4rem}
+    .plate-cap{flex-direction:column;gap:.2rem}
+    .cover-art .plate-cap{padding-left:0;padding-right:5.6rem}
     .counter{grid-template-columns:1fr}
     .feature-cols{columns:1}
     .reporter-grid{grid-template-columns:1fr}
     .brief:nth-child(odd){border-right:none;padding-right:0}
     .brief:nth-child(even){padding-left:0}
     .signs{grid-template-columns:repeat(3,1fr)}
+    .shade-row{grid-template-columns:repeat(2,1fr)}
     .pagebody{padding:2rem 1.4rem 2.6rem}
     .runhead{padding:1rem 1.4rem .8rem}
     .footline{padding:0 1.4rem 1.6rem}
     .staffbox{columns:1}
     .strip .issue{display:none}
+    .cover-foot{padding:0 1.6rem 1.6rem}
   }
 </style>
 </head>
@@ -379,8 +435,35 @@
           <h3>Are you a Minimalist or a Vamp?</h3>
           <p>Twelve women took it. Four are still not speaking to us.</p>
         </div>
+        <div class="cover-line">
+          <span class="n">P. 102</span>
+          <h3>What the stars want you to buy</h3>
+          <p>Madame Estelle regrets nothing, especially not her commission.</p>
+        </div>
       </div>
-      <div class="cover-face" aria-hidden="true"><div id="coverFace"></div></div>
+      <div class="cover-art">
+        <div class="plate">
+          <canvas id="coverSmear" height="380" aria-label="Lipstick swatch, Toast of New York"></canvas>
+          <div class="plate-cap">
+            <span><b>Plate I.</b> Toast of New York, swatched once, blotted never</span>
+            <span>P. 64</span>
+          </div>
+        </div>
+        <div class="bottle-card" aria-hidden="true">
+          <svg viewBox="0 0 120 190">
+            <rect x="44" y="6" width="32" height="52" rx="5" fill="#1B1611"/>
+            <rect x="50" y="54" width="20" height="14" fill="#1B1611"/>
+            <path d="M30,80 C30,68 42,64 60,64 C78,64 90,68 90,80 L90,158 C90,172 78,180 60,180 C42,180 30,172 30,158 Z" fill="#3B0D14"/>
+            <path d="M30,80 C30,68 42,64 60,64 C78,64 90,68 90,80 L90,158 C90,172 78,180 60,180 C42,180 30,172 30,158 Z" fill="none" stroke="#1B1611" stroke-width="2" opacity=".5"/>
+            <path d="M40,76 C40,70 48,68 52,68 L52,150 C46,150 40,146 40,140 Z" fill="#7A2E3C" opacity=".65"/>
+            <rect x="41" y="104" width="38" height="30" fill="#F7F4EC"/>
+            <rect x="41" y="104" width="38" height="30" fill="none" stroke="#1B1611" stroke-width="1" opacity=".35"/>
+            <rect x="47" y="112" width="26" height="3" fill="#1B1611" opacity=".8"/>
+            <rect x="47" y="120" width="18" height="2" fill="#1B1611" opacity=".45"/>
+          </svg>
+          <span class="cap"><b>Vamp</b>if you can find it</span>
+        </div>
+      </div>
     </div>
     <div class="cover-foot">
       <button class="cover-cta" data-goto="contents">Open the issue →</button>
@@ -410,7 +493,7 @@
       </button></li>
       <li><button data-goto="makeover">
         <span class="row"><span class="pg">71</span><h3>The Makeover Counter</h3><span class="leader"></span></span>
-        <p>An interactive department. Choose a mouth, a brow, a lid, a nail. We'll tell you who you've become.</p>
+        <p>An interactive department. Choose a mouth, a brow, a lid, a nail. We swatch it; we judge it.</p>
       </button></li>
       <li><button data-goto="quiz">
         <span class="row"><span class="pg">88</span><h3>Quiz: Minimalist or Vamp?</h3><span class="leader"></span></span>
@@ -497,7 +580,7 @@
     <div class="kicker">Special Report</div>
     <h1 class="headline">The Brown Study</h1>
     <p class="dek">Two years ago a brown mouth meant something had gone wrong with your lipstick. Today it means everything has gone right with your life. An investigation.</p>
-    <div class="byline">By Marguerite Ossining · Illustrations by the Art Department</div>
+    <div class="byline">By Marguerite Ossining · Swatches by the Art Department</div>
     <div class="feature-cols">
       <p>Consider the American mouth, circa 1989: it was red, or it was pink, or it was frosted into something resembling a bathroom fixture, and it apologized for nothing. Then consider it now, in the summer of 1994: it is the color of coffee with not quite enough milk, of a paper bag, of toast — Toast of New York, to be exact, a shade name that sounds like a sandwich and sells like a controlled substance.</p>
       <p>What happened in between was, depending on whom you ask, grunge, a recession, Kate Moss, or the collective realization that looking as if you were trying had become the one unforgivable social error. Brown lipstick is the mouth that insists it woke up like this — never mind that achieving it requires a lip pencil, a blotting ritual, and a small monthly income.</p>
@@ -506,6 +589,10 @@
       <p>The numbers back the mood. Counter staff report that anything named after a foodstuff — Spice, Toast, Cappuccino, Gingerbread — is on allocation. One buyer told us her brown-family sales have tripled since spring, "and the reds are just sitting there, sulking." Even the nail world has gone dark: Chanel's Vamp, a red-black the house describes as "cerise noir" and everyone else describes as "arterial," is the hardest-to-get fifteen dollars in America (see Beauty Reporter, page 23).</p>
       <p>Will it last? Nothing lasts; that is the entire business model. But brown has done something red never quite managed: it made minimalism look like a decision instead of a surrender. Somewhere in a lab in New Jersey, someone is already mixing the shade that kills it. Our money says it will be beige, it will be called something like Vapor, and you will buy three.</p>
       <div class="continued">Continued on page 132 · Shade directory, page 118</div>
+    </div>
+    <div class="shade-index">
+      <h3>The Shade Index · Browns on Allocation, August 1994</h3>
+      <div class="shade-row" id="shadeRow"></div>
     </div>
   </div>
   <div class="footline">Beauvette · 64 · August 1994</div>
@@ -517,14 +604,35 @@
   <div class="pagebody">
     <div class="kicker">The Makeover Counter</div>
     <h1 class="headline">Build the Fall Face</h1>
-    <p class="dek">Every shade at the counter, none of the fluorescent lighting. Choose a mouth, a brow, a lid, a nail — our editors will render a verdict. They always do.</p>
+    <p class="dek">Every shade at the counter, none of the fluorescent lighting. Choose a mouth, a brow, a lid, a nail — we swatch it on the tester card and render a verdict. We always do.</p>
     <div class="counter">
-      <div class="mirror">
-        <div id="mirrorFace"></div>
-        <div class="nails" id="nailRow" aria-hidden="true">
-          <span class="nail"></span><span class="nail"></span><span class="nail"></span><span class="nail"></span><span class="nail"></span>
+      <div class="tester" aria-label="Tester card">
+        <div class="tester-head"><b>Tester Card Nº 08-94</b><span>Worn by the editors so you don't have to</span></div>
+        <div class="tester-grid">
+          <div class="cell wide">
+            <div class="cell-label"><span><b>I. The Mouth</b></span><span id="lipName"></span></div>
+            <canvas id="lipCanvas" height="130"></canvas>
+          </div>
+          <div class="cell">
+            <div class="cell-label"><span><b>II. The Brow</b></span><span id="browName"></span></div>
+            <canvas id="browCanvas" height="90"></canvas>
+          </div>
+          <div class="cell">
+            <div class="cell-label"><span><b>III. The Lid</b></span><span id="lidName"></span></div>
+            <canvas id="lidCanvas" height="90"></canvas>
+          </div>
+          <div class="cell">
+            <div class="cell-label"><span><b>IV. The Cheek</b></span><span id="cheekName"></span></div>
+            <canvas id="cheekCanvas" height="90"></canvas>
+          </div>
+          <div class="cell">
+            <div class="cell-label"><span><b>V. The Nail</b></span><span id="nailName"></span></div>
+            <div class="nails" id="nailRow" aria-hidden="true">
+              <span class="nail"></span><span class="nail"></span><span class="nail"></span><span class="nail"></span><span class="nail"></span>
+            </div>
+          </div>
         </div>
-        <div class="caption">The mirror never lies. It editorializes.</div>
+        <div class="tester-foot">All swatches applied to acid-free paper. The paper had no comment.</div>
       </div>
       <div class="tray">
         <h3>The Mouth</h3>
@@ -674,40 +782,166 @@
 (function(){
   "use strict";
 
-  /* ---------- The face ---------- */
-  function faceSVG(o){
-    return '<svg viewBox="0 0 400 520" role="img" aria-label="Illustrated model" xmlns="http://www.w3.org/2000/svg">'
-      /* hair behind */
-      +'<path d="M200,58 C96,58 52,158 58,300 L58,438 C58,458 92,452 94,430 C82,312 86,206 122,158 C152,118 248,118 278,158 C314,206 318,312 306,430 C308,452 342,458 342,438 L342,300 C348,158 304,58 200,58 Z" fill="#241610"/>'
-      /* neck */
-      +'<path d="M168,382 L168,470 C168,492 232,492 232,470 L232,382 Z" fill="#E3BC9E"/>'
-      +'<path d="M168,398 C188,414 212,414 232,398 L232,420 C212,432 188,432 168,420 Z" fill="#D3A886" opacity="0.55"/>'
-      /* face */
-      +'<path d="M200,104 C272,104 316,168 313,254 C311,332 266,400 200,403 C134,400 89,332 87,254 C84,168 128,104 200,104 Z" fill="#EAC5A6"/>'
-      /* hairline framing */
-      +'<path d="M200,98 C130,98 98,152 94,224 C110,152 148,128 197,133 L200,146 L203,133 C252,128 290,152 306,224 C302,152 270,98 200,98 Z" fill="#241610"/>'
-      /* blush */
-      +'<ellipse cx="132" cy="292" rx="24" ry="13" fill="#C96F5A" opacity="'+(o.blush?0.38:0)+'"/>'
-      +'<ellipse cx="268" cy="292" rx="24" ry="13" fill="#C96F5A" opacity="'+(o.blush?0.38:0)+'"/>'
-      /* eyeshadow */
-      +'<ellipse cx="152" cy="232" rx="30" ry="13" fill="'+o.lid+'" opacity="0.6"/>'
-      +'<ellipse cx="248" cy="232" rx="30" ry="13" fill="'+o.lid+'" opacity="0.6"/>'
-      /* eyes */
-      +'<path d="M126,242 C138,228 168,228 178,242 C168,254 138,254 126,242 Z" fill="#FDF9F2"/>'
-      +'<circle cx="152" cy="241" r="8" fill="#4A3226"/><circle cx="152" cy="241" r="3.4" fill="#1B1611"/>'
-      +'<path d="M126,242 C138,228 168,228 178,242" fill="none" stroke="#1B1611" stroke-width="2.4" stroke-linecap="round"/>'
-      +'<path d="M222,242 C232,228 262,228 274,242 C262,254 232,254 222,242 Z" fill="#FDF9F2"/>'
-      +'<circle cx="248" cy="241" r="8" fill="#4A3226"/><circle cx="248" cy="241" r="3.4" fill="#1B1611"/>'
-      +'<path d="M222,242 C232,228 262,228 274,242" fill="none" stroke="#1B1611" stroke-width="2.4" stroke-linecap="round"/>'
-      /* brows */
-      +'<path d="M124,213 C144,200 172,199 186,208" fill="none" stroke="#241610" stroke-width="'+o.brow+'" stroke-linecap="round"/>'
-      +'<path d="M214,208 C228,199 256,200 276,213" fill="none" stroke="#241610" stroke-width="'+o.brow+'" stroke-linecap="round"/>'
-      /* nose */
-      +'<path d="M200,252 L195,296 C198,302 210,302 212,295" fill="none" stroke="#B98A66" stroke-width="2.6" stroke-linecap="round" opacity="0.8"/>'
-      /* lips */
-      +'<path d="M162,334 C176,322 192,319 200,325 C208,319 224,322 238,334 C228,352 212,360 200,360 C188,360 172,352 162,334 Z" fill="'+o.lip+'"/>'
-      +'<path d="M166,334 C188,340 212,340 234,334" fill="none" stroke="#1B1611" stroke-width="1.6" opacity="0.35"/>'
-      +'</svg>';
+  /* ---------- Deterministic randomness so swatches look art-directed ---------- */
+  function rng(seed){
+    var s=seed>>>0;
+    return function(){
+      s=(s+0x6D2B79F5)>>>0;
+      var t=Math.imul(s^(s>>>15),1|s);
+      t=(t+Math.imul(t^(t>>>7),61|t))^t;
+      return((t^(t>>>14))>>>0)/4294967296;
+    };
+  }
+  function hexRGB(hex){
+    return [parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];
+  }
+  function shade(hex,f){ /* f<1 darker, f>1 lighter toward white */
+    var c=hexRGB(hex);
+    return "rgb("+c.map(function(v){return Math.round(f<=1?v*f:v+(255-v)*(f-1))}).join(",")+")";
+  }
+  function rgba(hex,a){var c=hexRGB(hex);return "rgba("+c[0]+","+c[1]+","+c[2]+","+a+")"}
+
+  function prep(canvas){
+    var dpr=Math.min(window.devicePixelRatio||1,2);
+    var w=canvas.clientWidth||canvas.parentElement.clientWidth||300;
+    var h=parseInt(canvas.getAttribute("height"),10);
+    canvas.style.height=h+"px";
+    canvas.width=Math.round(w*dpr);
+    canvas.height=Math.round(h*dpr);
+    var ctx=canvas.getContext("2d");
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,w,h);
+    return {ctx:ctx,w:w,h:h};
+  }
+
+  /* ---------- The lipstick smear ---------- */
+  function paintSmear(canvas,hex,seed){
+    var p=prep(canvas),ctx=p.ctx,w=p.w,h=p.h,r=rng(seed);
+    var x0=w*0.10,y0=h*0.58,x1=w*0.52,y1=h*0.30,x2=w*0.90,y2=h*0.52;
+    function pt(t){
+      var a=1-t;
+      return [a*a*x0+2*a*t*x1+t*t*x2, a*a*y0+2*a*t*y1+t*t*y2];
+    }
+    var baseR=h*0.30;
+    /* body: stamped circles, dense and opaque at the press point, thinning to the tail */
+    var i,t,q,rad;
+    for(i=0;i<=140;i++){
+      t=i/140;
+      q=pt(t);
+      rad=baseR*(1-0.72*Math.pow(t,1.25))*(0.92+r()*0.16);
+      ctx.fillStyle=rgba(hex,0.055+0.06*(1-t));
+      ctx.beginPath();
+      ctx.ellipse(q[0],q[1]+ (r()-0.5)*h*0.03, rad, rad*0.82, 0, 0, Math.PI*2);
+      ctx.fill();
+    }
+    /* the press point — where the bullet first hit the paper */
+    ctx.fillStyle=rgba(hex,0.5);
+    ctx.beginPath();
+    ctx.ellipse(x0+baseR*0.55,y0-baseR*0.1,baseR*0.72,baseR*0.6,-0.2,0,Math.PI*2);
+    ctx.fill();
+    /* drag streaks along the stroke */
+    ctx.lineCap="round";
+    for(i=0;i<26;i++){
+      var off=(r()-0.5)*1.5;
+      var start=r()*0.25, end=0.55+r()*0.44;
+      ctx.strokeStyle=r()>0.6?rgba("#FFFFFF",0.05+r()*0.05):shade(hex,0.75+r()*0.2).replace("rgb","rgba").replace(")",","+(0.10+r()*0.14)+")");
+      ctx.lineWidth=0.8+r()*2.4;
+      ctx.beginPath();
+      var steps=24,j,tt,qq,first=true;
+      for(j=0;j<=steps;j++){
+        tt=start+(end-start)*(j/steps);
+        qq=pt(tt);
+        var yoff=off*baseR*(1-0.6*tt);
+        if(first){ctx.moveTo(qq[0],qq[1]+yoff);first=false}
+        else ctx.lineTo(qq[0],qq[1]+yoff);
+      }
+      ctx.stroke();
+    }
+    /* ragged tail flecks */
+    for(i=0;i<30;i++){
+      t=0.78+r()*0.24;
+      q=pt(Math.min(t,1));
+      ctx.fillStyle=rgba(hex,0.10+r()*0.2);
+      ctx.beginPath();
+      ctx.ellipse(q[0]+r()*w*0.05,q[1]+(r()-0.5)*baseR*0.9,1+r()*3,0.8+r()*2,r()*3,0,Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  /* ---------- Pressed-powder patch (lid, cheek) ---------- */
+  function paintPowder(canvas,hex,seed,alpha){
+    var p=prep(canvas),ctx=p.ctx,w=p.w,h=p.h,r=rng(seed);
+    var cx=w/2,cy=h/2,R=Math.min(w,h)*0.38;
+    var g=ctx.createRadialGradient(cx,cy,R*0.1,cx,cy,R);
+    g.addColorStop(0,rgba(hex,alpha));
+    g.addColorStop(0.75,rgba(hex,alpha*0.55));
+    g.addColorStop(1,rgba(hex,0));
+    ctx.fillStyle=g;
+    ctx.beginPath();ctx.ellipse(cx,cy,R*1.25,R,0,0,Math.PI*2);ctx.fill();
+    /* fingertip swirl */
+    ctx.strokeStyle=rgba(hex,alpha*0.5);
+    ctx.lineWidth=R*0.32;ctx.lineCap="round";
+    ctx.beginPath();ctx.arc(cx,cy,R*0.45,2.6,5.4);ctx.stroke();
+    /* loose speckle around the edge */
+    var i,a,d;
+    for(i=0;i<90;i++){
+      a=r()*Math.PI*2;d=R*(0.55+r()*0.75);
+      ctx.fillStyle=rgba(hex,0.08+r()*alpha*0.5);
+      ctx.beginPath();
+      ctx.ellipse(cx+Math.cos(a)*d*1.25,cy+Math.sin(a)*d,0.6+r()*1.8,0.6+r()*1.4,0,0,Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  /* ---------- Brow-pencil sample: individual hairs along an arch ---------- */
+  function paintBrow(canvas,weight,seed){
+    var p=prep(canvas),ctx=p.ctx,w=p.w,h=p.h,r=rng(seed);
+    var x0=w*0.14,y0=h*0.72,x1=w*0.45,y1=h*0.18,x2=w*0.88,y2=h*0.52;
+    function pt(t){var a=1-t;return[a*a*x0+2*a*t*x1+t*t*x2,a*a*y0+2*a*t*y1+t*t*y2]}
+    function tan(t){var a=1-t;return[2*a*(x1-x0)+2*t*(x2-x1),2*a*(y1-y0)+2*t*(y2-y1)]}
+    var hairs=weight>1?190:80;
+    var band=weight>1?h*0.16:h*0.06;
+    ctx.lineCap="round";
+    var i,t,q,tg,len,ang,spread;
+    for(i=0;i<hairs;i++){
+      t=Math.pow(r(),0.85);
+      q=pt(t);tg=tan(t);
+      ang=Math.atan2(tg[1],tg[0])-0.5+r()*0.5;
+      len=(weight>1?9:6.5)+r()*6*(1-t*0.5);
+      spread=(r()-0.5)*band*(1+ (1-t)*0.8);
+      ctx.strokeStyle="rgba(36,22,16,"+(0.28+r()*0.4)+")";
+      ctx.lineWidth=weight>1?1.2+r()*0.9:0.8+r()*0.6;
+      ctx.beginPath();
+      ctx.moveTo(q[0],q[1]+spread);
+      ctx.lineTo(q[0]+Math.cos(ang)*len,q[1]+spread+Math.sin(ang)*len);
+      ctx.stroke();
+    }
+    /* pencil baseline for the thin brow — drawn-on, 1994 */
+    if(weight<=1){
+      ctx.strokeStyle="rgba(36,22,16,0.55)";
+      ctx.lineWidth=2.2;
+      ctx.beginPath();
+      var j,qq,first=true;
+      for(j=0;j<=40;j++){
+        qq=pt(j/40);
+        if(first){ctx.moveTo(qq[0],qq[1]);first=false}else ctx.lineTo(qq[0],qq[1]);
+      }
+      ctx.stroke();
+    }
+  }
+
+  /* ---------- The abstained cheek ---------- */
+  function paintAbstained(canvas){
+    var p=prep(canvas),ctx=p.ctx,w=p.w,h=p.h;
+    ctx.setLineDash([3,4]);
+    ctx.strokeStyle="rgba(141,123,106,0.6)";
+    ctx.lineWidth=1;
+    ctx.beginPath();ctx.ellipse(w/2,h/2,Math.min(w,h)*0.42,Math.min(w,h)*0.30,0,0,Math.PI*2);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle="rgba(141,123,106,0.85)";
+    ctx.font="9px Futura,'Century Gothic',Verdana,sans-serif";
+    ctx.textAlign="center";
+    ctx.fillText("A B S T A I N E D",w/2,h/2+3);
   }
 
   /* ---------- Makeover data ---------- */
@@ -720,17 +954,17 @@
     {name:"Bare",hex:"#C98F84",note:"balm and bravado"}
   ];
   var BROWS=[
-    {name:"Thin '94",val:3.4,note:"tweezed by flashlight"},
-    {name:"Full '89",val:7,note:"a renewable resource, barely"}
+    {name:"Thin '94",val:1,note:"tweezed by flashlight"},
+    {name:"Full '89",val:2,note:"a renewable resource, barely"}
   ];
   var LIDS=[
     {name:"Matte Taupe",hex:"#A98F7B",note:"the color of a decision"},
     {name:"Smoked Kohl",hex:"#4C4148",note:"last night, worn proudly"},
-    {name:"Bare Lid",hex:"#E4BE9F",note:"nothing, applied carefully"}
+    {name:"Bare Lid",hex:"#D9BFA4",note:"nothing, applied carefully"}
   ];
   var CHEEKS=[
     {name:"No Blush",blush:false,note:"matte is a moral position"},
-    {name:"Terracotta",blush:true,note:"circulation, implied"}
+    {name:"Terracotta",blush:true,hex:"#C96F5A",note:"circulation, implied"}
   ];
   var NAILS=[
     {name:"Vamp",hex:"#3B0D14"},
@@ -752,10 +986,20 @@
     return "<b>The Editors' Verdict</b>"+mood+" — "+l.name+" on the mouth ("+l.note+"), "+b.name+" brows ("+b.note+"), "+d.name.toLowerCase()+" on the lid, "+c.name.toLowerCase()+", "+n.name+" on the nail.";
   }
 
-  function renderFaces(){
-    var o={lip:LIPS[state.lip].hex,brow:BROWS[state.brow].val,lid:LIDS[state.lid].hex,blush:CHEEKS[state.cheek].blush};
-    document.getElementById("mirrorFace").innerHTML=faceSVG(o);
-    document.getElementById("nailRow").style.setProperty("--nailcolor",NAILS[state.nail].hex);
+  function renderTester(){
+    var l=LIPS[state.lip],b=BROWS[state.brow],d=LIDS[state.lid],c=CHEEKS[state.cheek],n=NAILS[state.nail];
+    paintSmear(document.getElementById("lipCanvas"),l.hex,41);
+    paintBrow(document.getElementById("browCanvas"),b.val,7);
+    if(d.name==="Bare Lid"){paintAbstained(document.getElementById("lidCanvas"))}
+    else paintPowder(document.getElementById("lidCanvas"),d.hex,13,0.7);
+    if(c.blush)paintPowder(document.getElementById("cheekCanvas"),c.hex,29,0.5);
+    else paintAbstained(document.getElementById("cheekCanvas"));
+    document.getElementById("nailRow").style.setProperty("--nailcolor",n.hex);
+    document.getElementById("lipName").textContent=l.name;
+    document.getElementById("browName").textContent=b.name;
+    document.getElementById("lidName").textContent=d.name;
+    document.getElementById("cheekName").textContent=c.name;
+    document.getElementById("nailName").textContent=n.name;
     document.getElementById("verdict").innerHTML=verdictText();
   }
 
@@ -769,7 +1013,7 @@
       b.addEventListener("click",function(){
         state[key]=i;
         Array.prototype.forEach.call(box.children,function(c,j){c.setAttribute("aria-pressed",j===i?"true":"false")});
-        renderFaces();
+        renderTester();
       });
       box.appendChild(b);
     });
@@ -780,9 +1024,28 @@
   chipRow("cheekChips",CHEEKS,"cheek",false);
   chipRow("nailChips",NAILS,"nail",true);
 
-  /* cover face: Toast of New York, thin brows, taupe lid, no blush */
-  document.getElementById("coverFace").innerHTML=faceSVG({lip:"#8E4B3A",brow:3.4,lid:"#A98F7B",blush:false});
-  renderFaces();
+  /* ---------- Feature shade index ---------- */
+  var INDEX=[
+    ["Toast of New York","#8E4B3A","allocation: severe"],
+    ["Spice","#A0674F","allocation: severe"],
+    ["Cappuccino","#7A5140","allocation: moderate"],
+    ["Gingerbread","#96604B","allocation: moderate"],
+    ["Vapor (fall '95, predicted)","#B9998A","does not exist yet"]
+  ];
+  var shadeRow=document.getElementById("shadeRow");
+  INDEX.forEach(function(s,i){
+    var cell=document.createElement("div");
+    cell.className="shade-cell";
+    cell.innerHTML='<canvas height="64"></canvas><span class="lbl">'+s[0]+'<i>'+s[2]+'</i></span>';
+    shadeRow.appendChild(cell);
+  });
+
+  function paintStatic(){
+    paintSmear(document.getElementById("coverSmear"),"#8E4B3A",5);
+    Array.prototype.forEach.call(shadeRow.querySelectorAll("canvas"),function(cv,i){
+      paintSmear(cv,INDEX[i][1],17+i*3);
+    });
+  }
 
   /* ---------- Quiz ---------- */
   var RESULTS={
@@ -855,6 +1118,9 @@
       if(b.dataset.for===id){b.setAttribute("aria-current","page")}else{b.removeAttribute("aria-current")}
     });
     window.scrollTo({top:0,behavior:"instant" in window?"instant":"auto"});
+    /* canvases paint at zero size while hidden — repaint when their page shows */
+    if(id==="cover"||id==="feature")paintStatic();
+    if(id==="makeover")renderTester();
     if(id!=="cover"&&!blowinShown){
       blowinShown=true;
       setTimeout(function(){document.getElementById("blowin").classList.add("show")},600);
@@ -871,6 +1137,17 @@
     if(e.key==="ArrowLeft"&&idx>0)go(pages[idx-1].id);
   });
   go("cover");
+
+  var resizeTimer;
+  window.addEventListener("resize",function(){
+    clearTimeout(resizeTimer);
+    resizeTimer=setTimeout(function(){
+      var active=document.querySelector(".page.active");
+      if(!active)return;
+      if(active.id==="cover"||active.id==="feature")paintStatic();
+      if(active.id==="makeover")renderTester();
+    },150);
+  });
 
   /* ---------- Blow-in card ---------- */
   document.getElementById("blowinNo").addEventListener("click",function(){
