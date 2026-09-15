@@ -1,3 +1,4 @@
+import type { AgreementSnapshot } from "./agreementSnapshot";
 import { sql } from "drizzle-orm";
 import { pgTable, text, varchar, integer, timestamp, boolean, jsonb, index, uniqueIndex, check, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
@@ -259,7 +260,7 @@ export const trustedCircle = pgTable("trusted_circle", {
   status: text("status").default("pending"), // 'pending', 'active'
   quietlyRemoved: boolean("quietly_removed").default(false),
   removedAt: timestamp("removed_at"),
-  removedReason: text("removed_reason"), // private — your note to yourself
+  removedReason: text("removed_reason"), // private â€” your note to yourself
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -1987,7 +1988,7 @@ export const threadMessages = pgTable("thread_messages", {
 });
 
 // Thread Referrals - when artist refers to another artist
-// Extended with handoff accountability fields (YC slice: inquiry → trusted handoff → outcome)
+// Extended with handoff accountability fields (YC slice: inquiry â†’ trusted handoff â†’ outcome)
 export const threadReferrals = pgTable("thread_referrals", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   threadId: varchar("thread_id").notNull().references(() => threads.id),
@@ -2003,7 +2004,7 @@ export const threadReferrals = pgTable("thread_referrals", {
   // --- Helper outcome report (helper fills in after the job) ---
   helperReportedOutcome: text("helper_reported_outcome"), // 'clean' | 'paid_as_agreed_but_scope_off' | 'paid_late_or_partial' | 'scope_and_payment_both_off' | 'cancellation_no_fault'
   helperPaidAt: timestamp("helper_paid_at"),
-  helperPaymentNote: text("helper_payment_note"), // free text — "two installments, week late"
+  helperPaymentNote: text("helper_payment_note"), // free text â€” "two installments, week late"
   helperPrivateNote: text("helper_private_note"), // gut note, never shared with originator
   helperOutcomeReportedAt: timestamp("helper_outcome_reported_at"),
 
@@ -2466,7 +2467,7 @@ export type AgentEvent = typeof agentEvents.$inferSelect;
 
 
 // ============================================================================
-// Inbound SMS (Step 1: headless coordination — receive Twilio replies)
+// Inbound SMS (Step 1: headless coordination â€” receive Twilio replies)
 // Purely additive. Does NOT touch the existing `messages` table (which requires
 // internal user FKs). External inbound texts land here, get matched when
 // possible, and emit a response_received trust event into cdiBehavioralEvents.
@@ -2487,11 +2488,11 @@ export type InboundSuggestedMatch = {
 
 export const inboundSmsMessages = pgTable("inbound_sms_messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  messageSid: varchar("message_sid").unique().notNull(), // Twilio MessageSid — dedupe key
+  messageSid: varchar("message_sid").unique().notNull(), // Twilio MessageSid â€” dedupe key
   fromNumber: text("from_number").notNull(), // normalized E.164 sender
   toNumber: text("to_number").notNull(), // our Twilio number that received it
   body: text("body").notNull().default(""),
-  // Best-effort matching (all nullable — unmatched replies are logged, not dropped)
+  // Best-effort matching (all nullable â€” unmatched replies are logged, not dropped)
   matchedUserId: varchar("matched_user_id"), // resolved sender (users.id) if known
   matchedContactId: varchar("matched_contact_id"), // client_contacts.id if known
   matchedInquiryId: varchar("matched_inquiry_id"), // inquiries.id if linked
@@ -2512,7 +2513,7 @@ export const insertInboundSmsMessageSchema = createInsertSchema(inboundSmsMessag
 export type InsertInboundSmsMessage = z.infer<typeof insertInboundSmsMessageSchema>;
 export type InboundSmsMessage = typeof inboundSmsMessages.$inferSelect;
 
-// Assistant prompts — the unified prompt queue. When a business event happens
+// Assistant prompts â€” the unified prompt queue. When a business event happens
 // (new inquiry, reply, schedule needed, etc) Briarwood records an actionable
 // prompt for the operator here and, per their delivery preferences, pushes it
 // over SMS/email. The queue persists every prompt regardless of delivery so it
@@ -3173,6 +3174,7 @@ export const scopedPermissionDecisions = pgTable(
     taskContext: text("task_context").notNull(),
     environmentContext: text("environment_context").notNull(),
     scopeText: text("scope_text").notNull(),
+    agreementSnapshot: jsonb("agreement_snapshot").$type<AgreementSnapshot>(),
     consequenceLevel: text("consequence_level").notNull(),
     demonstratedCapability: text("demonstrated_capability").notNull(),
     capabilityEvidenceBasis: text("capability_evidence_basis").notNull(),

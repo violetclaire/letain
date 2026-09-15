@@ -1,3 +1,5 @@
+import { buildAgreementSnapshot, AgreementReviewRequired } from "./agreementSnapshot";
+import type { AgreementSnapshot } from "./agreementSnapshot";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { afterEach, before, mock, test } from "node:test";
@@ -9,6 +11,7 @@ type HumanChoice = "proceed" | "wait" | "clarify" | "escalate" | "stop";
 type HumanActionLifecycle = "decision" | "correction" | "withdrawal" | "supersession";
 
 type TestPermissionDecision = {
+  agreementSnapshot?: AgreementSnapshot | null;
   id: string;
   operatorId: string;
   inquiryId: string;
@@ -165,6 +168,7 @@ function validBody(overrides: Record<string, unknown> = {}) {
 
 function permissionDecision(overrides: Partial<TestPermissionDecision> = {}): TestPermissionDecision {
   return {
+    agreementSnapshot: buildAgreementSnapshot({ id: "inquiry-a", vendorId: "artist-a" }),
     id: "permission-current",
     operatorId: "artist-a",
     inquiryId: "inquiry-a",
@@ -221,6 +225,7 @@ function stubStorage(options: {
     listPermissions: [] as Array<[string, string]>,
   };
 
+  mock.method(storage, "getAgreementSnapshot", async () => buildAgreementSnapshot({ id: "inquiry-a", vendorId: "artist-a" }));
   mock.method(storage, "getUser", async (userId: string) => users.get(userId));
   mock.method(storage, "getInquiry", async (inquiryId: string) => inquiries.get(inquiryId));
   mock.method(storage, "getScopedPermissionDecision", async (
@@ -560,4 +565,36 @@ test("schema and startup DDL preserve append-only restrictive constraints and fa
     indexText,
     /catch \(error: any\) \{[\s\S]*?if \(migration\.required\) \{[\s\S]*?throw error;/,
   );
+});
+
+for (const [label, current] of [
+  ["party size", { partySize: 8 }], ["budget", { budget: "5500" }], ["date", { eventDate: new Date("2026-12-01") }],
+] as const) {
+  test(`changed ${label} cannot inherit the original proceed`, async () => {
+    const { calls } = stubStorage();
+    mock.method(storage, "getAgreementSnapshot", async () => buildAgreementSnapshot({ id: "inquiry-a", vendorId: "artist-a", ...current }));
+    const result = await invoke(postHandler, { session: { userId: "artist-a" }, body: validBody() });
+    assert.equal(result.statusCode, 409);
+    assert.equal(calls.create.length, 0);
+  });
+}
+test("legacy approval remains readable but cannot support a new proceed", async () => {
+  const { calls } = stubStorage({ permissionDecisions: [permissionDecision({ agreementSnapshot: null })] });
+  const result = await invoke(postHandler, { session: { userId: "artist-a" }, body: validBody() });
+  assert.equal(result.statusCode, 409);
+  assert.equal(calls.create.length, 0);
+});
+test("changed work can still record wait without erasing its original permission", async () => {
+  const original = permissionDecision({ agreementSnapshot: null });
+  const before = structuredClone(original);
+  stubStorage({ permissionDecisions: [original] });
+  const result = await invoke(postHandler, { session: { userId: "artist-a" }, body: validBody({ choice: "wait" }) });
+  assert.equal(result.statusCode, 201);
+  assert.deepEqual(original, before);
+});
+test("a storage-time change returns a conflict, not a successful proceed", async () => {
+  stubStorage();
+  mock.method(storage, "createHumanActionDecision", async () => { throw new AgreementReviewRequired(); });
+  const result = await invoke(postHandler, { session: { userId: "artist-a" }, body: validBody() });
+  assert.equal(result.statusCode, 409);
 });

@@ -59,7 +59,7 @@ async function ensureDatabaseSchema() {
       received_at timestamp NOT NULL DEFAULT now(),
       created_at timestamp NOT NULL DEFAULT now()
     )` },
-    // Context-based matching (additive — safe on tables that already exist)
+    // Context-based matching (additive â€” safe on tables that already exist)
     { name: 'inbound_sms_messages.match_confidence', sql: sql`ALTER TABLE inbound_sms_messages ADD COLUMN IF NOT EXISTS match_confidence integer` },
     { name: 'inbound_sms_messages.suggested_matches', sql: sql`ALTER TABLE inbound_sms_messages ADD COLUMN IF NOT EXISTS suggested_matches jsonb` },
 
@@ -767,6 +767,7 @@ async function ensureDatabaseSchema() {
       ON scoped_permission_decision_judgments (permission_decision_id, position)` },
     { name: 'scoped_permission_decision_judgments.judgment_idx', required: true, sql: sql`CREATE INDEX IF NOT EXISTS scoped_permission_decision_judgments_judgment_idx
       ON scoped_permission_decision_judgments (judgment_id)` },
+    { name: 'scoped_permission_decisions.agreement_snapshot', required: true, sql: sql`ALTER TABLE scoped_permission_decisions ADD COLUMN IF NOT EXISTS agreement_snapshot jsonb` },
     { name: 'human_action_decisions.table', required: true, sql: sql`CREATE TABLE IF NOT EXISTS human_action_decisions (
       id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
       operator_id varchar NOT NULL,
@@ -977,7 +978,7 @@ app.use(cors({
 // Serve attached_assets as static files
 app.use('/attached_assets', express.static(path.join(process.cwd(), 'attached_assets')));
 
-// Briarwood marketing landing — served when host is briarwood.ai (or www.briarwood.ai)
+// Briarwood marketing landing â€” served when host is briarwood.ai (or www.briarwood.ai)
 // This runs before everything else so the SPA never claims `/` on this domain.
 const BRIARWOOD_LANDING_HOSTS = new Set([
   'briarwood.ai',

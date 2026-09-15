@@ -1,3 +1,4 @@
+import { agreementMatches, AgreementReviewRequired } from "./agreementSnapshot";
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { randomUUID, randomBytes } from "crypto";
@@ -2860,6 +2861,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (parsed.data.choice === "proceed") {
+        const currentAgreement = await storage.getAgreementSnapshot(context.userId, context.inquiry.id);
+        if (!agreementMatches(permissionDecision.agreementSnapshot, currentAgreement)) {
+          return res.status(409).json({ error: new AgreementReviewRequired().message });
+        }
+
         const grantsPermission = permissionDecision.decision === "permitted"
           || permissionDecision.decision === "permitted_with_conditions";
         if (!grantsPermission) {
@@ -2911,7 +2917,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.status(201).json({ humanActionDecision });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      res.status(error instanceof AgreementReviewRequired ? 409 : 500).json({ error: error.message });
     }
   });
 
@@ -4868,14 +4874,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         ).catch((err: Error) => console.error('[CDI Engine] Behavioral event error:', err));
 
-        // AI COMMENTARY (annotation only — never written to headline CDI).
+        // AI COMMENTARY (annotation only â€” never written to headline CDI).
         cdiEngine.analyzeForCDI(senderId, message.content, {
           actorRole: (sender.role as 'client' | 'artist' | 'planner') || 'client',
           targetRole: data.recipientId ? undefined : undefined,
           bookingId: data.bookingId || undefined,
           bookingStatus: booking?.status || undefined,
         }, dynamicWeights).then(async (result: any) => {
-          console.log(`[CDI Commentary] ${sender.role} ${senderId}: AI read=${result.compositeScore} (${result.trustLevel}) — annotation only`);
+          console.log(`[CDI Commentary] ${sender.role} ${senderId}: AI read=${result.compositeScore} (${result.trustLevel}) â€” annotation only`);
           await cdiEngine.storeAiInterpretation(senderId, result, { messageId: message.id });
         }).catch((err: Error) => {
           console.error('[CDI Engine] Analysis error:', err);
@@ -4945,7 +4951,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       // Hand the authenticated payload to the SINGLE shared inbound path that
       // does matching, storage, idempotency, and the trust-event write. The
-      // admin SMS test simulator calls this exact same function — there is no
+      // admin SMS test simulator calls this exact same function â€” there is no
       // duplicate logic. (See server/inboundProcessor.ts.)
       const result = await processInboundSms(storage, {
         messageSid: body.MessageSid || body.SmsSid || "",
@@ -7453,9 +7459,9 @@ Current date: ${currentDate.toISOString().split('T')[0]}
 ${historyContext}${collectedDataContext}
 Current user message: ${message}
 
-INFORMATION YOU NEED TO CREATE A SCHEDULE (every value must come from the artist — NEVER assume, infer, or fill in any of them yourself):
+INFORMATION YOU NEED TO CREATE A SCHEDULE (every value must come from the artist â€” NEVER assume, infer, or fill in any of them yourself):
 1. eventName - Name of the event (e.g., "Smith Wedding")
-2. eventDate - The date in YYYY-MM-DD format. If the artist gives a date without a year, ASK which year — do not assume one.
+2. eventDate - The date in YYYY-MM-DD format. If the artist gives a date without a year, ASK which year â€” do not assume one.
 3. numPeople - How many people/clients need services (e.g., bride + 5 bridesmaids = 6 people)
 4. artistNames - The actual names of the artists working, one per column. NEVER invent placeholder names like "Artist 1".
 5. serviceDurationMinutes - How many minutes one service takes, stated by the artist. NEVER assume a duration.
@@ -7471,7 +7477,7 @@ CONVERSATION RULES:
 - When you have ALL required info, generate the schedule
 
 TIME SLOT CALCULATION:
-- Each service takes exactly serviceDurationMinutes (the artist's stated number — never a built-in default)
+- Each service takes exactly serviceDurationMinutes (the artist's stated number â€” never a built-in default)
 - Calculate how many time slots fit between startTime and readyByTime
 - Generate timeSlots array with times in "HH:MM AM/PM" format
 - artistColumns must be the provided artistNames verbatim, one column per named artist
@@ -7510,16 +7516,16 @@ If you have everything and can build the schedule:
 
 EXAMPLES:
 User: "I need a schedule for the Johnson wedding next Saturday, 6 people, 2 artists, starting at 7am ready by noon"
-→ Still missing the artists' names and the per-service duration. Ask: "Who are the two artists working, and how many minutes does one service take?"
+â†’ Still missing the artists' names and the per-service duration. Ask: "Who are the two artists working, and how many minutes does one service take?"
 
 User: "Create a schedule for a wedding"
-→ Ask: "I'd love to help! What's the name of the wedding and what date is it (including the year)?"
+â†’ Ask: "I'd love to help! What's the name of the wedding and what date is it (including the year)?"
 
 User: "It's the Martinez wedding on February 8th"
-→ Ask: "Perfect! Which year is that? And how many people will need services?"
+â†’ Ask: "Perfect! Which year is that? And how many people will need services?"
 
 User: "Me and Dana are working, each service is 40 minutes"
-→ You now have artistNames ["<the artist's own name>", "Dana"] and serviceDurationMinutes 40; keep gathering whatever is still missing.
+â†’ You now have artistNames ["<the artist's own name>", "Dana"] and serviceDurationMinutes 40; keep gathering whatever is still missing.
 
 IMPORTANT: Always respond with valid JSON only. No markdown, no extra text.`;
 
@@ -7899,7 +7905,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   }
 
   // Starter service labels for a brand-new draft. Durations are intentionally
-  // null (unknown): only operator-entered numbers may drive schedule math —
+  // null (unknown): only operator-entered numbers may drive schedule math â€”
   // coded defaults must never masquerade as operator judgment.
   function defaultServiceDefaults() {
     return [
@@ -8984,10 +8990,10 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       if (!rawText) return res.status(400).json({ error: "rawText required" });
       // No silent defaults: start time and artist count are operator facts,
       // never assumed server-side.
-      if (!startTime) return res.status(400).json({ error: "startTime required — no default start time is assumed" });
+      if (!startTime) return res.status(400).json({ error: "startTime required â€” no default start time is assumed" });
       const parsedNumArtists = Number(numArtists);
       if (!Number.isFinite(parsedNumArtists) || parsedNumArtists < 1) {
-        return res.status(400).json({ error: "numArtists required — the artist count is never assumed" });
+        return res.status(400).json({ error: "numArtists required â€” the artist count is never assumed" });
       }
       const scheduleAI = await import("./scheduleAI");
       const result = await scheduleAI.parseClientList({
@@ -9008,7 +9014,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     try {
       const { command, artists, grid, startTime } = req.body;
       if (!command) return res.status(400).json({ error: "command required" });
-      if (!startTime) return res.status(400).json({ error: "startTime required — no default start time is assumed" });
+      if (!startTime) return res.status(400).json({ error: "startTime required â€” no default start time is assumed" });
       const scheduleAI = await import("./scheduleAI");
       const result = await scheduleAI.processVoiceCommand({
         command,
@@ -9059,7 +9065,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         .map(s => new Date(s.eventDate).toLocaleDateString('en-US', { 
           weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' 
         }))
-        .join(' • ');
+        .join(' â€¢ ');
       
       // Build share link
       const baseUrl = process.env.PUBLIC_BASE_URL || 'https://briarwood.ai';
@@ -12640,7 +12646,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
         });
       }
 
-      // Headless assistant prompt — record an actionable prompt in the operator's
+      // Headless assistant prompt â€” record an actionable prompt in the operator's
       // unified queue and deliver it over their preferred channel (SMS/email).
       // Fire-and-forget: never block or fail the inquiry submission. Delivery is
       // OFF by default (operator opts in via assistant preferences), so this does
@@ -12931,7 +12937,7 @@ Maria,Garcia,maria@email.com,March 15 2026,Beach Resort,2800,500,Amy,Chen,amy@ev
     }
   });
 
-  // Trust Timeline for one inquiry — the CDI behavioral events (e.g. an inbound
+  // Trust Timeline for one inquiry â€” the CDI behavioral events (e.g. an inbound
   // SMS reply that produced a response_received event) connected to this inquiry,
   // shown in the inquiry's own context. Authenticated + vendor/admin only; the
   // threadToken is the artist's admin token, never exposed to clients.
@@ -18284,7 +18290,7 @@ Rules:
         }
         
         if (foundProfile) {
-          console.log("[AdminData] Found profile! Fixing userId mismatch:", foundProfile.userId, "→", userId);
+          console.log("[AdminData] Found profile! Fixing userId mismatch:", foundProfile.userId, "â†’", userId);
           // Fix the mismatch by updating the profile's userId AND approve it
           await db.update(artistProfiles)
             .set({ 
@@ -20289,7 +20295,7 @@ Rules:
   //
   // Access model: every handoff endpoint is gated by ?token=<threadPublicToken>
   // matching the parent thread's opaque token. This is the existing zero-login
-  // pattern used everywhere else in the app — the helper gets the token via the
+  // pattern used everywhere else in the app â€” the helper gets the token via the
   // email notification, the originator already has it from their thread.
   // ============================================================
 
@@ -20505,7 +20511,7 @@ Rules:
   });
 
   // POST /api/handoffs/:id/coaching-consent - Originator's answer.
-  // 'yes' | 'no' | 'not_yet'. We record every response — a pattern of 'no'
+  // 'yes' | 'no' | 'not_yet'. We record every response â€” a pattern of 'no'
   // over time is itself a meaningful signal (without ever surfacing the
   // underlying advice to them).
   app.post("/api/handoffs/:id/coaching-consent", async (req: Request, res: Response) => {
@@ -20546,7 +20552,7 @@ Rules:
         return res.status(403).json({ error: "Can only view your own mirror" });
       }
 
-      // userId → artistProfile → threads (via artistProfileId) → handoffs
+      // userId â†’ artistProfile â†’ threads (via artistProfileId) â†’ handoffs
       const profile = await db.query.artistProfiles.findFirst({
         where: (p, { eq }) => eq(p.userId, req.params.userId),
         columns: { id: true },
