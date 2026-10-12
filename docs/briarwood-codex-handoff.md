@@ -20,8 +20,8 @@ Briarwood is the permanent product: a white-label coordination layer for bridal 
 ### What DateInquiry used to do
 DateInquiry was the original public brand and intake bridge. It provided the public inquiry form (`/inquire/{slug}`), the shareable artist link, and the email-link domain. It is now a legacy bridge: the public domain and routes still work, but the brand is being retired. Most server links were built from `PUBLIC_BASE_URL` with a `dateinquiry.com` fallback, so the brand switch was largely an environment change, not a code rewrite.
 
-### What Beauvette used to be
-Beauvette was an earlier brand and product concept ("Beauvette Secretary"). It now survives only as demo-page branding and a few legacy support email strings. It is being retired as a public brand. Internal storage keys named after it (for example `beauvette-theme`, `beauvette_guides_seen`) were intentionally left untouched so users do not lose saved state.
+### Current repository identity and historical beauty branding
+The repository is being prepared for the leTAIN agent vetting layer within WITNESS. The separate beauty-side product keeps its own identity. Earlier demo branding is historical; this naming change does not migrate saved browser state, change external domains, or modify receipt wording.
 
 ### What should be kept (permanent product)
 - Operator auth and accounts
@@ -37,7 +37,7 @@ Beauvette was an earlier brand and product concept ("Beauvette Secretary"). It n
 
 ### What should be retired
 - DateInquiry public branding (visible copy already swapped to Briarwood / atbriarwood.com in earlier phases)
-- Beauvette demo branding (visible copy already swapped to Briarwood)
+- Legacy beauty demo branding (visible copy already swapped to Briarwood)
 - Old demo and pitch/investor pages not needed for the product
 - The duplicate beta package folder
 - Legacy/unused public routes, after they are documented
@@ -104,7 +104,7 @@ Behavioral notes that must carry forward:
 ## 5. What to leave behind or archive
 
 - DateInquiry public branding (visible copy already replaced; legacy hostname checks and links remain as plumbing).
-- Beauvette demo branding (visible copy already replaced; internal storage keys kept).
+- Legacy beauty demo branding (visible copy already replaced; internal storage keys kept).
 - Old demo pages if not needed: `client/src/pages/demo/*`, plus `DemoLandingPreview`, `OperatorDemo`, `BriarwoodDemo`, `Pitch`, `Memo`, `Oracle`, `ContextGraph`, `Sandbox`, `Terminal`, `CDIArchitecture`, `BriarwoodSpec`.
 - Old public intake bridge if no longer used: the `/inquire/{slug}` public form and the embed-code generator (embed iframe and embed API base still point at `dateinquiry.com`).
 - Duplicate beta package folder: `briarwood-beta-package/` is a duplicate copy of the whole app. It is not served or running. Do not carry it forward.
@@ -136,7 +136,7 @@ Behavioral notes that must carry forward:
 - Schedules: `ScheduleDraftBuilder.tsx`, `ScheduleBuilder.tsx`, `ScheduleCreator.tsx`, `ScheduleList.tsx`, `SimpleScheduleBuilder.tsx`, `MultiDaySchedule.tsx`, `PublicSchedule.tsx`.
 - Assistant / routing: `AssistantControl.tsx`, `RouteTargets.tsx`.
 - Inquiry/thread (zero-login client side): `InquiryThread.tsx`, `ThreadPage.tsx`, `ClientThread.tsx`, `InquirePage.tsx`, `PublicQuote.tsx`.
-- Theme: `contexts/ThemeContext.tsx` (storage key `beauvette-theme`, intentionally kept).
+- Theme: `contexts/ThemeContext.tsx` (browser storage behavior unchanged by the leTAIN naming migration).
 
 ### Key backend files (`server/`)
 - `index.ts` (boot, additive migrations, CORS allowed origins, Briarwood landing hosts, CSP), `routes.ts` (main API), `storage.ts` (storage interface / DB queries), `db.ts` (Neon connection).

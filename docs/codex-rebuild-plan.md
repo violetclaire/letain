@@ -2,7 +2,7 @@
 
 Companion to `docs/briarwood-codex-handoff.md`. This is a planning document only. No code, schema, env, or domains were changed to produce it.
 
-Direction: Briarwood is the permanent product. The Makeup Dolls website is separate and is not part of this app. DateInquiry and Beauvette are legacy bridges/brands. This Replit repo is the prototype and source-of-truth for what was built; Codex extracts the durable Briarwood core into a cleaner architecture.
+Direction: Briarwood is the permanent product. The Makeup Dolls website is separate and is not part of this app. DateInquiry and the earlier beauty prototype are legacy bridges/brands. The repository identity is moving to leTAIN, the agent vetting layer within WITNESS; this does not rename the separate beauty product. This Replit repo is the prototype and source-of-truth for what was built; Codex extracts the durable Briarwood core into a cleaner architecture.
 
 Planning rules honored here: no code changes, no destructive operations, no broad refactor, no new features, no marketplace, no AI auto-sending, no payment processing, no public sharing.
 
@@ -72,7 +72,7 @@ Behavioral invariants to keep: operator approves every send; referral-acceptance
 ## 3. What to leave behind or archive
 
 - DateInquiry public branding (visible copy already swapped; legacy hostname checks remain as plumbing).
-- Beauvette demo branding and the `client/src/pages/demo/*` set, plus pitch/marketing pages (`Pitch`, `Memo`, `Oracle`, `ContextGraph`, `Sandbox`, `Terminal`, `CDIArchitecture`, `BriarwoodSpec`, `DemoLandingPreview`, `OperatorDemo`, `BriarwoodDemo`).
+- Legacy beauty demo branding and the `client/src/pages/demo/*` set, plus pitch/marketing pages (`Pitch`, `Memo`, `Oracle`, `ContextGraph`, `Sandbox`, `Terminal`, `CDIArchitecture`, `BriarwoodSpec`, `DemoLandingPreview`, `OperatorDemo`, `BriarwoodDemo`).
 - `briarwood-beta-package/` duplicate app folder (not served; do not carry forward).
 - Obsolete public intake bridge (`/inquire` form and embed-code generator) if Briarwood v1 does not need public intake yet.
 - Unsafe/unused legacy routes, documented before removal. Do not delete in this repo; archive decisions belong in Codex.

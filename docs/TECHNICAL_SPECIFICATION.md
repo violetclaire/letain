@@ -1,8 +1,10 @@
-# Beauvette - Technical Specification
+# leTAIN Repository - Historical Beauty Technical Specification
+
+This document describes the legacy beauty application retained in this repository. It is not a specification of the leTAIN agent vetting layer. WITNESS names the whole platform; leTAIN names the agent vetting layer. The historical product behavior below is unchanged by the naming migration.
 
 ## Platform Overview
 
-**Beauvette** is a B2B2C beauty services marketplace connecting **clients** (brides, event hosts), **beauty artists/vendors** (makeup artists, hairstylists), **wedding planners**, and **platform administrators** for special event bookings.
+**The legacy beauty application** is a B2B2C beauty services marketplace connecting **clients** (brides, event hosts), **beauty artists/vendors** (makeup artists, hairstylists), **wedding planners**, and **platform administrators** for special event bookings.
 
 The platform focuses on:
 - Facilitating service discovery and booking
@@ -436,4 +438,4 @@ npm start             - Start production server
 
 ---
 
-*Document generated from Beauvette codebase analysis.*
+*Document generated from legacy beauty codebase analysis.*
