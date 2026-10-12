@@ -28,9 +28,12 @@ function decision(input: {
   evidenceRejected?: string[];
   requiredApprovals?: string[];
   constraints?: string[];
+  supportingApprovals?: HumanApproval[];
 }): AuthorityDecision {
+  const evaluatedRequestDigest = deterministicIntegrityValue(input.request);
   const decisionId = `decision-${deterministicIntegrityValue({
     requestId: input.request.requestId,
+    evaluatedRequestDigest,
     outcome: input.outcome,
     reasonCodes: input.reasonCodes,
     policyVersion: input.context.conditions.policyVersion,
@@ -39,6 +42,7 @@ function decision(input: {
   return {
     decisionId,
     requestId: input.request.requestId,
+    evaluatedRequestDigest,
     outcome: input.outcome,
     reasonCodes: input.reasonCodes,
     humanReadableExplanation: input.explanation,
@@ -49,7 +53,10 @@ function decision(input: {
     policyVersion: input.context.conditions.policyVersion,
     decidedAt: input.request.requestedAt,
     expiresAt: ["PERMIT", "PERMIT_WITH_CONSTRAINTS"].includes(input.outcome)
-      ? input.context.scope?.validUntil ?? null
+      ? new Date(Math.min(
+          Date.parse(input.context.scope!.validUntil),
+          ...(input.supportingApprovals ?? []).map((approval) => Date.parse(approval.expiresAt)),
+        )).toISOString()
       : null,
     authorityId: input.context.authority.authorityId,
     existingPermissionEquivalent: EXISTING_PERMISSION_OUTCOME_MAP[input.outcome],
@@ -147,7 +154,12 @@ export function evaluateActionRequest(
     return stop("TASK_OUT_OF_SCOPE", "The assigned task is missing or does not match the request.");
   }
 
-  const requestedAt = new Date(request.requestedAt).getTime();
+  const requestedAt = Date.parse(request.requestedAt);
+  const validFrom = Date.parse(context.scope.validFrom);
+  const validUntil = Date.parse(context.scope.validUntil);
+  if (![requestedAt, validFrom, validUntil].every(Number.isFinite) || validFrom >= validUntil) {
+    return stop("ASSIGNED_SCOPE_TIME_INVALID", "The request and assigned scope require a valid time interval.");
+  }
   if (
     requestedAt < new Date(context.scope.validFrom).getTime() ||
     requestedAt >= new Date(context.scope.validUntil).getTime()
@@ -228,10 +240,13 @@ export function evaluateActionRequest(
     (item): item is EvidenceBundle & { humanApproval: HumanApproval } =>
       item.evidenceType === "HUMAN_APPROVAL" && Boolean(item.humanApproval),
   );
-  const validApproval = approvalEvidence.find((item) =>
+  const validApprovals = approvalEvidence.filter((item) =>
     approvalMatches(item.humanApproval, request, context)
   );
-  if (context.scope.requiredHumanApprovals.length > 0 && !validApproval) {
+  const missingApprovals = context.scope.requiredHumanApprovals.filter((approverId) =>
+    !validApprovals.some((item) => item.humanApproval.approverId === approverId)
+  );
+  if (missingApprovals.length > 0) {
     return decision({
       request,
       context,
@@ -291,7 +306,7 @@ export function evaluateActionRequest(
     }
   }
 
-  const approvalConstraints = validApproval?.humanApproval.constraints ?? [];
+  const approvalConstraints = validApprovals.flatMap((item) => item.humanApproval.constraints);
   const constraints = Array.from(new Set([...context.scope.constraints, ...approvalConstraints]));
   const outcome: AuthorityDecisionOutcome = constraints.length > 0
     ? "PERMIT_WITH_CONSTRAINTS"
@@ -302,7 +317,7 @@ export function evaluateActionRequest(
     outcome,
     reasonCodes: [
       "EXACT_SCOPE_MATCH",
-      validApproval ? "AUTHORIZED_HUMAN_APPROVAL_PRESENT" : "NO_ADDITIONAL_APPROVAL_REQUIRED",
+      validApprovals.length > 0 ? "AUTHORIZED_HUMAN_APPROVAL_PRESENT" : "NO_ADDITIONAL_APPROVAL_REQUIRED",
     ],
     explanation: constraints.length > 0
       ? "The exact action is permitted only within the listed constraints; capability evidence did not widen scope."
@@ -310,5 +325,7 @@ export function evaluateActionRequest(
     evidenceUsed: evidence.current.map((item) => item.evidenceId),
     evidenceRejected: evidence.rejected,
     constraints,
+    supportingApprovals: validApprovals.map((item) => item.humanApproval),
   });
 }
+

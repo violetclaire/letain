@@ -31,8 +31,17 @@ export function issueScopedPermit(input: {
   if (input.authority.authorityId === input.request.actorId) {
     throw new Error("The requesting actor cannot issue its own permit");
   }
+  if (input.decision.evaluatedRequestDigest !== deterministicIntegrityValue(input.request)) {
+    throw new Error("Permit issuance requires the exact evaluated request");
+  }
   if (!input.decision.expiresAt) {
     throw new Error("A scoped permit requires an expiry");
+  }
+
+  const issuedAt = Date.parse(input.decision.decidedAt);
+  const expiresAt = Date.parse(input.decision.expiresAt);
+  if (!Number.isFinite(issuedAt) || !Number.isFinite(expiresAt) || issuedAt >= expiresAt) {
+    throw new Error("A scoped permit requires a valid issuance and expiry interval");
   }
 
   const permitWithoutIntegrity = {
@@ -96,7 +105,14 @@ export function validateScopedPermit(input: {
   if (permit.revokedAt || input.usage.revokedPermitIds.has(permit.permitId)) {
     return { accepted: false, reasonCode: "PERMIT_REVOKED" };
   }
-  if (new Date(input.now).getTime() >= new Date(permit.expiresAt).getTime()) {
+  const now = Date.parse(input.now);
+  const issuedAt = Date.parse(permit.issuedAt);
+  const expiresAt = Date.parse(permit.expiresAt);
+  if (![now, issuedAt, expiresAt].every(Number.isFinite) || issuedAt >= expiresAt) {
+    return { accepted: false, reasonCode: "PERMIT_TIME_INVALID" };
+  }
+  if (now < issuedAt) return { accepted: false, reasonCode: "PERMIT_NOT_YET_VALID" };
+  if (now >= expiresAt) {
     return { accepted: false, reasonCode: "PERMIT_EXPIRED" };
   }
   if (input.usage.uses >= permit.maximumUses) {
@@ -108,3 +124,4 @@ export function validateScopedPermit(input: {
   }
   return { accepted: true, reasonCode: "PERMIT_VALID" };
 }
+
