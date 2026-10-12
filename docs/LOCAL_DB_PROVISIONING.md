@@ -11,7 +11,7 @@ This document describes how to provision a disposable or staging database for lo
 - `migrations/0001_handy_celestials.sql` adds inquiry sentiment columns.
 - `migrations/0002_chemical_quicksilver.sql` adds direct chat tables and later contract/inquiry/thread-token changes.
 - Startup `ensureDatabaseSchema()` in `server/index.ts` is additive and incomplete. It creates or updates newer Briarwood tables, but it does not create all legacy/base tables.
-- `server/seed.ts` is stale Beauvette sample data. Do not use it for Briarwood local preview.
+- `server/seed.ts` is stale legacy beauty sample data. Do not use it for Briarwood local preview.
 
 ## Safety Gates
 

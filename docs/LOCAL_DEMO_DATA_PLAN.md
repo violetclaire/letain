@@ -6,7 +6,7 @@ start product flows.
 Local preview now has the app shell, Vite proxy, backend health, and committed
 database migrations working against a disposable or staging database. The next
 blocker is meaningful local Briarwood data. The existing `server/seed.ts` is
-stale Beauvette sample data and must not be used for Briarwood preview.
+stale legacy beauty sample data and must not be used for Briarwood preview.
 
 ## Goals
 

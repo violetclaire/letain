@@ -166,7 +166,7 @@ export async function setupAuth(app: Express) {
                     return res.redirect(`/admin/${artistProfile.artistSlug}`);
                   }
                 }
-                // Beauvette or no slug - use full dashboard
+                // Default application or no slug - use full dashboard
                 return res.redirect("/artist");
               case 'planner':
                 return res.redirect("/planner");
