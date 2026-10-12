@@ -142,6 +142,7 @@ export type DecisionAuthority = {
 };
 
 export type AuthorityDecision = {
+  evaluatedRequestDigest: string;
   decisionId: string;
   requestId: string;
   outcome: AuthorityDecisionOutcome;
@@ -224,3 +225,4 @@ export type NeutralActionBoundaryMetrics = {
   decisionExplanationsPresent: number;
   deterministicReplay: boolean;
 };
+

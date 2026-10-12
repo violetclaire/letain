@@ -404,8 +404,9 @@ test("decision receipts preserve chronology, approver identity, exact scope, and
   const { fixture, approval } = exactApprovalCase();
   const decision = evaluateActionRequest(fixture.request, fixture.context);
   const first = createDecisionReceipt({ decision, approvals: [approval] });
+  const secondDecision = evaluateActionRequest({ ...fixture.request, requestId: "next-request", requestedAt: "2026-07-20T12:01:00.000Z" }, fixture.context);
   const second = createDecisionReceipt({
-    decision,
+    decision: secondDecision,
     previousReceiptReference: first.receiptId,
     approvals: [approval],
   });
@@ -413,6 +414,7 @@ test("decision receipts preserve chronology, approver identity, exact scope, and
   assert.match(first.inputSummary, new RegExp(approval.exactAction));
   assert.match(first.inputSummary, new RegExp(approval.exactTarget));
   assert.match(first.inputSummary, /because A named incident commander approved/);
+  assert.notEqual(second.receiptId, first.receiptId);
   assert.equal(second.previousReceiptReference, first.receiptId);
   const withoutIntegrity = {
     receiptId: second.receiptId,
@@ -441,4 +443,58 @@ test("the isolated fake boundary contains no network, shell, production, or exec
   assert.doesNotMatch(combined, /\bfetch\s*\(|node:https|node:http|WebSocket/);
   assert.doesNotMatch(combined, /openai|huggingface|kubernetes|github\.com/i);
   assert.match(fakeToolSource, /SIMULATED_EXECUTION_ONLY/);
+});
+
+
+test("issuance rejects scope substitution with the same or a different request ID", () => {
+  const { fixture } = exactApprovalCase();
+  const decision = evaluateActionRequest(fixture.request, fixture.context);
+  for (const field of ["actorId", "taskId", "tool", "action", "target", "environment", "consequenceLevel"] as const) {
+    for (const requestId of [fixture.request.requestId, "other-request"]) {
+      const request = { ...fixture.request, requestId, [field]: field === "consequenceLevel" ? "CRITICAL" : "unapproved" } as ActionRequest;
+      assert.throws(() => issueScopedPermit({ decision, request, authority: NEUTRAL_AUTHORITY }), /evaluated request/);
+    }
+  }
+});
+
+test("every required human identity must approve and all constraints survive", () => {
+  const wrong = exactApprovalCase({ approval: { approverId: "security-lead" } });
+  assert.equal(evaluateActionRequest(wrong.fixture.request, wrong.fixture.context).outcome, "REQUIRE_HUMAN_APPROVAL");
+  const { fixture, approval } = exactApprovalCase();
+  fixture.context.scope!.requiredHumanApprovals = ["incident-commander", "security-lead"];
+  assert.equal(evaluateActionRequest(fixture.request, fixture.context).outcome, "REQUIRE_HUMAN_APPROVAL");
+  const second = approvalEvidence({ ...approval, approvalId: "second-approval", approverId: "security-lead", constraints: ["second-review"], expiresAt: "2026-07-20T12:30:00.000Z" });
+  fixture.context.evidence.push(second);
+  fixture.request.evidenceReferences.push(second.evidenceId);
+  const result = evaluateActionRequest(fixture.request, fixture.context);
+  assert.equal(result.outcome, "PERMIT_WITH_CONSTRAINTS");
+  assert.ok(result.constraints.includes("read_only"));
+  assert.ok(result.constraints.includes("second-review"));
+  assert.equal(result.expiresAt, "2026-07-20T12:30:00.000Z");
+});
+
+test("permit cannot outlive the supporting human approval", () => {
+  const { fixture } = exactApprovalCase({ approval: { expiresAt: "2026-07-20T13:00:00.000Z" } });
+  const decision = evaluateActionRequest(fixture.request, fixture.context);
+  assert.equal(decision.expiresAt, "2026-07-20T13:00:00.000Z");
+  const permit = issueScopedPermit({ decision, request: fixture.request, authority: NEUTRAL_AUTHORITY });
+  const request = { ...fixture.request, requestedAt: "2026-07-20T14:00:00.000Z", satisfiedConstraints: [...permit.constraints] };
+  const result = new FakeProtectedTool().simulate(request, permit, request.requestedAt);
+  assert.equal(result.executed, false);
+});
+
+test("invalid and pre-issuance times fail closed", () => {
+  const { fixture } = exactApprovalCase();
+  for (const field of ["validFrom", "validUntil"] as const) {
+    const context = structuredClone(fixture.context);
+    context.scope![field] = "not-a-date";
+    assert.equal(evaluateActionRequest(fixture.request, context).outcome, "STOP");
+  }
+  assert.equal(evaluateActionRequest({ ...fixture.request, requestedAt: "not-a-date" }, fixture.context).outcome, "STOP");
+  const decision = evaluateActionRequest(fixture.request, fixture.context);
+  const permit = issueScopedPermit({ decision, request: fixture.request, authority: NEUTRAL_AUTHORITY });
+  for (const now of ["not-a-date", "2026-07-20T11:59:59.000Z"]) {
+    const result = new FakeProtectedTool().simulate({ ...fixture.request, satisfiedConstraints: [...permit.constraints] }, permit, now);
+    assert.equal(result.executed, false);
+  }
 });
