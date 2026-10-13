@@ -25,7 +25,18 @@ import {
   humanActionDecisionChoiceValues,
   humanActionDecisionLifecycleActionValues,
 } from "@shared/schema";
-import { defaultScheduleOperatorDefaults, type ScheduleOperatorDefaults } from "@shared/schedulingIntelligence";
+import {
+  defaultScheduleOperatorDefaults,
+  type ScheduleOperatorDefaults,
+} from "@shared/schedulingIntelligence";
+import {
+  checkExpectedRevision,
+  normalizeMemberId,
+  stableContentId,
+  stripRevisionFields,
+  validateLegacyAppointmentWrite,
+  validateSchedulePatchBody,
+} from "./scheduleValidation";
 import * as smsService from "./smsService";
 import { processInboundSms } from "./inboundProcessor";
 import * as iqsService from "./iqsService";
@@ -5317,10 +5328,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/sms/booking-reminder", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const { clientPhone, clientName, vendorName, serviceName, appointmentDate, appointmentTime } = req.body;
+      const { bookingId, clientPhone, clientName, vendorName, serviceName, appointmentDate, appointmentTime } = req.body;
       
       if (!clientPhone || !clientName || !vendorName || !serviceName || !appointmentDate || !appointmentTime) {
         return res.status(400).json({ error: 'All booking details are required' });
+      }
+
+      // Defect #8: only the artist who owns the booking may send reminders
+      // for it. bookingId is required so ownership can be verified.
+      if (!bookingId) {
+        return res.status(400).json({ error: 'bookingId is required' });
+      }
+      const reminderUserId = getAuthUserId(req);
+      const reminderBooking = await storage.getBooking(bookingId);
+      if (!reminderBooking) {
+        return res.status(404).json({ error: 'Booking not found' });
+      }
+      if (reminderBooking.artistId !== reminderUserId) {
+        return res.status(403).json({ error: 'Not authorized' });
       }
       
       const result = await smsService.sendBookingReminder(
@@ -5373,10 +5398,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/sms/payment-reminder", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const { clientPhone, clientName, vendorName, amount, dueDate } = req.body;
+      const { bookingId, clientPhone, clientName, vendorName, amount, dueDate } = req.body;
       
       if (!clientPhone || !clientName || !vendorName || !amount || !dueDate) {
         return res.status(400).json({ error: 'All payment details are required' });
+      }
+
+      // Defect #8: only the artist who owns the booking may send reminders
+      // for it. bookingId is required so ownership can be verified.
+      if (!bookingId) {
+        return res.status(400).json({ error: 'bookingId is required' });
+      }
+      const paymentUserId = getAuthUserId(req);
+      const paymentBooking = await storage.getBooking(bookingId);
+      if (!paymentBooking) {
+        return res.status(404).json({ error: 'Booking not found' });
+      }
+      if (paymentBooking.artistId !== paymentUserId) {
+        return res.status(403).json({ error: 'Not authorized' });
       }
       
       const result = await smsService.sendPaymentReminder(
@@ -8018,7 +8057,34 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
 
   app.patch("/api/schedules/:id", isAuthenticated, async (req, res) => {
     try {
-      const schedule = await storage.updateSchedule(req.params.id, req.body);
+      const userId = getAuthUserId(req);
+      const existing = await storage.getSchedule(req.params.id);
+      if (!existing) {
+        return res.status(404).json({ error: "Schedule not found" });
+      }
+
+      // Defect #8: ownership check. The legacy schedules table carries no
+      // artistId; ownership flows through the linked booking.
+      const booking = await storage.getBooking(existing.bookingId);
+      if (!booking || booking.artistId !== userId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const body: any = req.body || {};
+
+      // Defect #7: optimistic concurrency.
+      const revisionError = checkExpectedRevision(body, (existing as any).revision);
+      if (revisionError) {
+        return res.status(409).json({ error: revisionError });
+      }
+
+      // Defect #7: semantic validation.
+      const semanticError = validateSchedulePatchBody(body, []);
+      if (semanticError) {
+        return res.status(400).json({ error: semanticError });
+      }
+
+      const schedule = await storage.updateSchedule(req.params.id, stripRevisionFields(body));
       if (!schedule) {
         return res.status(404).json({ error: "Schedule not found" });
       }
@@ -8085,7 +8151,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         const capability = sanitizeScheduleProviderCapability(p.capability);
         const serviceDurations = sanitizeScheduleProviderDurations(p.serviceDurations);
         return {
-          id: String(p.id ?? "").slice(0, 64) || `prov_${Math.random().toString(36).slice(2, 9)}`,
+          id: String(p.id ?? "").slice(0, 64) || stableContentId("prov", p.name, p.capability),
           name: String(p.name ?? "").slice(0, 120),
           ...(capability ? { capability } : {}),
           isPrimary: p.isPrimary === true,
@@ -8106,7 +8172,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
             const capability = sanitizeScheduleProviderCapability(provider.capability);
             const serviceDurations = sanitizeScheduleProviderDurations(provider.serviceDurations);
             return {
-              id: String(provider.id ?? "").slice(0, 64) || `provider-${Math.random().toString(36).slice(2, 9)}`,
+              id: String(provider.id ?? "").slice(0, 64) || stableContentId("provider", provider.name, provider.capability),
               name: String(provider.name ?? "").trim().slice(0, 120),
               ...(capability ? { capability } : {}),
               isLead: provider.isLead === true,
@@ -8190,13 +8256,14 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
   }
 
   // Always start with a few placeholder rows so a draft is never empty / never
-  // fails because names were not provided.
+  // fails because names were not provided. Ids are deterministic per position
+  // (defect #6): re-running this for the same draft shape yields the same ids.
   function placeholderRows(count: number) {
     const n = Math.max(1, Math.min(count || 3, 50));
     const rows = [];
     for (let i = 0; i < n; i++) {
       rows.push({
-        id: `row_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 7)}`,
+        id: `row_placeholder_${i + 1}`,
         sortOrder: i,
         cells: { name: `Guest ${i + 1}`, service: "", provider: "", start: "", end: "", duration: "", notes: "" },
       });
@@ -8445,7 +8512,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         update.columns = body.columns
           .filter((c: any) => c && typeof c === "object")
           .map((c: any) => ({
-            id: String(c.id ?? "").slice(0, 64) || `col_${Math.random().toString(36).slice(2, 9)}`,
+            id: String(c.id ?? "").slice(0, 64) || stableContentId("col", c.label, c.type),
             label: String(c.label ?? "").slice(0, 120),
             type: String(c.type ?? "text").slice(0, 32),
           }));
@@ -8462,7 +8529,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
               }
             }
             return {
-              id: String(r.id ?? "").slice(0, 64) || `row_${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 7)}`,
+              id: String(r.id ?? "").slice(0, 64) || stableContentId("row", JSON.stringify(cells), idx),
               sortOrder: Number.isFinite(r.sortOrder) ? Number(r.sortOrder) : idx,
               cells,
             };
@@ -8475,7 +8542,7 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
           .map((s: any) => {
             const minutes = Number(s.durationMinutes);
             return {
-              id: String(s.id ?? "").slice(0, 64) || `svc_${Math.random().toString(36).slice(2, 9)}`,
+              id: String(s.id ?? "").slice(0, 64) || stableContentId("svc", s.label),
               label: String(s.label ?? "").slice(0, 120),
               // null = unknown (operator has not entered a duration). 0 is not
               // a real duration and must not be invented on save.
@@ -8834,9 +8901,15 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     }
   });
 
-  // Update appointment name (editable by guests)
-  // Update appointment time via share token
-  app.post("/api/event-schedules/share/:shareToken/appointment/:appointmentId/time", async (req, res) => {
+  // Update appointment time via share token.
+  //
+  // AUTH DECISION (defect #8): changing appointment times is restricted to the
+  // authenticated schedule owner. The share-link model has no "writable" scope
+  // concept (shareToken is a bare token), so guest time edits are not allowed:
+  // guests keep notes/photos as the only guest-writable fields. Only
+  // startTime/endTime are honored here; name/service changes are never applied
+  // through this route (defect #5).
+  app.post("/api/event-schedules/share/:shareToken/appointment/:appointmentId/time", isAuthenticated, async (req, res) => {
     try {
       const { appointmentId, shareToken } = req.params;
       const { startTime, endTime } = req.body;
@@ -8846,9 +8919,29 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
         return res.status(404).json({ error: "Schedule not found" });
       }
 
+      const userId = getAuthUserId(req);
+      if (schedule.artistId !== userId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
       const appointment = await storage.getScheduleAppointment(appointmentId);
       if (!appointment || appointment.scheduleId !== schedule.id) {
         return res.status(404).json({ error: "Appointment not found" });
+      }
+
+      // Defect #5: duration/overlap validation on the new times.
+      const members = await storage.getScheduleTeamMembers(schedule.id);
+      const peers = await storage.getScheduleAppointments(schedule.id);
+      const validationError = validateLegacyAppointmentWrite({
+        input: { startTime, endTime },
+        existing: appointment,
+        peers,
+        members,
+        readyByTime: schedule.readyByTime,
+        isCreate: false,
+      });
+      if (validationError) {
+        return res.status(400).json({ error: validationError });
       }
 
       const updates: any = {};
@@ -8863,7 +8956,12 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
     }
   });
 
-  app.post("/api/event-schedules/share/:shareToken/appointment/:appointmentId/name", async (req, res) => {
+  // Update appointment name.
+  //
+  // AUTH DECISION (defect #8): same as the time route above. The share-link
+  // model has no "writable" scope, so name changes require the authenticated
+  // schedule owner; guests keep notes/photos only.
+  app.post("/api/event-schedules/share/:shareToken/appointment/:appointmentId/name", isAuthenticated, async (req, res) => {
     try {
       const { clientName } = req.body;
       const { shareToken, appointmentId } = req.params;
@@ -8939,6 +9037,11 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       if (!schedule) {
         return res.status(404).json({ error: "Schedule not found" });
       }
+
+      const nameUserId = getAuthUserId(req);
+      if (schedule.artistId !== nameUserId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
       
       const appointment = await storage.getScheduleAppointment(appointmentId);
       if (!appointment || appointment.scheduleId !== schedule.id) {
@@ -8965,6 +9068,24 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
 
       const { teamMemberId, clientName, startTime, endTime, serviceType } = req.body;
+
+      // Defects #2, #3, #5, #7: validate like the authenticated create path.
+      // (Auth for this public route is unchanged: guests can still add
+      // appointments via a share link; see the time/name routes for the
+      // defect #8 decision on structural edits.)
+      const members = await storage.getScheduleTeamMembers(schedule.id);
+      const peers = await storage.getScheduleAppointments(schedule.id);
+      const validationError = validateLegacyAppointmentWrite({
+        input: { clientName, serviceType, startTime, endTime, teamMemberId },
+        peers,
+        members,
+        readyByTime: schedule.readyByTime,
+        isCreate: true,
+      });
+      if (validationError) {
+        const status = /cannot perform|not created|unknown teamMemberId/i.test(validationError) ? 422 : 400;
+        return res.status(status).json({ error: validationError });
+      }
 
       const appointment = await storage.createScheduleAppointment({
         scheduleId: schedule.id,
@@ -9426,6 +9547,10 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       });
       
       // Create team members and map their IDs
+      // TODO (defect #9): members are keyed by NAME here, so two members with
+      // the same name collide and appointments mis-assign. Prefer a
+      // client-supplied stable key (or the member id when re-confirming) over
+      // name-based lookup.
       const teamMemberMap: Record<string, string> = {};
       if (Array.isArray(teamMembers)) {
         for (let i = 0; i < teamMembers.length; i++) {
@@ -9588,8 +9713,23 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       if (schedule.artistId !== userId) {
         return res.status(403).json({ error: "Not authorized" });
       }
+
+      const body: any = req.body || {};
+
+      // Defect #7: optimistic concurrency.
+      const revisionError = checkExpectedRevision(body, (schedule as any).revision);
+      if (revisionError) {
+        return res.status(409).json({ error: revisionError });
+      }
+
+      // Defect #7: semantic validation against the schedule's team members.
+      const members = await storage.getScheduleTeamMembers(schedule.id);
+      const semanticError = validateSchedulePatchBody(body, members);
+      if (semanticError) {
+        return res.status(400).json({ error: semanticError });
+      }
       
-      const updated = await storage.updateEventDaySchedule(req.params.id, req.body);
+      const updated = await storage.updateEventDaySchedule(req.params.id, stripRevisionFields(body));
       res.json(updated);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
@@ -9634,10 +9774,17 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       
       const { name, role, serviceType, color, displayOrder } = req.body;
+
+      // Defect #1: never silently default the role. The client always sends it;
+      // a missing role is a caller bug, not a default.
+      if (typeof role !== "string" || role.trim() === "") {
+        return res.status(400).json({ error: "Team member role is required." });
+      }
+
       const member = await storage.createScheduleTeamMember({
         scheduleId: req.params.scheduleId,
         name,
-        role: role || 'stylist',
+        role,
         serviceType,
         color,
         displayOrder: displayOrder || 0,
@@ -9713,9 +9860,28 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       }
       
       const { clientName, serviceType, startTime, endTime, teamMemberId, isVip, isBuffer, notes, displayOrder } = req.body;
+
+      // Defects #2, #3, #5, #7: the legacy create path must enforce the same
+      // invariants as the engine (duration, ready-time deadline, capability /
+      // placeability, overlap) instead of silently creating bad appointments.
+      const members = await storage.getScheduleTeamMembers(schedule.id);
+      const peers = await storage.getScheduleAppointments(schedule.id);
+      const validationError = validateLegacyAppointmentWrite({
+        input: { clientName, serviceType, startTime, endTime, teamMemberId },
+        peers,
+        members,
+        readyByTime: schedule.readyByTime,
+        isCreate: true,
+      });
+      if (validationError) {
+        // 422 when the service cannot be placed; 400 for malformed input.
+        const status = /cannot perform|not created|unknown teamMemberId/i.test(validationError) ? 422 : 400;
+        return res.status(status).json({ error: validationError });
+      }
+
       const appointment = await storage.createScheduleAppointment({
         scheduleId: req.params.scheduleId,
-        teamMemberId,
+        teamMemberId: normalizeMemberId(teamMemberId),
         clientName,
         serviceType,
         startTime,
@@ -9777,6 +9943,24 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       if (!schedule || schedule.artistId !== userId) {
         return res.status(403).json({ error: "Not authorized" });
       }
+
+      // Defects #2 / #5: swaps, moves, and retimes are re-validated against
+      // capability, duration, overlap, and the ready-time deadline instead of
+      // passing the body straight through.
+      const members = await storage.getScheduleTeamMembers(schedule.id);
+      const peers = await storage.getScheduleAppointments(schedule.id);
+      const validationError = validateLegacyAppointmentWrite({
+        input: req.body || {},
+        existing: appointment,
+        peers,
+        members,
+        readyByTime: schedule.readyByTime,
+        isCreate: false,
+      });
+      if (validationError) {
+        const status = /cannot perform|unknown teamMemberId/i.test(validationError) ? 422 : 400;
+        return res.status(status).json({ error: validationError });
+      }
       
       const updated = await storage.updateScheduleAppointment(req.params.id, req.body);
       if (!updated) {
@@ -9829,14 +10013,15 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       const profile = await storage.getArtistProfile(userId);
       const artistName = profile?.businessName || "Your Artist";
       
-      const scheduleUrl = shareToken 
-        ? `${getBaseUrl()}/schedule/${shareToken}`
-        : `${getBaseUrl()}/artist/schedules`;
-      
-      await emailService.sendEmail({
-        to: recipientEmail,
-        subject: `Schedule Update: ${schedule.eventName}`,
-        html: `
+      // getBaseUrl() was referenced here but never defined in this module
+      // (pre-existing breakage); mirror emailService's base-URL logic inline.
+      const scheduleBaseUrl = process.env.PUBLIC_BASE_URL || "https://dateinquiry.com";
+      const scheduleUrl = shareToken
+        ? `${scheduleBaseUrl}/schedule/${shareToken}`
+        : `${scheduleBaseUrl}/artist/schedules`;
+
+      const emailSubject = `Schedule Update: ${schedule.eventName}`;
+      const emailHtml = `
           <div style="font-family: Inter, sans-serif; max-width: 600px; margin: 0 auto; background: #FAF8F5; padding: 24px; border-radius: 8px;">
             <h2 style="font-family: Fraunces, serif; color: #1A1A1A; margin-bottom: 16px;">Schedule Update</h2>
             <p style="color: #1A1A1A; margin-bottom: 16px;">${artistName} sent you a message about <strong>${schedule.eventName}</strong>:</p>
@@ -9845,9 +10030,36 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
             </div>
             <a href="${scheduleUrl}" style="display: inline-block; background: #1A1A1A; color: #F5F0E8; padding: 12px 24px; border-radius: 6px; text-decoration: none;">View Schedule</a>
           </div>
-        `,
-        fromName: artistName,
+        `;
+
+      // Defect #10: wire delivery tracking through scheduled_emails. Insert as
+      // pending, then mark sent/failed after the send attempt.
+      const trackedEmail = await storage.createScheduledEmail({
+        artistId: userId,
+        bookingId: schedule.bookingId ?? null,
+        emailType: "schedule_chat",
+        recipientEmail,
+        recipientName: recipientEmail,
+        subject: emailSubject,
+        emailData: { scheduleId: schedule.id },
+        scheduledFor: new Date(),
+        status: "pending",
       });
+
+      const emailService = await import("./emailService");
+      try {
+        await emailService.sendEmail({
+          to: recipientEmail,
+          subject: emailSubject,
+          html: emailHtml,
+          fromName: artistName,
+        });
+        await storage.markScheduledEmailSent(trackedEmail.id);
+      } catch (sendError: unknown) {
+        const sendMessage = sendError instanceof Error ? sendError.message : String(sendError);
+        await storage.markScheduledEmailFailed(trackedEmail.id, sendMessage);
+        throw sendError;
+      }
       
       res.json({ success: true, message: "Chat message sent with email notification" });
     } catch (error: any) {

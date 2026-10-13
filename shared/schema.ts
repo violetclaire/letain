@@ -545,6 +545,9 @@ export const schedules = pgTable("schedules", {
   startTime: text("start_time").notNull(),
   timeline: jsonb("timeline").$type<Array<{time: string, description: string}>>(),
   dayOfReminders: text("day_of_reminders"),
+  // Optimistic-concurrency revision. Bumped by storage on every write; PATCH
+  // routes accept an optional expectedRevision and 409 when it mismatches.
+  revision: integer("revision").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -563,6 +566,9 @@ export const eventDaySchedules = pgTable("event_day_schedules", {
   guestNotes: text("guest_notes"), // Notes from guests (room numbers, questions)
   shareToken: varchar("share_token"), // For public shareable link
   status: text("status").default("draft"), // 'draft', 'finalized', 'sent'
+  // Optimistic-concurrency revision. Bumped by storage on every write; PATCH
+  // routes accept an optional expectedRevision and 409 when it mismatches.
+  revision: integer("revision").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

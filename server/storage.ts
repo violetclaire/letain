@@ -355,6 +355,7 @@ export interface IStorage {
   ): Promise<{ id: string; artistId: string; blockedDate: string; reason: string | null } | undefined>;
   
   // Schedules (legacy)
+  getSchedule(id: string): Promise<Schedule | undefined>;
   getScheduleByBooking(bookingId: string): Promise<Schedule | undefined>;
   createSchedule(schedule: InsertSchedule): Promise<Schedule>;
   updateSchedule(id: string, schedule: Partial<InsertSchedule>): Promise<Schedule | undefined>;
@@ -1562,6 +1563,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Schedules
+  async getSchedule(id: string): Promise<Schedule | undefined> {
+    const [schedule] = await db.select().from(schedules).where(eq(schedules.id, id));
+    return schedule || undefined;
+  }
+
   async getScheduleByBooking(bookingId: string): Promise<Schedule | undefined> {
     const [schedule] = await db.select().from(schedules).where(eq(schedules.bookingId, bookingId));
     return schedule || undefined;
@@ -1573,9 +1579,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateSchedule(id: string, schedule: Partial<InsertSchedule>): Promise<Schedule | undefined> {
+    // Never trust a client-supplied revision; the bump below is authoritative.
+    const { revision: _ignoredRevision, ...data } = schedule as Record<string, unknown>;
     const [updated] = await db
       .update(schedules)
-      .set(schedule as any)
+      .set({ ...(data as any), revision: sql`${schedules.revision} + 1` })
       .where(eq(schedules.id, id))
       .returning();
     return updated || undefined;
@@ -1657,9 +1665,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateEventDaySchedule(id: string, schedule: Partial<InsertEventDaySchedule>): Promise<EventDaySchedule | undefined> {
+    // Never trust a client-supplied revision; the bump below is authoritative.
+    const { revision: _ignoredRevision, ...data } = schedule as Record<string, unknown>;
     const [updated] = await db
       .update(eventDaySchedules)
-      .set({ ...schedule, updatedAt: new Date() } as any)
+      .set({ ...(data as any), revision: sql`${eventDaySchedules.revision} + 1`, updatedAt: new Date() })
       .where(eq(eventDaySchedules.id, id))
       .returning();
     return updated || undefined;
