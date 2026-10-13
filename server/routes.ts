@@ -8974,6 +8974,11 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       if (!schedule) {
         return res.status(404).json({ error: "Schedule not found" });
       }
+
+      const nameUserId = getAuthUserId(req);
+      if (schedule.artistId !== nameUserId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
       
       const appointment = await storage.getScheduleAppointment(appointmentId);
       if (!appointment || appointment.scheduleId !== schedule.id) {

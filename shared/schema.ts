@@ -610,7 +610,7 @@ export const scheduleAppointments = pgTable("schedule_appointments", {
 export const scheduleChatMessages = pgTable("schedule_chat_messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   scheduleId: varchar("schedule_id").notNull().references(() => eventDaySchedules.id, { onDelete: 'cascade' }),
-  senderName: text("sender_name").notNull(), // Guest name or "Beauvette AI"
+  senderName: text("sender_name").notNull(), // Guest name or "leTAIN AI"
   senderType: text("sender_type").notNull(), // 'guest', 'ai', 'artist'
   content: text("content").notNull(),
   metadata: jsonb("metadata").$type<{

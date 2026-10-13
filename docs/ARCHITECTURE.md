@@ -4,9 +4,9 @@ This document captures the current repository architecture from a read-only audi
 
 ## System Overview
 
-`beauvette` is a full-stack TypeScript application with a React/Vite single-page frontend, an Express backend, and a Postgres database accessed through Drizzle ORM. The current codebase contains multiple product generations side by side:
+`leTAIN` (repository migration in progress) is a full-stack TypeScript application with a React/Vite single-page frontend, an Express backend, and a Postgres database accessed through Drizzle ORM. The current codebase contains multiple product generations side by side:
 
-- Beauvette artist/client/planner marketplace and booking surfaces.
+- legacy beauty artist/client/planner marketplace and booking surfaces.
 - DateInquiry public inquiry and artist admin surfaces.
 - Briarwood private coordination infrastructure for routing, trusted handoffs, assistant prompts, and trust-event logging.
 - Demo, AI, agent, ACP, and experimental features.
@@ -253,7 +253,7 @@ These are the pieces most aligned with Briarwood's private coordination model:
 - Operator-only schedule drafts, if kept constrained to private coordination and not merged with public event schedule publishing.
 - Contract vault metadata, if kept as observational business state and not mixed with signing/payment side effects.
 
-### 2. Legacy Beauvette/DateInquiry Surfaces
+### 2. Legacy beauty/DateInquiry Surfaces
 
 These appear to predate or sit adjacent to Briarwood's narrower trusted-network loop:
 
@@ -264,7 +264,7 @@ These appear to predate or sit adjacent to Briarwood's narrower trusted-network 
 - Older `trusted_circle` referral surface.
 - Legacy event-day schedule grid and public schedule share flow.
 - DateInquiry-branded admin pages and public inquiry threads.
-- Square, invoice, and payment link flows attached to broader Beauvette/DateInquiry operations.
+- Square, invoice, and payment link flows attached to broader legacy beauty/DateInquiry operations.
 
 These may remain necessary for current operations, but they should not be confused with the Briarwood core routing layer.
 
@@ -464,7 +464,7 @@ These areas are intentionally outside low-risk provider and metadata cleanup PRs
 
 ## Recommended Order of Work
 
-1. Freeze product boundaries: define what is Briarwood core, what is legacy Beauvette/DateInquiry, and what is experimental.
+1. Freeze product boundaries: define what is Briarwood core, what is legacy beauty/DateInquiry, and what is experimental.
 2. Add tests for auth/session/profile ownership before changing login or token behavior.
 3. Remove or constrain risky artist-profile auto-linking in login.
 4. Add tests for public token access: inquiry thread, client thread, schedule share, quote, contract signing, chat invite, and edit tokens.
