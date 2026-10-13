@@ -10,6 +10,11 @@ export function createDecisionReceipt(input: {
   previousReceiptReference?: string | null;
   approvals?: HumanApproval[];
 }): DecisionReceipt {
+  const evaluatedRequest = structuredClone(input.decision.evaluatedRequest);
+  if (!evaluatedRequest || evaluatedRequest.requestId !== input.decision.requestId ||
+      deterministicIntegrityValue(evaluatedRequest) !== input.decision.evaluatedRequestDigest) {
+    throw new Error("Receipt requires the unchanged evaluated request and its matching digest.");
+  }
   const approvals = input.approvals ?? [];
   const approvalSummary = approvals.length === 0
     ? "No human approval supplied."
@@ -25,11 +30,14 @@ export function createDecisionReceipt(input: {
         )
         .join(" | ");
   const receiptWithoutIntegrity = {
+    schemaVersion: "neutral-action-boundary-receipt/v2" as const,
+    evaluatedRequest,
+    evaluatedRequestDigest: input.decision.evaluatedRequestDigest,
     receiptId: `receipt-${input.decision.decisionId}`,
     requestId: input.decision.requestId,
     decisionId: input.decision.decisionId,
     previousReceiptReference: input.previousReceiptReference ?? null,
-    inputSummary: `Action request ${input.decision.requestId}. ${approvalSummary}`,
+    inputSummary: `Action request ${input.decision.requestId}: actor ${evaluatedRequest.actorId}, task ${evaluatedRequest.taskId}, tool ${evaluatedRequest.tool}, action ${evaluatedRequest.action}, target ${evaluatedRequest.target}, environment ${evaluatedRequest.environment}. ${approvalSummary}`,
     decisionSummary: `${input.decision.outcome}: ${input.decision.humanReadableExplanation}`,
     policyVersion: input.decision.policyVersion,
     timestamp: input.decision.decidedAt,

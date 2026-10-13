@@ -142,6 +142,7 @@ export type DecisionAuthority = {
 };
 
 export type AuthorityDecision = {
+  evaluatedRequest: ActionRequest;
   evaluatedRequestDigest: string;
   decisionId: string;
   requestId: string;
@@ -161,6 +162,9 @@ export type AuthorityDecision = {
 };
 
 export type DecisionReceipt = {
+  schemaVersion: "neutral-action-boundary-receipt/v2";
+  evaluatedRequest: ActionRequest;
+  evaluatedRequestDigest: string;
   receiptId: string;
   requestId: string;
   decisionId: string;

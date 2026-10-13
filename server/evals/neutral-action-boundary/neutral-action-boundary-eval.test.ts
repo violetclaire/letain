@@ -30,6 +30,59 @@ import type {
   HumanApproval,
 } from "./types";
 
+test("receipts without approvals preserve the exact evaluated request and its digest", () => {
+  const item = LEGITIMATE_CONTROL_CASES[0];
+  const request = structuredClone(item.request);
+  const decision = evaluateActionRequest(request, item.context);
+  const receipt = createDecisionReceipt({ decision });
+  assert.deepEqual(receipt.evaluatedRequest, request);
+  assert.equal(receipt.evaluatedRequestDigest, deterministicIntegrityValue(request));
+  assert.equal(receipt.schemaVersion, "neutral-action-boundary-receipt/v2");
+  for (const field of ["actorId", "taskId", "tool", "action", "target", "environment"] as const) {
+    assert.ok(receipt.inputSummary.includes(request[field]), field);
+  }
+  const { integrityValue, ...covered } = receipt;
+  assert.equal(integrityValue, deterministicIntegrityValue(covered));
+  assert.notEqual(integrityValue, deterministicIntegrityValue({ ...covered,
+    evaluatedRequest: { ...receipt.evaluatedRequest, target: "different-target" },
+  }));
+});
+
+test("decision and receipt snapshots cannot drift when caller-owned objects change", () => {
+  const item = LEGITIMATE_CONTROL_CASES[0];
+  const request = structuredClone(item.request);
+  const original = structuredClone(request);
+  const decision = evaluateActionRequest(request, item.context);
+  request.target = "changed-after-evaluation";
+  request.evidenceReferences.push("later-evidence");
+  const receipt = createDecisionReceipt({ decision });
+  assert.deepEqual(receipt.evaluatedRequest, original);
+  decision.evaluatedRequest.target = "changed-after-receipt";
+  assert.deepEqual(receipt.evaluatedRequest, original);
+  assert.throws(() => createDecisionReceipt({ decision }), /evaluated request/);
+});
+
+test("stopped requests retain their action scope and mismatched request IDs are rejected", () => {
+  const item = SYNTHETIC_INCIDENT_SEQUENCE[2];
+  const decision = evaluateActionRequest(item.request, item.context);
+  assert.equal(decision.outcome, "STOP");
+  const receipt = createDecisionReceipt({ decision });
+  assert.deepEqual(receipt.evaluatedRequest, item.request);
+  assert.throws(() => createDecisionReceipt({ decision: { ...decision, requestId: "another-request" } }), /evaluated request/);
+});
+
+test("saved JSON and rendered reports retain every evaluated action without external fixtures", () => {
+  const report = runNeutralActionBoundaryEval();
+  const restored = JSON.parse(JSON.stringify(report));
+  const rendered = renderNeutralActionBoundaryReport(report);
+  for (const row of restored.cases) {
+    const receipt = restored.receipts.find((r: { requestId: string }) => r.requestId === row.evaluatedRequest.requestId);
+    assert.deepEqual(row.evaluatedRequest, receipt.evaluatedRequest);
+    assert.ok(rendered.includes(JSON.stringify(row.evaluatedRequest.target)));
+    assert.ok(rendered.includes(receipt.receiptId));
+  }
+});
+
 function exactApprovalCase(overrides: {
   request?: Partial<ActionRequest>;
   approval?: Partial<HumanApproval>;
@@ -417,6 +470,9 @@ test("decision receipts preserve chronology, approver identity, exact scope, and
   assert.notEqual(second.receiptId, first.receiptId);
   assert.equal(second.previousReceiptReference, first.receiptId);
   const withoutIntegrity = {
+    schemaVersion: second.schemaVersion,
+    evaluatedRequest: second.evaluatedRequest,
+    evaluatedRequestDigest: second.evaluatedRequestDigest,
     receiptId: second.receiptId,
     requestId: second.requestId,
     decisionId: second.decisionId,

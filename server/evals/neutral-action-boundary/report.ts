@@ -15,6 +15,7 @@ import type {
 } from "./types";
 
 export type EvaluatedSyntheticCase = {
+  evaluatedRequest: SyntheticActionCase["request"];
   caseId: string;
   sequence: number;
   label: string;
@@ -59,6 +60,7 @@ function evaluateCases(cases: SyntheticActionCase[]): {
     const decision = decisions[index];
     return {
       caseId: item.caseId,
+      evaluatedRequest: structuredClone(decision.evaluatedRequest),
       sequence: item.sequence,
       label: item.label,
       category: item.category,
@@ -254,6 +256,17 @@ export function renderNeutralActionBoundaryReport(
       `| ${item.caseId}: ${item.label} | ${item.category} | ${item.expectedOutcome} | ${item.actualOutcome} | ${item.passed ? "PASS" : "FAIL"} |`
     ),
     "",
+    "## Evaluated Action Records",
+    "",
+    ...report.receipts.flatMap((receipt) => [
+      `### ${receipt.receiptId}`,
+      "",
+      ...JSON.stringify(receipt.evaluatedRequest, null, 2).split("\n").map((line) => `    ${line}`),
+      "",
+      `Request digest: ${receipt.evaluatedRequestDigest}`,
+      `Receipt integrity: ${receipt.integrityValue}`,
+      "",
+    ]),
     "## Permit Boundary Probes",
     "",
     "| Probe | Category | Accepted | Reason |",
