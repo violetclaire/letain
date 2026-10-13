@@ -82,6 +82,10 @@ test("report discloses blindness limits and does not claim real-world prevention
   assert.match(report, /not by an independent reviewer/i);
   assert.match(report, /does not prove real-world incident prevention/i);
   assert.match(report, /executes nothing/i);
+  for (const record of runBlindDecisions()) {
+    assert.ok(report.includes(JSON.stringify(record.decision.evaluatedRequest.target)));
+    assert.ok(report.includes(record.decision.evaluatedRequestDigest));
+  }
 });
 
 test("blind evaluation remains synthetic, offline, and free of production integration", () => {

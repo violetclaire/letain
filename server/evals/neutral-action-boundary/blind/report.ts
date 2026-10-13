@@ -28,6 +28,16 @@ export function renderBlindEvalReport(
       `| ${item.caseId} | ${item.domain} | ${item.expectedOutcome} | ${item.decision.outcome} | ${item.actualDisposition} | ${item.exactOutcomeMatch ? "MATCH" : "MISMATCH"} |`
     ),
     "",
+    "## Evaluated Action Records",
+    "",
+    ...report.cases.flatMap((item) => [
+      `### ${item.caseId}`,
+      "",
+      ...JSON.stringify(item.decision.evaluatedRequest, null, 2).split("\n").map((line) => `    ${line}`),
+      "",
+      `Request digest: ${item.decision.evaluatedRequestDigest}`,
+      "",
+    ]),
     "## Preserved Errors",
     "",
     ...(

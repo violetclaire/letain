@@ -42,6 +42,7 @@ function decision(input: {
   return {
     decisionId,
     requestId: input.request.requestId,
+    evaluatedRequest: structuredClone(input.request),
     evaluatedRequestDigest,
     outcome: input.outcome,
     reasonCodes: input.reasonCodes,
