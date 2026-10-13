@@ -9863,9 +9863,12 @@ Style: Elegant, romantic, sophisticated wedding aesthetics. High quality, profes
       const profile = await storage.getArtistProfile(userId);
       const artistName = profile?.businessName || "Your Artist";
       
-      const scheduleUrl = shareToken 
-        ? `${getBaseUrl()}/schedule/${shareToken}`
-        : `${getBaseUrl()}/artist/schedules`;
+      // getBaseUrl() was referenced here but never defined in this module
+      // (pre-existing breakage); mirror emailService's base-URL logic inline.
+      const scheduleBaseUrl = process.env.PUBLIC_BASE_URL || "https://dateinquiry.com";
+      const scheduleUrl = shareToken
+        ? `${scheduleBaseUrl}/schedule/${shareToken}`
+        : `${scheduleBaseUrl}/artist/schedules`;
 
       const emailSubject = `Schedule Update: ${schedule.eventName}`;
       const emailHtml = `
