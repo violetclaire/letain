@@ -2336,7 +2336,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     blockers: z.array(z.string().trim().min(1).max(5000)).max(100).default([]),
     requiredConditions: z.array(z.string().trim().min(1).max(5000)).max(100).default([]),
     decision: z.enum(scopedPermissionDecisionValues),
-    expiresAt: z.coerce.date().nullable().optional(),
+    decisionMakerUserId: z.string().trim().min(1).max(255),
+    requiredApproverUserIds: z.array(z.string().trim().min(1).max(255)).min(1).max(50),
+    expiresAt: z.coerce.date().nullable().optional().refine(
+      (value) => !value || value.getTime() > Date.now(),
+      { message: "A permission decision expiration must be in the future" },
+    ),
     mandatoryReviewTrigger: z.string().trim().min(1).max(5000).nullable().optional(),
     lifecycleAction: z.enum(scopedPermissionLifecycleActionValues).default("decision"),
     relatedPermissionDecisionId: z.string().trim().min(1).max(255).nullable().optional(),
@@ -2369,6 +2374,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         code: z.ZodIssueCode.custom,
         path: ["linkedJudgmentIds"],
         message: "Linked judgment records must be unique",
+      });
+    }
+    if (new Set(value.requiredApproverUserIds).size !== value.requiredApproverUserIds.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["requiredApproverUserIds"],
+        message: "Required approvers must be unique",
       });
     }
     if (!value.expiresAt && !value.mandatoryReviewTrigger) {
@@ -2437,6 +2449,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     permissionReviewSummary: z.string().trim().min(1).max(10000),
     rationaleText: z.string().trim().min(1).max(10000),
     conditionConfirmations: z.array(z.string().trim().min(1).max(5000)).max(100).default([]),
+    actualAction: z.string().trim().min(1).max(5000),
+    actualScopeText: z.string().trim().min(1).max(5000),
+    expiresAt: z.coerce.date().nullable().optional(),
     lifecycleAction: z.enum(humanActionDecisionLifecycleActionValues).default("decision"),
     relatedHumanActionDecisionId: z.string().trim().min(1).max(255).nullable().optional(),
   }).strict().superRefine((value, context) => {
@@ -2741,6 +2756,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Chronology guard: walk the related-decision chain and reject cycles.
+      // Record IDs are server-generated, so a cycle can only arrive through
+      // data written outside this route; reject it rather than trusting it.
+      const seenPermissionDecisionIds = new Set<string>();
+      let permissionChainCursor: string | null = parsed.data.relatedPermissionDecisionId ?? null;
+      while (permissionChainCursor) {
+        if (seenPermissionDecisionIds.has(permissionChainCursor)) {
+          return res.status(400).json({
+            error: "Related permission decision chain must not contain a cycle",
+          });
+        }
+        if (seenPermissionDecisionIds.size >= 25) {
+          return res.status(400).json({
+            error: "Related permission decision chain is too deep to verify",
+          });
+        }
+        seenPermissionDecisionIds.add(permissionChainCursor);
+        const chainNode = await storage.getScopedPermissionDecision(
+          context.userId,
+          context.inquiry.id,
+          permissionChainCursor,
+        );
+        if (!chainNode) break;
+        permissionChainCursor = chainNode.relatedPermissionDecisionId;
+      }
+
       for (const judgmentId of parsed.data.linkedJudgmentIds) {
         const judgment = await storage.getCoordinationJudgment(
           context.userId,
@@ -2754,9 +2795,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // The requesting operator can never satisfy their own approval: the
+      // recorded decision maker must be a required approver who is not the
+      // requesting operator.
+      const requiredApproverUserIds = parsed.data.requiredApproverUserIds;
+      if (!requiredApproverUserIds.some((approverUserId) => approverUserId !== context.userId)) {
+        return res.status(400).json({
+          error: "At least one required approver must differ from the requesting operator",
+        });
+      }
+      if (parsed.data.decisionMakerUserId === context.userId) {
+        return res.status(403).json({
+          error: "The requesting operator cannot record their own permission approval",
+        });
+      }
+      if (!requiredApproverUserIds.includes(parsed.data.decisionMakerUserId)) {
+        return res.status(403).json({
+          error: "The decision maker must be one of the required approvers",
+        });
+      }
+
       const permissionDecision = await storage.createScopedPermissionDecision({
         operatorId: context.userId,
-        decisionMakerUserId: context.userId,
+        decisionMakerUserId: parsed.data.decisionMakerUserId,
         inquiryId: context.inquiry.id,
         actorReference: parsed.data.actorReference,
         actorDescription: parsed.data.actorDescription,
@@ -2779,6 +2840,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mandatoryReviewTrigger: parsed.data.mandatoryReviewTrigger ?? null,
         lifecycleAction: parsed.data.lifecycleAction,
         relatedPermissionDecisionId: parsed.data.relatedPermissionDecisionId ?? null,
+        requiredApproverUserIds: parsed.data.requiredApproverUserIds,
       }, parsed.data.linkedJudgmentIds);
 
       res.status(201).json({ permissionDecision });
@@ -2857,7 +2919,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
             error: "Related human action decision must belong to this inquiry and permission decision",
           });
         }
+        if (related.withdrawnAt) {
+          return res.status(400).json({
+            error: "A withdrawn human action decision cannot anchor a later choice",
+          });
+        }
       }
+
+      // Chronology guard: walk the related-decision chain and reject cycles.
+      const seenHumanActionDecisionIds = new Set<string>();
+      let humanActionChainCursor: string | null = parsed.data.relatedHumanActionDecisionId ?? null;
+      while (humanActionChainCursor) {
+        if (seenHumanActionDecisionIds.has(humanActionChainCursor)) {
+          return res.status(400).json({
+            error: "Related human action decision chain must not contain a cycle",
+          });
+        }
+        if (seenHumanActionDecisionIds.size >= 25) {
+          return res.status(400).json({
+            error: "Related human action decision chain is too deep to verify",
+          });
+        }
+        seenHumanActionDecisionIds.add(humanActionChainCursor);
+        const chainNode = await storage.getHumanActionDecision(
+          context.userId,
+          context.inquiry.id,
+          humanActionChainCursor,
+        );
+        if (!chainNode) break;
+        humanActionChainCursor = chainNode.relatedHumanActionDecisionId;
+      }
+
+      // The human approval carries its own expiry, defaulting to the linked
+      // permission decision's expiry when not supplied.
+      const effectiveExpiresAt = parsed.data.expiresAt ?? permissionDecision.expiresAt ?? null;
 
       if (parsed.data.choice === "proceed") {
         const grantsPermission = permissionDecision.decision === "permitted"
@@ -2870,6 +2965,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (permissionDecision.expiresAt && permissionDecision.expiresAt.getTime() <= Date.now()) {
           return res.status(400).json({ error: "An expired permission decision cannot support proceed" });
+        }
+
+        // The recorded action must be exactly what the permission approved:
+        // a permit never covers a different action or a wider scope.
+        if (parsed.data.actualAction !== permissionDecision.proposedAction) {
+          return res.status(400).json({
+            error: "A proceed choice must name the exact approved action",
+          });
+        }
+        if (parsed.data.actualScopeText !== permissionDecision.scopeText) {
+          return res.status(400).json({
+            error: "A proceed choice must name the exact approved scope",
+          });
+        }
+
+        if (effectiveExpiresAt && effectiveExpiresAt.getTime() <= Date.now()) {
+          return res.status(400).json({
+            error: "A proceed choice cannot rely on an expired human approval",
+          });
         }
 
         const permissionHistory = await storage.listScopedPermissionDecisions(
@@ -2905,11 +3019,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         permissionReviewSummary: parsed.data.permissionReviewSummary,
         rationaleText: parsed.data.rationaleText,
         conditionConfirmations: parsed.data.conditionConfirmations,
+        actualAction: parsed.data.actualAction,
+        actualScopeText: parsed.data.actualScopeText,
+        expiresAt: effectiveExpiresAt,
+        withdrawnAt: null,
         lifecycleAction: parsed.data.lifecycleAction,
         relatedHumanActionDecisionId: parsed.data.relatedHumanActionDecisionId ?? null,
       });
 
       res.status(201).json({ humanActionDecision });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/inquiries/:id/human-action-decisions/:humanActionDecisionId/withdraw", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const context = await loadPrivateInquiryContext(req, res);
+      if (!context) return;
+
+      const humanActionDecision = await storage.getHumanActionDecision(
+        context.userId,
+        context.inquiry.id,
+        req.params.humanActionDecisionId,
+      );
+      if (!humanActionDecision) {
+        return res.status(404).json({ error: "Human action decision not found" });
+      }
+      if (humanActionDecision.withdrawnAt) {
+        return res.status(400).json({ error: "Human action decision is already withdrawn" });
+      }
+
+      const withdrawn = await storage.withdrawHumanActionDecision(
+        context.userId,
+        context.inquiry.id,
+        humanActionDecision.id,
+      );
+      if (!withdrawn) {
+        return res.status(404).json({ error: "Human action decision not found" });
+      }
+
+      res.json({ humanActionDecision: withdrawn });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

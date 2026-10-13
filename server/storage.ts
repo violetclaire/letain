@@ -239,7 +239,7 @@ import {
   blockedDates,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, lte, lt, desc, asc, or, sql, inArray, ilike } from "drizzle-orm";
+import { eq, and, gte, lte, lt, desc, asc, or, sql, inArray, ilike, isNull } from "drizzle-orm";
 
 export type CoordinationJudgmentWithSources = CoordinationJudgment & {
   supportingAttestationIds: string[];
@@ -578,6 +578,11 @@ export interface IStorage {
     humanActionDecisionId: string,
   ): Promise<HumanActionDecision | undefined>;
   listHumanActionDecisions(operatorId: string, inquiryId: string): Promise<HumanActionDecision[]>;
+  withdrawHumanActionDecision(
+    operatorId: string,
+    inquiryId: string,
+    humanActionDecisionId: string,
+  ): Promise<HumanActionDecision | undefined>;
   // Briarwood response composer: outgoing client-message drafts
   createInquiryResponse(data: InsertInquiryResponse): Promise<InquiryResponse>;
   getInquiryResponse(id: string): Promise<InquiryResponse | undefined>;
@@ -3180,6 +3185,26 @@ export class DatabaseStorage implements IStorage {
         eq(humanActionDecisions.inquiryId, inquiryId),
       ))
       .orderBy(asc(humanActionDecisions.createdAt), asc(humanActionDecisions.id));
+  }
+
+  // Revokes a human approval by stamping it withdrawn. Append-only: the row
+  // is never mutated otherwise, and a withdrawn approval cannot anchor a
+  // later proceed choice.
+  async withdrawHumanActionDecision(
+    operatorId: string,
+    inquiryId: string,
+    humanActionDecisionId: string,
+  ): Promise<HumanActionDecision | undefined> {
+    const [withdrawn] = await db.update(humanActionDecisions)
+      .set({ withdrawnAt: new Date() })
+      .where(and(
+        eq(humanActionDecisions.operatorId, operatorId),
+        eq(humanActionDecisions.inquiryId, inquiryId),
+        eq(humanActionDecisions.id, humanActionDecisionId),
+        isNull(humanActionDecisions.withdrawnAt),
+      ))
+      .returning();
+    return withdrawn ?? undefined;
   }
 
   // --- Briarwood response composer: outgoing client-message drafts ---

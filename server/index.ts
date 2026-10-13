@@ -23,6 +23,13 @@ async function ensureDatabaseSchema() {
     { name: 'artist_profiles.login_code_expires_at', sql: sql`ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS login_code_expires_at timestamp` },
     { name: 'schedule_appointments.inspiration_photos', sql: sql`ALTER TABLE schedule_appointments ADD COLUMN IF NOT EXISTS inspiration_photos text[]` },
 
+    // --- Scoped permission / human action decision hardening ---
+    { name: 'scoped_permission_decisions.required_approver_user_ids', sql: sql`ALTER TABLE scoped_permission_decisions ADD COLUMN IF NOT EXISTS required_approver_user_ids jsonb NOT NULL DEFAULT '[]'::jsonb` },
+    { name: 'human_action_decisions.actual_action', sql: sql`ALTER TABLE human_action_decisions ADD COLUMN IF NOT EXISTS actual_action text` },
+    { name: 'human_action_decisions.actual_scope_text', sql: sql`ALTER TABLE human_action_decisions ADD COLUMN IF NOT EXISTS actual_scope_text text` },
+    { name: 'human_action_decisions.expires_at', sql: sql`ALTER TABLE human_action_decisions ADD COLUMN IF NOT EXISTS expires_at timestamp` },
+    { name: 'human_action_decisions.withdrawn_at', sql: sql`ALTER TABLE human_action_decisions ADD COLUMN IF NOT EXISTS withdrawn_at timestamp` },
+
     // --- Handoff accountability slice (YC submission session) ---
     { name: 'thread_referrals.urgency_hours', sql: sql`ALTER TABLE thread_referrals ADD COLUMN IF NOT EXISTS urgency_hours integer` },
     { name: 'thread_referrals.payment_secured_status', sql: sql`ALTER TABLE thread_referrals ADD COLUMN IF NOT EXISTS payment_secured_status text` },
@@ -559,6 +566,7 @@ async function ensureDatabaseSchema() {
       judgment_currency_basis text NOT NULL,
       blockers jsonb NOT NULL DEFAULT '[]'::jsonb,
       required_conditions jsonb NOT NULL DEFAULT '[]'::jsonb,
+      required_approver_user_ids jsonb NOT NULL DEFAULT '[]'::jsonb,
       decision text NOT NULL,
       expires_at timestamp,
       mandatory_review_trigger text,
@@ -591,7 +599,7 @@ async function ensureDatabaseSchema() {
       CONSTRAINT scoped_permission_decisions_review_trigger_check
         CHECK (expires_at IS NOT NULL OR NULLIF(BTRIM(mandatory_review_trigger), '') IS NOT NULL),
       CONSTRAINT scoped_permission_decisions_json_arrays_check
-        CHECK (jsonb_typeof(blockers) = 'array' AND jsonb_typeof(required_conditions) = 'array'),
+        CHECK (jsonb_typeof(blockers) = 'array' AND jsonb_typeof(required_conditions) = 'array' AND jsonb_typeof(required_approver_user_ids) = 'array'),
       CONSTRAINT scoped_permission_decisions_permission_inputs_check
         CHECK (
           decision NOT IN ('permitted', 'permitted_with_conditions')
@@ -778,6 +786,10 @@ async function ensureDatabaseSchema() {
       permission_review_summary text NOT NULL,
       rationale_text text NOT NULL,
       condition_confirmations jsonb NOT NULL DEFAULT '[]'::jsonb,
+      actual_action text,
+      actual_scope_text text,
+      expires_at timestamp,
+      withdrawn_at timestamp,
       lifecycle_action text NOT NULL DEFAULT 'decision',
       related_human_action_decision_id varchar,
       created_at timestamp NOT NULL DEFAULT now(),

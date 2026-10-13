@@ -3187,6 +3187,10 @@ export const scopedPermissionDecisions = pgTable(
     judgmentCurrencyBasis: text("judgment_currency_basis").notNull(),
     blockers: jsonb("blockers").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
     requiredConditions: jsonb("required_conditions").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    // Approvers allowed to record this permission decision. The requesting
+    // operator can never satisfy their own approval: the recorded decision
+    // maker must be one of these approvers and must differ from the operator.
+    requiredApproverUserIds: jsonb("required_approver_user_ids").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
     decision: text("decision")
       .$type<ScopedPermissionDecisionValue>()
       .notNull(),
@@ -3235,7 +3239,7 @@ export const scopedPermissionDecisions = pgTable(
     ),
     check(
       "scoped_permission_decisions_json_arrays_check",
-      sql`jsonb_typeof(${table.blockers}) = 'array' AND jsonb_typeof(${table.requiredConditions}) = 'array'`,
+      sql`jsonb_typeof(${table.blockers}) = 'array' AND jsonb_typeof(${table.requiredConditions}) = 'array' AND jsonb_typeof(${table.requiredApproverUserIds}) = 'array'`,
     ),
     check(
       "scoped_permission_decisions_permission_inputs_check",
@@ -3357,6 +3361,18 @@ export const humanActionDecisions = pgTable(
       .$type<string[]>()
       .notNull()
       .default(sql`'[]'::jsonb`),
+    // The action the human actually took, recorded in their own words. At
+    // proceed-time this must match the approved proposedAction exactly.
+    actualAction: text("actual_action"),
+    // The scope the human actually acted within. At proceed-time this must
+    // match the approved scopeText exactly.
+    actualScopeText: text("actual_scope_text"),
+    // The human approval itself expires; defaults to the linked permission
+    // decision's expiry when not supplied.
+    expiresAt: timestamp("expires_at"),
+    // Set when the human approval is revoked. A withdrawn approval can no
+    // longer anchor a later proceed choice.
+    withdrawnAt: timestamp("withdrawn_at"),
     lifecycleAction: text("lifecycle_action")
       .$type<HumanActionDecisionLifecycleAction>()
       .notNull()

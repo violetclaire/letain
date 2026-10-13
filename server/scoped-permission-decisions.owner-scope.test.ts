@@ -42,6 +42,7 @@ type TestPermissionDecision = {
   blockers: string[];
   requiredConditions: string[];
   decision: PermissionValue;
+  requiredApproverUserIds: string[];
   expiresAt: Date | null;
   mandatoryReviewTrigger: string | null;
   lifecycleAction: PermissionLifecycle;
@@ -182,6 +183,8 @@ function validBody(overrides: Record<string, unknown> = {}) {
     blockers: [],
     requiredConditions: [],
     decision: "permitted",
+    decisionMakerUserId: "artist-b",
+    requiredApproverUserIds: ["artist-b"],
     mandatoryReviewTrigger: "Review again if provider, date, scope, conditions, or consequence level changes",
     linkedJudgmentIds: ["judgment-1"],
     ...overrides,
@@ -211,6 +214,7 @@ function originalDecision(overrides: Partial<TestPermissionDecision> = {}): Test
     blockers: [],
     requiredConditions: [],
     decision: "permitted",
+    requiredApproverUserIds: ["artist-b"],
     expiresAt: null,
     mandatoryReviewTrigger: "Any material context change",
     lifecycleAction: "decision",
@@ -304,6 +308,34 @@ test("scoped permission decision endpoints require an authenticated operator", a
   assert.deepEqual(calls.create, []);
 });
 
+test("the requesting operator can never satisfy their own approval", async () => {
+  const { calls } = stubStorage();
+  // Self-approval: the decision maker is the requesting operator.
+  assert.equal((await invoke(postHandler, {
+    session: { userId: "artist-a" },
+    body: validBody({ decisionMakerUserId: "artist-a", requiredApproverUserIds: ["artist-a", "artist-b"] }),
+  })).statusCode, 403);
+  // Decision maker is not one of the required approvers.
+  assert.equal((await invoke(postHandler, {
+    session: { userId: "artist-a" },
+    body: validBody({ decisionMakerUserId: "artist-c", requiredApproverUserIds: ["artist-b"] }),
+  })).statusCode, 403);
+  assert.deepEqual(calls.create, []);
+});
+
+test("a permission decision expiration must be in the future", async () => {
+  const { calls } = stubStorage();
+  assert.equal((await invoke(postHandler, {
+    session: { userId: "artist-a" },
+    body: validBody({ expiresAt: new Date("2020-01-01T00:00:00.000Z").toISOString() }),
+  })).statusCode, 400);
+  assert.equal((await invoke(postHandler, {
+    session: { userId: "artist-a" },
+    body: validBody({ expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() }),
+  })).statusCode, 201);
+  assert.equal(calls.create.length, 1);
+});
+
 test("owning operator creates, lists, and reads an ordered judgment-linked decision", async () => {
   const { calls } = stubStorage({
     judgments: [
@@ -319,7 +351,8 @@ test("owning operator creates, lists, and reads an ordered judgment-linked decis
   assert.equal(createResult.statusCode, 201);
   const created = (createResult.body as any).permissionDecision as TestPermissionDecision;
   assert.equal(created.operatorId, "artist-a");
-  assert.equal(created.decisionMakerUserId, "artist-a");
+  assert.equal(created.decisionMakerUserId, "artist-b");
+  assert.deepEqual(created.requiredApproverUserIds, ["artist-b"]);
   assert.deepEqual(created.linkedJudgmentIds, ["judgment-2", "judgment-1"]);
   assert.deepEqual(calls.create[0].linkedJudgmentIds, ["judgment-2", "judgment-1"]);
 
@@ -338,12 +371,14 @@ test("client identity and execution fields are rejected rather than ignored", as
   const { calls } = stubStorage();
   for (const extra of [
     { operatorId: "artist-b" },
-    { decisionMakerUserId: "artist-b" },
     { inquiryId: "inquiry-b" },
     { authorUserId: "artist-b" },
     { allowedActions: ["send"] },
     { humanActionDecision: "proceed" },
     { execute: true },
+    { requiredApproverUserIds: [] },
+    { requiredApproverUserIds: ["artist-a"] },
+    { requiredApproverUserIds: ["artist-b", "artist-b"] },
   ]) {
     const result = await invoke(postHandler, {
       session: { userId: "artist-a" },

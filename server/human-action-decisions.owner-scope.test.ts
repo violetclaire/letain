@@ -14,6 +14,8 @@ type TestPermissionDecision = {
   inquiryId: string;
   decision: "permitted" | "permitted_with_conditions" | "wait" | "clarification_required" | "escalation_required" | "not_permitted";
   requiredConditions: string[];
+  proposedAction: string;
+  scopeText: string;
   expiresAt: Date | null;
   lifecycleAction: "decision" | "correction" | "withdrawal" | "supersession";
   relatedPermissionDecisionId: string | null;
@@ -33,12 +35,17 @@ type TestHumanActionDecision = {
   conditionConfirmations: string[];
   lifecycleAction: HumanActionLifecycle;
   relatedHumanActionDecisionId: string | null;
+  actualAction: string | null;
+  actualScopeText: string | null;
+  expiresAt: Date | null;
+  withdrawnAt: Date | null;
   createdAt: Date;
 };
 
 let listHandler: Handler;
 let readHandler: Handler;
 let postHandler: Handler;
+let withdrawHandler: Handler;
 let registeredRoutes: RouteRecord[];
 let storage: any;
 
@@ -112,9 +119,14 @@ before(async () => {
   assert.ok(listRoute, "human action decision list route should be registered");
   assert.ok(readRoute, "human action decision read route should be registered");
   assert.ok(postRoute, "human action decision create route should be registered");
+  const withdrawRoute = registeredRoutes.find((record) =>
+    record.method === "post" && record.path === "/api/inquiries/:id/human-action-decisions/:humanActionDecisionId/withdraw"
+  );
+  assert.ok(withdrawRoute, "human action decision withdraw route should be registered");
   listHandler = listRoute.handlers.at(-1) as Handler;
   readHandler = readRoute.handlers.at(-1) as Handler;
   postHandler = postRoute.handlers.at(-1) as Handler;
+  withdrawHandler = withdrawRoute.handlers.at(-1) as Handler;
 });
 
 afterEach(() => {
@@ -159,6 +171,8 @@ function validBody(overrides: Record<string, unknown> = {}) {
     permissionReviewSummary: "I reviewed the exact current scoped permission decision and its boundaries.",
     rationaleText: "I choose to proceed to a later, separately controlled action step.",
     conditionConfirmations: [],
+    actualAction: "Prepare the private provider outreach draft for operator review",
+    actualScopeText: "This inquiry, provider, date, services, and proposed draft only",
     ...overrides,
   };
 }
@@ -170,6 +184,8 @@ function permissionDecision(overrides: Partial<TestPermissionDecision> = {}): Te
     inquiryId: "inquiry-a",
     decision: "permitted",
     requiredConditions: [],
+    proposedAction: "Prepare the private provider outreach draft for operator review",
+    scopeText: "This inquiry, provider, date, services, and proposed draft only",
     expiresAt: null,
     lifecycleAction: "decision",
     relatedPermissionDecisionId: null,
@@ -192,6 +208,10 @@ function originalAction(overrides: Partial<TestHumanActionDecision> = {}): TestH
     conditionConfirmations: [],
     lifecycleAction: "decision",
     relatedHumanActionDecisionId: null,
+    actualAction: "Prepare the private provider outreach draft for operator review",
+    actualScopeText: "This inquiry, provider, date, services, and proposed draft only",
+    expiresAt: null,
+    withdrawnAt: null,
     createdAt: new Date("2026-07-20T09:00:00.000Z"),
     ...overrides,
   };
@@ -266,6 +286,18 @@ function stubStorage(options: {
     };
     humanActionDecisions.push(created);
     return created;
+  });
+  mock.method(storage, "withdrawHumanActionDecision", async (
+    operatorId: string,
+    inquiryId: string,
+    humanActionDecisionId: string,
+  ) => {
+    const target = humanActionDecisions.find((item) =>
+      item.operatorId === operatorId && item.inquiryId === inquiryId && item.id === humanActionDecisionId
+    );
+    if (!target || target.withdrawnAt) return undefined;
+    target.withdrawnAt = new Date("2026-07-21T00:00:00.000Z");
+    return target;
   });
 
   return { calls, humanActionDecisions };
@@ -434,6 +466,50 @@ test("expired or lifecycle-replaced permission cannot support proceed", async ()
   assert.deepEqual(calls.create, []);
 });
 
+test("proceed must name the exact approved action and scope", async () => {
+  const { calls } = stubStorage();
+  assert.equal((await invoke(postHandler, {
+    session: { userId: "artist-a" },
+    body: validBody({ actualAction: "A different action" }),
+  })).statusCode, 400);
+  assert.equal((await invoke(postHandler, {
+    session: { userId: "artist-a" },
+    body: validBody({ actualScopeText: "A wider scope" }),
+  })).statusCode, 400);
+  assert.equal((await invoke(postHandler, {
+    session: { userId: "artist-a" },
+    body: validBody(),
+  })).statusCode, 201);
+  assert.equal(calls.create.length, 1);
+});
+
+test("proceed cannot rely on an expired human approval", async () => {
+  const { calls } = stubStorage();
+  assert.equal((await invoke(postHandler, {
+    session: { userId: "artist-a" },
+    body: validBody({ expiresAt: new Date("2020-01-01T00:00:00.000Z").toISOString() }),
+  })).statusCode, 400);
+  assert.equal((await invoke(postHandler, {
+    session: { userId: "artist-a" },
+    body: validBody({ expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() }),
+  })).statusCode, 201);
+  assert.equal(calls.create.length, 1);
+  assert.ok((calls.create[0] as any).expiresAt instanceof Date);
+});
+
+test("a proceed approval records the linked permission expiry by default", async () => {
+  const future = new Date(Date.now() + 48 * 60 * 60 * 1000);
+  const { calls } = stubStorage({
+    permissionDecisions: [permissionDecision({ expiresAt: future })],
+  });
+  const result = await invoke(postHandler, {
+    session: { userId: "artist-a" },
+    body: validBody(),
+  });
+  assert.equal(result.statusCode, 201);
+  assert.equal(((calls.create[0] as any).expiresAt as Date).getTime(), future.getTime());
+});
+
 test("wait, clarify, escalate, and stop remain explicit non-executing human choices", async () => {
   const { calls } = stubStorage({
     permissionDecisions: [permissionDecision({ decision: "not_permitted" })],
@@ -483,6 +559,33 @@ test("withdrawal cannot preserve a proceed choice", async () => {
   assert.deepEqual(calls.create, []);
 });
 
+test("a human approval can be withdrawn and then anchors no later choice", async () => {
+  const { humanActionDecisions } = stubStorage({ humanActionDecisions: [originalAction()] });
+
+  const withdrawResult = await invoke(withdrawHandler, {
+    session: { userId: "artist-a" },
+    params: { id: "inquiry-a", humanActionDecisionId: "action-original" },
+  });
+  assert.equal(withdrawResult.statusCode, 200);
+  const withdrawn = (withdrawResult.body as any).humanActionDecision as TestHumanActionDecision;
+  assert.ok(withdrawn.withdrawnAt instanceof Date);
+
+  assert.equal((await invoke(withdrawHandler, {
+    session: { userId: "artist-a" },
+    params: { id: "inquiry-a", humanActionDecisionId: "action-original" },
+  })).statusCode, 400);
+
+  assert.equal((await invoke(postHandler, {
+    session: { userId: "artist-a" },
+    body: validBody({
+      choice: "wait",
+      lifecycleAction: "correction",
+      relatedHumanActionDecisionId: "action-original",
+    }),
+  })).statusCode, 400);
+  assert.equal(humanActionDecisions.length, 1);
+});
+
 test("related human choices stay in the same owner, inquiry, and permission scope", async () => {
   const { calls } = stubStorage({
     humanActionDecisions: [
@@ -510,7 +613,7 @@ test("human action surface is private create, list, and read only and cannot exe
   const actionRoutes = registeredRoutes.filter((record) =>
     record.path.startsWith("/api/inquiries/:id/human-action-decisions")
   );
-  assert.deepEqual(actionRoutes.map((record) => record.method).sort(), ["get", "get", "post"]);
+  assert.deepEqual(actionRoutes.map((record) => record.method).sort(), ["get", "get", "post", "post"]);
 
   const routesText = await readFile(new URL("./routes.ts", import.meta.url), "utf8");
   const section = routesText.match(

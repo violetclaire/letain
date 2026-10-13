@@ -45,7 +45,21 @@ export type InquiryDecisionChainRecord =
   | (InquiryDecisionChainRecordBase & {
       recordType: "human_action_decision";
       record: HumanActionDecision;
+      // Approved scope beside the recorded action, so a receipt reader can
+      // see at a glance what the permission covered and what the human
+      // recorded, plus whether the approval is still live.
+      actionScope: InquiryDecisionChainActionScope;
     });
+
+export type InquiryDecisionChainActionScope = {
+  reviewedPermissionDecisionId: string;
+  approvedProposedAction: string | null;
+  approvedScopeText: string | null;
+  actualAction: string | null;
+  actualScopeText: string | null;
+  expiresAt: Date | null;
+  withdrawnAt: Date | null;
+};
 
 export type InquiryDecisionChainProvenanceGap = {
   sourceRecordType: InquiryDecisionChainRecordType;
@@ -105,6 +119,7 @@ export function buildInquiryDecisionChain(input: BuildInquiryDecisionChainInput)
   const attestationIds = new Set(input.knownAttestationIds);
   const judgmentIds = new Set(input.judgments.map((record) => record.id));
   const permissionDecisionIds = new Set(input.permissionDecisions.map((record) => record.id));
+  const permissionDecisionById = new Map(input.permissionDecisions.map((record) => [record.id, record]));
   const humanActionDecisionIds = new Set(input.humanActionDecisions.map((record) => record.id));
 
   for (const record of input.judgments) {
@@ -163,6 +178,7 @@ export function buildInquiryDecisionChain(input: BuildInquiryDecisionChainInput)
       };
     }),
     ...input.humanActionDecisions.map((record): InquiryDecisionChainRecord => {
+      const reviewed = permissionDecisionById.get(record.permissionDecisionId);
       const references = [reference(
         "reviewed_permission_decision",
         "scoped_permission_decision",
@@ -184,6 +200,15 @@ export function buildInquiryDecisionChain(input: BuildInquiryDecisionChainInput)
         lifecycleAction: record.lifecycleAction,
         relatedRecordId: record.relatedHumanActionDecisionId,
         references,
+        actionScope: {
+          reviewedPermissionDecisionId: record.permissionDecisionId,
+          approvedProposedAction: reviewed?.proposedAction ?? null,
+          approvedScopeText: reviewed?.scopeText ?? null,
+          actualAction: record.actualAction ?? null,
+          actualScopeText: record.actualScopeText ?? null,
+          expiresAt: record.expiresAt ?? null,
+          withdrawnAt: record.withdrawnAt ?? null,
+        },
         record,
       };
     }),
