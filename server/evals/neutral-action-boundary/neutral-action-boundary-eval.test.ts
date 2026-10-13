@@ -554,3 +554,16 @@ test("invalid and pre-issuance times fail closed", () => {
     assert.equal(result.executed, false);
   }
 });
+
+test('receipt chronology rejects self-links and reports exact scope without human approvals',()=>{
+ const fixture=LEGITIMATE_CONTROL_CASES[0];
+ const decision=evaluateActionRequest(fixture.request,fixture.context);
+ const receipt=createDecisionReceipt({decision});
+ assert.throws(()=>createDecisionReceipt({decision,previousReceiptReference:receipt.receiptId}),/cannot link to itself/);
+ assert.deepEqual(receipt.evaluatedRequest,fixture.request);
+ for(const value of [fixture.request.actorId,fixture.request.taskId,fixture.request.tool,fixture.request.action,fixture.request.target,fixture.request.environment])assert.ok(receipt.inputSummary.includes(value));
+ const changed=structuredClone(decision);changed.evaluatedRequest.target='different';
+ assert.throws(()=>createDecisionReceipt({decision:changed}),/unchanged evaluated request/);
+ const report=runNeutralActionBoundaryEval();
+ for(let i=0;i<report.cases.length;i++)assert.deepEqual(report.cases[i].evaluatedRequest,report.receipts[i].evaluatedRequest);
+});

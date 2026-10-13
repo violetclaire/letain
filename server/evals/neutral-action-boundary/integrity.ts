@@ -10,6 +10,9 @@ export function createDecisionReceipt(input: {
   previousReceiptReference?: string | null;
   approvals?: HumanApproval[];
 }): DecisionReceipt {
+  if (input.previousReceiptReference === `receipt-${input.decision.decisionId}`) {
+    throw new Error("Receipt chronology cannot link to itself.");
+  }
   const evaluatedRequest = structuredClone(input.decision.evaluatedRequest);
   if (!evaluatedRequest || evaluatedRequest.requestId !== input.decision.requestId ||
       deterministicIntegrityValue(evaluatedRequest) !== input.decision.evaluatedRequestDigest) {
