@@ -450,7 +450,7 @@ function positive(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
 
-function providerCanPerform(provider: SchedulingProvider, service: ScheduleServiceKind): boolean {
+export function providerCanPerform(provider: SchedulingProvider, service: ScheduleServiceKind): boolean {
   if (service === "touchup" || service === "other") return true;
   if (!provider.capability || provider.capability === "ALL") return true;
   if (service === "hair") return provider.capability === "HAIR_ONLY";
@@ -587,6 +587,12 @@ function taskPriority(person: ParsedSchedulePerson, service: ScheduleServiceKind
 
 function personKey(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+// Content-derived working-task key: stable across regenerations for the same
+// person + service. The placed block id appends startMinutes at placement time.
+function workingTaskKey(personId: string, service: ScheduleServiceKind): string {
+  return `task-${personId}-${service}`;
 }
 
 function serviceCovers(fixed: ScheduleServiceKind, task: ScheduleServiceKind): boolean {
@@ -737,15 +743,15 @@ export function generateProductionSchedule(
     const fixedForPerson = config.fixedBlocks.filter(
       (fixed) => acceptedFixedBlockIds.has(fixed.id) && personKey(fixed.personName) === personKey(person.name),
     );
-    const services = [...person.services];
+    const services = unique([...person.services]);
     if (isPrimaryPerson(person) && config.assignPrimaryToLead && services.includes("hair") && services.includes("makeup")) {
       services.splice(0, services.length, "hair_makeup");
     }
-    services.forEach((service, index) => {
+    services.forEach((service) => {
       if (fixedForPerson.some((fixed) => serviceCovers(fixed.service, service))) return;
       const proximityNames = proximityByPerson.get(person.id);
       tasks.push({
-        id: `task-${person.id}-${service}-${index + 1}`,
+        id: workingTaskKey(person.id, service),
         person,
         service,
         priority: taskPriority(person, service),
@@ -845,7 +851,7 @@ export function generateProductionSchedule(
     dynamicByProvider.set(provider.id, [...(dynamicByProvider.get(provider.id) ?? []), interval]);
     dynamicByPerson.set(task.person.id, [...(dynamicByPerson.get(task.person.id) ?? []), interval]);
     blocks.push({
-      id: task.id,
+      id: `${task.id}-${start}`,
       personId: task.person.id,
       personName: task.person.name,
       roleLabel: task.person.roleLabel,
