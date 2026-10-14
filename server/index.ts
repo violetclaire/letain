@@ -1031,12 +1031,12 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://accounts.google.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "blob:", "https:"],
       connectSrc: ["'self'", "https:", "wss:"],
-      frameSrc: ["'self'"],
+      frameSrc: ["'self'", "https://accounts.google.com"],
       frameAncestors: ["'self'", "https://themakeupdolls.com", "https://www.themakeupdolls.com", "https://briarwood.ai"],
     },
   },

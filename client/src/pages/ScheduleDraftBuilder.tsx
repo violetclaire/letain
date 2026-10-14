@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRoute, useSearch, Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, Plus, Trash2, Copy, X, Save, Eye, Printer } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, Trash2, Copy, X, Save, Eye, Printer, Mail } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { enableGmailReadonlyIngestion } from "@/lib/demoFeatureFlags";
+import { importGmailThreadEvidence } from "@/lib/gmailReadonlyThreadEvidence";
 import {
   generateProductionSchedule,
   serviceLabel,
@@ -1781,6 +1783,10 @@ export default function ScheduleDraftBuilder() {
   const [engineMetadata, setEngineMetadata] = useState<ScheduleEngineMetadata>(normalizeScheduleEngineMetadata());
   const [pasteText, setPasteText] = useState("");
   const [requestText, setRequestText] = useState("");
+  const [gmailThreadReference, setGmailThreadReference] = useState("");
+  const [gmailImportPending, setGmailImportPending] = useState(false);
+  const [gmailImportError, setGmailImportError] = useState("");
+  const [gmailImportSummary, setGmailImportSummary] = useState("");
   const [showPreview, setShowPreview] = useState(false);
   const [showFirstDraftPreview, setShowFirstDraftPreview] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -2203,6 +2209,43 @@ export default function ScheduleDraftBuilder() {
     }));
   };
 
+  const copyGmailThreadIntoEvidenceReview = async () => {
+    const clientId = (import.meta.env.VITE_GOOGLE_GMAIL_CLIENT_ID as string | undefined)?.trim() ?? "";
+    if (!gmailThreadReference.trim()) {
+      setGmailImportError("Enter a Gmail thread ID or mail.google.com thread URL.");
+      return;
+    }
+    if (!clientId) {
+      setGmailImportError("Gmail read-only access is not configured for this environment.");
+      return;
+    }
+    if (
+      requestText.trim() &&
+      !window.confirm("Replace the current private source request with this Gmail thread? This does not save the draft or apply a schedule preview.")
+    ) {
+      return;
+    }
+
+    setGmailImportPending(true);
+    setGmailImportError("");
+    setGmailImportSummary("");
+    try {
+      const imported = await importGmailThreadEvidence(gmailThreadReference, clientId);
+      updateRequestText(imported.evidenceText);
+      setGmailImportSummary(
+        `Copied ${imported.messageCount} message${imported.messageCount === 1 ? "" : "s"} from "${imported.subject}" into private evidence review.`,
+      );
+      toast({
+        title: "Gmail evidence copied",
+        description: "Review the source text and reduced state. Nothing was saved, sent, or scheduled.",
+      });
+    } catch (error) {
+      setGmailImportError(error instanceof Error ? error.message : "The Gmail thread could not be copied.");
+    } finally {
+      setGmailImportPending(false);
+    }
+  };
+
   const applyPaste = () => {
     const built = buildScheduleFromInput(pasteText, serviceDefaults);
     const { providers: laneDefs, blocks, personRows, namePool } = built;
@@ -2542,6 +2585,56 @@ export default function ScheduleDraftBuilder() {
                   Private draft input
                 </span>
               </div>
+              {enableGmailReadonlyIngestion && (
+                <div className="mt-5 border-y border-hairline py-4" data-testid="section-gmail-readonly-ingestion">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h3 className="text-sm font-medium">Gmail thread evidence</h3>
+                      <p className="mt-1 max-w-[70ch] text-xs text-ink/55">
+                        Read one operator-selected thread into the private source request below. The imported text stays editable and uses the existing evidence review flow.
+                      </p>
+                    </div>
+                    <span className="inline-flex w-fit border border-hairline bg-bg px-2 py-1 text-xs uppercase tracking-wide text-ink/55">
+                      Private read-only
+                    </span>
+                  </div>
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
+                    <label className="min-w-0 flex-1">
+                      <span className="text-xs uppercase tracking-wide text-ink/50">Gmail thread ID or URL</span>
+                      <input
+                        type="text"
+                        value={gmailThreadReference}
+                        onChange={(event) => setGmailThreadReference(event.target.value)}
+                        placeholder="mail.google.com thread URL or thread ID"
+                        className="mt-1 w-full border border-hairline bg-bg px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood/70"
+                        data-testid="input-gmail-thread-reference"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={copyGmailThreadIntoEvidenceReview}
+                      disabled={gmailImportPending || !gmailThreadReference.trim()}
+                      className="inline-flex min-h-10 items-center justify-center gap-2 border border-hairline px-3 py-2 text-sm hover:bg-bg disabled:cursor-not-allowed disabled:opacity-50"
+                      data-testid="button-copy-gmail-thread-evidence"
+                    >
+                      {gmailImportPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                      {gmailImportPending ? "Reading thread" : "Copy thread evidence"}
+                    </button>
+                  </div>
+                  <p className="mt-2 text-xs text-ink/50">
+                    Only Gmail read-only access is requested. The access token stays in browser memory. This does not send or modify email, contact anyone, save the draft, generate or apply a schedule, or create a public/client link.
+                  </p>
+                  {(gmailImportError || gmailImportSummary) && (
+                    <p
+                      className={`mt-2 text-xs ${gmailImportError ? "text-oxblood" : "text-ink/60"}`}
+                      role="status"
+                      data-testid="status-gmail-thread-ingestion"
+                    >
+                      {gmailImportError || gmailImportSummary}
+                    </p>
+                  )}
+                </div>
+              )}
               <textarea
                 value={requestText}
                 onChange={(event) => updateRequestText(event.target.value)}
