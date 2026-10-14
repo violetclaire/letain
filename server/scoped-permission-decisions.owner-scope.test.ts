@@ -596,7 +596,7 @@ test("schema and startup DDL preserve append-only constraints and fail closed", 
   assert.match(setup, /CREATE TABLE IF NOT EXISTS scoped_permission_decision_judgments/);
   assert.equal(setup.match(/NOT VALID/g)?.length, 17);
   assert.equal(setup.match(/VALIDATE CONSTRAINT scoped_permission/g)?.length, 17);
-  assert.equal(setup.match(/required: true/g)?.length, 28);
+  assert.equal(setup.match(/required: true/g)?.length, 29);
   assert.doesNotMatch(setup, /ON DELETE (?:CASCADE|SET NULL)/i);
   assert.doesNotMatch(setup, /(?:UPDATE|DELETE FROM) scoped_permission/i);
   assert.match(setup, /scoped_permission_decision_judgments_unique/);

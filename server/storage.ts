@@ -1,3 +1,5 @@
+import { buildAgreementSnapshot, agreementMatches, AgreementReviewRequired } from "./agreementSnapshot";
+import type { AgreementSnapshot } from "./agreementSnapshot";
 import {
   users,
   artistProfiles,
@@ -572,6 +574,7 @@ export interface IStorage {
     inquiryId: string,
   ): Promise<ScopedPermissionDecisionWithJudgments[]>;
   // Private, append-only authenticated human choices; these never execute actions
+  getAgreementSnapshot(operatorId: string, inquiryId: string): Promise<AgreementSnapshot>;
   createHumanActionDecision(data: InsertHumanActionDecision): Promise<HumanActionDecision>;
   getHumanActionDecision(
     operatorId: string,
@@ -2390,7 +2393,7 @@ export class DatabaseStorage implements IStorage {
         personType = "user";
       }
 
-      const reason = (e.metadata?.contextualFactors || []).join(" · ") || null;
+      const reason = (e.metadata?.contextualFactors || []).join(" Â· ") || null;
 
       entries.push({
         id: e.id,
@@ -3082,12 +3085,31 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
+  private async readAgreementSnapshot(tx: Parameters<Parameters<typeof db.transaction>[0]>[0], operatorId: string, inquiryId: string): Promise<AgreementSnapshot> {
+    const [inquiry] = await tx.select().from(inquiries).where(and(eq(inquiries.id, inquiryId), eq(inquiries.vendorId, operatorId))).for("update");
+    if (!inquiry) throw new AgreementReviewRequired();
+    const bookingId = inquiry.bookingId ?? inquiry.convertedToBookingId;
+    const [booking] = bookingId ? await tx.select().from(bookings).where(eq(bookings.id, bookingId)).for("update") : [];
+    const relatedContracts = await tx.select().from(contracts).where(or(
+      eq(contracts.inquiryId, inquiryId),
+      ...(bookingId ? [eq(contracts.bookingId, bookingId)] : []),
+      ...(inquiry.convertedToContractId ? [eq(contracts.id, inquiry.convertedToContractId)] : []),
+    )).orderBy(asc(contracts.id)).for("update");
+    if ((bookingId && !booking) || (inquiry.convertedToContractId && !relatedContracts.some(row => row.id === inquiry.convertedToContractId))) throw new AgreementReviewRequired();
+    return buildAgreementSnapshot(inquiry, booking ?? null, relatedContracts);
+  }
+
+  async getAgreementSnapshot(operatorId: string, inquiryId: string): Promise<AgreementSnapshot> {
+    return db.transaction(tx => this.readAgreementSnapshot(tx, operatorId, inquiryId));
+  }
+
   async createScopedPermissionDecision(
     data: InsertScopedPermissionDecision,
     linkedJudgmentIds: string[],
   ): Promise<ScopedPermissionDecisionWithJudgments> {
     return await db.transaction(async (tx) => {
-      const [permissionDecision] = await tx.insert(scopedPermissionDecisions).values(data).returning();
+      const agreementSnapshot = await this.readAgreementSnapshot(tx, data.operatorId, data.inquiryId);
+      const [permissionDecision] = await tx.insert(scopedPermissionDecisions).values({ ...data, agreementSnapshot }).returning();
 
       await tx.insert(scopedPermissionDecisionJudgments).values(
         linkedJudgmentIds.map((judgmentId, position) => ({
@@ -3166,8 +3188,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createHumanActionDecision(data: InsertHumanActionDecision): Promise<HumanActionDecision> {
-    const [humanActionDecision] = await db.insert(humanActionDecisions).values(data).returning();
-    return humanActionDecision;
+    return db.transaction(async tx => {
+      if (data.choice === "proceed") {
+        const current = await this.readAgreementSnapshot(tx, data.operatorId, data.inquiryId);
+        const [permission] = await tx.select().from(scopedPermissionDecisions).where(and(
+          eq(scopedPermissionDecisions.id, data.permissionDecisionId), eq(scopedPermissionDecisions.operatorId, data.operatorId), eq(scopedPermissionDecisions.inquiryId, data.inquiryId),
+        )).for("update");
+        if (!permission || !agreementMatches(permission.agreementSnapshot, current)
+          || !["permitted", "permitted_with_conditions"].includes(permission.decision)
+          || (permission.expiresAt && permission.expiresAt.getTime() <= Date.now())) throw new AgreementReviewRequired();
+        const successors = await tx.select().from(scopedPermissionDecisions).where(eq(scopedPermissionDecisions.relatedPermissionDecisionId, permission.id));
+        if (successors.length || permission.requiredConditions.length !== data.conditionConfirmations?.length
+          || !permission.requiredConditions.every(condition => data.conditionConfirmations?.includes(condition))) throw new AgreementReviewRequired();
+      }
+      const [humanActionDecision] = await tx.insert(humanActionDecisions).values(data).returning();
+      return humanActionDecision;
+    });
   }
 
   async getHumanActionDecision(
@@ -3390,7 +3426,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(threadReferrals.createdAt)).limit(25);
   }
 
-  // Recent outbound comms to this phone — a soft signal that an artist is in an
+  // Recent outbound comms to this phone â€” a soft signal that an artist is in an
   // active conversation with the sender (item 2/9 of the matching order).
   async findRecentOutboundByPhone(phone: string, sinceMs: number): Promise<Array<{ artistId: string; createdAt: Date | null; communicationType: string }>> {
     if (!phone) return [];
